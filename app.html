@@ -9,6 +9,9 @@
 <meta name="theme-color" content="#0F172A">
 <title>Copamiento Territorial — App</title>
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-title" content="Patrullaje">
+<meta name="application-name" content="Patrullaje">
 
 <!-- Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -284,6 +287,28 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',-apple-system,BlinkMac
 @keyframes spin{to{transform:rotate(360deg);}}
 #app-loading p{color:rgba(255,255,255,0.6);font-size:13px;}
 
+/* ===== EFECTO VIVO GPS ===== */
+@keyframes sonar1{ 0%{transform:scale(1);opacity:.6;} 100%{transform:scale(3.5);opacity:0;} }
+@keyframes sonar2{ 0%{transform:scale(1);opacity:.4;} 100%{transform:scale(5);opacity:0;} }
+@keyframes sonar3{ 0%{transform:scale(1);opacity:.25;} 100%{transform:scale(7);opacity:0;} }
+@keyframes gpsCore{ 0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,0.5);} 50%{box-shadow:0 0 0 6px rgba(37,99,235,0);} }
+.gps-marker-wrap{ position:relative;width:20px;height:20px; }
+.gps-sonar{
+  position:absolute;top:50%;left:50%;
+  width:20px;height:20px;margin:-10px 0 0 -10px;
+  border-radius:50%;background:rgba(37,99,235,0.5);
+}
+.gps-sonar-1{ animation:sonar1 2s ease-out infinite; }
+.gps-sonar-2{ animation:sonar2 2s ease-out infinite .5s; }
+.gps-sonar-3{ animation:sonar3 2s ease-out infinite 1s; }
+.gps-dot{
+  position:absolute;top:50%;left:50%;
+  width:14px;height:14px;margin:-7px 0 0 -7px;
+  background:#2563EB;border:3px solid #fff;border-radius:50%;
+  box-shadow:0 2px 8px rgba(37,99,235,0.6);
+  animation:gpsCore 1.8s ease-in-out infinite;z-index:2;
+}
+
 /* ===== OFFLINE BANNER ===== */
 #offline-banner{
   background:#F59E0B;color:#fff;text-align:center;
@@ -295,6 +320,11 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',-apple-system,BlinkMac
 .sync-badge{
   background:var(--orange);color:#fff;border-radius:20px;
   padding:2px 8px;font-size:10px;font-weight:700;margin-left:6px;
+}
+
+/* ===== PWA INSTALL BANNER ===== */
+@media (display-mode: standalone) {
+  #banner-instalar { display: none !important; }
 }
 </style>
 </head>
@@ -577,6 +607,28 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',-apple-system,BlinkMac
       <button class="btn-cancel" onclick="cerrarModalReporte()">Cancelar</button>
       <button class="btn-reportar" onclick="guardarReporte()">🚨 Reportar</button>
     </div>
+  </div>
+</div>
+
+<!-- Banner instalación PWA -->
+<div id="banner-instalar" style="display:none;position:fixed;bottom:calc(var(--safe-bot) + 76px);
+  left:12px;right:12px;z-index:1500;background:#1E293B;border-radius:16px;
+  padding:14px 16px;align-items:center;gap:12px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);border:1px solid rgba(99,179,237,0.2);">
+  <img src="icon-192.png" style="width:42px;height:42px;border-radius:10px;flex-shrink:0;" alt="">
+  <div style="flex:1;min-width:0;">
+    <div style="font-size:13px;font-weight:800;color:#fff;">Instalar App de Patrullaje</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:2px;">Acceso rápido desde tu pantalla de inicio</div>
+  </div>
+  <div style="display:flex;gap:8px;flex-shrink:0;">
+    <button onclick="ocultarBannerInstalacion()" style="background:rgba(255,255,255,0.1);border:none;
+      color:rgba(255,255,255,0.6);padding:8px 12px;border-radius:10px;font-size:12px;cursor:pointer;">
+      Ahora no
+    </button>
+    <button onclick="instalarApp()" style="background:#2563EB;border:none;color:#fff;
+      padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;">
+      Instalar ✓
+    </button>
   </div>
 </div>
 
@@ -869,10 +921,11 @@ function iniciarMapa() {
     zoomControl: false,
   });
 
-  // Tile base (funciona sin login)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap',
+  // Mapa base Esri Topo (igual que el sistema principal, sin key)
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Esri',
     maxZoom: 19,
+    maxNativeZoom: 19,
   }).addTo(state.map);
 
   // Control de zoom arriba a la derecha
@@ -898,19 +951,25 @@ function iniciarMapa() {
 function actualizarMarcadorUsuario(lat, lng) {
   if (!state.mapaIniciado || !state.map) return;
 
-  // Ícono personalizado (punto azul pulsante)
+  // Ícono con efecto vivo (3 ondas de sonar + punto central)
   const iconoUsuario = L.divIcon({
     className: '',
-    html: `<div style="width:18px;height:18px;background:#2563EB;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 4px rgba(37,99,235,0.3);"></div>`,
-    iconSize: [18, 18],
-    iconAnchor: [9, 9]
+    html: `<div class="gps-marker-wrap">
+      <div class="gps-sonar gps-sonar-3"></div>
+      <div class="gps-sonar gps-sonar-2"></div>
+      <div class="gps-sonar gps-sonar-1"></div>
+      <div class="gps-dot"></div>
+    </div>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
   });
 
   if (!state.markerUsuario) {
-    state.markerUsuario = L.marker([lat,lng], { icon: iconoUsuario }).addTo(state.map);
+    state.markerUsuario = L.marker([lat,lng], { icon: iconoUsuario, zIndexOffset: 1000 }).addTo(state.map);
     state.markerUsuario.bindPopup('📍 Tu posición actual');
   } else {
     state.markerUsuario.setLatLng([lat, lng]);
+    state.markerUsuario.setIcon(iconoUsuario);
   }
 
   // Agregar al rastro
@@ -1357,8 +1416,74 @@ document.getElementById('modal-reporte').addEventListener('click', e => {
 });
 
 // ════════════════════════════════════════════
+// PWA — SERVICE WORKER + PROMPT INSTALACIÓN
+// ════════════════════════════════════════════
+let deferredPrompt = null;
+
+// Registrar Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('SW registrado'))
+      .catch(e => console.warn('SW error:', e));
+  });
+}
+
+// Capturar el evento de instalación
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Mostrar banner solo si no está instalada
+  if (!window.matchMedia('(display-mode: standalone)').matches) {
+    mostrarBannerInstalacion();
+  }
+});
+
+// Cuando se instala exitosamente
+window.addEventListener('appinstalled', () => {
+  ocultarBannerInstalacion();
+  mostrarToast('✅ App instalada correctamente');
+  deferredPrompt = null;
+});
+
+function mostrarBannerInstalacion() {
+  const banner = document.getElementById('banner-instalar');
+  if (banner) banner.style.display = 'flex';
+}
+
+function ocultarBannerInstalacion() {
+  const banner = document.getElementById('banner-instalar');
+  if (banner) banner.style.display = 'none';
+}
+
+async function instalarApp() {
+  if (!deferredPrompt) {
+    mostrarToast('Abre el menú del navegador → "Agregar a pantalla de inicio"');
+    return;
+  }
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    mostrarToast('✅ Instalando app…');
+  }
+  deferredPrompt = null;
+  ocultarBannerInstalacion();
+}
+
+// Verificar si ya está instalada al abrir
+function verificarInstalacion() {
+  const esStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true; // iOS Safari
+  if (esStandalone) {
+    // Ya está instalada como app — ocultar cualquier banner
+    ocultarBannerInstalacion();
+  }
+}
+
+// ════════════════════════════════════════════
 // ARRANQUE
 // ════════════════════════════════════════════
+verificarInstalacion();
 iniciar();
 </script>
 </body>
