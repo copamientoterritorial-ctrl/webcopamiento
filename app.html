@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0F172A">
+<title>Copamiento Territorial — App</title>
+<link rel="manifest" href="manifest.json">
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<style>
+/* ===== RESET & BASE ===== */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --navy:#0F172A;--cobalt:#2563EB;--red:#EF4444;--orange:#F97316;
+  --green:#22C55E;--yellow:#F59E0B;--white:#FFFFFF;--border:#E2E8F0;
+  --text:#1E293B;--text2:#64748B;--card:#FFFFFF;--bg:#F8FAFC;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;overflow:hidden;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);}
+
+/* ===== PANTALLAS ===== */
+.screen{position:fixed;inset:0;display:none;flex-direction:column;background:var(--bg);}
+.screen.active{display:flex;}
+
+/* ===== LOGIN ===== */
+#screen-login{
+  background:var(--navy);
+  align-items:center;justify-content:center;
+  padding:24px;
+}
+.login-bg{position:absolute;inset:0;overflow:hidden;}
+.login-bg svg{width:100%;height:100%;opacity:0.07;}
+.login-box{
+  position:relative;z-index:1;
+  background:#fff;border-radius:24px;
+  padding:32px 28px;width:100%;max-width:380px;
+  box-shadow:0 0 0 1px rgba(99,179,237,0.4),0 0 30px rgba(99,179,237,0.15),0 20px 60px rgba(0,0,0,0.4);
+}
+.login-logo{
+  width:52px;height:52px;border-radius:14px;
+  background:linear-gradient(135deg,var(--cobalt),#7C3AED);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 16px;
+}
+.login-logo svg{width:26px;height:26px;}
+.login-title{font-size:20px;font-weight:900;text-align:center;color:var(--text);margin-bottom:4px;}
+.login-sub{font-size:12.5px;color:var(--text2);text-align:center;margin-bottom:24px;}
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:6px;}
+.form-group input{
+  width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:12px;
+  font-size:16px;outline:none;transition:border .2s;background:#fff;color:var(--text);
+}
+.form-group input:focus{border-color:var(--cobalt);}
+.btn-primary{
+  width:100%;padding:15px;background:var(--cobalt);color:#fff;
+  border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;
+  transition:opacity .15s;margin-top:4px;
+}
+.btn-primary:active{opacity:.85;}
+.login-error{color:var(--red);font-size:12px;text-align:center;margin-top:10px;min-height:18px;}
+
+/* ===== TOPBAR ===== */
+.topbar{
+  background:var(--navy);color:#fff;
+  padding:calc(var(--safe-top) + 12px) 16px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;z-index:100;
+}
+.topbar-title{font-size:15px;font-weight:800;}
+.topbar-sub{font-size:10.5px;color:rgba(255,255,255,0.6);margin-top:1px;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,var(--cobalt),#7C3AED);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:800;color:#fff;cursor:pointer;flex-shrink:0;
+}
+
+/* ===== BOTTOM NAV ===== */
+.bottom-nav{
+  background:var(--navy);
+  display:flex;align-items:stretch;
+  padding-bottom:var(--safe-bot);flex-shrink:0;
+  border-top:1px solid rgba(255,255,255,0.08);
+}
+.nav-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:10px 4px;gap:4px;background:none;border:none;cursor:pointer;
+  color:rgba(255,255,255,0.45);transition:color .15s;min-height:58px;
+}
+.nav-btn.active{color:#fff;}
+.nav-btn svg{width:22px;height:22px;}
+.nav-btn span{font-size:9.5px;font-weight:600;letter-spacing:.3px;}
+
+/* ===== CONTENIDO CENTRAL ===== */
+.content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+
+/* ===== HOME ===== */
+.home-content{padding:16px;}
+.status-card{
+  background:var(--card);border-radius:18px;padding:20px;
+  box-shadow:0 1px 4px rgba(0,0,0,0.06);margin-bottom:14px;
+}
+.status-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.status-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);}
+.status-badge{
+  padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;
+}
+.badge-off{background:#F1F5F9;color:#64748B;}
+.badge-on{background:#DCFCE7;color:#166534;}
+.badge-report{background:#FEF3C7;color:#92400E;}
+
+/* Botón GPS grande */
+.gps-btn{
+  width:100%;padding:18px;border-radius:16px;border:none;cursor:pointer;
+  font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;
+  gap:10px;transition:all .2s;
+}
+.gps-btn-off{background:#F1F5F9;color:#475569;}
+.gps-btn-on{background:var(--green);color:#fff;box-shadow:0 4px 20px rgba(34,197,94,0.4);}
+.gps-btn-on .pulse{
+  width:10px;height:10px;border-radius:50%;background:#fff;
+  animation:gpsPulse 1.2s ease-in-out infinite;
+}
+@keyframes gpsPulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.3);}}
+
+/* Stats GPS */
+.gps-stats{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px;
+}
+.gps-stat{text-align:center;}
+.gps-stat-val{font-size:18px;font-weight:900;color:var(--text);}
+.gps-stat-lbl{font-size:9.5px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
+
+/* Acciones rápidas */
+.quick-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px;}
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.quick-btn{
+  background:var(--card);border-radius:16px;border:1.5px solid var(--border);
+  padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;
+  cursor:pointer;transition:all .15s;
+}
+.quick-btn:active{transform:scale(.97);background:#F8FAFC;}
+.quick-btn-ico{font-size:28px;}
+.quick-btn-lbl{font-size:11.5px;font-weight:700;color:var(--text);text-align:center;}
+
+/* ===== MAPA ===== */
+#screen-mapa{background:#fff;}
+#map{flex:1;z-index:0;}
+.map-fab{
+  position:absolute;right:16px;bottom:calc(var(--safe-bot) + 74px);
+  width:52px;height:52px;border-radius:50%;border:none;
+  background:var(--cobalt);color:#fff;font-size:22px;
+  box-shadow:0 4px 20px rgba(37,99,235,0.45);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;z-index:500;
+}
+.map-overlay{
+  position:absolute;top:16px;left:16px;right:16px;z-index:500;
+  background:#fff;border-radius:14px;padding:12px 14px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.12);
+  display:flex;align-items:center;gap:10px;
+}
+.map-overlay-ico{font-size:18px;}
+.map-overlay-txt{font-size:12px;font-weight:700;color:var(--text);flex:1;}
+.map-overlay-sub{font-size:10.5px;color:var(--text2);}
+.map-mode-btn{
+  padding:6px 12px;border-radius:20px;border:none;cursor:pointer;
+  font-size:11px;font-weight:700;
+}
+.map-mode-off{background:#F1F5F9;color:#475569;}
+.map-mode-on{background:var(--green);color:#fff;}
+
+/* ===== REPORTES ===== */
+.reportes-content{padding:16px;}
+.reporte-card{
+  background:var(--card);border-radius:16px;border-left:4px solid var(--red);
+  padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06);
+}
+.reporte-tipo{font-size:13px;font-weight:800;color:var(--text);}
+.reporte-meta{font-size:11px;color:var(--text2);margin-top:4px;}
+.reporte-coords{font-size:10.5px;color:var(--text2);margin-top:2px;font-family:monospace;}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text2);}
+.empty-ico{font-size:48px;margin-bottom:12px;}
+
+/* ===== MODAL REPORTE ===== */
+.modal-overlay{
+  position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,0.6);
+  display:none;align-items:flex-end;justify-content:center;
+}
+.modal-overlay.show{display:flex;}
+.modal-sheet{
+  background:#fff;border-radius:24px 24px 0 0;
+  width:100%;max-width:480px;padding:0 0 calc(var(--safe-bot) + 16px);
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.modal-handle{width:40px;height:4px;background:#E2E8F0;border-radius:2px;margin:12px auto 20px;}
+.modal-title{font-size:17px;font-weight:900;padding:0 20px;margin-bottom:20px;}
+.modal-body{padding:0 20px;}
+.tipo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.tipo-btn{
+  padding:14px;border-radius:14px;border:2px solid var(--border);
+  background:#fff;cursor:pointer;text-align:center;transition:all .15s;
+}
+.tipo-btn.selected{border-color:var(--red);background:#FEF2F2;}
+.tipo-btn-ico{font-size:24px;margin-bottom:6px;}
+.tipo-btn-lbl{font-size:11.5px;font-weight:700;color:var(--text);}
+.modal-textarea{
+  width:100%;padding:12px;border:1.5px solid var(--border);border-radius:12px;
+  font-size:14px;resize:none;outline:none;font-family:inherit;color:var(--text);
+  margin-bottom:14px;
+}
+.modal-textarea:focus{border-color:var(--red);}
+.modal-actions{display:flex;gap:10px;padding:0 20px;}
+.btn-cancel{
+  flex:1;padding:14px;border-radius:12px;border:1.5px solid var(--border);
+  background:#fff;font-size:14px;font-weight:700;color:var(--text2);cursor:pointer;
+}
+.btn-reportar{
+  flex:2;padding:14px;border-radius:12px;border:none;
+  background:var(--red);color:#fff;font-size:14px;font-weight:800;cursor:pointer;
+}
+
+/* ===== PERFIL ===== */
+.perfil-content{padding:16px;}
+.perfil-card{
+  background:var(--card);border-radius:18px;padding:24px;text-align:center;
+  box-shadow:0 1px 4px rgba(0,0,0,0.06);margin-bottom:14px;
+}
+.perfil-avatar{
+  width:72px;height:72px;border-radius:50%;
+  background:linear-gradient(135deg,var(--cobalt),#7C3AED);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:900;color:#fff;margin:0 auto 14px;
+}
+.perfil-nombre{font-size:18px;font-weight:900;color:var(--text);}
+.perfil-dato{font-size:13px;color:var(--text2);margin-top:4px;}
+.perfil-badge{
+  display:inline-block;padding:4px 14px;border-radius:20px;
+  background:#EFF4FF;color:var(--cobalt);font-size:11px;font-weight:700;
+  margin-top:10px;
+}
+.menu-item{
+  background:var(--card);border-radius:14px;padding:16px;
+  display:flex;align-items:center;gap:14px;margin-bottom:10px;
+  box-shadow:0 1px 4px rgba(0,0,0,0.04);cursor:pointer;border:none;width:100%;
+  text-align:left;
+}
+.menu-item-ico{font-size:20px;width:36px;text-align:center;}
+.menu-item-lbl{font-size:14px;font-weight:600;color:var(--text);flex:1;}
+.menu-item-arr{color:var(--text2);}
+.menu-item.danger .menu-item-lbl{color:var(--red);}
+
+/* ===== TOAST ===== */
+.toast{
+  position:fixed;bottom:calc(var(--safe-bot) + 80px);left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:#1E293B;color:#fff;padding:10px 20px;border-radius:20px;
+  font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:2000;
+  white-space:nowrap;pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ===== LOADING ===== */
+#app-loading{
+  position:fixed;inset:0;background:var(--navy);z-index:9999;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;
+}
+.spinner{
+  width:40px;height:40px;border:3px solid rgba(255,255,255,0.15);
+  border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+#app-loading p{color:rgba(255,255,255,0.6);font-size:13px;}
+
+/* ===== OFFLINE BANNER ===== */
+#offline-banner{
+  background:#F59E0B;color:#fff;text-align:center;
+  padding:8px;font-size:12px;font-weight:700;display:none;flex-shrink:0;
+}
+#offline-banner.show{display:block;}
+
+/* ===== SYNC BADGE ===== */
+.sync-badge{
+  background:var(--orange);color:#fff;border-radius:20px;
+  padding:2px 8px;font-size:10px;font-weight:700;margin-left:6px;
+}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="app-loading">
+  <div class="spinner"></div>
+  <p>Cargando…</p>
+</div>
+
+<!-- Offline Banner -->
+<div id="offline-banner">📵 Sin conexión — los datos se guardarán localmente</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN: LOGIN
+══════════════════════════════════════════════ -->
+<div class="screen" id="screen-login">
+  <div class="login-bg">
+    <svg viewBox="0 0 400 800" xmlns="http://www.w3.org/2000/svg">
+      <rect width="400" height="800" fill="#1E3A5F"/>
+      <path d="M180,20 C195,15 215,22 228,38 L248,65 C262,85 272,112 275,140 C280,172 278,205 272,236 C266,268 262,300 268,330 C275,365 278,398 274,430 C269,463 260,494 250,524 C240,554 230,582 222,610 C214,638 208,665 204,692 L196,750 L148,750 C144,722 140,694 137,665 C133,635 128,605 124,575 C120,544 115,512 114,481 C113,449 116,417 118,386 C120,354 120,322 116,291 C112,258 106,226 106,194 C106,161 112,128 122,98 C130,72 145,48 163,32 Z" fill="#253D6E" opacity="0.6"/>
+      <path d="M170,200 C195,196 222,194 248,196 C272,198 295,204 315,212" fill="none" stroke="rgba(99,179,237,0.4)" stroke-width="2"/>
+      <path d="M160,320 C185,316 212,314 238,316 C262,318 285,324 305,332" fill="none" stroke="rgba(99,179,237,0.35)" stroke-width="1.8"/>
+      <path d="M162,430 C184,426 210,424 235,426 C258,428 280,434 298,442" fill="none" stroke="rgba(99,179,237,0.3)" stroke-width="1.5"/>
+      <circle cx="200" cy="260" r="5" fill="#EF4444" stroke="white" stroke-width="1.5"/>
+      <circle cx="230" cy="340" r="4" fill="#EF4444" stroke="white" stroke-width="1.5"/>
+      <circle cx="178" cy="400" r="4" fill="#F97316" stroke="white" stroke-width="1.5"/>
+      <circle cx="215" cy="460" r="4" fill="#EF4444" stroke="white" stroke-width="1.5"/>
+    </svg>
+  </div>
+  <div class="login-box">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+        <path d="M9 3 3 5v16l6-2 6 2 6-2V3l-6 2-6-2Z" stroke-linejoin="round" fill="none" opacity=".65"/>
+        <path d="M9 3v16M15 5v16"/>
+        <path d="M12 8c-2.2 0-4 1.7-4 3.9 0 2.9 4 7.1 4 7.1s4-4.2 4-7.1C16 9.7 14.2 8 12 8Z" fill="white"/>
+        <circle cx="12" cy="11.8" r="1.6" fill="#60A5FA" stroke="none"/>
+      </svg>
+    </div>
+    <h1 class="login-title">Copamiento Territorial</h1>
+    <p class="login-sub">Ingresa con tu teléfono y contraseña</p>
+    <div class="form-group">
+      <label>Teléfono</label>
+      <input type="tel" id="login-tel" placeholder="+56 9 1234 5678" inputmode="tel">
+    </div>
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input type="password" id="login-pass" placeholder="Nombre de tu comuna">
+    </div>
+    <button class="btn-primary" id="btn-login">Ingresar</button>
+    <p class="login-error" id="login-error"></p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN: HOME (GPS + Acciones)
+══════════════════════════════════════════════ -->
+<div class="screen" id="screen-home">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Patrullaje Activo</div>
+      <div class="topbar-sub" id="home-comuna">—</div>
+    </div>
+    <div class="topbar-right">
+      <div class="avatar" id="home-avatar" onclick="irA('perfil')">?</div>
+    </div>
+  </div>
+  <div id="offline-banner2" class="offline-banner2" style="display:none;background:#F59E0B;color:#fff;text-align:center;padding:7px;font-size:12px;font-weight:700;">📵 Sin conexión — modo offline</div>
+  <div class="content home-content">
+    <!-- Tarjeta GPS -->
+    <div class="status-card">
+      <div class="status-header">
+        <span class="status-label">Estado GPS</span>
+        <span class="status-badge badge-off" id="gps-badge">Desactivado</span>
+      </div>
+      <button class="gps-btn gps-btn-off" id="btn-gps">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" opacity=".3"/></svg>
+        Activar Seguimiento GPS
+      </button>
+      <div class="gps-stats" id="gps-stats" style="display:none;">
+        <div class="gps-stat">
+          <div class="gps-stat-val" id="gps-lat">—</div>
+          <div class="gps-stat-lbl">Latitud</div>
+        </div>
+        <div class="gps-stat">
+          <div class="gps-stat-val" id="gps-lng">—</div>
+          <div class="gps-stat-lbl">Longitud</div>
+        </div>
+        <div class="gps-stat">
+          <div class="gps-stat-val" id="gps-vel">0</div>
+          <div class="gps-stat-lbl">km/h</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <p class="quick-title">Acciones de Peligro</p>
+    <div class="quick-grid" id="quick-grid">
+      <!-- Se carga dinámicamente -->
+    </div>
+  </div>
+  <div class="bottom-nav" id="bottom-nav-home">
+    <button class="nav-btn active" onclick="irA('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Inicio</span>
+    </button>
+    <button class="nav-btn" onclick="irA('mapa')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+      <span>Mi Ruta</span>
+    </button>
+    <button class="nav-btn" onclick="irA('reportes')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Reportes</span>
+    </button>
+    <button class="nav-btn" onclick="irA('perfil')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Perfil</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN: MAPA (Ruta asignada + rastro GPS)
+══════════════════════════════════════════════ -->
+<div class="screen" id="screen-mapa" style="position:relative;">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Mi Ruta</div>
+      <div class="topbar-sub" id="mapa-info">Cargando ruta asignada…</div>
+    </div>
+    <div class="topbar-right">
+      <button class="map-mode-btn map-mode-off" id="btn-centrar" onclick="centrarMapa()" style="border:none;padding:8px 14px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(255,255,255,0.15);color:#fff;">📍 Centrar</button>
+    </div>
+  </div>
+  <div id="map" style="flex:1;"></div>
+  <button class="map-fab" onclick="abrirModalReporte()" title="Reportar peligro">⚠️</button>
+  <div class="bottom-nav">
+    <button class="nav-btn" onclick="irA('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Inicio</span>
+    </button>
+    <button class="nav-btn active" onclick="irA('mapa')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+      <span>Mi Ruta</span>
+    </button>
+    <button class="nav-btn" onclick="irA('reportes')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Reportes</span>
+    </button>
+    <button class="nav-btn" onclick="irA('perfil')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Perfil</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN: REPORTES
+══════════════════════════════════════════════ -->
+<div class="screen" id="screen-reportes">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Mis Reportes</div>
+      <div class="topbar-sub">Incidentes reportados</div>
+    </div>
+    <div class="topbar-right">
+      <button onclick="abrirModalReporte()" style="background:var(--red);border:none;color:#fff;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;">+ Nuevo</button>
+    </div>
+  </div>
+  <div class="content reportes-content" id="lista-reportes">
+    <div class="empty-state">
+      <div class="empty-ico">📋</div>
+      <p>Sin reportes aún</p>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <button class="nav-btn" onclick="irA('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Inicio</span>
+    </button>
+    <button class="nav-btn" onclick="irA('mapa')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+      <span>Mi Ruta</span>
+    </button>
+    <button class="nav-btn active" onclick="irA('reportes')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Reportes</span>
+    </button>
+    <button class="nav-btn" onclick="irA('perfil')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Perfil</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCREEN: PERFIL
+══════════════════════════════════════════════ -->
+<div class="screen" id="screen-perfil">
+  <div class="topbar">
+    <div><div class="topbar-title">Mi Perfil</div></div>
+  </div>
+  <div class="content perfil-content">
+    <div class="perfil-card">
+      <div class="perfil-avatar" id="perfil-avatar">?</div>
+      <div class="perfil-nombre" id="perfil-nombre">—</div>
+      <div class="perfil-dato" id="perfil-tel">—</div>
+      <div class="perfil-dato" id="perfil-inst">—</div>
+      <div class="perfil-badge" id="perfil-comuna">—</div>
+    </div>
+    <button class="menu-item" onclick="mostrarToast('Función disponible próximamente')">
+      <span class="menu-item-ico">📍</span>
+      <span class="menu-item-lbl">Ver mi historial de rutas</span>
+      <span class="menu-item-arr">›</span>
+    </button>
+    <button class="menu-item" onclick="mostrarToast('Función disponible próximamente')">
+      <span class="menu-item-ico">🔒</span>
+      <span class="menu-item-lbl">Cambiar contraseña</span>
+      <span class="menu-item-arr">›</span>
+    </button>
+    <button class="menu-item danger" onclick="cerrarSesion()">
+      <span class="menu-item-ico">🚪</span>
+      <span class="menu-item-lbl">Cerrar sesión</span>
+      <span class="menu-item-arr">›</span>
+    </button>
+  </div>
+  <div class="bottom-nav">
+    <button class="nav-btn" onclick="irA('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Inicio</span>
+    </button>
+    <button class="nav-btn" onclick="irA('mapa')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+      <span>Mi Ruta</span>
+    </button>
+    <button class="nav-btn" onclick="irA('reportes')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Reportes</span>
+    </button>
+    <button class="nav-btn active" onclick="irA('perfil')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Perfil</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MODAL: NUEVO REPORTE
+══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-reporte">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚠️ Reportar Peligro</div>
+    <div class="modal-body">
+      <div class="tipo-grid" id="tipo-grid"><!-- dinámico --></div>
+      <textarea class="modal-textarea" id="reporte-desc" rows="3" placeholder="Descripción opcional…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModalReporte()">Cancelar</button>
+      <button class="btn-reportar" onclick="guardarReporte()">🚨 Reportar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════
+// CONFIGURACIÓN SUPABASE
+// ════════════════════════════════════════════
+const SUPABASE_URL  = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
+const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ════════════════════════════════════════════
+// ESTADO GLOBAL
+// ════════════════════════════════════════════
+const state = {
+  usuario: null,       // usuario logueado
+  gpsActivo: false,    // GPS encendido
+  gpsWatch: null,      // watchPosition ID
+  posActual: null,     // {lat, lng, velocidad}
+  tiposAccion: [],     // catálogo de acciones
+  reportes: [],        // reportes locales
+  reportesPendientes:[], // pendientes de sync
+  tipoSeleccionado: null,
+  offline: false,
+  mapaIniciado: false,
+  map: null,
+  markerUsuario: null,
+  polylineRastro: null,
+  puntosRastro: [],
+  rutaLayer: null,
+};
+
+// ════════════════════════════════════════════
+// OFFLINE / ONLINE
+// ════════════════════════════════════════════
+window.addEventListener('online',  () => { state.offline=false; document.getElementById('offline-banner').classList.remove('show'); sincronizarPendientes(); });
+window.addEventListener('offline', () => { state.offline=true;  document.getElementById('offline-banner').classList.add('show'); });
+
+// ════════════════════════════════════════════
+// LOCALSTORE — persistencia offline
+// ════════════════════════════════════════════
+function guardarLocal(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function leerLocal(k){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){return null;} }
+
+// ════════════════════════════════════════════
+// NAVEGACIÓN
+// ════════════════════════════════════════════
+function irA(pantalla) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-'+pantalla).classList.add('active');
+  if (pantalla==='mapa') iniciarMapa();
+  if (pantalla==='reportes') renderReportes();
+  if (pantalla==='perfil') renderPerfil();
+}
+
+// ════════════════════════════════════════════
+// INICIO
+// ════════════════════════════════════════════
+async function iniciar() {
+  // Verificar sesión guardada localmente
+  const sesion = leerLocal('app_sesion');
+  if (sesion && sesion.id) {
+    state.usuario = sesion;
+    await cargarTiposAccion();
+    mostrarApp();
+  } else {
+    document.getElementById('screen-login').classList.add('active');
+  }
+  document.getElementById('app-loading').style.display = 'none';
+}
+
+// ════════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════════
+document.getElementById('btn-login').addEventListener('click', async () => {
+  const tel  = document.getElementById('login-tel').value.trim().replace(/\s/g,'');
+  const pass = document.getElementById('login-pass').value.trim();
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+
+  if (!tel || !pass) { errEl.textContent = 'Ingresa tu teléfono y contraseña.'; return; }
+
+  document.getElementById('btn-login').textContent = 'Ingresando…';
+  document.getElementById('btn-login').disabled = true;
+
+  try {
+    // Hash de la clave (sha256 simple)
+    const claveHash = await hashTexto(pass.toLowerCase().trim());
+
+    const { data, error } = await sb.from('app_usuarios')
+      .select('*')
+      .eq('telefono', tel)
+      .eq('clave_hash', claveHash)
+      .eq('activo', true)
+      .maybeSingle();
+
+    if (error || !data) {
+      // Modo offline: intentar con datos guardados
+      const sesionGuardada = leerLocal('app_sesion');
+      if (sesionGuardada && sesionGuardada.telefono === tel) {
+        state.usuario = sesionGuardada;
+        guardarLocal('app_sesion', sesionGuardada);
+        await cargarTiposAccion();
+        mostrarApp();
+        return;
+      }
+      errEl.textContent = 'Teléfono o contraseña incorrectos.';
+      return;
+    }
+
+    // Actualizar último acceso
+    sb.from('app_usuarios').update({ ultimo_acceso: new Date().toISOString() }).eq('id', data.id);
+
+    state.usuario = data;
+    guardarLocal('app_sesion', data);
+    await cargarTiposAccion();
+    mostrarApp();
+
+  } catch(e) {
+    errEl.textContent = 'Error de conexión. Intenta de nuevo.';
+  } finally {
+    document.getElementById('btn-login').textContent = 'Ingresar';
+    document.getElementById('btn-login').disabled = false;
+  }
+});
+
+// Permitir Enter en los campos
+document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('btn-login').click(); });
+
+async function hashTexto(texto) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(texto);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function mostrarApp() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-login').classList.remove('active');
+  irA('home');
+  actualizarUI();
+}
+
+function actualizarUI() {
+  if (!state.usuario) return;
+  const iniciales = (state.usuario.nombre||'?').split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+  document.getElementById('home-avatar').textContent = iniciales;
+  document.getElementById('home-comuna').textContent = state.usuario.institucion || 'Sin institución';
+  cargarAccionesRapidas();
+}
+
+// ════════════════════════════════════════════
+// TIPOS DE ACCIÓN
+// ════════════════════════════════════════════
+async function cargarTiposAccion() {
+  try {
+    const { data } = await sb.from('app_tipos_accion').select('*').eq('activo', true).order('por_defecto', { ascending: false });
+    if (data && data.length) {
+      state.tiposAccion = data;
+      guardarLocal('app_tipos_accion', data);
+    }
+  } catch(e) {
+    // Offline: usar cache local
+    const cache = leerLocal('app_tipos_accion');
+    if (cache) state.tiposAccion = cache;
+  }
+}
+
+function cargarAccionesRapidas() {
+  const grid = document.getElementById('quick-grid');
+  if (!state.tiposAccion.length) {
+    grid.innerHTML = '<div style="grid-column:span 2;color:#94A3B8;text-align:center;padding:20px;">Cargando acciones…</div>';
+    return;
+  }
+  grid.innerHTML = state.tiposAccion.map(t => `
+    <button class="quick-btn" onclick="accionRapida('${t.id}')">
+      <span class="quick-btn-ico">${t.icono}</span>
+      <span class="quick-btn-lbl">${t.nombre}</span>
+    </button>
+  `).join('');
+}
+
+function accionRapida(tipoId) {
+  state.tipoSeleccionado = tipoId;
+  abrirModalReporte();
+}
+
+// ════════════════════════════════════════════
+// GPS
+// ════════════════════════════════════════════
+document.getElementById('btn-gps').addEventListener('click', toggleGPS);
+
+function toggleGPS() {
+  if (state.gpsActivo) detenerGPS(); else activarGPS();
+}
+
+function activarGPS() {
+  if (!navigator.geolocation) { mostrarToast('GPS no disponible en este dispositivo'); return; }
+
+  const btn = document.getElementById('btn-gps');
+  const badge = document.getElementById('gps-badge');
+  btn.innerHTML = '<div class="pulse"></div> GPS Activo — Toca para detener';
+  btn.className = 'gps-btn gps-btn-on';
+  badge.textContent = 'Activo';
+  badge.className = 'status-badge badge-on';
+  document.getElementById('gps-stats').style.display = 'grid';
+  state.gpsActivo = true;
+
+  state.gpsWatch = navigator.geolocation.watchPosition(
+    pos => onPosicion(pos),
+    err => { mostrarToast('Error GPS: ' + err.message); detenerGPS(); },
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+  );
+}
+
+function detenerGPS() {
+  if (state.gpsWatch) navigator.geolocation.clearWatch(state.gpsWatch);
+  state.gpsActivo = false;
+  state.gpsWatch = null;
+
+  const btn = document.getElementById('btn-gps');
+  const badge = document.getElementById('gps-badge');
+  btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" opacity=".3"/></svg> Activar Seguimiento GPS`;
+  btn.className = 'gps-btn gps-btn-off';
+  badge.textContent = 'Desactivado';
+  badge.className = 'status-badge badge-off';
+  document.getElementById('gps-stats').style.display = 'none';
+}
+
+async function onPosicion(pos) {
+  const { latitude: lat, longitude: lng, speed, accuracy } = pos.coords;
+  const velocidad = speed ? Math.round(speed * 3.6) : 0; // m/s → km/h
+  state.posActual = { lat, lng, velocidad };
+
+  // Actualizar UI
+  document.getElementById('gps-lat').textContent = lat.toFixed(5);
+  document.getElementById('gps-lng').textContent = lng.toFixed(5);
+  document.getElementById('gps-vel').textContent = velocidad;
+
+  // Actualizar marcador en el mapa
+  actualizarMarcadorUsuario(lat, lng);
+
+  // Guardar punto en BD (o cola offline)
+  await guardarPuntoGPS(lat, lng, velocidad, accuracy||0);
+}
+
+async function guardarPuntoGPS(lat, lng, velocidad, precision) {
+  const punto = {
+    usuario_id: state.usuario.id,
+    lat, lng, velocidad,
+    precision_m: precision,
+    en_patrullaje: true,
+    registrado_en: new Date().toISOString()
+  };
+
+  if (state.offline) {
+    // Guardar en cola offline
+    const cola = leerLocal('gps_cola') || [];
+    cola.push(punto);
+    guardarLocal('gps_cola', cola);
+    return;
+  }
+
+  try {
+    await sb.from('app_sesiones_gps').insert(punto);
+  } catch(e) {
+    // Si falla, encolar offline
+    const cola = leerLocal('gps_cola') || [];
+    cola.push(punto);
+    guardarLocal('gps_cola', cola);
+  }
+}
+
+// ════════════════════════════════════════════
+// MAPA LEAFLET
+// ════════════════════════════════════════════
+function iniciarMapa() {
+  if (state.mapaIniciado) {
+    // Refrescar tamaño si ya existe
+    setTimeout(() => { if(state.map) state.map.invalidateSize(); }, 100);
+    return;
+  }
+
+  state.map = L.map('map', {
+    center: [-38.0, -72.5],
+    zoom: 12,
+    zoomControl: false,
+  });
+
+  // Tile base (funciona sin login)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    maxZoom: 19,
+  }).addTo(state.map);
+
+  // Control de zoom arriba a la derecha
+  L.control.zoom({ position: 'topright' }).addTo(state.map);
+
+  state.mapaIniciado = true;
+
+  // Cargar ruta asignada
+  cargarRutaAsignada();
+
+  // Polyline del rastro GPS
+  state.polylineRastro = L.polyline([], {
+    color: '#2563EB', weight: 3, opacity: 0.7, dashArray: null
+  }).addTo(state.map);
+
+  // Si ya hay posición, centrar
+  if (state.posActual) {
+    state.map.setView([state.posActual.lat, state.posActual.lng], 15);
+    actualizarMarcadorUsuario(state.posActual.lat, state.posActual.lng);
+  }
+}
+
+function actualizarMarcadorUsuario(lat, lng) {
+  if (!state.mapaIniciado || !state.map) return;
+
+  // Ícono personalizado (punto azul pulsante)
+  const iconoUsuario = L.divIcon({
+    className: '',
+    html: `<div style="width:18px;height:18px;background:#2563EB;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 4px rgba(37,99,235,0.3);"></div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9]
+  });
+
+  if (!state.markerUsuario) {
+    state.markerUsuario = L.marker([lat,lng], { icon: iconoUsuario }).addTo(state.map);
+    state.markerUsuario.bindPopup('📍 Tu posición actual');
+  } else {
+    state.markerUsuario.setLatLng([lat, lng]);
+  }
+
+  // Agregar al rastro
+  state.puntosRastro.push([lat, lng]);
+  if (state.polylineRastro) state.polylineRastro.setLatLngs(state.puntosRastro);
+}
+
+function centrarMapa() {
+  if (!state.map) return;
+  if (state.posActual) {
+    state.map.setView([state.posActual.lat, state.posActual.lng], 15);
+  } else if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      state.map.setView([pos.coords.latitude, pos.coords.longitude], 15);
+    });
+  }
+}
+
+async function cargarRutaAsignada() {
+  if (!state.usuario || !state.map) return;
+  document.getElementById('mapa-info').textContent = 'Cargando ruta…';
+
+  try {
+    const { data } = await sb
+      .from('v_rutas_patrullaje')
+      .select('nombre_ruta, geom_json, institucion_nombre')
+      .eq('comuna_id', state.usuario.comuna_id)
+      .limit(5);
+
+    if (!data || !data.length) {
+      document.getElementById('mapa-info').textContent = 'Sin ruta asignada';
+      return;
+    }
+
+    if (state.rutaLayer) state.rutaLayer.remove();
+    state.rutaLayer = L.layerGroup().addTo(state.map);
+
+    const bounds = [];
+    data.forEach(ruta => {
+      try {
+        const geom = typeof ruta.geom_json === 'string' ? JSON.parse(ruta.geom_json) : ruta.geom_json;
+        if (!geom) return;
+        const layer = L.geoJSON(geom, {
+          style: { color: '#22C55E', weight: 4, opacity: 0.8 }
+        }).addTo(state.rutaLayer);
+        layer.bindPopup(`🛣️ ${ruta.nombre_ruta || 'Ruta'}`);
+        if (layer.getBounds) bounds.push(...Object.values(layer.getBounds()));
+      } catch(e) {}
+    });
+
+    document.getElementById('mapa-info').textContent = `${data.length} ruta(s) asignada(s)`;
+    if (bounds.length) state.map.fitBounds(state.rutaLayer.getBounds(), { padding: [30,30] });
+
+  } catch(e) {
+    document.getElementById('mapa-info').textContent = 'Sin conexión — ruta en caché';
+  }
+
+  // Cargar reportes del día en el mapa
+  cargarReportesEnMapa();
+}
+
+async function cargarReportesEnMapa() {
+  if (!state.map) return;
+  try {
+    const { data } = await sb.from('app_reportes')
+      .select('*, app_tipos_accion(nombre, icono, color)')
+      .eq('usuario_id', state.usuario.id)
+      .gte('creado_en', new Date(Date.now() - 86400000).toISOString());
+
+    if (!data) return;
+    data.forEach(r => {
+      const tipo = r.app_tipos_accion;
+      const ico = tipo ? tipo.icono : '⚠️';
+      const marker = L.marker([r.lat, r.lng], {
+        icon: L.divIcon({
+          className: '',
+          html: `<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">${ico}</div>`,
+          iconSize: [28, 28], iconAnchor: [14, 14]
+        })
+      }).addTo(state.map);
+      marker.bindPopup(`${ico} <b>${tipo ? tipo.nombre : 'Reporte'}</b><br>${r.descripcion || ''}<br><small>${new Date(r.creado_en).toLocaleTimeString()}</small>`);
+    });
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════
+// MODAL REPORTE
+// ════════════════════════════════════════════
+function abrirModalReporte() {
+  // Renderizar tipos
+  const grid = document.getElementById('tipo-grid');
+  grid.innerHTML = state.tiposAccion.map(t => `
+    <button class="tipo-btn ${state.tipoSeleccionado===t.id?'selected':''}" 
+            onclick="seleccionarTipo('${t.id}')" id="tipo-btn-${t.id}">
+      <div class="tipo-btn-ico">${t.icono}</div>
+      <div class="tipo-btn-lbl">${t.nombre}</div>
+    </button>
+  `).join('');
+  document.getElementById('reporte-desc').value = '';
+  document.getElementById('modal-reporte').classList.add('show');
+}
+
+function cerrarModalReporte() {
+  document.getElementById('modal-reporte').classList.remove('show');
+  state.tipoSeleccionado = null;
+}
+
+function seleccionarTipo(id) {
+  state.tipoSeleccionado = id;
+  document.querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('tipo-btn-'+id).classList.add('selected');
+}
+
+async function guardarReporte() {
+  if (!state.tipoSeleccionado) { mostrarToast('Selecciona un tipo de peligro'); return; }
+
+  // Obtener posición actual
+  let lat, lng;
+  if (state.posActual) {
+    lat = state.posActual.lat;
+    lng = state.posActual.lng;
+  } else {
+    mostrarToast('Obteniendo ubicación…');
+    try {
+      await new Promise((res, rej) => {
+        navigator.geolocation.getCurrentPosition(pos => {
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+          res();
+        }, rej, { enableHighAccuracy: true, timeout: 10000 });
+      });
+    } catch(e) {
+      mostrarToast('No se pudo obtener ubicación GPS');
+      return;
+    }
+  }
+
+  const reporte = {
+    usuario_id: state.usuario.id,
+    tipo_accion_id: state.tipoSeleccionado,
+    lat, lng,
+    descripcion: document.getElementById('reporte-desc').value.trim(),
+    comuna_id: state.usuario.comuna_id,
+    sincronizado: !state.offline,
+    creado_en: new Date().toISOString()
+  };
+
+  // Guardar local inmediatamente
+  state.reportes.unshift(reporte);
+  guardarLocal('app_reportes_local', state.reportes);
+  cerrarModalReporte();
+  mostrarToast('✅ Reporte guardado');
+  renderReportes();
+
+  // Enviar a Supabase
+  if (!state.offline) {
+    try {
+      await sb.from('app_reportes').insert(reporte);
+      // Agregar al mapa si está abierto
+      if (state.mapaIniciado && state.map) cargarReportesEnMapa();
+    } catch(e) {
+      // Encolar para sync
+      state.reportesPendientes.push(reporte);
+      guardarLocal('reportes_pendientes', state.reportesPendientes);
+    }
+  } else {
+    state.reportesPendientes.push(reporte);
+    guardarLocal('reportes_pendientes', state.reportesPendientes);
+  }
+}
+
+// ════════════════════════════════════════════
+// SINCRONIZACIÓN OFFLINE → ONLINE
+// ════════════════════════════════════════════
+async function sincronizarPendientes() {
+  // Sincronizar reportes
+  const pendientes = leerLocal('reportes_pendientes') || [];
+  if (pendientes.length) {
+    for (const r of pendientes) {
+      try { await sb.from('app_reportes').insert({...r, sincronizado: true}); }
+      catch(e) {}
+    }
+    guardarLocal('reportes_pendientes', []);
+    mostrarToast(`✅ ${pendientes.length} reporte(s) sincronizados`);
+  }
+
+  // Sincronizar GPS cola
+  const colGPS = leerLocal('gps_cola') || [];
+  if (colGPS.length) {
+    try {
+      await sb.from('app_sesiones_gps').insert(colGPS);
+      guardarLocal('gps_cola', []);
+    } catch(e) {}
+  }
+}
+
+// ════════════════════════════════════════════
+// LISTA DE REPORTES
+// ════════════════════════════════════════════
+function renderReportes() {
+  const lista = document.getElementById('lista-reportes');
+  const reportes = leerLocal('app_reportes_local') || [];
+
+  if (!reportes.length) {
+    lista.innerHTML = '<div class="empty-state"><div class="empty-ico">📋</div><p>Sin reportes aún</p></div>';
+    return;
+  }
+
+  lista.innerHTML = reportes.map(r => {
+    const tipo = state.tiposAccion.find(t => t.id === r.tipo_accion_id);
+    const ico = tipo ? tipo.icono : '⚠️';
+    const nom = tipo ? tipo.nombre : 'Reporte';
+    const color = tipo ? tipo.color : '#EF4444';
+    const hora = new Date(r.creado_en).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return `
+      <div class="reporte-card" style="border-left-color:${color}">
+        <div class="reporte-tipo">${ico} ${nom}</div>
+        ${r.descripcion ? `<div class="reporte-meta">${r.descripcion}</div>` : ''}
+        <div class="reporte-coords">${r.lat?.toFixed(5)}, ${r.lng?.toFixed(5)}</div>
+        <div class="reporte-meta">${hora} ${!r.sincronizado?'<span style="color:#F97316;">● Pendiente sync</span>':''}</div>
+      </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════
+// PERFIL
+// ════════════════════════════════════════════
+function renderPerfil() {
+  if (!state.usuario) return;
+  const u = state.usuario;
+  const iniciales = (u.nombre||'?').split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+  document.getElementById('perfil-avatar').textContent = iniciales;
+  document.getElementById('perfil-nombre').textContent = u.nombre || 'Sin nombre';
+  document.getElementById('perfil-tel').textContent = u.telefono || '—';
+  document.getElementById('perfil-inst').textContent = u.institucion || 'Sin institución';
+  document.getElementById('perfil-comuna').textContent = '📍 ' + (u.comuna_nombre || u.comuna_id || 'Sin comuna');
+}
+
+function cerrarSesion() {
+  if (!confirm('¿Cerrar sesión?')) return;
+  detenerGPS();
+  guardarLocal('app_sesion', null);
+  state.usuario = null;
+  state.posActual = null;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-login').classList.add('active');
+  document.getElementById('login-tel').value = '';
+  document.getElementById('login-pass').value = '';
+}
+
+// ════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════
+let toastTimer;
+function mostrarToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ════════════════════════════════════════════
+// CERRAR MODAL AL TOCAR FUERA
+// ════════════════════════════════════════════
+document.getElementById('modal-reporte').addEventListener('click', e => {
+  if (e.target === e.currentTarget) cerrarModalReporte();
+});
+
+// ════════════════════════════════════════════
+// ARRANQUE
+// ════════════════════════════════════════════
+iniciar();
+</script>
+</body>
+</html>
