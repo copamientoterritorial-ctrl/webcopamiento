@@ -432,6 +432,26 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',-apple-system,BlinkMac
   </div>
   <div id="map" style="flex:1;"></div>
   <button class="map-fab" onclick="abrirModalReporte()" title="Reportar peligro">⚠️</button>
+  <button id="btn-navegar" onclick="iniciarNavegacion()" title="Iniciar navegación en la ruta"
+    style="display:none;position:absolute;left:16px;bottom:calc(var(--safe-bot) + 74px);
+    background:#22C55E;color:#fff;border:none;border-radius:14px;padding:14px 18px;
+    font-size:13px;font-weight:800;cursor:pointer;z-index:500;
+    box-shadow:0 4px 20px rgba(34,197,94,0.45);align-items:center;gap:8px;">
+    🧭 Iniciar Navegación
+  </button>
+  <!-- Panel de navegación paso a paso -->
+  <div id="nav-panel" style="display:none;position:absolute;top:80px;left:16px;right:16px;z-index:500;
+    background:#fff;border-radius:16px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.15);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span style="font-size:13px;font-weight:800;color:#1E293B;">🧭 Navegando la ruta</span>
+      <button onclick="detenerNavegacion()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#64748B;">✕</button>
+    </div>
+    <div id="nav-instruccion" style="font-size:15px;font-weight:700;color:#1E293B;margin-bottom:6px;">Iniciando…</div>
+    <div id="nav-distancia" style="font-size:12px;color:#64748B;"></div>
+    <div style="margin-top:10px;background:#F1F5F9;border-radius:8px;height:6px;overflow:hidden;">
+      <div id="nav-progreso" style="height:100%;background:#22C55E;width:0%;transition:width .5s;border-radius:8px;"></div>
+    </div>
+  </div>
   <div class="bottom-nav">
     <button class="nav-btn" onclick="irA('home')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -914,42 +934,116 @@ async function cargarRutaAsignada() {
   document.getElementById('mapa-info').textContent = 'Cargando ruta…';
 
   try {
-    const { data } = await sb
+    // Buscar rutas de la comuna del usuario
+    const { data, error } = await sb
       .from('v_rutas_patrullaje')
-      .select('nombre_ruta, geom_json, institucion_nombre')
-      .eq('comuna_id', state.usuario.comuna_id)
-      .limit(5);
+      .select('id, nombre_ruta, alias, tipo_movil, km, area, sector, geometry')
+      .eq('id_comuna', state.usuario.comuna_id)
+      .limit(20);
 
-    if (!data || !data.length) {
-      document.getElementById('mapa-info').textContent = 'Sin ruta asignada';
+    if (error || !data || !data.length) {
+      document.getElementById('mapa-info').textContent = 'Sin ruta asignada para tu comuna';
+      // Guardar en cache offline
       return;
     }
 
-    if (state.rutaLayer) state.rutaLayer.remove();
-    state.rutaLayer = L.layerGroup().addTo(state.map);
+    // Cache offline
+    try { localStorage.setItem('app_rutas_cache', JSON.stringify(data)); } catch(e){}
 
-    const bounds = [];
-    data.forEach(ruta => {
-      try {
-        const geom = typeof ruta.geom_json === 'string' ? JSON.parse(ruta.geom_json) : ruta.geom_json;
-        if (!geom) return;
-        const layer = L.geoJSON(geom, {
-          style: { color: '#22C55E', weight: 4, opacity: 0.8 }
-        }).addTo(state.rutaLayer);
-        layer.bindPopup(`🛣️ ${ruta.nombre_ruta || 'Ruta'}`);
-        if (layer.getBounds) bounds.push(...Object.values(layer.getBounds()));
-      } catch(e) {}
-    });
-
-    document.getElementById('mapa-info').textContent = `${data.length} ruta(s) asignada(s)`;
-    if (bounds.length) state.map.fitBounds(state.rutaLayer.getBounds(), { padding: [30,30] });
+    dibujarRutas(data);
 
   } catch(e) {
-    document.getElementById('mapa-info').textContent = 'Sin conexión — ruta en caché';
+    // Offline: usar cache
+    const cache = localStorage.getItem('app_rutas_cache');
+    if (cache) {
+      dibujarRutas(JSON.parse(cache));
+      document.getElementById('mapa-info').textContent = 'Ruta (offline)';
+    } else {
+      document.getElementById('mapa-info').textContent = 'Sin conexión';
+    }
   }
 
-  // Cargar reportes del día en el mapa
   cargarReportesEnMapa();
+  cargarRastroHoy();
+}
+
+function dibujarRutas(rutas) {
+  if (state.rutaLayer) { state.rutaLayer.remove(); state.rutaLayer = null; }
+  state.rutaLayer = L.layerGroup().addTo(state.map);
+  state.rutaCoords = []; // para navegación
+
+  rutas.forEach(r => {
+    if (!r.geometry) return;
+    try {
+      const geom = typeof r.geometry === 'string' ? JSON.parse(r.geometry) : r.geometry;
+      const capa = L.geoJSON(geom, {
+        style: { color: '#22C55E', weight: 5, opacity: 0.85, lineCap: 'round', lineJoin: 'round' },
+        onEachFeature: (f, layer) => {
+          layer.bindPopup(
+            `<b>🛣️ ${r.nombre_ruta || r.alias || 'Ruta'}</b><br>` +
+            `${r.tipo_movil || ''} · ${r.km ? Number(r.km).toFixed(1)+' km' : ''}<br>` +
+            `${r.area || ''} · ${r.sector || ''}`
+          );
+          // Extraer coords para navegación paso a paso
+          if (geom.type === 'LineString') {
+            state.rutaCoords.push(...geom.coordinates.map(c => [c[1], c[0]]));
+          } else if (geom.type === 'MultiLineString') {
+            geom.coordinates.forEach(seg => state.rutaCoords.push(...seg.map(c => [c[1], c[0]])));
+          }
+        }
+      }).addTo(state.rutaLayer);
+    } catch(e) {}
+  });
+
+  const n = rutas.filter(r => r.geometry).length;
+  document.getElementById('mapa-info').textContent = n + ' ruta(s) asignada(s)';
+  try {
+    const b = state.rutaLayer.getBounds();
+    if (b.isValid()) state.map.fitBounds(b, { padding: [30, 30] });
+  } catch(e) {}
+
+  // Mostrar botón de navegación si hay coords
+  if (state.rutaCoords.length) {
+    document.getElementById('btn-navegar').style.display = 'flex';
+  }
+}
+
+// Cargar rastro GPS del día (todos los usuarios de la comuna)
+async function cargarRastroHoy() {
+  if (!state.map || !state.usuario) return;
+  try {
+    const { data } = await sb
+      .from('v_app_rastro_hoy')
+      .select('lat, lng, registrado_en, usuario_nombre, en_patrullaje')
+      .eq('comuna_id', state.usuario.comuna_id)
+      .order('registrado_en', { ascending: true });
+
+    if (!data || !data.length) return;
+
+    // Agrupar por usuario
+    const porUsuario = {};
+    data.forEach(p => {
+      const k = p.usuario_nombre || 'Desconocido';
+      if (!porUsuario[k]) porUsuario[k] = [];
+      porUsuario[k].push([p.lat, p.lng]);
+    });
+
+    const colores = ['#2563EB','#F97316','#A855F7','#0EA5E9','#EC4899'];
+    let i = 0;
+    Object.entries(porUsuario).forEach(([nombre, puntos]) => {
+      const color = colores[i++ % colores.length];
+      L.polyline(puntos, { color, weight: 3, opacity: 0.6, dashArray: '6,4' })
+        .addTo(state.rutaLayer)
+        .bindPopup(`👤 ${nombre}`);
+      // Último punto: marcador
+      if (puntos.length) {
+        const ultimo = puntos[puntos.length-1];
+        L.circleMarker(ultimo, { radius: 6, color, fillColor: color, fillOpacity: 1, weight: 2 })
+          .addTo(state.rutaLayer)
+          .bindPopup(`👤 ${nombre} (última pos.)`);
+      }
+    });
+  } catch(e) {}
 }
 
 async function cargarReportesEnMapa() {
@@ -1141,6 +1235,108 @@ function cerrarSesion() {
   document.getElementById('login-pass').value = '';
 }
 
+
+// ════════════════════════════════════════════
+// NAVEGACIÓN PASO A PASO
+// ════════════════════════════════════════════
+let navInterval = null;
+let navPuntoActual = 0;
+let navMarkersHitos = [];
+
+function iniciarNavegacion() {
+  if (!state.rutaCoords || !state.rutaCoords.length) {
+    mostrarToast('No hay ruta disponible para navegar');
+    return;
+  }
+  if (!state.gpsActivo) {
+    mostrarToast('Activa el GPS primero para navegar');
+    irA('home');
+    return;
+  }
+
+  navPuntoActual = 0;
+  document.getElementById('btn-navegar').style.display = 'none';
+  document.getElementById('nav-panel').style.display = 'block';
+
+  // Dibujar hitos en la ruta (cada ~10 puntos)
+  const paso = Math.max(1, Math.floor(state.rutaCoords.length / 10));
+  state.rutaCoords.forEach((coord, i) => {
+    if (i % paso === 0) {
+      const m = L.circleMarker(coord, {
+        radius: 5, color: '#22C55E', fillColor: '#fff', fillOpacity: 1, weight: 2
+      }).addTo(state.map);
+      navMarkersHitos.push(m);
+    }
+  });
+
+  // Actualizar navegación cada 3 segundos
+  navInterval = setInterval(actualizarNavegacion, 3000);
+  actualizarNavegacion();
+  mostrarToast('🧭 Navegación iniciada');
+}
+
+function actualizarNavegacion() {
+  if (!state.posActual || !state.rutaCoords.length) return;
+
+  const posUsuario = [state.posActual.lat, state.posActual.lng];
+
+  // Encontrar el punto más cercano de la ruta
+  let minDist = Infinity, puntoMasCercano = 0;
+  state.rutaCoords.forEach((coord, i) => {
+    const dist = distanciaMetros(posUsuario, coord);
+    if (dist < minDist) { minDist = dist; puntoMasCercano = i; }
+  });
+
+  navPuntoActual = puntoMasCercano;
+  const progreso = Math.round((puntoMasCercano / state.rutaCoords.length) * 100);
+  document.getElementById('nav-progreso').style.width = progreso + '%';
+
+  // Próximo punto de la ruta
+  const sig = Math.min(puntoMasCercano + 5, state.rutaCoords.length - 1);
+  const distSig = distanciaMetros(posUsuario, state.rutaCoords[sig]);
+
+  // Instrucción
+  let instruccion = '';
+  if (minDist > 100) {
+    instruccion = `⬆️ Dirígete a la ruta (${Math.round(minDist)}m)`;
+  } else if (progreso >= 95) {
+    instruccion = '✅ Has completado la ruta';
+    detenerNavegacion();
+    mostrarToast('✅ Ruta completada');
+    return;
+  } else {
+    instruccion = `⬆️ Continúa por la ruta`;
+  }
+
+  document.getElementById('nav-instruccion').textContent = instruccion;
+  document.getElementById('nav-distancia').textContent =
+    `${progreso}% completado · ${Math.round(distSig)}m al próximo punto`;
+
+  // Centrar mapa en posición actual
+  if (state.map && state.posActual) {
+    state.map.panTo(posUsuario, { animate: true, duration: 0.5 });
+  }
+}
+
+function detenerNavegacion() {
+  if (navInterval) clearInterval(navInterval);
+  navInterval = null;
+  navMarkersHitos.forEach(m => m.remove());
+  navMarkersHitos = [];
+  document.getElementById('nav-panel').style.display = 'none';
+  document.getElementById('btn-navegar').style.display = state.rutaCoords?.length ? 'flex' : 'none';
+  mostrarToast('Navegación detenida');
+}
+
+function distanciaMetros(a, b) {
+  const R = 6371000;
+  const dLat = (b[0]-a[0]) * Math.PI/180;
+  const dLng = (b[1]-a[1]) * Math.PI/180;
+  const x = Math.sin(dLat/2)*Math.sin(dLat/2) +
+             Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*
+             Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+}
 // ════════════════════════════════════════════
 // TOAST
 // ════════════════════════════════════════════

@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -2357,7 +2357,7 @@ const fundosAraucoLayer = L.layerGroup();
 const comitePuntosLayer = L.layerGroup();
 const comiteAreasLayer = L.layerGroup();
 // Ícono manito (Red de Prevención Comunitaria)
-const iconoManito = L.icon({ iconUrl: 'iconos/manito_red_prevencion.png', iconSize: [20, 20], iconAnchor: [10, 10], popupAnchor: [0, -10] });
+const iconoManito = L.icon({ iconUrl: 'manito_red_prevencion.png', iconSize: [20, 20], iconAnchor: [10, 10], popupAnchor: [0, -10] });
 const areaRelacionamientoLayer = L.layerGroup();
 const recursosDisponiblesAreaLayer = L.layerGroup();
 const patrullajeLayer = L.layerGroup();
@@ -7094,6 +7094,73 @@ function toggleEtiquetasPeriodo_(periodoId, btn) {
     } catch(e) {}
   });
 }
+
+// ════════════════════════════════════════════════════════
+// APP MÓVIL — posiciones en tiempo real en el mapa principal
+// ════════════════════════════════════════════════════════
+state.appGpsActivo = false;
+let appGpsLayer_ = L.layerGroup();
+let appGpsTimer_ = null;
+
+async function cargarPosicionesApp_() {
+  if (!map) return;
+  appGpsLayer_.addTo(map);
+  actualizarPosicionesApp_();
+  // Refrescar cada 30 segundos
+  appGpsTimer_ = setInterval(actualizarPosicionesApp_, 30000);
+}
+
+function limpiarPosicionesApp_() {
+  appGpsLayer_.clearLayers();
+  map.removeLayer(appGpsLayer_);
+  if (appGpsTimer_) { clearInterval(appGpsTimer_); appGpsTimer_ = null; }
+  const cnt = document.getElementById('app-gps-count');
+  if (cnt) cnt.textContent = 'Desactivado';
+}
+
+async function actualizarPosicionesApp_() {
+  try {
+    const { data } = await supabaseClient
+      .from('v_app_posicion_actual')
+      .select('*')
+      .eq('comuna_id', state.activeComunaId);
+
+    appGpsLayer_.clearLayers();
+    if (!data || !data.length) {
+      const cnt = document.getElementById('app-gps-count');
+      if (cnt) cnt.textContent = 'Sin patrulleros activos';
+      return;
+    }
+
+    data.forEach(p => {
+      // Ícono de patrullero con app
+      const ico = L.divIcon({
+        className: '',
+        html: `<div style="position:relative;">
+          <div style="width:20px;height:20px;background:#2563EB;border:3px solid #fff;border-radius:50%;
+            box-shadow:0 0 0 4px rgba(37,99,235,0.3);"></div>
+          <div style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);
+            background:#1E293B;color:#fff;padding:2px 6px;border-radius:6px;
+            font-size:9px;font-weight:700;white-space:nowrap;">📱 ${p.usuario_nombre||'App'}</div>
+        </div>`,
+        iconSize: [20,20], iconAnchor: [10,10]
+      });
+      const min = Math.round((Date.now() - new Date(p.registrado_en).getTime()) / 60000);
+      L.marker([p.lat, p.lng], { icon: ico })
+        .addTo(appGpsLayer_)
+        .bindPopup(
+          `<b>📱 ${p.usuario_nombre || 'Patrullero'}</b><br>` +
+          `${p.institucion || ''}<br>` +
+          `${p.velocidad ? p.velocidad + ' km/h' : 'Detenido'}<br>` +
+          `<small>Hace ${min} min · ${p.en_patrullaje ? '🟢 En patrullaje' : '⏸️ Pausado'}</small>`
+        );
+    });
+
+    const cnt = document.getElementById('app-gps-count');
+    if (cnt) cnt.textContent = data.length + ' patrullero(s) activo(s)';
+
+  } catch(e) { console.warn('app gps:', e); }
+}
 function mostrarLandingPeriodoCritico_(nombre) {
   document.getElementById('landing-ico').textContent    = '🗓️';
   document.getElementById('landing-titulo').textContent = 'Creando Periodo Crítico';
@@ -9381,6 +9448,28 @@ function renderTabInterno_(tab) {
       tgPat.classList.toggle('on', state.patrullajeLayerOn);
       if (state.patrullajeLayerOn) patrullajeLayer.addTo(map); else map.removeLayer(patrullajeLayer);
     });
+
+    // ── App Móvil: posiciones en tiempo real ─────────────────────────────────
+    {
+      const labelApp = document.createElement('p'); labelApp.className = 'section-label';
+      labelApp.style.marginTop = '14px'; labelApp.textContent = 'App Móvil — Patrulleros';
+      c.appendChild(labelApp);
+      const rowApp = document.createElement('div'); rowApp.className = 'layer-row';
+      const tgApp = document.createElement('div');
+      tgApp.className = 'toggle' + (state.appGpsActivo ? ' on' : '');
+      const leftApp = document.createElement('div'); leftApp.className = 'layer-left';
+      leftApp.innerHTML = '<span class="flame-dot" style="background:#2563EB"></span>' +
+        '<div><div class="layer-name">📱 Patrulleros App (en vivo)</div>' +
+        '<div class="layer-count" id="app-gps-count">Cargando…</div></div>';
+      rowApp.appendChild(tgApp); rowApp.appendChild(leftApp);
+      c.appendChild(rowApp);
+      tgApp.addEventListener('click', () => {
+        state.appGpsActivo = !state.appGpsActivo;
+        tgApp.classList.toggle('on', state.appGpsActivo);
+        if (state.appGpsActivo) cargarPosicionesApp_(); else limpiarPosicionesApp_();
+      });
+      if (state.appGpsActivo) cargarPosicionesApp_();
+    }
 
     // Red de Prevención Comunitaria — visible para TODOS los perfiles
     {
