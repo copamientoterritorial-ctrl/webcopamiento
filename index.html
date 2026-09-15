@@ -49,11 +49,105 @@ body.tema-oscuro{
   --shadow-lift:0 12px 32px rgba(0,0,0,0.55);
 }
 /* Ajustes puntuales para que el mapa y elementos claros no encandilen en oscuro */
-body.tema-oscuro .layer-empty-msg{ background:#0F1A2E; }
-body.tema-oscuro .admin-table thead th{ background:#0F1A2E; }
-body.tema-oscuro .adm-kpi, body.tema-oscuro .dash-kpi, body.tema-oscuro .dash-card{ background:#182338; }
-body.tema-oscuro .meteo-box, body.tema-oscuro .meteo-dia{ background:#0F1A2E; }
-body.tema-oscuro input, body.tema-oscuro select, body.tema-oscuro textarea{ background:#1E293B; color:var(--text-primary); border-color:var(--border); }
+body.tema-oscuro .layer-empty-msg{ background:#0F1A2E; color:var(--text-secondary); }
+body.tema-oscuro .admin-table thead th{ background:#0F1A2E; color:var(--text-secondary); }
+body.tema-oscuro .adm-kpi, body.tema-oscuro .dash-kpi, body.tema-oscuro .dash-card{ background:#182338; color:var(--text-primary); }
+body.tema-oscuro .meteo-box, body.tema-oscuro .meteo-dia{ background:#0F1A2E; color:var(--text-primary); }
+body.tema-oscuro input, body.tema-oscuro select, body.tema-oscuro textarea{ background:#1E293B !important; color:var(--text-primary) !important; border-color:var(--border) !important; }
+
+/* ── Tablas admin ── */
+body.tema-oscuro .admin-table{ background:#182338; color:var(--text-primary); }
+body.tema-oscuro .admin-table td{ color:var(--text-primary); border-color:#1E293B; background:transparent; }
+body.tema-oscuro .admin-table tbody tr{ background:#182338; }
+body.tema-oscuro .admin-table tbody tr:hover{ background:#1E293B; }
+body.tema-oscuro .admin-table-wrap{ background:#182338; border-color:#334155; }
+body.tema-oscuro .admin-head h2{ color:var(--text-primary); }
+body.tema-oscuro .admin-head p{ color:var(--text-secondary); }
+body.tema-oscuro .admin-count{ color:var(--text-secondary); }
+body.tema-oscuro .admin-search{ background:#1E293B !important; color:var(--text-primary) !important; border-color:#334155 !important; }
+body.tema-oscuro .adm-kpi-val{ color:var(--text-primary); }
+body.tema-oscuro .adm-kpi-label{ color:var(--text-secondary); }
+body.tema-oscuro .adm-kpi{ border-color:#334155; }
+body.tema-oscuro .grupo-row{ background:#0F1A2E; color:var(--text-secondary); }
+
+/* ── Modales y cards ── */
+body.tema-oscuro .modal-card{ background:#1E293B !important; color:var(--text-primary); }
+body.tema-oscuro .modal-card h3{ color:var(--text-primary); }
+body.tema-oscuro .modal-card label, body.tema-oscuro .form-label{ color:var(--text-primary); }
+body.tema-oscuro .modal-card p, body.tema-oscuro .modal-card .coords{ color:var(--text-secondary); }
+body.tema-oscuro .modal-card .form-group label{ color:var(--text-primary); }
+body.tema-oscuro .dash-card{ background:#182338 !important; }
+body.tema-oscuro .dash-card-title{ color:var(--text-primary); }
+body.tema-oscuro .dash-kpi-label{ color:var(--text-secondary); }
+body.tema-oscuro .dash-kpi-val{ color:var(--text-primary); }
+body.tema-oscuro .kpi-card{ background:#182338 !important; color:var(--text-primary); }
+
+/* ── Botones ── */
+body.tema-oscuro .popup-btn{ background:#1E293B; color:var(--text-primary); border-color:#334155; }
+body.tema-oscuro .popup-btn:hover{ background:#334155; }
+body.tema-oscuro .popup-btn.primary{ background:var(--cobalt); color:#fff; border-color:var(--cobalt); }
+body.tema-oscuro .btn-secondary{ background:#1E293B; color:var(--text-primary); border-color:#334155; }
+
+/* ── Sidebar y panel de capas ── */
+body.tema-oscuro #sidebar{ background:#0F172A; }
+body.tema-oscuro .sidebar-rail{ background:#020617; border-color:#1E293B; }
+body.tema-oscuro .rail-btn{ color:#64748B; }
+body.tema-oscuro .rail-btn:hover, body.tema-oscuro .rail-btn.active{ background:#1E293B; color:#F1F5F9; }
+body.tema-oscuro .sidebar-content{ background:#0F172A; }
+body.tema-oscuro .layer-row{ border-color:#1E293B; }
+body.tema-oscuro .layer-row:hover{ background:#1A2744; }
+body.tema-oscuro .layer-name{ color:var(--text-primary); }
+body.tema-oscuro .layer-count{ color:var(--text-secondary); }
+body.tema-oscuro .section-label{ color:var(--text-tertiary); background:transparent; }
+body.tema-oscuro .periodo-group{ background:#0F1A2E; border-color:#1E293B; }
+body.tema-oscuro .ph-name{ color:var(--text-primary); }
+body.tema-oscuro .ph-fechas{ color:var(--text-secondary); }
+body.tema-oscuro .periodo-badge.activo{ background:#14532D; color:#86EFAC; }
+body.tema-oscuro .periodo-badge.cerrado{ background:#1E293B; color:#64748B; }
+
+/* ── Panel patrullaje ── */
+body.tema-oscuro .pat-toolbar{ background:#0F172A !important; border-color:#1E293B; }
+body.tema-oscuro .pat-side{ background:#0F172A !important; border-color:#1E293B; }
+body.tema-oscuro .pat-side-head{ background:#0F172A; border-color:#1E293B; }
+body.tema-oscuro .pat-side-content{ background:#0F172A; }
+body.tema-oscuro .pat-row{ border-color:#1E293B; color:var(--text-primary); }
+body.tema-oscuro .pat-row:hover{ background:#1A2744; }
+
+/* ── Simbología flotante ── */
+body.tema-oscuro #simbologia-flotante{ background:#1E293B; border-color:#334155; }
+body.tema-oscuro .sf-title{ color:var(--text-secondary); }
+body.tema-oscuro .sf-row{ color:var(--text-primary); }
+body.tema-oscuro .sf-inst-nombre{ color:var(--text-primary); }
+
+/* ── Dashboard ── */
+body.tema-oscuro #dashboard{ background:#0B1220; }
+body.tema-oscuro .red-prev-card{ background:#182338; border-color:#334155; }
+body.tema-oscuro .red-prev-nombre{ color:var(--text-primary); }
+body.tema-oscuro .meteo-header{ color:var(--text-primary); }
+body.tema-oscuro .meteo-label{ color:var(--text-secondary); }
+body.tema-oscuro .meteo-val{ color:var(--text-primary); }
+body.tema-oscuro .riesgo-badge{ opacity:.9; }
+
+/* ── Admin resumen ── */
+body.tema-oscuro .resumen-row{ border-color:#1E293B; color:var(--text-primary); }
+body.tema-oscuro .resumen-total{ color:var(--text-primary); }
+body.tema-oscuro .comuna-resumen-card{ background:#182338; border-color:#334155; color:var(--text-primary); }
+body.tema-oscuro .audit-op{ opacity:.9; }
+
+/* ── Elementos con fondo blanco hardcodeado ── */
+body.tema-oscuro .ventana-item .v-cell{ background:#1E293B !important; border-color:#334155; color:var(--text-primary); }
+body.tema-oscuro .comp-chip{ background:#1E293B !important; border-color:#334155; color:var(--text-primary); }
+body.tema-oscuro .rol-badge{ background:#1E293B !important; color:var(--text-secondary); }
+body.tema-oscuro .login-foot{ color:var(--text-secondary); }
+
+/* ── Meteo modal ── */
+body.tema-oscuro .meteo-modal-card{ background:#1E293B !important; }
+body.tema-oscuro #meteo-horaria-chart-wrap{ background:#1E293B; }
+
+/* ── Logo municipal grande ── */
+body.tema-oscuro #logo-municipal-grande{ background:#1E293B; border-color:#334155; }
+body.tema-oscuro .logo-item{ background:#1E293B; border-color:#334155; }
+body.tema-oscuro .logo-item span{ color:var(--text-secondary); }
 /* Modo oscuro: iconos y botones de la barra visibles */
 body.tema-oscuro .icon-btn{ color:#94A3B8; }
 body.tema-oscuro .icon-btn:hover{ background:#1E293B; color:#F1F5F9; }
@@ -365,7 +459,26 @@ body{
 .popup-btn:hover{background:#EFF4FF;border-color:var(--cobalt);color:var(--cobalt-dark);}
 
 /* ---- modo edición ---- */
-#map.editing-mode, #map.editing-mode .leaflet-container{cursor:crosshair !important;}
+/* Modo edición activo */
+#map.editing-mode,
+#map.editing-mode .leaflet-container{ cursor:crosshair !important; }
+/* Modo edición: capas de REFERENCIA no capturan eventos (cursor crosshair limpio) */
+#map.editing-mode .leaflet-overlay-pane path{
+  cursor:crosshair !important;
+  pointer-events:none !important;
+}
+/* Capas editables (recursos del periodo, planificación, alertas): SÍ clickeables */
+#map.editing-mode .leaflet-interactive.recurso-editable,
+#map.editing-mode .leaflet-interactive.plan-editable,
+#map.editing-mode .leaflet-marker-icon{
+  pointer-events:all !important;
+  z-index:1000 !important;
+}
+#map.editing-mode .leaflet-interactive.recurso-editable{ cursor:pointer !important; }
+#map.editing-mode .leaflet-marker-icon{ cursor:grab !important; }
+#map.editing-mode .leaflet-marker-icon:active{ cursor:grabbing !important; }
+/* Sin modo edición: comportamiento normal */
+#map:not(.editing-mode) .leaflet-marker-icon{ cursor:pointer; }
 .editor-mode-banner{
   position:absolute;bottom:20px;left:50%;transform:translateX(-50%);z-index:500;
   background:var(--navy-deep);color:#fff;padding:10px 20px;border-radius:30px;font-size:12px;font-weight:600;
@@ -393,16 +506,31 @@ body{
 
 /* ---- login / force-password ---- */
 /* ===== LOGIN REDISEÑADO: split screen con fondo vectorial de Chile ===== */
-#login-overlay, #force-password-overlay{
+#login-overlay{
   position:fixed;inset:0;z-index:2000;
   display:flex;align-items:center;justify-content:center;
   background:#0d1b2e;
   overflow:hidden;
 }
-#login-overlay .login-bg-svg, #force-password-overlay .login-bg-svg{
+#login-overlay .login-bg-svg{
   position:absolute;inset:0;width:100%;height:100%;
   object-fit:cover;opacity:1;
 }
+/* Force-password: modal simple centrado, sin split screen */
+#force-password-overlay{
+  position:fixed;inset:0;z-index:2000;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(15,23,42,0.85);backdrop-filter:blur(4px);
+}
+#force-password-overlay .login-card{
+  display:block;width:420px;max-width:94vw;min-height:0;
+  border-radius:20px;overflow:visible;
+  box-shadow:0 0 0 1px rgba(99,179,237,0.3),0 0 30px rgba(99,179,237,0.12),0 24px 60px rgba(0,0,0,0.4);
+}
+#force-password-overlay .login-panel-der{
+  width:100%;padding:36px 34px 30px;border-radius:20px;
+}
+#force-password-overlay .login-panel-izq{ display:none; }
 .login-card{
   display:flex;width:820px;max-width:96vw;min-height:490px;
   border-radius:24px;overflow:hidden;position:relative;z-index:1;
@@ -1077,11 +1205,61 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
   animation:pulse 1.4s infinite;
 }
 @keyframes pulse-edit{ 0%,100%{box-shadow:0 2px 12px rgba(220,38,38,0.45);} 50%{box-shadow:0 2px 20px rgba(220,38,38,0.75);} }
+
+/* ===== BOTONES FLOTANTES DE ESCENARIO (inferior del mapa) ===== */
+#escenario-switcher{
+  position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
+  z-index:500;display:none;align-items:center;gap:10px;
+  background:rgba(15,23,42,0.72);backdrop-filter:blur(8px);
+  border-radius:40px;padding:8px 14px;
+  box-shadow:0 4px 24px rgba(0,0,0,0.3);
+  border:1px solid rgba(255,255,255,0.08);
+}
+#escenario-switcher.show{ display:flex; }
+.esc-btn{
+  display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:30px;
+  border:none;cursor:pointer;font-size:12.5px;font-weight:800;letter-spacing:.2px;
+  transition:all .18s ease;color:#fff;
+}
+.esc-btn:not(.active){ background:rgba(255,255,255,0.1); }
+.esc-btn:hover:not(.active){ background:rgba(255,255,255,0.18); }
+.esc-btn.verde{ }
+.esc-btn.verde.active{ background:#16A34A;box-shadow:0 0 16px rgba(22,163,74,0.5); }
+.esc-btn.amarilla{ }
+.esc-btn.amarilla.active{ background:#D97706;box-shadow:0 0 16px rgba(217,119,6,0.5); }
+.esc-btn.roja{ }
+.esc-btn.roja.active{ background:#DC2626;box-shadow:0 0 16px rgba(220,38,38,0.5); }
+.esc-btn .esc-dot{
+  width:9px;height:9px;border-radius:50%;flex-shrink:0;
+}
+.esc-btn.verde  .esc-dot{ background:#4ADE80; }
+.esc-btn.amarilla .esc-dot{ background:#FCD34D; }
+.esc-btn.roja   .esc-dot{ background:#FCA5A5; }
+.esc-btn.active .esc-dot{ background:#fff;animation:dotPulse 1.5s infinite; }
+@keyframes dotPulse{ 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.5;transform:scale(1.4);} }
+
+
+/* ===== ETIQUETAS PERIODO — control por CSS ===== */
+/* regla obsoleta eliminada */
+
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="map"></div>
+  <div id="map">
+    <!-- BOTONES FLOTANTES: cambiar escenario de alerta -->
+    <div id="escenario-switcher">
+      <button class="esc-btn verde" id="esc-btn-verde" title="Escenario Alerta Verde">
+        <span class="esc-dot"></span>🟢 Alerta Verde
+      </button>
+      <button class="esc-btn amarilla" id="esc-btn-amarilla" title="Escenario Alerta Amarilla">
+        <span class="esc-dot"></span>🟡 Alerta Amarilla
+      </button>
+      <button class="esc-btn roja" id="esc-btn-roja" title="Escenario Alerta Roja">
+        <span class="esc-dot"></span>🔴 Alerta Roja
+      </button>
+    </div>
+  </div>
 
   <!-- DASHBOARD (vista inicial) -->
   <div id="dashboard">
@@ -1194,6 +1372,10 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
         <button class="admin-menu-item" data-seccion="comunas">🗺️ Comunas</button>
         <div class="admin-menu-group">Control</div>
         <button class="admin-menu-item" data-seccion="actividad">🟢 Actividad / En línea</button>
+          <div class="admin-menu-sep" style="margin:8px 0;border-top:1px solid var(--border);"></div>
+          <div class="admin-menu-label" style="font-size:10px;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.5px;padding:4px 8px;">App Patrullaje</div>
+          <button class="admin-menu-item" data-seccion="appPatrulleros">📱 Patrulleros App</button>
+          <button class="admin-menu-item" data-seccion="appAcciones">⚠️ Acciones de Peligro</button>
         <button class="admin-menu-item" data-seccion="auditoria">🧾 Auditoría</button>
       </aside>
       <main class="admin-content" id="admin-content">
@@ -1319,6 +1501,10 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
           <button class="planificar-item" id="plan-periodo">
             <span class="plan-icon" style="background:#EFF4FF;">🗓️</span>
             <div><div class="plan-label">Periodo Crítico</div><div class="plan-sub">Activa el modo edición de copamiento</div></div>
+          </button>
+          <button class="planificar-item" id="plan-verde">
+            <span class="plan-icon" style="background:#DCFCE7;">🟢</span>
+            <div><div class="plan-label">Escenario Alerta Verde</div><div class="plan-sub">Activa la capa y abre la planificación</div></div>
           </button>
           <button class="planificar-item" id="plan-amarilla">
             <span class="plan-icon" style="background:#FEF3C7;">🟡</span>
@@ -1525,13 +1711,15 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
   <!-- CAMBIO DE CONTRASEÑA OBLIGATORIO -->
   <div id="force-password-overlay" style="display:none;">
     <div class="login-card">
-      <div class="login-logo" style="background:linear-gradient(135deg,#F59E0B,#FBBF24);">✦</div>
-      <h1>Actualiza tu contraseña</h1>
-      <p class="sub">Por seguridad debes definir una nueva contraseña antes de continuar.</p>
-      <div class="form-group"><label>Nueva contraseña (mín. 8 caracteres)</label><input type="password" id="fp-nueva" autocomplete="new-password"></div>
-      <div class="form-group"><label>Confirmar nueva contraseña</label><input type="password" id="fp-confirmar" autocomplete="new-password"></div>
-      <button class="login-btn" id="btn-force-password">Guardar y continuar</button>
-      <p class="form-error" id="fp-error"></p>
+      <div class="login-panel-der">
+        <div class="login-logo" style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#F59E0B,#FBBF24);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px;">🔒</div>
+        <h1 style="font-size:18px;margin-bottom:4px;">Actualiza tu contraseña</h1>
+        <p class="sub">Por seguridad debes definir una nueva contraseña antes de continuar.</p>
+        <div class="form-group"><label>Nueva contraseña <small style="color:#94A3B8;">(mín. 8 caracteres)</small></label><input type="password" id="fp-nueva" autocomplete="new-password"></div>
+        <div class="form-group"><label>Confirmar nueva contraseña</label><input type="password" id="fp-confirmar" autocomplete="new-password"></div>
+        <button class="login-btn" id="btn-force-password">Guardar y continuar</button>
+        <p class="form-error" id="fp-error"></p>
+      </div>
     </div>
   </div>
 
@@ -1858,6 +2046,7 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
         <button class="wx-close" id="btn-close-planificacion-previa" style="color:var(--text-secondary);">✕</button>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button class="popup-btn" id="btn-escenario-verde" style="flex:1;padding:10px;font-size:12.5px;">🟢 Alerta Verde</button>
         <button class="popup-btn" id="btn-escenario-amarilla" style="flex:1;padding:10px;font-size:12.5px;">🟡 Alerta Amarilla</button>
         <button class="popup-btn" id="btn-escenario-roja" style="flex:1;padding:10px;font-size:12.5px;">🔴 Alerta Roja</button>
       </div>
@@ -2046,9 +2235,11 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
         <table style="width:100%;border-collapse:collapse;font-size:12px;">
           <thead>
             <tr style="text-align:left;border-bottom:1.5px solid var(--border);color:var(--text-tertiary);text-transform:uppercase;font-size:10px;letter-spacing:0.3px;">
+              <th style="padding:8px 6px;">Ícono</th>
               <th style="padding:8px 6px;">Institución</th>
               <th style="padding:8px 6px;">Nombre Recurso</th>
               <th style="padding:8px 6px;">Tipo de Recurso</th>
+              <th style="padding:8px 6px;">Pertenencia</th>
               <th style="padding:8px 6px;">Tipo de Móvil</th>
               <th style="padding:8px 6px;">Cant. Personas</th>
               <th style="padding:8px 6px;">Descripción de función</th>
@@ -2079,9 +2270,14 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
         <div class="form-group">
           <label>Tipo de Recurso</label>
           <select id="rm-tipo">
-            <option value="Brigada">Brigada</option>
-            <option value="Vigía">Vigía</option>
-            <option value="Patrullaje">Patrullaje</option>
+            <option value="VIGÍA INFANTERÍA">Vigía Infantería</option>
+            <option value="VIGÍA CAMIONETA">Vigía Camioneta</option>
+            <option value="VIGÍA MOTORIZADO">Vigía Motorizado</option>
+            <option value="VIGÍA MONTADO">Vigía Montado</option>
+            <option value="VIGÍA DRON">Vigía Dron</option>
+            <option value="BRIGADA MULTIPROPÓSITO">Brigada Multipropósito</option>
+            <option value="BRIGADA DISUASIVA">Brigada Disuasiva</option>
+            <option value="PATRULLAJE PREVENTIVO SIGEI">Patrullaje Preventivo SIGEI</option>
           </select>
         </div>
         <div class="form-group">
@@ -2091,6 +2287,28 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
             <option value="Camioneta">Camioneta</option>
             <option value="Moto">Moto</option>
           </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Pertenencia del Recurso</label>
+        <select id="rm-pertenencia">
+          <option value="Relacionamiento">Recurso de Relacionamiento</option>
+          <option value="Protección">Recurso de Protección</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Ícono personalizado <small style="color:var(--text-tertiary);">(opcional)</small></label>
+        <div id="rm-icono-area" style="display:flex;align-items:center;gap:12px;">
+          <div id="rm-icono-preview" style="width:52px;height:52px;border-radius:10px;border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;background:#F8FAFC;flex-shrink:0;">
+            <span id="rm-icono-placeholder" style="font-size:22px;color:#94A3B8;">🖼️</span>
+            <img id="rm-icono-img" src="" alt="" style="width:100%;height:100%;object-fit:contain;display:none;">
+          </div>
+          <div style="flex:1;">
+            <button type="button" class="btn-secondary" id="rm-icono-btn" style="padding:8px 14px;font-size:13px;">Subir ícono</button>
+            <button type="button" class="btn-secondary" id="rm-icono-quitar" style="padding:8px 14px;font-size:13px;display:none;color:var(--red);">Quitar</button>
+            <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">PNG con fondo transparente recomendado</div>
+          </div>
+          <input type="file" id="rm-icono-input" accept="image/png,image/svg+xml,image/webp" style="display:none;">
         </div>
       </div>
       <div class="form-group">
@@ -2238,7 +2456,8 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
 // consola del navegador con: window.__DEBUG__ = true
 window.__DEBUG__ = false;
 
-const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
+// BUILD: etiquetas-v3-20260915
+  const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 
 // Adaptador de almacenamiento: respeta el checkbox "Recordar sesión".
@@ -2297,7 +2516,7 @@ let state = {
   limiteComunalOn: true,
   patrullajeInfo: { ok: false, count: 0, cargado: false },
   patrullajeRutas: [],
-  alertaLayersOn: { amarilla: false, roja: false },
+  alertaLayersOn: { verde: false, amarilla: false, roja: false },
   mostrarEtiquetasFundos: false,
   mostrarEtiquetasRecursosArea: false,
   fundosCmpcInfo: { ok: false, count: 0 },
@@ -2357,18 +2576,24 @@ const fundosAraucoLayer = L.layerGroup();
 const comitePuntosLayer = L.layerGroup();
 const comiteAreasLayer = L.layerGroup();
 // Ícono manito (Red de Prevención Comunitaria)
-const iconoManito = L.icon({ iconUrl: 'manito_red_prevencion.png', iconSize: [20, 20], iconAnchor: [10, 10], popupAnchor: [0, -10] });
+const iconoManito = L.icon({ iconUrl: 'iconos/manito_red_prevencion.png', iconSize: [20, 20], iconAnchor: [10, 10], popupAnchor: [0, -10] });
 const areaRelacionamientoLayer = L.layerGroup();
 const recursosDisponiblesAreaLayer = L.layerGroup();
 const patrullajeLayer = L.layerGroup();
+// Capas SOLO para Administrador: recursos y rutas filtrados por comuna activa
+const recursosComunaAdminLayer = L.layerGroup();
+const rutasComunaAdminLayer = L.layerGroup();
+let recursosComunaAdminFeatureLayers = [];
 const rutasEnAlertaLayer = L.layerGroup().addTo(map);
 const asignacionLayer = L.layerGroup();
 const fireHeatLayers = {};
 const incendiosContainerLayer = L.layerGroup().addTo(map);
 const recursosMarkersById = {};
+const planificacionRecursosVerdeLayer    = L.layerGroup();
 const planificacionRecursosAmarillaLayer = L.layerGroup();
-const planificacionRecursosRojaLayer = L.layerGroup();
+const planificacionRecursosRojaLayer     = L.layerGroup();
 const periodoLayers = {}; // { [periodoId|'sin_periodo']: L.layerGroup }
+const periodoFeatureLayers = {}; // { [periodoId]: [{layer, nombre}] } — para toggle etiquetas
 
 /* ============ ARRANQUE ============ */
 window.addEventListener('load', async () => {
@@ -2533,6 +2758,9 @@ async function cargarCatalogosYEntrar() {
   state.areasCatalogo = (areasCatalogo || []).map(a => a.area);
   state.comunasFavoritas = new Set((favoritos || []).map(f => f.comuna_id));
 
+  // Cargar íconos personalizados en segundo plano (NO bloquea el arranque)
+  cargarIconosRecursos_().catch(() => {});
+
   await entrarAlSistema();
 }
 
@@ -2565,10 +2793,10 @@ async function entrarAlSistema() {
     state.limiteComunalOn = true;
     state.layersOn.__areasPobladas = false;
     state.areasLayersOn = { fundosCmpc: false, areaRelacionamiento: false, recursosDisponibles: false };
-    state.alertaLayersOn = { amarilla: false, roja: false };
+    state.alertaLayersOn = { verde: false, amarilla: false, roja: false };
     state.patrullajeLayerOn = false;
   } else {
-    state.layersOn.__areasPobladas = true;
+    state.layersOn.__areasPobladas = false;
   }
 
   const puedeEditar = ['GRD','Administrador','Jefe de Área Relacionamiento'].includes(state.perfil.perfil);
@@ -2748,6 +2976,7 @@ async function cargarDashboard_() {
   const periodosActivos = (periodos || []).filter(p => p.estado_periodo === 'activo');
   const idsActivos = new Set(periodosActivos.map(p => p.id));
   const recActivos = (recursos || []).filter(r => idsActivos.has(r.id_periodo));
+  const planesVerde   = (planes || []).filter(p => p.escenario === 'Verde');
   const planesAmarilla = (planes || []).filter(p => p.escenario === 'Amarilla');
   const planesRoja = (planes || []).filter(p => p.escenario === 'Roja');
 
@@ -3320,6 +3549,7 @@ function cargarSeccionAdmin_(seccion) {
   const fn = {
     resumen: adminSeccionResumen_, usuarios: adminSeccionUsuarios_, instituciones: adminSeccionInstituciones_,
     recursos: adminSeccionRecursos_, patrulleros: adminSeccionPatrulleros_, comunas: adminSeccionComunas_, auditoria: adminSeccionAuditoria_, actividad: adminSeccionActividad_,
+    appPatrulleros: adminSeccionAppPatrulleros_, appAcciones: adminSeccionAppAcciones_,
   }[seccion];
   if (fn) fn(c);
 }
@@ -3518,6 +3748,310 @@ async function adminSeccionRecursos_(c) {
 }
 
 // ---------- PATRULLEROS ----------
+
+// ══════════════════════════════════════════════════════════════════════════
+// ADMIN APP — PATRULLEROS (crear / editar usuarios de la app móvil)
+// ══════════════════════════════════════════════════════════════════════════
+async function adminSeccionAppPatrulleros_(c) {
+  c.innerHTML = adminHead_('📱 Patrulleros App',
+    'Usuarios registrados en la app móvil de patrullaje',
+    '<button class="btn-admin-action" id="btn-nuevo-patrullero-app">+ Nuevo patrullero</button>'
+  ) + '<div id="app-pat-contenido"><div class="layer-empty-msg">Cargando…</div></div>';
+
+  c.querySelector('#btn-nuevo-patrullero-app').addEventListener('click', () => abrirModalPatrulleroApp_());
+  await renderAppPatrullerosList_(c.querySelector('#app-pat-contenido'));
+}
+
+async function renderAppPatrullerosList_(cont) {
+  const { data, error } = await supabaseClient
+    .from('app_usuarios')
+    .select('*, comunas(comuna)')
+    .order('creado_en', { ascending: false });
+
+  if (error || !data || !data.length) {
+    cont.innerHTML = '<div class="layer-empty-msg">Sin patrulleros registrados aún.<br><small>Usa el botón "+ Nuevo patrullero" para agregar.</small></div>';
+    return;
+  }
+
+  cont.innerHTML = '<div class="admin-table-wrap"><table class="admin-table"><thead><tr>' +
+    '<th>Patrullero</th><th>Teléfono</th><th>Institución</th><th>Comuna</th><th>Último acceso</th><th>Estado</th><th>Acciones</th>' +
+    '</tr></thead><tbody>' +
+    data.map(u => {
+      const ini = (u.nombre||'?').split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+      const col = colorAvatar_(u.nombre);
+      const acceso = u.ultimo_acceso
+        ? new Date(u.ultimo_acceso).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+        : 'Nunca';
+      const estadoColor = u.activo ? '#DCFCE7' : '#F1F5F9';
+      const estadoTxt   = u.activo ? '#166534' : '#64748B';
+      return '<tr>' +
+        '<td style="display:flex;align-items:center;gap:8px;padding:10px 8px;">' +
+          '<span class="avatar sm" style="background:'+col+'">'+escapeHtml_(ini)+'</span>' +
+          '<span>'+escapeHtml_(u.nombre||'—')+'</span></td>' +
+        '<td>'+escapeHtml_(u.telefono)+'</td>' +
+        '<td>'+escapeHtml_(u.institucion||'—')+'</td>' +
+        '<td>'+escapeHtml_(u.comunas?.comuna||'—')+'</td>' +
+        '<td style="white-space:nowrap;">'+acceso+'</td>' +
+        '<td><span class="rol-badge" style="background:'+estadoColor+';color:'+estadoTxt+'">'+(u.activo?'Activo':'Inactivo')+'</span></td>' +
+        '<td><div style="display:flex;gap:6px;">' +
+          '<button class="popup-btn btn-edit-pat-app" data-id="'+u.id+'" title="Editar">✏️ Editar</button>' +
+          '<button class="popup-btn btn-toggle-pat-app" data-id="'+u.id+'" data-activo="'+u.activo+'" title="'+(u.activo?'Desactivar':'Activar')+'">'+(u.activo?'🔒 Desactivar':'🔓 Activar')+'</button>' +
+        '</div></td>' +
+        '</tr>';
+    }).join('') +
+    '</tbody></table></div>';
+
+  // Listeners con data-id (sin onclick inline)
+  cont.querySelectorAll('.btn-edit-pat-app').forEach(btn =>
+    btn.addEventListener('click', () => abrirModalPatrulleroApp_(btn.dataset.id))
+  );
+  cont.querySelectorAll('.btn-toggle-pat-app').forEach(btn =>
+    btn.addEventListener('click', async () => {
+      const nuevoEstado = btn.dataset.activo === 'true' ? false : true;
+      await supabaseClient.from('app_usuarios').update({ activo: nuevoEstado }).eq('id', btn.dataset.id);
+      mostrarToast_(nuevoEstado ? '✅ Patrullero activado' : 'Patrullero desactivado');
+      cargarSeccionAdmin_('appPatrulleros');
+    })
+  );
+}
+
+async function abrirModalPatrulleroApp_(id) {
+  // Cargar datos existentes si es edición
+  let u = null;
+  if (id) {
+    const { data } = await supabaseClient.from('app_usuarios').select('*').eq('id', id).maybeSingle();
+    u = data;
+  }
+
+  // Cargar instituciones actualizadas desde BD
+  const { data: insts } = await supabaseClient.from('instituciones')
+    .select('id, nombre').eq('estado','activo').order('nombre');
+  const instOpts = (insts||[]).map(i =>
+    '<option value="'+escapeHtml_(i.nombre)+'"'+(u?.institucion===i.nombre?' selected':'')+'>'+escapeHtml_(i.nombre)+'</option>'
+  ).join('');
+
+  // Comunas
+  const comunasOpts = (state.comunas||[]).map(c =>
+    '<option value="'+escapeHtml_(c.id)+'"'+(u?.comuna_id===c.id?' selected':'')+'>'+escapeHtml_(c.comuna)+'</option>'
+  ).join('');
+
+  // Quitar modal previo si existe
+  document.getElementById('modal-patrullero-app')?.remove();
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay show';
+  modal.id = 'modal-patrullero-app';
+  modal.innerHTML = `
+    <div class="modal-card" style="max-width:520px;width:95vw;max-height:90vh;overflow-y:auto;">
+      <h3 style="margin-bottom:20px;font-size:16px;">${id ? '✏️ Editar Patrullero' : '➕ Nuevo Patrullero App'}</h3>
+
+      <div class="form-group">
+        <label class="form-label">Nombre completo</label>
+        <input type="text" id="app-p-nombre" class="form-control" value="${escapeHtml_(u?.nombre||'')}" placeholder="Juan Pérez">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Teléfono <small style="color:var(--text-tertiary)">(es el usuario de ingreso)</small></label>
+        <input type="tel" id="app-p-tel" class="form-control" value="${escapeHtml_(u?.telefono||'')}" placeholder="+56912345678" ${id?'readonly style="background:#F8FAFC"':''}>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Contraseña ${id?'<small style="color:var(--text-tertiary)">(vacío = no cambia)</small>':''}</label>
+        <input type="text" id="app-p-clave" class="form-control" placeholder="Ej: collipulli">
+        <p style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">Se guarda cifrada. El patrullero la ingresa en la app.</p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Institución</label>
+        <select id="app-p-inst" class="form-control">
+          <option value="">— Selecciona institución —</option>
+          ${instOpts}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Comuna asignada</label>
+        <select id="app-p-comuna" class="form-control">
+          <option value="">— Selecciona comuna —</option>
+          ${comunasOpts}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Estado</label>
+        <select id="app-p-activo" class="form-control">
+          <option value="true" ${u?.activo!==false?'selected':''}>✅ Activo</option>
+          <option value="false" ${u?.activo===false?'selected':''}>🔒 Inactivo</option>
+        </select>
+      </div>
+
+      <p class="form-error" id="app-p-error" style="min-height:16px;color:var(--red);font-size:12px;margin-top:4px;"></p>
+
+      <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
+        <button class="popup-btn" id="btn-cancelar-pat-app">Cancelar</button>
+        <button class="popup-btn primary" id="btn-guardar-pat-app">${id ? 'Guardar cambios' : 'Crear patrullero'}</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(modal);
+
+  // Listeners dentro del modal (sin onclick inline)
+  document.getElementById('btn-cancelar-pat-app').addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+  document.getElementById('btn-guardar-pat-app').addEventListener('click', async () => {
+    const btnGuardar = document.getElementById('btn-guardar-pat-app');
+    const errEl      = document.getElementById('app-p-error');
+    errEl.textContent = '';
+
+    const nombre   = document.getElementById('app-p-nombre').value.trim();
+    const telefono = document.getElementById('app-p-tel').value.trim().replace(/\s/g,'');
+    const claveRaw = document.getElementById('app-p-clave').value.trim();
+    const inst     = document.getElementById('app-p-inst').value;
+    const comunaId = document.getElementById('app-p-comuna').value;
+    const activo   = document.getElementById('app-p-activo').value === 'true';
+
+    if (!nombre)              { errEl.textContent = 'El nombre es obligatorio.'; return; }
+    if (!id && !telefono)     { errEl.textContent = 'El teléfono es obligatorio.'; return; }
+    if (!id && !claveRaw)     { errEl.textContent = 'La contraseña es obligatoria.'; return; }
+    if (!inst)                { errEl.textContent = 'Selecciona una institución.'; return; }
+
+    btnGuardar.textContent = 'Guardando…'; btnGuardar.disabled = true;
+
+    // Hash SHA-256
+    let claveHash = null;
+    if (claveRaw) {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(claveRaw.toLowerCase().trim()));
+      claveHash = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+
+    const payload = { nombre, institucion: inst, comuna_id: comunaId||null, activo };
+    if (claveHash) payload.clave_hash = claveHash;
+
+    let error;
+    if (id) {
+      ({ error } = await supabaseClient.from('app_usuarios').update(payload).eq('id', id));
+    } else {
+      payload.telefono = telefono;
+      ({ error } = await supabaseClient.from('app_usuarios').insert(payload));
+    }
+
+    btnGuardar.textContent = id ? 'Guardar cambios' : 'Crear patrullero';
+    btnGuardar.disabled = false;
+
+    if (error) { errEl.textContent = 'Error: ' + error.message; return; }
+
+    modal.remove();
+    mostrarToast_(id ? '✅ Patrullero actualizado' : '✅ Patrullero creado — ya puede ingresar a la app');
+    cargarSeccionAdmin_('appPatrulleros');
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ADMIN APP — ACCIONES DE PELIGRO (mantenedor tipos de reporte)
+// ══════════════════════════════════════════════════════════════════════════
+const APP_ICONOS = ['🚧','🔥','🆘','👁️','🌊','💨','⚡','🐾','🏚️','🪵','🛑','⛽','🚗','🔒','📡','☢️','🌿','🦁','⛰️','🌪️'];
+const APP_COLORES = ['#EF4444','#F97316','#F59E0B','#22C55E','#2563EB','#A855F7','#EC4899','#0EA5E9','#64748B','#DC2626'];
+
+async function adminSeccionAppAcciones_(c) {
+  const { data } = await supabaseClient.from('app_tipos_accion').select('*').order('por_defecto', { ascending: false });
+  const tipos = data || [];
+
+  c.innerHTML = adminHead_('⚠️ Acciones de Peligro',
+    'Tipos de reporte disponibles en la app móvil',
+    '<button class="admin-btn primary" onclick="abrirModalAccionApp_()">+ Nueva acción</button>'
+  ) +
+  '<div class="admin-table-wrap"><table class="admin-table"><thead><tr>' +
+  '<th>Acción</th><th>Ícono</th><th>Color</th><th>Estado</th><th>Tipo</th><th></th>' +
+  '</tr></thead><tbody>' +
+  tipos.map(t => '<tr>' +
+    '<td><b>' + escapeHtml_(t.nombre) + '</b></td>' +
+    '<td style="font-size:20px;text-align:center;">' + t.icono + '</td>' +
+    '<td><span style="display:inline-block;width:22px;height:22px;border-radius:6px;background:' + t.color + ';vertical-align:middle;"></span></td>' +
+    '<td><span class="rol-badge" style="background:' + (t.activo ? '#DCFCE7' : '#F1F5F9') + ';color:' + (t.activo ? '#166534' : '#64748B') + '">' +
+      (t.activo ? 'Activa' : 'Inactiva') + '</span></td>' +
+    '<td>' + (t.por_defecto ? '⭐ Por defecto' : 'Personalizada') + '</td>' +
+    '<td style="display:flex;gap:6px;">' +
+      '<button class="admin-btn sm" onclick="abrirModalAccionApp_(\'' + t.id + '\',\'' + escapeHtml_(t.nombre) + '\',\'' + t.icono + '\',\'' + t.color + '\')">✏️</button>' +
+      (t.por_defecto ? '' : '<button class="admin-btn sm danger" onclick="toggleAccionApp_(\''+t.id+'\','+!t.activo+')">' + (t.activo?'🔒':'🔓') + '</button>') +
+    '</td>' +
+    '</tr>'
+  ).join('') +
+  '</tbody></table></div>';
+}
+
+function abrirModalAccionApp_(id, nombre, icono, color) {
+  const esEdicion = !!id;
+  const icoSel = icono || '⚠️';
+  const colSel = color || '#EF4444';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay show';
+  modal.id = 'modal-accion-app';
+  modal.innerHTML = '<div class="modal-card" style="max-width:440px;width:94vw;">' +
+    '<h3 style="margin-bottom:18px;">' + (esEdicion ? '✏️ Editar Acción' : '➕ Nueva Acción de Peligro') + '</h3>' +
+    '<div class="form-group"><label>Nombre</label>' +
+      '<input type="text" id="accion-nombre" class="admin-input" value="' + escapeHtml_(nombre || '') + '" placeholder="Ej: Árbol Caído"></div>' +
+    '<div class="form-group"><label>Ícono</label>' +
+      '<div style="display:grid;grid-template-columns:repeat(10,1fr);gap:6px;" id="accion-ico-grid">' +
+        APP_ICONOS.map(i => '<button style="font-size:20px;padding:6px;border-radius:8px;border:2px solid ' + (i===icoSel?'#2563EB':'#E2E8F0') + ';background:' + (i===icoSel?'#EFF4FF':'#fff') + ';cursor:pointer;" onclick="selAccionIco(this,\''+i+'\')">' + i + '</button>').join('') +
+      '</div></div>' +
+    '<div class="form-group"><label>Color</label>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;" id="accion-col-grid">' +
+        APP_COLORES.map(col => '<button style="width:32px;height:32px;border-radius:50%;background:'+col+';border:3px solid '+(col===colSel?'#1E293B':'transparent')+';cursor:pointer;" onclick="selAccionCol(this,\''+col+'\')"></button>').join('') +
+      '</div></div>' +
+    '<input type="hidden" id="accion-ico-val" value="' + icoSel + '">' +
+    '<input type="hidden" id="accion-col-val" value="' + colSel + '">' +
+    '<p class="form-error" id="accion-error" style="min-height:16px;color:var(--red);font-size:12px;"></p>' +
+    '<div style="display:flex;gap:10px;margin-top:12px;">' +
+      '<button class="popup-btn" onclick="this.closest(\'.modal-overlay\').remove()">Cancelar</button>' +
+      '<button class="popup-btn primary" onclick="guardarAccionApp_(\'' + (id||'') + '\')">Guardar</button>' +
+    '</div></div>';
+
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+function selAccionIco(btn, ico) {
+  document.querySelectorAll('#accion-ico-grid button').forEach(b => {
+    b.style.borderColor = '#E2E8F0'; b.style.background = '#fff';
+  });
+  btn.style.borderColor = '#2563EB'; btn.style.background = '#EFF4FF';
+  document.getElementById('accion-ico-val').value = ico;
+}
+
+function selAccionCol(btn, col) {
+  document.querySelectorAll('#accion-col-grid button').forEach(b => b.style.borderColor = 'transparent');
+  btn.style.borderColor = '#1E293B';
+  document.getElementById('accion-col-val').value = col;
+}
+
+async function guardarAccionApp_(id) {
+  const nombre = document.getElementById('accion-nombre').value.trim();
+  const icono  = document.getElementById('accion-ico-val').value;
+  const color  = document.getElementById('accion-col-val').value;
+  const errEl  = document.getElementById('accion-error');
+  if (!nombre) { errEl.textContent = 'El nombre es obligatorio.'; return; }
+
+  const payload = { nombre, icono, color };
+  let error;
+  if (id) {
+    ({ error } = await supabaseClient.from('app_tipos_accion').update(payload).eq('id', id));
+  } else {
+    payload.activo = true; payload.por_defecto = false;
+    ({ error } = await supabaseClient.from('app_tipos_accion').insert(payload));
+  }
+  if (error) { errEl.textContent = 'Error: ' + error.message; return; }
+  document.querySelector('.modal-overlay')?.remove();
+  mostrarToast_(id ? '✅ Acción actualizada' : '✅ Acción "' + nombre + '" creada');
+  cargarSeccionAdmin_('appAcciones');
+}
+
+async function toggleAccionApp_(id, nuevoEstado) {
+  await supabaseClient.from('app_tipos_accion').update({ activo: nuevoEstado }).eq('id', id);
+  mostrarToast_(nuevoEstado ? '✅ Acción activada' : 'Acción desactivada');
+  cargarSeccionAdmin_('appAcciones');
+}
 async function adminSeccionPatrulleros_(c) {
   const { data, error } = await supabaseClient.from('tb_patrulleros').select('*').order('id_patrullero');
   if (error) { c.innerHTML = adminHead_('Patrulleros', '') + '<div class="layer-empty-msg">' + error.message + '</div>'; return; }
@@ -3916,19 +4450,26 @@ function mostrarVista_(vista) {
     }
   });
   // Siempre re-evaluar visibilidad por rol al entrar al mapa
+  // Switcher de escenarios: visible solo en Mapa y fuera de modo edición
+  if (esMapa && !state.editorMode && !state.modoPlanificacion) mostrarSwitcherEscenarios_();
+  else ocultarSwitcherEscenarios_();
+
   if (esMapa) {
     actualizarBotonLogoMunicipal_();
     actualizarEstrellaFavorito_();
     poblarSelectorArea_();
-    // Para GRD y Visor: forzar ocultar selector de área y favorito
     const perfil = state.perfil && state.perfil.perfil;
+    // Administrador: sin badge de comuna, sin favorito, sin área
+    if (perfil === 'Administrador') {
+      ['comuna-badge','btn-fav-comuna','area-select'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.style.display = 'none';
+      });
+    }
+    // GRD y Visor: sin área ni favorito
     if (perfil === 'GRD' || perfil === 'Visor') {
-      const asel = document.getElementById('area-select');
-      const fav  = document.getElementById('btn-fav-comuna');
-      const csel = document.getElementById('comuna-select');
-      if (asel) asel.style.display = 'none';
-      if (fav)  fav.style.display  = 'none';
-      if (csel) csel.style.display = 'none';
+      ['area-select','btn-fav-comuna','comuna-select'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.style.display = 'none';
+      });
     }
   }
 }
@@ -3994,15 +4535,15 @@ function actualizarBotonLogoMunicipal_() {
   const perfil = state.perfil && state.perfil.perfil;
   const enDashboard = state.vistaActual === 'dashboard';
 
-  // Admin y Jefe de Área en Dashboard: lista de logos de todas sus comunas con logo
-  if (grande && (perfil === 'Administrador' || perfil === 'Jefe de Área Relacionamiento')) {
-    if (enDashboard) {
-      renderListaLogosComunas_();
-    } else {
-      grande.style.display = 'none';
-    }
-  } else if (grande) {
-    // GRD y otros: logo único de la comuna activa (solo en Dashboard)
+  // Administrador: NO ve el logo municipal en Dashboard
+  if (!grande) return;
+  if (perfil === 'Administrador') { grande.style.display = 'none'; }
+  // Jefe de Área: lista de logos de sus comunas
+  else if (perfil === 'Jefe de Área Relacionamiento') {
+    if (enDashboard) { renderListaLogosComunas_(); }
+    else { grande.style.display = 'none'; }
+  } else {
+    // GRD y otros: logo único de su comuna activa
     grande.innerHTML = '<img id="img-logo-municipal-grande" src="" alt="Logo municipal">';
     if (state.logoMunicipalComuna && state.activeComunaId && enDashboard) {
       document.getElementById('img-logo-municipal-grande').src = state.logoMunicipalComuna;
@@ -4330,7 +4871,7 @@ function setActiveComuna(comunaId, esCargaInicial) {
   comunaRequestToken++;
   const miToken = comunaRequestToken;
 
-  document.getElementById('comuna-label').textContent = cfg.comuna + ' · ' + cfg.region;
+  document.getElementById('comuna-label').textContent = cfg.comuna;
   document.getElementById('region-label').textContent = cfg.region;
   actualizarEstrellaFavorito_();
   cargarLogoMunicipalComuna_(comunaId).then(() => { if (state.recursos && state.recursos.length) renderRecursosEnMapa(); });
@@ -4681,30 +5222,155 @@ async function loadAreaLayers_() {
   await loadRecursosDisponiblesAreaLayer_();
   if (state.areasLayersOn.recursosDisponibles) recursosDisponiblesAreaLayer.addTo(map);
 
+  // Capas admin por comuna: recargar si están activas
+  if (state.perfil.perfil === 'Administrador') {
+    if (state.recursosComunaAdminOn) { await loadRecursosComunaAdmin_(); recursosComunaAdminLayer.addTo(map); }
+    if (state.rutasComunaAdminOn)    { await loadRutasComunaAdmin_();    rutasComunaAdminLayer.addTo(map); }
+  }
+
   if (document.querySelector('.rail-btn.active').dataset.tab === 'capas') renderTab('capas');
 }
 
 /* ============ Simbología por tipo de recurso (según nombre_recurso / tipo_movil) ============ */
 function emojiParaRecursoMaestro_(rm) {
+  // Priorizar tipo_recurso (VIGÍA INFANTERÍA, MONTADO, etc.) sobre nombre_recurso
+  const tipo = (rm.tipo_recurso || '').toLowerCase();
   const nombre = (rm.nombre_recurso || '').toLowerCase();
-  if (nombre.includes('multiprop')) return { emoji: '🚚', sirena: true };
-  if (nombre.includes('disuasiv')) return { emoji: '🚚', sirena: false };
-  if (nombre.includes('infanter')) return { emoji: '🚶', sirena: false };
-  if (nombre.includes('moto')) return { emoji: '🏍️', sirena: false };
-  if (nombre.includes('dron')) return { emoji: '🛸', sirena: false };
-  if (nombre.includes('caballo')) return { emoji: '🐴', sirena: false };
-  if (rm.tipo_movil === 'Camioneta') return { emoji: '🚚', sirena: false };
-  if (rm.tipo_movil === 'Moto') return { emoji: '🏍️', sirena: false };
+  const texto = tipo + ' ' + nombre;
+  if (texto.includes('multiprop'))  return { emoji: '🚚', sirena: true };
+  if (texto.includes('disuasiv'))   return { emoji: '🚚', sirena: false };
+  if (texto.includes('montad') || texto.includes('caballo')) return { emoji: '🐴', sirena: false };
+  if (texto.includes('motoriz') || texto.includes('moto'))   return { emoji: '🏍️', sirena: false };
+  if (texto.includes('dron'))       return { emoji: '🛸', sirena: false };
+  if (texto.includes('camioneta'))  return { emoji: '🚚', sirena: false };
+  if (texto.includes('infanter'))   return { emoji: '🚶', sirena: false };
+  if (rm.tipo_movil === 'Camioneta' || rm.tipo_movil === 'CAMIONETA') return { emoji: '🚚', sirena: false };
+  if (rm.tipo_movil === 'Moto' || rm.tipo_movil === 'MOTO') return { emoji: '🏍️', sirena: false };
   return { emoji: '🚶', sirena: false };
 }
 
+// ════════════════════════════════════════════════════════════════
+// FILTRO JERÁRQUICO POR TIPO DE RECURSO (para las 2 capas de recursos)
+// ════════════════════════════════════════════════════════════════
+state.tiposRecursoOcultos = state.tiposRecursoOcultos || {};
+
+function tipoRecursoOculto_(tipo) {
+  return !!state.tiposRecursoOcultos[tipo];
+}
+function setTipoRecursoOculto_(tipo, oculto) {
+  state.tiposRecursoOcultos[tipo] = oculto;
+}
+
+// Mostrar/ocultar markers según el tipo, en un layerGroup dado
+function aplicarVisibilidadTiposRecurso_(layerGroup) {
+  layerGroup.eachLayer(m => {
+    const tipo = m._tipoRecurso;
+    if (!tipo) return;
+    const oculto = tipoRecursoOculto_(tipo);
+    const el = m.getElement && m.getElement();
+    if (el) el.style.display = oculto ? 'none' : '';
+    // También el tooltip
+    const tt = m.getTooltip && m.getTooltip();
+    if (tt) { const tel = tt.getElement && tt.getElement(); if (tel) tel.style.display = oculto ? 'none' : ''; }
+  });
+}
+
+// Renderiza el árbol jerárquico completo: Raíz (con toggle de capa) → Tipos de recurso
+// Igual que Áreas de Relacionamiento: el checkbox de la raíz enciende/apaga toda la capa.
+// opts: { titulo, dotColor, colapsoKey, layerGroup, featureLayers, infoCount,
+//         onToggleCapa (async), btnEtiqId, etiqActiva, onToggleEtiq }
+function renderArbolTiposRecurso_(contenedor, opts) {
+  const { titulo, dotColor, colapsoKey, layerGroup, featureLayers, infoCount,
+          onToggleCapa, btnEtiqId, etiqActiva, onToggleEtiq } = opts;
+
+  // Agrupar por tipo
+  const porTipo = {};
+  featureLayers.forEach(({ layer }) => {
+    const t = layer._tipoRecurso || 'Sin tipo';
+    porTipo[t] = (porTipo[t] || 0) + 1;
+  });
+  const tipos = Object.keys(porTipo).sort();
+  const encendida = map.hasLayer(layerGroup);
+
+  if (state[colapsoKey] === undefined) state[colapsoKey] = true; // arranca colapsado
+
+  // Nodo raíz — es la fila principal de la capa (con toggle que enciende/apaga)
+  const raiz = document.createElement('div'); raiz.className = 'tree-node';
+  const rowRaiz = document.createElement('div'); rowRaiz.className = 'tree-row';
+  rowRaiz.innerHTML =
+    '<span class="tree-caret ' + (state[colapsoKey] ? 'collapsed' : '') + '">▼</span>' +
+    '<span class="tree-check ' + (encendida ? 'on' : '') + '" data-recurso-raiz="1"></span>' +
+    '<span class="flame-dot" style="background:' + dotColor + ';margin-right:2px;"></span>' +
+    '<span class="tree-label">' + escapeHtml_(titulo) + '</span>' +
+    '<span class="tree-count">' + (infoCount != null ? infoCount + ' rec.' : tipos.length + ' tipo(s)') + '</span>' +
+    (btnEtiqId ? '<button id="' + btnEtiqId + '" class="icon-btn' + (etiqActiva ? ' active' : '') + '" title="Mostrar/ocultar nombres" style="width:22px;height:22px;font-size:11px;flex-shrink:0;margin-left:4px;">🏷️</button>' : '');
+  raiz.appendChild(rowRaiz);
+
+  const hijos = document.createElement('div');
+  hijos.className = 'tree-children' + (state[colapsoKey] ? ' collapsed' : '');
+
+  // Hijos: un nodo por tipo de recurso
+  tipos.forEach(tipo => {
+    const visible = encendida && !tipoRecursoOculto_(tipo);
+    const nodo = document.createElement('div'); nodo.className = 'tree-node sector';
+    const row = document.createElement('div'); row.className = 'tree-row';
+    row.innerHTML =
+      '<span class="tree-caret leaf">▼</span>' +
+      '<span class="tree-check ' + (visible ? 'on' : '') + '" data-recurso-tipo="' + escapeHtml_(tipo) + '"></span>' +
+      '<span class="tree-label">' + escapeHtml_(tipo) + '</span>' +
+      '<span class="tree-count">' + porTipo[tipo] + '</span>';
+    nodo.appendChild(row);
+    hijos.appendChild(nodo);
+
+    row.querySelector('[data-recurso-tipo]').addEventListener('click', () => {
+      if (!map.hasLayer(layerGroup)) return; // solo si la capa está encendida
+      setTipoRecursoOculto_(tipo, !tipoRecursoOculto_(tipo));
+      aplicarVisibilidadTiposRecurso_(layerGroup);
+      renderTab(state.activeTab || 'capas');
+    });
+  });
+
+  raiz.appendChild(hijos);
+  contenedor.appendChild(raiz);
+
+  // Caret: expandir/colapsar
+  rowRaiz.querySelector('.tree-caret').addEventListener('click', () => {
+    state[colapsoKey] = !state[colapsoKey];
+    hijos.classList.toggle('collapsed', state[colapsoKey]);
+    rowRaiz.querySelector('.tree-caret').classList.toggle('collapsed', state[colapsoKey]);
+  });
+
+  // Checkbox raíz: encender/apagar toda la capa
+  rowRaiz.querySelector('[data-recurso-raiz]').addEventListener('click', async () => {
+    await onToggleCapa();
+    renderTab(state.activeTab || 'capas');
+  });
+
+  // Botón etiquetas
+  if (btnEtiqId && onToggleEtiq) {
+    const btn = rowRaiz.querySelector('#' + btnEtiqId);
+    if (btn) btn.addEventListener('click', (ev) => { ev.stopPropagation(); onToggleEtiq(); });
+  }
+}
+
 function construirIconoRecursoMaestro_(rm, color) {
+  // Si el recurso tiene un ícono personalizado, usarlo
+  const iconoUrl = rm.icono_url || iconoPersonalizadoPorTipo_(rm.tipo_recurso);
+  if (iconoUrl) {
+    // Ícono más grande, SIN fondo blanco (transparente) — la imagen se ve directa
+    return L.divIcon({
+      className: '', iconSize: [48, 48], iconAnchor: [24, 24], popupAnchor: [0, -24],
+      html: '<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;">' +
+        '<img src="' + escapeHtml_(iconoUrl) + '" alt="" style="width:46px;height:46px;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));" ' +
+        'onerror="this.parentElement.innerHTML=\'' + emojiParaRecursoMaestro_(rm).emoji + '\';this.parentElement.style.fontSize=\'26px\'">' +
+        '</div>',
+    });
+  }
+  // Sin ícono personalizado: emoji por defecto
   const { emoji, sirena } = emojiParaRecursoMaestro_(rm);
   const fondo = sirena ? 'rgba(148,163,184,0.95)' : 'rgba(255,255,255,0.9)';
   return L.divIcon({
     className: '', iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -16],
-    // Relleno oscuro fijo + anillo grueso con el color de la institución;
-    // el emoji se ve nítido y reconocible sin importar el color del anillo.
     html: '<div style="position:relative;width:32px;height:32px;border-radius:50%;background:' + fondo + ';border:2.6px solid ' + color + ';display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;box-shadow:0 2px 5px rgba(0,0,0,0.25);">' +
       emoji +
       (sirena ? '<span style="position:absolute;top:-7px;right:-4px;font-size:11px;">🚨</span>' : '') +
@@ -4712,25 +5378,77 @@ function construirIconoRecursoMaestro_(rm, color) {
   });
 }
 
+// Mapa de íconos personalizados por tipo de recurso (cargado desde el catálogo)
+// { 'VIGÍA INFANTERÍA': 'https://...', ... }
+state.iconosPorTipoRecurso = state.iconosPorTipoRecurso || {};
+function iconoPersonalizadoPorTipo_(tipoRecurso) {
+  if (!tipoRecurso) return null;
+  const clave = tipoRecurso.toString().trim().toUpperCase();
+  // 1. Coincidencia exacta
+  if (state.iconosPorTipoRecurso[clave]) return state.iconosPorTipoRecurso[clave];
+  // 2. Coincidencia parcial: el tipo del catálogo está contenido en el del recurso, o viceversa
+  //    (ej: catálogo "VIGÍA" coincide con recurso "VIGÍA INFANTERÍA")
+  for (const k of Object.keys(state.iconosPorTipoRecurso)) {
+    if (clave.includes(k) || k.includes(clave)) return state.iconosPorTipoRecurso[k];
+  }
+  return null;
+}
+
+// Cargar los íconos del catálogo (recursos_maestro) mapeados por tipo de recurso
+async function cargarIconosRecursos_() {
+  try {
+    const { data } = await supabaseClient
+      .from('recursos_maestro')
+      .select('tipo_recurso, icono_url')
+      .not('icono_url', 'is', null);
+    const mapa = {};
+    (data || []).forEach(r => {
+      if (r.tipo_recurso && r.icono_url) {
+        mapa[r.tipo_recurso.toString().trim().toUpperCase()] = r.icono_url;
+      }
+    });
+    state.iconosPorTipoRecurso = mapa;
+  } catch (e) { /* silencioso: sin íconos personalizados */ }
+}
+
 let recursosDisponiblesFeatureLayers = []; // [{layer, nombre}] — para togglear solo las etiquetas
 
 async function loadRecursosDisponiblesAreaLayer_() {
-  const zonas = zonasDisponiblesUsuario_();
   recursosDisponiblesAreaLayer.clearLayers();
   recursosDisponiblesFeatureLayers = [];
   state.recursosDisponiblesInfo = { ok: false, count: 0 };
-  if (zonas.length === 0) return;
 
-  const { data, error } = await supabaseClient
-    .from('recursos_disponibles_area_geojson')
-    .select('*, instituciones(nombre, color_hex, logo_url)')
-    .in('area', zonas);
+  const perfil = state.perfil.perfil;
+  let query = supabaseClient.from('recursos_disponibles_area_geojson').select('*');
+
+  if (perfil === 'Administrador') {
+    // Administrador: TODOS los recursos (sin filtro)
+    // (query queda sin filtro adicional)
+  } else if (perfil === 'Jefe de Área Relacionamiento') {
+    if (state.areaActiva) {
+      // Modo Área: recursos de su área completa
+      query = query.eq('area', state.areaActiva);
+    } else {
+      // Modo Comuna: solo recursos de la comuna activa
+      const idc = idComunaActiva_();
+      if (!idc) { state.recursosDisponiblesInfo = { ok: true, count: 0 }; return; }
+      query = query.eq('id_comuna', idc);
+    }
+  } else {
+    // GRD / Visor: solo recursos de la comuna activa
+    const idc = idComunaActiva_();
+    if (!idc) { state.recursosDisponiblesInfo = { ok: true, count: 0 }; return; }
+    query = query.eq('id_comuna', idc);
+  }
+
+  const { data, error } = await query;
 
   if (error) { state.recursosDisponiblesInfo = { ok: false, count: 0, error: error.message }; return; }
 
   (data || []).forEach(r => {
     const inst = r.instituciones || { nombre: 'Institución', color_hex: '#64748B' };
-    const etiqueta = escapeHtml_(r.nombre_recurso || inst.nombre);
+    // La etiqueta muestra el TIPO de recurso (VIGÍA INFANTERÍA, CAMIONETA, etc.)
+    const etiqueta = escapeHtml_(r.tipo_recurso || r.nombre_recurso || inst.nombre);
     const puedeEditar = puedeGestionarRecursoArea_(r.area);
     const enEdicionEstaZona = !!(state.modoRecursosArea && state.modoRecursosArea.area === r.area);
     const popupHtml =
@@ -4751,11 +5469,15 @@ async function loadRecursosDisponiblesAreaLayer_() {
         ? L.polygon(latlngs, { color: inst.color_hex, weight: 3, dashArray: '6,5', fillColor: inst.color_hex, fillOpacity: 0.15 })
         : L.polyline(latlngs, { color: inst.color_hex, weight: 4, dashArray: '6,5' });
       figura.bindPopup(popupHtml);
-      figura.on('popupopen', () => bindPopupActionsRecursoArea_(r));
+      figura.on('popupopen', () => {
+        if (!state.editorMode && !state.modoRecursosArea) { figura.closePopup(); mostrarToast_('✏️ Activa el modo edición para modificar.'); return; }
+        bindPopupActionsRecursoArea_(r);
+      });
       recursosDisponiblesFeatureLayers.push({ layer: figura, nombre: etiqueta });
       if (state.mostrarEtiquetasRecursosArea) {
         figura.bindTooltip(etiqueta, { permanent: true, direction: 'center', className: 'map-label' });
       }
+      figura._tipoRecurso = r.tipo_recurso || 'Sin tipo';
       recursosDisponiblesAreaLayer.addLayer(figura);
       return;
     }
@@ -4763,16 +5485,23 @@ async function loadRecursosDisponiblesAreaLayer_() {
     if (r.lat == null || r.lng == null) return;
     const m = L.marker([r.lat, r.lng], { icon: construirIconoRecursoMaestro_(r, inst.color_hex), draggable: enEdicionEstaZona });
     m.bindPopup(popupHtml);
-    m.on('popupopen', () => bindPopupActionsRecursoArea_(r));
+    m.on('popupopen', () => {
+      if (!state.editorMode && !state.modoRecursosArea) { m.closePopup(); mostrarToast_('✏️ Activa el modo edición para modificar.'); return; }
+      bindPopupActionsRecursoArea_(r);
+    });
     if (enEdicionEstaZona) {
       m.on('dragend', () => reubicarRecursoArea_(r.id, m));
     }
+    m._tipoRecurso = r.tipo_recurso || 'Sin tipo';
     recursosDisponiblesFeatureLayers.push({ layer: m, nombre: etiqueta });
-    if (state.mostrarEtiquetasRecursosArea) {
+    if (state.mostrarEtiquetasRecursosArea && !tipoRecursoOculto_(m._tipoRecurso)) {
       m.bindTooltip(etiqueta, { permanent: true, direction: 'top', offset: [0, -16], className: 'map-label' });
     }
     recursosDisponiblesAreaLayer.addLayer(m);
+    if (tipoRecursoOculto_(m._tipoRecurso)) { const el = m.getElement && m.getElement(); if (el) el.style.display = 'none'; }
   });
+  // Aplicar visibilidad por tipo tras cargar
+  setTimeout(() => aplicarVisibilidadTiposRecurso_(recursosDisponiblesAreaLayer), 50);
   state.recursosDisponiblesInfo = { ok: true, count: (data || []).length };
 }
 
@@ -4813,13 +5542,27 @@ function normalizarTextoCli_(s) {
 
 function filtrarRutasPorPerfil_(rutas) {
   const rol = state.perfil.perfil;
+
+  // Administrador: TODAS las rutas
   if (rol === 'Administrador') return rutas;
+
+  // Jefe de Área: según modo área o modo comuna
   if (rol === 'Jefe de Área Relacionamiento') {
-    const misAreas = (state.misAreasIds || []).map(normalizarTextoCli_);
-    return rutas.filter(r => r.area && misAreas.includes(normalizarTextoCli_(r.area)));
+    if (state.areaActiva) {
+      // Modo Área: rutas del área activa
+      const areaAct = normalizarTextoCli_(state.areaActiva);
+      return rutas.filter(r => r.area && normalizarTextoCli_(r.area) === areaAct);
+    }
+    // Modo Comuna: solo rutas de la comuna activa
+    const idc = idComunaActiva_();
+    if (idc == null) return [];
+    return rutas.filter(r => r.id_comuna === idc);
   }
-  const misComunas = state.misComunaIds || [];
-  return rutas.filter(r => r.comuna_slug && misComunas.includes(r.comuna_slug));
+
+  // GRD / Visor: solo rutas de la comuna activa
+  const idc = idComunaActiva_();
+  if (idc == null) return [];
+  return rutas.filter(r => r.id_comuna === idc);
 }
 
 // Neón en la ruta de patrullaje seleccionada (popup abierto)
@@ -4878,6 +5621,90 @@ async function loadPatrullajeLayer_() {
   } catch (e) {
     state.patrullajeInfo = { ok: false, count: 0, cargado: true, error: e.message };
   }
+}
+
+// ════════════════════════════════════════════════════════════════
+// CAPAS ADMIN: Recursos y Rutas filtrados por COMUNA activa
+// (solo para el perfil Administrador — complementan las capas globales)
+// ════════════════════════════════════════════════════════════════
+async function loadRecursosComunaAdmin_() {
+  recursosComunaAdminLayer.clearLayers();
+  recursosComunaAdminFeatureLayers = [];
+  state.recursosComunaAdminInfo = { ok: false, count: 0 };
+  const idc = idComunaActiva_();
+  if (idc == null) { state.recursosComunaAdminInfo = { ok: true, count: 0 }; return; }
+
+  const { data, error } = await supabaseClient
+    .from('recursos_disponibles_area_geojson')
+    .select('*')
+    .eq('id_comuna', idc);
+  if (error) { state.recursosComunaAdminInfo = { ok: false, count: 0, error: error.message }; return; }
+
+  (data || []).forEach(r => {
+    if (r.lat == null || r.lng == null) return;
+    const etiqueta = escapeHtml_(r.tipo_recurso || r.nombre_recurso || 'Recurso');
+    const m = L.marker([r.lat, r.lng], { icon: construirIconoRecursoMaestro_(r, '#0F172A') });
+    m.bindPopup(
+      '<div class="popup-title">' + escapeHtml_(r.nombre_recurso || r.tipo_recurso || 'Recurso') + '</div>' +
+      '<div class="popup-row">🏷️ ' + escapeHtml_(r.tipo_recurso || '') + (r.tipo_movil && r.tipo_movil !== 'SIN MÓVIL' ? ' (' + escapeHtml_(r.tipo_movil) + ')' : '') + '</div>' +
+      '<div class="popup-row">🏢 ' + escapeHtml_(r.empresa || '—') + '</div>' +
+      '<div class="popup-row">🗺️ ' + escapeHtml_(r.area || '—') + ' · ' + escapeHtml_(r.sector || '—') + '</div>' +
+      '<div class="popup-row">📍 ' + escapeHtml_(r.comuna || '—') + '</div>'
+    );
+    m._tipoRecurso = r.tipo_recurso || 'Sin tipo';
+    recursosComunaAdminFeatureLayers.push({ layer: m, nombre: etiqueta });
+    if (state.mostrarEtiquetasRecursosComunaAdmin && !tipoRecursoOculto_(m._tipoRecurso)) {
+      m.bindTooltip(etiqueta, { permanent: true, direction: 'top', offset: [0, -16], className: 'map-label' });
+    }
+    recursosComunaAdminLayer.addLayer(m);
+    if (tipoRecursoOculto_(m._tipoRecurso)) { const el = m.getElement && m.getElement(); if (el) el.style.display = 'none'; }
+  });
+  setTimeout(() => aplicarVisibilidadTiposRecurso_(recursosComunaAdminLayer), 50);
+  state.recursosComunaAdminInfo = { ok: true, count: (data || []).length };
+}
+
+function toggleEtiquetasRecursosComunaAdmin_() {
+  state.mostrarEtiquetasRecursosComunaAdmin = !state.mostrarEtiquetasRecursosComunaAdmin;
+  recursosComunaAdminFeatureLayers.forEach(({ layer, nombre }) => {
+    if (state.mostrarEtiquetasRecursosComunaAdmin) {
+      layer.bindTooltip(nombre, { permanent: true, direction: 'top', offset: [0, -16], className: 'map-label' });
+    } else {
+      layer.unbindTooltip();
+    }
+  });
+  const btn = document.getElementById('btn-etiq-recursos-comuna-admin');
+  if (btn) btn.classList.toggle('active', state.mostrarEtiquetasRecursosComunaAdmin);
+}
+
+async function loadRutasComunaAdmin_() {
+  rutasComunaAdminLayer.clearLayers();
+  state.rutasComunaAdminInfo = { ok: false, count: 0 };
+  const idc = idComunaActiva_();
+  if (idc == null) { state.rutasComunaAdminInfo = { ok: true, count: 0 }; return; }
+
+  const { data, error } = await supabaseClient
+    .from('v_rutas_patrullaje')
+    .select('id, nombre_ruta, subgerencia, area, sector, comuna, id_comuna, actividad, tipo_movil, km, temporada, geometry')
+    .eq('id_comuna', idc);
+  if (error) { state.rutasComunaAdminInfo = { ok: false, count: 0, error: error.message }; return; }
+
+  (data || []).forEach(r => {
+    if (!r.geometry) return;
+    const capa = L.geoJSON(r.geometry, {
+      style: { color: '#DC2626', weight: 3, opacity: 0.85 },
+      onEachFeature: (f, layer) => {
+        layer.bindPopup(
+          '<div class="popup-title">🚓 ' + escapeHtml_(r.nombre_ruta || r.id) + '</div>' +
+          '<div class="popup-row">Área: ' + escapeHtml_(r.area || '—') + ' · Sector: ' + escapeHtml_(r.sector || '—') + '</div>' +
+          '<div class="popup-row">Comuna: ' + escapeHtml_(r.comuna || '—') + '</div>' +
+          '<div class="popup-row">Actividad: ' + escapeHtml_(r.actividad || '—') + ' · ' + escapeHtml_(r.tipo_movil || '—') + '</div>' +
+          '<div class="popup-row">KM: ' + (r.km != null ? Number(r.km).toFixed(1) : '—') + '</div>'
+        );
+      }
+    });
+    rutasComunaAdminLayer.addLayer(capa);
+  });
+  state.rutasComunaAdminInfo = { ok: true, count: (data || []).length };
 }
 
 function bindPopupActionsRecursoArea_(r) {
@@ -5344,13 +6171,22 @@ function renderRecursosEnMapa() {
       const popupHtml = construirPopupRecurso_(r, inst, centro[0], centro[1]);
 
       const claseGlow = esActivo ? 'recurso-activo-glow' : '';
+      const claseEditable = (puedeEditar && !periodoCerrado_(r.id_periodo)) ? ' recurso-editable' : '';
       const figura = r.tipo_geometria === 'area'
-        ? L.polygon(latlngs, { color: inst.color_hex, weight: 3, fillColor: inst.color_hex, fillOpacity: 0.22, className: claseGlow })
-        : L.polyline(latlngs, { color: inst.color_hex, weight: 5, opacity: 0.85, className: claseGlow });
+        ? L.polygon(latlngs, { color: inst.color_hex, weight: 3, fillColor: inst.color_hex, fillOpacity: 0.22, className: claseGlow + claseEditable })
+        : L.polyline(latlngs, { color: inst.color_hex, weight: 5, opacity: 0.85, className: claseGlow + claseEditable });
       if (esActivo) figura.on('add', () => { const el = figura.getElement && figura.getElement(); if (el) el.style.setProperty('--glow-c', inst.color_hex); });
+      figura._etiquetaNombre = inst.nombre;
+      if (!periodoFeatureLayers[claveGrupo]) periodoFeatureLayers[claveGrupo] = [];
+      periodoFeatureLayers[claveGrupo].push({ layer: figura, nombre: inst.nombre });
+      if (state.mostrarEtiquetasPeriodo && state.mostrarEtiquetasPeriodo[claveGrupo]) {
+        figura.bindTooltip(inst.nombre, { permanent: true, direction: 'center', className: 'map-label label-recurso' });
+      }
       figura.bindPopup(popupHtml);
-      figura.bindTooltip(inst.nombre, { permanent: true, direction: 'center', className: 'map-label label-recurso' });
-      figura.on('popupopen', () => bindPopupActions_());
+      figura.on('popupopen', () => {
+        if (!state.editorMode) { figura.closePopup(); mostrarToast_('✏️ Activa el modo edición para modificar.'); return; }
+        bindPopupActions_();
+      });
       // Resaltado al pasar el mouse (color institucional)
       figura.on('mouseover', () => { const el = figura.getElement && figura.getElement(); if (el) { el.style.setProperty('--glow-c', inst.color_hex); el.classList.add('periodo-hover-resalte'); figura.setStyle({ weight: (r.tipo_geometria === 'area' ? 5 : 7), fillOpacity: 0.38 }); } });
       figura.on('mouseout',  () => { const el = figura.getElement && figura.getElement(); if (el) { el.classList.remove('periodo-hover-resalte'); figura.setStyle({ weight: (r.tipo_geometria === 'area' ? 3 : 5), fillOpacity: 0.22 }); } });
@@ -5364,12 +6200,34 @@ function renderRecursosEnMapa() {
     if (isNaN(lat) || isNaN(lng)) { console.error('Recurso con coordenadas inválidas:', r); return; }
     const popupHtml = construirPopupRecurso_(r, inst, lat, lng);
 
-    const m = L.marker([lat, lng], { icon: pinDivIcon(inst.color_hex, esActivo, logoEfectivoInstitucion_(inst)), draggable: puedeEditar && !periodoCerrado_(r.id_periodo) });
+    const puedeArrastrar = puedeEditar && !periodoCerrado_(r.id_periodo);
+    // draggable solo si YA estamos en modo edición (Leaflet crea m.dragging al añadir al mapa)
+    const m = L.marker([lat, lng], { icon: pinDivIcon(inst.color_hex, esActivo, logoEfectivoInstitucion_(inst)), draggable: puedeArrastrar && !!state.editorMode });
+    m._puedeArrastrar = puedeArrastrar;
     m.bindPopup(popupHtml);
-    m.bindTooltip(inst.nombre, { permanent: true, direction: 'top', offset: [0, -38], className: 'map-label label-recurso' });
-    m.on('popupopen', () => bindPopupActions_());
-    if (puedeEditar && !periodoCerrado_(r.id_periodo)) {
-      m.on('dragend', () => reubicarRecurso_(r.id, m));
+    m._etiquetaNombre = inst.nombre;
+    if (!periodoFeatureLayers[claveGrupo]) periodoFeatureLayers[claveGrupo] = [];
+    periodoFeatureLayers[claveGrupo].push({ layer: m, nombre: inst.nombre });
+    if (state.mostrarEtiquetasPeriodo && state.mostrarEtiquetasPeriodo[claveGrupo]) {
+      m.bindTooltip(inst.nombre, { permanent: true, direction: 'top', offset: [0, -38], className: 'map-label label-recurso' });
+    }
+    m.on('popupopen', () => {
+      if (!state.editorMode) {
+        m.closePopup();
+        mostrarToast_('✏️ Activa el modo edición para modificar.');
+        return;
+      }
+      bindPopupActions_();
+    });
+    if (puedeArrastrar) {
+      m.on('dragend', () => {
+        if (!state.editorMode) {
+          mostrarToast_('✏️ Activa el modo edición para mover recursos.');
+          loadRecursos(state.activeComunaId, ++comunaRequestToken);
+          return;
+        }
+        reubicarRecurso_(r.id, m);
+      });
     }
     periodoLayers[claveGrupo].addLayer(m);
     recursosMarkersById[r.id] = m;
@@ -5377,7 +6235,12 @@ function renderRecursosEnMapa() {
   });
 
   Object.keys(periodoLayers).forEach(clave => {
-    if (state.periodoLayersOn[clave]) periodoLayers[clave].addTo(map);
+    if (state.periodoLayersOn[clave]) {
+      periodoLayers[clave].addTo(map);
+      // Aplicar clase CSS para controlar visibilidad de etiquetas
+      const _el = periodoLayers[clave].getPane ? null : null;
+      aplicarClaseEtiqPeriodo_(clave, state.mostrarEtiquetasPeriodo && state.mostrarEtiquetasPeriodo[clave]);
+    }
   });
 
   // Aplicar ocultación por institución (punto 3)
@@ -5642,7 +6505,7 @@ function actualizarBotonModoActivo_() {
   });
 
   if (state.modoPlanificacion) {
-    const color = state.modoPlanificacion.escenario === 'Amarilla' ? 'rgba(245,158,11,0.55)' : 'rgba(239,68,68,0.55)';
+    const color = state.modoPlanificacion.escenario === 'Verde' ? 'rgba(22,163,74,0.45)' : state.modoPlanificacion.escenario === 'Amarilla' ? 'rgba(245,158,11,0.55)' : 'rgba(239,68,68,0.55)';
     btnAlerta.classList.add('modo-activo');
     btnAlerta.style.setProperty('--glow-color', color);
   } else if (state.modoRecursosArea) {
@@ -5672,6 +6535,9 @@ function toggleEditorMode() {
   // Indicador en la barra superior: chip rojo pulsante con botón salir
   const indEdit = document.getElementById('indicador-edicion');
   if (indEdit) indEdit.classList.toggle('show', state.editorMode);
+  // Switcher: ocultar en modo edición
+  if (state.editorMode) ocultarSwitcherEscenarios_();
+  else if (state.vistaActual === 'mapa') mostrarSwitcherEscenarios_();
   if (!state.editorMode) cancelarDibujo_();
   // Punto: en modo edición, priorizar (traer al frente) las capas editables
   if (state.editorMode) {
@@ -5683,6 +6549,11 @@ function toggleEditorMode() {
       if (document.querySelector('.rail-btn.active') && document.querySelector('.rail-btn.active').dataset.tab === 'copamiento') renderTab('copamiento');
     }
     priorizarCapasEditables_('copamiento');
+    activarDraggableEdicion_(true);
+    desactivarInteractivaLimite_(true);
+  } else {
+    activarDraggableEdicion_(false);
+    desactivarInteractivaLimite_(false);
   }
   actualizarBotonesModoDibujo_();
   actualizarBotonModoActivo_();
@@ -5690,6 +6561,51 @@ function toggleEditorMode() {
 
 // Trae al frente las capas que se pueden editar en el modo indicado, para que
 // no queden tapadas por otras capas (rutas, límites, áreas, etc.).
+function activarDraggableEdicion_(activar) {
+  const aplicar = (m) => {
+    try {
+      if (!m || !m._puedeArrastrar || typeof m.getLatLng !== 'function') return;
+      // options.draggable: para markers que se añadan al mapa después
+      m.options.draggable = !!activar;
+      // dragging existe solo si el marker está en el mapa
+      if (m.dragging) { if (activar) m.dragging.enable(); else m.dragging.disable(); }
+      const el = m.getElement && m.getElement();
+      if (el) { el.style.cursor = activar ? 'grab' : ''; el.title = activar ? 'Arrastra para reubicar' : ''; }
+    } catch(e) {}
+  };
+  Object.values(recursosMarkersById || {}).forEach(aplicar);
+  Object.values(window.planRecursosMarkersById || {}).forEach(aplicar);
+}
+
+function desactivarInteractivaLimite_(desactivar) {
+  // Solo bloquear capas de REFERENCIA, no las editables
+  const capasReferencia = [limiteLayer, areasPobladasLayer, comiteAreasLayer];
+  capasReferencia.forEach(layer => {
+    if (!layer) return;
+    try {
+      layer.eachLayer(l => {
+        const el = l.getElement ? l.getElement() : null;
+        if (el) { el.style.pointerEvents = desactivar ? 'none' : ''; el.style.cursor = desactivar ? 'crosshair' : ''; }
+      });
+    } catch(e) {}
+  });
+  // Bloquear solo paths que NO tengan clase editable
+  const overlays = document.querySelectorAll('#map .leaflet-interactive:not(.leaflet-marker-icon):not(.recurso-editable):not(.plan-editable)');
+  overlays.forEach(el => { el.style.pointerEvents = desactivar ? 'none' : ''; });
+  // Asegurar que figuras editables sigan siendo clickeables
+  if (desactivar) {
+    document.querySelectorAll('#map .leaflet-interactive.recurso-editable, #map .leaflet-interactive.plan-editable').forEach(el => {
+      el.style.pointerEvents = 'all';
+      el.style.cursor = 'pointer';
+    });
+  } else {
+    document.querySelectorAll('#map .leaflet-interactive.recurso-editable, #map .leaflet-interactive.plan-editable').forEach(el => {
+      el.style.pointerEvents = '';
+      el.style.cursor = '';
+    });
+  }
+}
+
 function priorizarCapasEditables_(modo) {
   try {
     if (modo === 'copamiento') {
@@ -5752,7 +6668,8 @@ function finalizarDibujo_() {
   }
 
   if (state.modoPlanificacion) {
-    document.getElementById('modal-title').textContent = (state.dibujoModo === 'area' ? 'Área planificada — ' : 'Línea planificada — ') + (state.modoPlanificacion.escenario === 'Amarilla' ? '🟡 Alerta Amarilla' : '🔴 Alerta Roja');
+    const icoEscModal = state.modoPlanificacion.escenario === 'Verde' ? '🟢' : state.modoPlanificacion.escenario === 'Amarilla' ? '🟡' : '🔴';
+    document.getElementById('modal-title').textContent = (state.dibujoModo === 'area' ? 'Área planificada — ' : 'Línea planificada — ') + icoEscModal + ' Alerta ' + state.modoPlanificacion.escenario;
     document.getElementById('modal-coords').textContent = tempDibujoVertices.length + ' vértices trazados';
     document.getElementById('f-institucion').selectedIndex = 0;
     document.getElementById('f-tipo-recurso').selectedIndex = 0;
@@ -5818,7 +6735,7 @@ map.on('click', (e) => {
     state.pendingLatLng = e.latlng;
     state.pendingLineaPuntos = null;
     state.pendingAreaPuntos = null;
-    document.getElementById('modal-title').textContent = 'Recurso planificado — ' + (state.modoPlanificacion.escenario === 'Amarilla' ? '🟡 Alerta Amarilla' : '🔴 Alerta Roja');
+    document.getElementById('modal-title').textContent = 'Recurso planificado — ' + (state.modoPlanificacion.escenario === 'Verde' ? '🟢' : state.modoPlanificacion.escenario === 'Amarilla' ? '🟡' : '🔴') + ' Alerta ' + state.modoPlanificacion.escenario;
     document.getElementById('modal-coords').textContent = 'Lat ' + e.latlng.lat.toFixed(4) + ', Lng ' + e.latlng.lng.toFixed(4);
     document.getElementById('f-institucion').selectedIndex = 0;
     document.getElementById('f-tipo-recurso').selectedIndex = 0;
@@ -6169,8 +7086,8 @@ async function ofrecerCopiaPlanificacionPrevia_(comunaId) {
   conRecursos.forEach(p => {
     const btn = document.createElement('button');
     btn.className = 'btn-primary';
-    btn.style.cssText = 'width:100%;background:' + (p.escenario === 'Amarilla' ? '#F59E0B' : '#EF4444') + ';';
-    btn.textContent = (p.escenario === 'Amarilla' ? '🟡 Copiar Alerta Amarilla' : '🔴 Copiar Alerta Roja') + ' (' + p.count + ' recurso(s))';
+    btn.style.cssText = 'width:100%;background:' + (p.escenario === 'Verde' ? '#16A34A' : p.escenario === 'Amarilla' ? '#F59E0B' : '#EF4444') + ';';
+    btn.textContent = (p.escenario === 'Verde' ? '🟢 Copiar Alerta Verde' : p.escenario === 'Amarilla' ? '🟡 Copiar Alerta Amarilla' : '🔴 Copiar Alerta Roja') + ' (' + p.count + ' recurso(s))';
     btn.addEventListener('click', () => copiarPlanificacionAPeriodo_(p.id, p.escenario));
     cont.appendChild(btn);
   });
@@ -6500,7 +7417,7 @@ async function generarPDFPlan_(planId, escenario, comunaNombre) {
     agrup[k].cantidad++;
   });
   await construirPDF_({
-    titulo: 'Plan de Alerta ' + (escenario === 'Amarilla' ? 'Amarilla 🟡' : 'Roja 🔴'),
+    titulo: 'Plan de Alerta ' + (escenario === 'Verde' ? 'Verde 🟢' : escenario === 'Amarilla' ? 'Amarilla 🟡' : 'Roja 🔴'),
     subtitulo: 'Planificación Previa · ' + (comunaNombre || ''),
     fechas: 'Plan de contingencia (' + escenario + ')',
     estado: 'activo',
@@ -6682,10 +7599,16 @@ async function abrirPanelPlanificacionPrevia_() {
 }
 
 function actualizarBotonesEscenario_() {
-  document.getElementById('btn-escenario-amarilla').style.background = state.escenarioActivo === 'Amarilla' ? '#F59E0B' : '';
-  document.getElementById('btn-escenario-amarilla').style.color = state.escenarioActivo === 'Amarilla' ? '#fff' : '';
-  document.getElementById('btn-escenario-roja').style.background = state.escenarioActivo === 'Roja' ? '#EF4444' : '';
-  document.getElementById('btn-escenario-roja').style.color = state.escenarioActivo === 'Roja' ? '#fff' : '';
+  [['btn-escenario-verde','Verde','#16A34A'],
+   ['btn-escenario-amarilla','Amarilla','#F59E0B'],
+   ['btn-escenario-roja','Roja','#EF4444']].forEach(([id, esc, col]) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const activo = state.escenarioActivo === esc;
+    btn.style.background = activo ? col : '';
+    btn.style.color = activo ? '#fff' : '';
+    btn.style.fontWeight = activo ? '800' : '';
+  });
 }
 
 async function cargarPlanificacionPrevia_() {
@@ -6723,17 +7646,19 @@ async function cargarPlanificacionPrevia_() {
 function renderPlanificacionPreviaList_() {
   const cont = document.getElementById('planificacion-previa-list');
   cont.innerHTML = '';
-  const colorEscenario = state.escenarioActivo === 'Amarilla' ? '#F59E0B' : '#EF4444';
+  const colorEscenario = state.escenarioActivo === 'Verde' ? '#16A34A' : state.escenarioActivo === 'Amarilla' ? '#F59E0B' : '#EF4444';
+  const icoEsc = state.escenarioActivo === 'Verde' ? '🟢' : state.escenarioActivo === 'Amarilla' ? '🟡' : '🔴';
+  const claseEsc = state.escenarioActivo === 'Verde' ? 'activo-verde' : state.escenarioActivo === 'Amarilla' ? 'activo-amarilla' : 'activo-roja';
 
   if (state.planificacionEntidades.length === 0) {
-    cont.innerHTML = '<div class="layer-empty-msg">Todavía no hay ninguna planificación ' + (state.escenarioActivo === 'Amarilla' ? '🟡 Amarilla' : '🔴 Roja') + ' creada. Usa el ícono de alerta ⚠️ en la barra superior, sobre la comuna que quieras planificar.</div>';
+    cont.innerHTML = '<div class="layer-empty-msg">Todavía no hay ninguna planificación ' + icoEsc + ' ' + state.escenarioActivo + ' creada. Usa el ícono de alerta ⚠️ en la barra superior, sobre la comuna que quieras planificar.</div>';
     return;
   }
 
   state.planificacionEntidades.forEach(e => {
     const activo = e.plan ? e.plan.activo : false;
     const card = document.createElement('div');
-    card.className = 'plan-contingencia-card' + (activo ? (state.escenarioActivo === 'Amarilla' ? ' activo-amarilla' : ' activo-roja') : '');
+    card.className = 'plan-contingencia-card' + (activo ? (' ' + claseEsc) : '');
     card.innerHTML =
       '<div class="pcc-top"><div class="pcc-nombre">' + e.nombre + '</div>' +
       '<div class="toggle ' + (activo ? 'on' : '') + '" data-entidad="' + e.id + '"></div></div>' +
@@ -6845,14 +7770,17 @@ async function abrirPropuestaPlan_(e) {
   cont.appendChild(filaTotal);
 }
 
-/* ============ MODO PLANIFICACIÓN (dibujar en el mapa para un plan) ============ */
 function iniciarModoPlanificacion_(e) {
-  // Punto 5: exigir que la capa de alerta correspondiente esté visualmente activa.
-  const esAmarilla = state.escenarioActivo === 'Amarilla';
-  const capaActiva = esAmarilla ? (state.alertaLayersOn && state.alertaLayersOn.amarilla) : (state.alertaLayersOn && state.alertaLayersOn.roja);
-  if (!capaActiva) {
-    mostrarToast_('⚠️ Para planificar en ' + (esAmarilla ? 'Alerta Amarilla' : 'Alerta Roja') + ', primero activa esa capa en el panel de Capas (sección "Alertas Territoriales").');
-    return;
+  const claveEsc = state.escenarioActivo === 'Verde' ? 'verde' : state.escenarioActivo === 'Amarilla' ? 'amarilla' : 'roja';
+  // Activar la capa automáticamente si no está encendida
+  if (!state.alertaLayersOn[claveEsc]) {
+    state.alertaLayersOn[claveEsc] = true;
+    const _capasEsc = {
+      verde:    [capaAlertaVerdeLayer,    planificacionRecursosVerdeLayer],
+      amarilla: [capaAlertaAmarillaLayer, planificacionRecursosAmarillaLayer],
+      roja:     [capaAlertaRojaLayer,     planificacionRecursosRojaLayer],
+    };
+    _capasEsc[claveEsc].forEach(l => l.addTo(map));
   }
   document.getElementById('propuesta-plan-overlay').classList.remove('show');
   document.getElementById('planificacion-previa-overlay').classList.remove('show');
@@ -6868,7 +7796,8 @@ function iniciarModoPlanificacion_(e) {
     if (sel && sel.style.display !== 'none') sel.value = e.id;
   }
 
-  const color = state.escenarioActivo === 'Amarilla' ? '#F59E0B' : '#EF4444';
+  const color = state.escenarioActivo === 'Verde' ? '#16A34A' : state.escenarioActivo === 'Amarilla' ? '#F59E0B' : '#EF4444';
+  const colorTexto = state.escenarioActivo === 'Amarilla' ? '#92400E' : '#fff';
   state.editorMode = true;
   state.dibujoModo = 'punto';
   const _betAdd=document.getElementById('btn-editor-toggle'); if(_betAdd) _betAdd.classList.add('active');
@@ -6876,9 +7805,24 @@ function iniciarModoPlanificacion_(e) {
   document.getElementById('editor-banner').style.background = color;
   document.getElementById('map').classList.add('editing-mode');
   document.getElementById('btn-salir-planificacion').style.display = 'inline-block';
-  document.getElementById('editor-banner-texto').textContent = 'Planificando ' + (state.escenarioActivo === 'Amarilla' ? '🟡 Alerta Amarilla' : '🔴 Alerta Roja') + ' — ' + e.nombre;
+  document.getElementById('btn-salir-edicion').style.display = 'none';
+  const icoEsc = state.escenarioActivo === 'Verde' ? '🟢' : state.escenarioActivo === 'Amarilla' ? '🟡' : '🔴';
+  document.getElementById('editor-banner-texto').textContent = 'Planificando ' + icoEsc + ' Alerta ' + state.escenarioActivo + ' — ' + e.nombre;
+  // Ocultar switcher al entrar en modo planificación
+  ocultarSwitcherEscenarios_();
+  // Indicador en la barra superior (mismo que modo edición periodo crítico)
+  const indEdit = document.getElementById('indicador-edicion');
+  if (indEdit) {
+    indEdit.style.background = color;
+    indEdit.style.color = colorTexto;
+    const pulsCol = state.escenarioActivo === 'Verde' ? '#86EFAC' : state.escenarioActivo === 'Amarilla' ? '#FCD34D' : '#FCA5A5';
+    const textoInd = state.escenarioActivo === 'Verde' ? '🟢 Planif. Verde · Salir' : state.escenarioActivo === 'Amarilla' ? '🟡 Planif. Amarilla · Salir' : '🔴 Planif. Roja · Salir';
+    indEdit.innerHTML = '<span class="edit-pulse" style="background:' + pulsCol + '"></span>' + textoInd;
+    indEdit.classList.add('show');
+  }
   actualizarBotonesModoDibujo_();
   loadPlanificacionRecursos_(state.activeComunaId);
+  setTimeout(() => { try { activarDraggableEdicion_(true); desactivarInteractivaLimite_(true); } catch(e) {} }, 600);
   mostrarToast_('Modo planificación activo. Dibuja en el mapa; sal con "🚪 Salir de planificación" cuando termines.');
   actualizarBotonModoActivo_();
 }
@@ -6892,9 +7836,19 @@ function salirModoPlanificacion_() {
   document.getElementById('editor-banner').style.background = '';
   document.getElementById('map').classList.remove('editing-mode');
   const indEdit = document.getElementById('indicador-edicion');
-  if (indEdit) indEdit.classList.remove('show');
+  if (indEdit) {
+    indEdit.classList.remove('show');
+    // Restaurar estilo original del indicador (rojo del periodo crítico)
+    indEdit.style.background = '';
+    indEdit.style.color = '';
+    indEdit.innerHTML = '<span class="edit-pulse"></span>✏️ Editando · Salir';
+  }
   document.getElementById('btn-salir-planificacion').style.display = 'none';
+  document.getElementById('btn-salir-edicion').style.display = '';
+  // Restaurar draggable y cursor al salir del modo edición
+  try { activarDraggableEdicion_(false); desactivarInteractivaLimite_(false); } catch(e) {}
   cargarCapasAlertaGlobales_();
+  if (state.vistaActual === 'mapa') { setTimeout(mostrarSwitcherEscenarios_, 200); actualizarSwitcherEscenarios_(); }
   actualizarBotonModoActivo_();
 }
 
@@ -7012,39 +7966,30 @@ async function guardarRecursoAreaDesdeDibujo_() {
 
 
 // Toggle etiquetas en capas de alerta (activar/desactivar desde panel de capas)
-if (!state.mostrarEtiquetasAlerta) state.mostrarEtiquetasAlerta = { amarilla: false, roja: false };
+if (!state.mostrarEtiquetasAlerta) state.mostrarEtiquetasAlerta = { verde: false, amarilla: false, roja: false };
 
 function toggleEtiquetasAlerta_(clave) {
-  if (!state.mostrarEtiquetasAlerta) state.mostrarEtiquetasAlerta = { amarilla: false, roja: false };
+  if (!state.mostrarEtiquetasAlerta) state.mostrarEtiquetasAlerta = { verde: false, amarilla: false, roja: false };
   state.mostrarEtiquetasAlerta[clave] = !state.mostrarEtiquetasAlerta[clave];
-  const groupLayer = clave === 'amarilla' ? capaAlertaAmarillaLayer : capaAlertaRojaLayer;
   const activo = state.mostrarEtiquetasAlerta[clave];
-  groupLayer.eachLayer(geojsonLayer => {
-    if (geojsonLayer.eachLayer) {
-      geojsonLayer.eachLayer(poly => aplicarEtiquetaAlerta_(poly, activo));
+
+  const arr = clave === 'verde' ? alertaVerdeFeatureLayers
+            : clave === 'amarilla' ? alertaAmarillaFeatureLayers
+            : alertaRojaFeatureLayers;
+
+  // Mismo patrón exacto que toggleEtiquetasRecursosArea_ (que funciona bien)
+  arr.forEach(({ layer, texto }) => {
+    if (activo && texto) {
+      layer.bindTooltip(texto, { permanent: true, direction: 'center', className: 'map-label' });
     } else {
-      aplicarEtiquetaAlerta_(geojsonLayer, activo);
+      layer.unbindTooltip();
     }
   });
+
+  const btn = document.getElementById('btn-etiq-' + clave);
+  if (btn) btn.classList.toggle('active', activo);
   renderTab(state.activeTab || 'capas');
-}
-
-function aplicarEtiquetaAlerta_(poly, mostrar) {
-  const texto = poly._etiquetaTexto;
-  if (!texto) return;
-  try {
-    if (mostrar) {
-      poly.bindTooltip(texto, { permanent: true, direction: 'center', className: 'map-label' });
-      try { if (map.hasLayer(poly)) poly.openTooltip(); } catch(e) {}
-    } else {
-      poly.unbindTooltip();
-    }
-  } catch(e) { console.warn('aplicarEtiquetaAlerta_:', e.message); }
-}
-
-
-
-// ══ Simbología adecuada al escenario de alerta ══════════════════════════════
+}// ══ Simbología adecuada al escenario de alerta ══════════════════════════════
 function mostrarSimbologiaEscenario_(escenario) {
   const panel = document.getElementById('simbologia-flotante');
   const body  = document.getElementById('sf-body');
@@ -7078,20 +8023,25 @@ function toggleEtiquetasPeriodo_(periodoId, btn) {
   const activo = !state.mostrarEtiquetasPeriodo[periodoId];
   state.mostrarEtiquetasPeriodo[periodoId] = activo;
   if (btn) btn.classList.toggle('active', activo);
-  const layer = periodoLayers[periodoId];
-  if (!layer) return;
-  layer.eachLayer(sub => {
-    try {
-      const nombre = sub._tooltip && sub._tooltip._content
-        ? sub._tooltip._content
-        : (sub.feature && sub.feature.properties && (sub.feature.properties.nombre || sub.feature.properties.nombre_recurso || sub.feature.properties.tipo)) || null;
-      if (activo) {
-        if (sub.getTooltip && sub.getTooltip()) return; // ya tiene
-        if (sub.bindTooltip && nombre) sub.bindTooltip(String(nombre), { permanent: true, direction: sub.getLatLng ? 'top' : 'center', offset: sub.getLatLng ? [0,-12] : [0,0], className: 'map-label' });
-      } else {
-        if (sub.unbindTooltip) sub.unbindTooltip();
-      }
-    } catch(e) {}
+  aplicarClaseEtiqPeriodo_(periodoId, activo);
+}
+
+/* aplicarClaseEtiqPeriodo_: definida abajo */
+
+function aplicarClaseEtiqPeriodo_(periodoId, activo) {
+  const arr = periodoFeatureLayers[periodoId] || [];
+  arr.forEach(({ layer, nombre }) => {
+    if (activo) {
+      const esFigura = layer instanceof L.Polygon || layer instanceof L.Polyline;
+      layer.bindTooltip(nombre, {
+        permanent: true,
+        direction: esFigura ? 'center' : 'top',
+        offset: esFigura ? [0, 0] : [0, -12],
+        className: 'map-label label-recurso'
+      });
+    } else {
+      layer.unbindTooltip();
+    }
   });
 }
 
@@ -7161,6 +8111,66 @@ async function actualizarPosicionesApp_() {
 
   } catch(e) { console.warn('app gps:', e); }
 }
+
+// ════════════════════════════════════════════════════════════════
+// SWITCHER DE ESCENARIOS (botones flotantes Verde/Amarillo/Rojo)
+// ════════════════════════════════════════════════════════════════
+function mostrarSwitcherEscenarios_() {
+  const sw = document.getElementById('escenario-switcher');
+  if (sw) sw.classList.add('show');
+}
+function ocultarSwitcherEscenarios_() {
+  const sw = document.getElementById('escenario-switcher');
+  if (sw) sw.classList.remove('show');
+}
+function actualizarSwitcherEscenarios_() {
+  const verde   = state.alertaLayersOn.verde;
+  const amarilla = state.alertaLayersOn.amarilla;
+  const roja    = state.alertaLayersOn.roja;
+  document.getElementById('esc-btn-verde').classList.toggle('active', !!verde);
+  document.getElementById('esc-btn-amarilla').classList.toggle('active', !!amarilla);
+  document.getElementById('esc-btn-roja').classList.toggle('active', !!roja);
+}
+
+async function activarEscenarioDesdeBoton_(escenario) {
+  // Si el escenario ya está activo → desactivar (toggle)
+  const claves = { Verde:'verde', Amarilla:'amarilla', Roja:'roja' };
+  const clave = claves[escenario];
+  const estaActivo = state.alertaLayersOn[clave];
+
+  // Apagar todos primero
+  ['verde','amarilla','roja'].forEach(k => {
+    if (state.alertaLayersOn[k]) {
+      const capas = { verde: [capaAlertaVerdeLayer, planificacionRecursosVerdeLayer],
+                      amarilla: [capaAlertaAmarillaLayer, planificacionRecursosAmarillaLayer],
+                      roja: [capaAlertaRojaLayer, planificacionRecursosRojaLayer] };
+      capas[k].forEach(l => map.removeLayer(l));
+      state.alertaLayersOn[k] = false;
+    }
+  });
+
+  if (!estaActivo) {
+    // Activar el escenario elegido
+    state.alertaLayersOn[clave] = true;
+    const capasActivas = { verde: [capaAlertaVerdeLayer, planificacionRecursosVerdeLayer],
+                            amarilla: [capaAlertaAmarillaLayer, planificacionRecursosAmarillaLayer],
+                            roja: [capaAlertaRojaLayer, planificacionRecursosRojaLayer] };
+    capasActivas[clave].forEach(l => l.addTo(map));
+    // Cargar datos si no están
+    await cargarCapasAlertaGlobales_();
+    // Actualizar simbología
+    mostrarSimbologiaEscenario_(escenario);
+    mostrarToast_('🗺️ Escenario ' + escenario + ' activo');
+  } else {
+    // Se apagó — ocultar simbología
+    const panel = document.getElementById('simbologia-flotante');
+    if (panel) panel.style.display = 'none';
+  }
+
+  actualizarSwitcherEscenarios_();
+  // Refrescar panel de capas
+  renderTab(state.activeTab || 'capas');
+}
 function mostrarLandingPeriodoCritico_(nombre) {
   document.getElementById('landing-ico').textContent    = '🗓️';
   document.getElementById('landing-titulo').textContent = 'Creando Periodo Crítico';
@@ -7194,8 +8204,8 @@ function landingAvanzarPaso_(paso, subtexto) {
   if (subtexto) document.getElementById('landing-sub').textContent = subtexto;
 }
 function mostrarLandingPlanificacion_(escenario) {
-  const esAm = escenario === 'Amarilla';
-  document.getElementById('landing-ico').textContent    = esAm ? '🟡' : '🔴';
+  const ico = escenario === 'Verde' ? '🟢' : escenario === 'Amarilla' ? '🟡' : '🔴';
+  document.getElementById('landing-ico').textContent    = ico;
   document.getElementById('landing-titulo').textContent = 'Preparando Alerta ' + escenario;
   document.getElementById('landing-sub').textContent    = 'Activando la capa y cargando datos del escenario…';
   ['lstep-1','lstep-2','lstep-3'].forEach((id,i) => {
@@ -7221,13 +8231,10 @@ async function iniciarPlanificacionRapida_(escenario) {
 
   if (!state.activeComunaId) { mostrarToast_('Selecciona primero una comuna en el mapa.'); return; }
 
-  // ── LANDING: mostrar pantalla de preparación ──────────────────────────────
+  // ── LANDING ──────────────────────────────────────────────────────────────
   mostrarLandingPlanificacion_(escenario);
 
-  // ── ACTIVAR CAPA automáticamente + apagar capas que no corresponden ────────
-  const esAmarilla = escenario === 'Amarilla';
-
-  // 1a. Apagar Periodo Crítico (capas de copamiento)
+  // 1a. Apagar Periodo Crítico
   Object.keys(state.periodoLayersOn).forEach(k => {
     if (state.periodoLayersOn[k] && periodoLayers[k]) {
       map.removeLayer(periodoLayers[k]); state.periodoLayersOn[k] = false;
@@ -7235,22 +8242,19 @@ async function iniciarPlanificacionRapida_(escenario) {
   });
   if (state.editorMode) { state.editorMode = false; cancelarDibujo_(); }
 
-  // 1b. Apagar la alerta contraria
-  if (esAmarilla) {
-    state.alertaLayersOn.roja = false;
-    map.removeLayer(capaAlertaRojaLayer);
-    map.removeLayer(planificacionRecursosRojaLayer);
-    state.alertaLayersOn.amarilla = true;
-    capaAlertaAmarillaLayer.addTo(map);
-    planificacionRecursosAmarillaLayer.addTo(map);
-  } else {
-    state.alertaLayersOn.amarilla = false;
-    map.removeLayer(capaAlertaAmarillaLayer);
-    map.removeLayer(planificacionRecursosAmarillaLayer);
-    state.alertaLayersOn.roja = true;
-    capaAlertaRojaLayer.addTo(map);
-    planificacionRecursosRojaLayer.addTo(map);
-  }
+  // 1b. Apagar todas las alertas y activar solo la elegida
+  const mapaCapas = {
+    verde:    [capaAlertaVerdeLayer,    planificacionRecursosVerdeLayer],
+    amarilla: [capaAlertaAmarillaLayer, planificacionRecursosAmarillaLayer],
+    roja:     [capaAlertaRojaLayer,     planificacionRecursosRojaLayer],
+  };
+  const claveActiva = escenario === 'Verde' ? 'verde' : escenario === 'Amarilla' ? 'amarilla' : 'roja';
+  Object.keys(mapaCapas).forEach(k => {
+    state.alertaLayersOn[k] = false;
+    mapaCapas[k].forEach(l => map.removeLayer(l));
+  });
+  state.alertaLayersOn[claveActiva] = true;
+  mapaCapas[claveActiva].forEach(l => l.addTo(map));
 
   // 1c. Cambiar a la pestaña correcta en el panel lateral
   const railBtn = document.querySelector('.rail-btn[data-tab="planificacion-previa"]');
@@ -7281,42 +8285,78 @@ async function iniciarPlanificacionRapida_(escenario) {
 }
 
 /* ============ CAPAS GLOBALES: Alerta Amarilla / Alerta Roja (todas las comunas activas) ============ */
+const capaAlertaVerdeLayer    = L.layerGroup();
 const capaAlertaAmarillaLayer = L.layerGroup();
-const capaAlertaRojaLayer = L.layerGroup();
+const capaAlertaRojaLayer     = L.layerGroup();
+// Arrays planos para etiquetas de alertas (mismo patrón que recursosDisponiblesFeatureLayers)
+const alertaVerdeFeatureLayers    = [];
+const alertaAmarillaFeatureLayers = [];
+const alertaRojaFeatureLayers     = [];
+// Arrays planos para etiquetas — igual que recursosDisponiblesFeatureLayers
+// arrays de alerta movidos a declaraciones globales
 
 async function cargarCapasAlertaGlobales_() {
+  capaAlertaVerdeLayer.clearLayers();
   capaAlertaAmarillaLayer.clearLayers();
   capaAlertaRojaLayer.clearLayers();
+  // Borrar del array SOLO las zonas (tienen _etiquetaTexto); los recursos planif los maneja loadPlanificacionRecursos_
+  [alertaVerdeFeatureLayers, alertaAmarillaFeatureLayers, alertaRojaFeatureLayers].forEach(arr => {
+    for (let i = arr.length - 1; i >= 0; i--) {
+      if (arr[i].layer && arr[i].layer._etiquetaTexto) arr.splice(i, 1);
+    }
+  });
 
   const { data, error } = await supabaseClient.from('comunas_alerta_activa').select('*');
   if (error) { console.error('No se pudieron cargar las capas de alerta:', error); return; }
 
   (data || []).forEach(c => {
-    let geojson;
-    try { geojson = JSON.parse(c.geom_geojson); } catch (e) { return; }
-    const color = c.escenario === 'Amarilla' ? '#F59E0B' : '#EF4444';
+    try {
+    let geojson = c.geom_geojson;
+    if (typeof geojson === 'string') { try { geojson = JSON.parse(geojson); } catch (e) { return; } }
+    if (!geojson || !geojson.type) return;
+    const color = c.escenario === 'Verde' ? '#16A34A' : c.escenario === 'Amarilla' ? '#F59E0B' : '#EF4444';
+    const ico   = c.escenario === 'Verde' ? '🟢' : c.escenario === 'Amarilla' ? '🟡' : '🔴';
     const capa = L.geoJSON(geojson, { style: { color, weight: 3, fillColor: color, fillOpacity: 0.22 } });
-    // Etiqueta desactivada por defecto; se activa con 🏷️ en el panel de capas
-    const textoEtiqueta = (c.escenario === 'Amarilla' ? '🟡 ' : '🔴 ') + c.comuna_nombre;
+    // Etiqueta: se activa con 🏷️ en el panel de capas
+    const textoEtiqueta = ico + ' ' + c.comuna_nombre;
     capa._etiquetaTexto = textoEtiqueta;
-    // Propagar a los polígonos individuales del GeoJSON
     capa.eachLayer(poly => { poly._etiquetaTexto = textoEtiqueta; });
-    capa.bindPopup('<div class="popup-title">' + (c.escenario === 'Amarilla' ? '🟡 Plan Alerta Amarilla' : '🔴 Plan Alerta Roja') + '</div><div class="popup-row">' + c.comuna_nombre + ' · ' + c.region + '</div><div class="popup-row" style="margin-top:6px;"><em>Cargando comparativo…</em></div>');
+    const tituloPopup = ico + ' Plan Alerta ' + c.escenario;
+    capa.bindPopup('<div class="popup-title">' + tituloPopup + '</div><div class="popup-row">' + c.comuna_nombre + ' · ' + c.region + '</div><div class="popup-row" style="margin-top:6px;"><em>Cargando comparativo…</em></div>');
     capa.on('popupopen', async (ev) => {
       const { data: comparativo } = await supabaseClient.from('planes_contingencia_comparativo').select('*').eq('plan_id', c.plan_id);
       const filas = (comparativo || []).map(x => '<div class="popup-row">' + x.institucion_nombre + ': propuesta <b>' + x.cantidad_propuesta + '</b>, tenemos <b>' + x.cantidad_actual + '</b></div>').join('');
       const btnPdf = state.perfil.perfil === 'Administrador'
         ? '<div class="popup-actions"><button class="popup-btn" data-pdf-plan="' + c.plan_id + '" data-esc="' + c.escenario + '" data-com="' + escapeHtml_(c.comuna_nombre) + '">📄 Descargar PDF</button></div>'
         : '';
-      ev.popup.setContent('<div class="popup-title">' + (c.escenario === 'Amarilla' ? '🟡 Plan Alerta Amarilla' : '🔴 Plan Alerta Roja') + '</div><div class="popup-row">' + c.comuna_nombre + ' · ' + c.region + '</div>' + (filas || '<div class="popup-row">Sin recursos planificados aún.</div>') + btnPdf);
+      ev.popup.setContent('<div class="popup-title">' + tituloPopup + '</div><div class="popup-row">' + c.comuna_nombre + ' · ' + c.region + '</div>' + (filas || '<div class="popup-row">Sin recursos planificados aún.</div>') + btnPdf);
       const b = document.querySelector('[data-pdf-plan="' + c.plan_id + '"]');
       if (b) b.onclick = () => generarPDFPlan_(b.dataset.pdfPlan, b.dataset.esc, b.dataset.com);
     });
-    if (c.escenario === 'Amarilla') capaAlertaAmarillaLayer.addLayer(capa); else capaAlertaRojaLayer.addLayer(capa);
+    const _textoEtiq = textoEtiqueta;
+    const clave = c.escenario === 'Verde' ? 'verde' : c.escenario === 'Amarilla' ? 'amarilla' : 'roja';
+    const grupo = clave === 'verde' ? capaAlertaVerdeLayer : clave === 'amarilla' ? capaAlertaAmarillaLayer : capaAlertaRojaLayer;
+    const arr   = clave === 'verde' ? alertaVerdeFeatureLayers : clave === 'amarilla' ? alertaAmarillaFeatureLayers : alertaRojaFeatureLayers;
+    const etiqOn = !!(state.mostrarEtiquetasAlerta && state.mostrarEtiquetasAlerta[clave]);
+    grupo.addLayer(capa);
+    // Registrar polígonos internos en el array plano (mismo patrón que Recursos Disponibles)
+    // y aplicar tooltip permanente si el 🏷️ está activo para que sobreviva recargas
+    let n = 0;
+    capa.eachLayer(poly => {
+      n++;
+      arr.push({ layer: poly, texto: _textoEtiq });
+      if (etiqOn) poly.bindTooltip(_textoEtiq, { permanent: true, direction: 'center', className: 'map-label' });
+    });
+    if (n === 0) {
+      arr.push({ layer: capa, texto: _textoEtiq });
+      if (etiqOn) capa.bindTooltip(_textoEtiq, { permanent: true, direction: 'center', className: 'map-label' });
+    }
+    } catch (eRow) { console.warn('[alerta] fila omitida:', eRow.message, c); }
   });
 
-  if (state.alertaLayersOn && state.alertaLayersOn.amarilla) capaAlertaAmarillaLayer.addTo(map);
-  if (state.alertaLayersOn && state.alertaLayersOn.roja) capaAlertaRojaLayer.addTo(map);
+  if (state.alertaLayersOn && state.alertaLayersOn.verde)   { capaAlertaVerdeLayer.addTo(map);    planificacionRecursosVerdeLayer.addTo(map); }
+  if (state.alertaLayersOn && state.alertaLayersOn.amarilla) { capaAlertaAmarillaLayer.addTo(map); planificacionRecursosAmarillaLayer.addTo(map); }
+  if (state.alertaLayersOn && state.alertaLayersOn.roja)     { capaAlertaRojaLayer.addTo(map);     planificacionRecursosRojaLayer.addTo(map); }
 
   // Reglas 2 y 3a: encender rutas de las comunas con alerta activa, con glow por nivel.
   encenderRutasEnAlerta_(data || []);
@@ -7375,8 +8415,17 @@ async function encenderRutasEnAlerta_(comunasAlerta) {
 }
 
 async function loadPlanificacionRecursos_(comunaId) {
+  planificacionRecursosVerdeLayer.clearLayers();
   planificacionRecursosAmarillaLayer.clearLayers();
   planificacionRecursosRojaLayer.clearLayers();
+  // Limpiar del array de etiquetas los recursos de planificación (dejar solo las zonas)
+  [alertaVerdeFeatureLayers, alertaAmarillaFeatureLayers, alertaRojaFeatureLayers].forEach(arr => {
+    for (let i = arr.length - 1; i >= 0; i--) {
+      const ly = arr[i].layer;
+      // Recursos de planificación: markers o figuras SIN _etiquetaTexto (las zonas SÍ tienen _etiquetaTexto)
+      if (!ly._etiquetaTexto) arr.splice(i, 1);
+    }
+  });
   if (!comunaId) return;
 
   const planIds = [];
@@ -7413,13 +8462,13 @@ async function loadPlanificacionRecursos_(comunaId) {
   (recursos || []).forEach(r => {
     const inst = r.instituciones || { nombre: 'Institución', color_hex: '#64748B' };
     const escenario = escenarioPorPlan[r.plan_id];
-    const colorEscenario = escenario === 'Amarilla' ? '#F59E0B' : '#EF4444';
+    const colorEscenario = escenario === 'Verde' ? '#16A34A' : escenario === 'Amarilla' ? '#F59E0B' : '#EF4444';
     const colorInstitucion = inst.color_hex; // simbología: color propio de cada institución
-    const layerDestino = escenario === 'Amarilla' ? planificacionRecursosAmarillaLayer : planificacionRecursosRojaLayer;
+    const layerDestino = escenario === 'Verde' ? planificacionRecursosVerdeLayer : escenario === 'Amarilla' ? planificacionRecursosAmarillaLayer : planificacionRecursosRojaLayer;
     const puedeEditar = ['GRD', 'Administrador', 'Jefe de Área Relacionamiento'].includes(state.perfil.perfil);
 
     const popupHtml =
-      '<div class="popup-title"><span class="pr-sw" style="background:' + colorInstitucion + ';display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;"></span>' + inst.nombre + ' <span style="font-size:10px;">(' + (escenario === 'Amarilla' ? '🟡 Planificado' : '🔴 Planificado') + ')</span></div>' +
+      '<div class="popup-title"><span class="pr-sw" style="background:' + colorInstitucion + ';display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;"></span>' + inst.nombre + ' <span style="font-size:10px;">(' + (escenario === 'Verde' ? '🟢 Planificado' : escenario === 'Amarilla' ? '🟡 Planificado' : '🔴 Planificado') + ')</span></div>' +
       '<div class="popup-row">🏷️ ' + iconoTipoGeometria_(r.tipo_geometria) + ' · ' + r.tipo_recurso + '</div>' +
       '<div class="popup-row" style="margin-top:4px;">' + escapeHtml_(r.descripcion || 'Sin descripción') + '</div>' +
       bloqueTrazabilidad_(state.trazaPlanif && state.trazaPlanif[r.id]) +
@@ -7433,35 +8482,117 @@ async function loadPlanificacionRecursos_(comunaId) {
       try { geojson = JSON.parse(r.geom_geojson); } catch (e) { return; }
       const latlngs = (geojson.coordinates || []).map(c => r.tipo_geometria === 'area' ? c.map(p => [p[1], p[0]]) : [c[1], c[0]]);
       const figura = r.tipo_geometria === 'area'
-        ? L.polygon(latlngs, { color: colorInstitucion, weight: 3, dashArray: '6,5', fillColor: colorInstitucion, fillOpacity: 0.18 })
-        : L.polyline(latlngs, { color: colorInstitucion, weight: 4, dashArray: '6,5' });
+        ? L.polygon(latlngs, { color: colorInstitucion, weight: 3, dashArray: '6,5', fillColor: colorInstitucion, fillOpacity: 0.18, className: puedeEditar ? 'plan-editable' : '' })
+        : L.polyline(latlngs, { color: colorInstitucion, weight: 4, dashArray: '6,5', className: puedeEditar ? 'plan-editable' : '' });
+      figura._etiquetaNombre = inst.nombre;
       figura.bindPopup(popupHtml);
-      figura.bindTooltip(inst.nombre, { permanent: true, direction: 'center', className: 'map-label label-recurso' });
-      figura.on('popupopen', () => bindPopupActionsPlanificacion_());
+      const claveEscFig = escenario === 'Verde' ? 'verde' : escenario === 'Amarilla' ? 'amarilla' : 'roja';
+      const arrEtiqFig = claveEscFig === 'verde' ? alertaVerdeFeatureLayers : claveEscFig === 'amarilla' ? alertaAmarillaFeatureLayers : alertaRojaFeatureLayers;
+      arrEtiqFig.push({ layer: figura, texto: inst.nombre });
+      if (state.mostrarEtiquetasAlerta && state.mostrarEtiquetasAlerta[claveEscFig]) {
+        figura.bindTooltip(inst.nombre, { permanent: true, direction: 'center', className: 'map-label' });
+      }
+      figura.on('popupopen', () => {
+        if (!state.modoPlanificacion && !state.editorMode) { figura.closePopup(); mostrarToast_('✏️ Activa el modo planificación para modificar.'); return; }
+        bindPopupActionsPlanificacion_();
+      });
       // Efecto neón al pasar el mouse (color según escenario Amarilla/Roja)
-      const claseNeon = escenario === 'Amarilla' ? 'neon-hover-amarilla' : 'neon-hover-roja';
+      const claseNeon = escenario === 'Verde' ? 'neon-hover-verde' : escenario === 'Amarilla' ? 'neon-hover-amarilla' : 'neon-hover-roja';
       figura.on('mouseover', () => { const el = figura.getElement && figura.getElement(); if (el) { el.classList.add(claseNeon); figura.setStyle({ weight: 5, fillOpacity: 0.32 }); } });
       figura.on('mouseout',  () => { const el = figura.getElement && figura.getElement(); if (el) { el.classList.remove(claseNeon); figura.setStyle({ weight: r.tipo_geometria === 'area' ? 3 : 4, fillOpacity: 0.18 }); } });
       layerDestino.addLayer(figura);
       window.planRecursosMarkersById[r.id] = figura;
+
+      // Marcador con el LOGO de la institución en el centro de la figura
+      const logoFig = logoEfectivoInstitucion_(inst);
+      if (logoFig) {
+        try {
+          // Usar el centro del bounding box de la figura (robusto para línea y área)
+          const centro = figura.getBounds().getCenter();
+          const iconoLogo = L.divIcon({
+            className: '', iconSize: [34, 34], iconAnchor: [17, 17],
+            html: '<div style="width:34px;height:34px;border-radius:50%;background:#fff;border:2.5px solid ' + colorInstitucion + ';box-shadow:0 2px 5px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
+              '<img src="' + escapeHtml_(logoFig) + '" alt="" style="width:26px;height:26px;object-fit:contain;" onerror="this.style.display=\'none\'"></div>',
+          });
+          const mLogo = L.marker(centro, { icon: iconoLogo, interactive: false, keyboard: false });
+          layerDestino.addLayer(mLogo);
+          figura._logoMarker = mLogo;
+        } catch(e) {}
+      }
       return;
     }
 
     const lat = Number(r.lat), lng = Number(r.lng);
     if (isNaN(lat) || isNaN(lng)) return;
-    const icono = L.divIcon({
-      className: '', iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -13],
-      html: '<svg class="plan-marker-icon" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="10" fill="' + colorInstitucion + '" fill-opacity="0.5" stroke="' + colorEscenario + '" stroke-width="2.5" stroke-dasharray="4,3"/><circle cx="13" cy="13" r="3.5" fill="' + colorInstitucion + '"/></svg>',
-    });
-    const m = L.marker([lat, lng], { icon: icono });
+    const logoInst = logoEfectivoInstitucion_(inst);
+    let icono;
+    if (logoInst) {
+      // Punto CON logo: círculo blanco con logo + borde del color institucional + anillo dashed del escenario
+      icono = L.divIcon({
+        className: '', iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -20],
+        html: '<div style="position:relative;width:40px;height:40px;">' +
+          '<div style="position:absolute;inset:0;border-radius:50%;border:2.5px dashed ' + colorEscenario + ';"></div>' +
+          '<div style="position:absolute;top:4px;left:4px;width:32px;height:32px;border-radius:50%;background:#fff;border:2.5px solid ' + colorInstitucion + ';box-shadow:0 2px 5px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
+          '<img src="' + escapeHtml_(logoInst) + '" alt="" style="width:26px;height:26px;object-fit:contain;" onerror="this.parentElement.innerHTML=\'<div style=&quot;width:12px;height:12px;border-radius:50%;background:' + colorInstitucion + '&quot;></div>\'"></div>' +
+          '</div>',
+      });
+    } else {
+      // Sin logo: círculo con color institucional
+      icono = L.divIcon({
+        className: '', iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -13],
+        html: '<svg class="plan-marker-icon" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="10" fill="' + colorInstitucion + '" fill-opacity="0.5" stroke="' + colorEscenario + '" stroke-width="2.5" stroke-dasharray="4,3"/><circle cx="13" cy="13" r="3.5" fill="' + colorInstitucion + '"/></svg>',
+      });
+    }
+    const m = L.marker([lat, lng], { icon: icono, draggable: puedeEditar && !!(state.modoPlanificacion || state.editorMode) });
+    m._puedeArrastrar = puedeEditar;
     m.bindPopup(popupHtml);
-    m.bindTooltip(inst.nombre, { permanent: true, direction: 'top', offset: [0, -14], className: 'map-label label-recurso' });
-    m.on('popupopen', () => bindPopupActionsPlanificacion_());
+    m.on('popupopen', () => {
+      if (!state.modoPlanificacion && !state.editorMode) {
+        m.closePopup();
+        mostrarToast_('✏️ Activa el modo planificación para modificar.');
+        return;
+      }
+      bindPopupActionsPlanificacion_();
+    });
+    if (puedeEditar) {
+      m.on('dragend', async () => {
+        if (!state.modoPlanificacion && !state.editorMode) {
+          mostrarToast_('✏️ Activa el modo planificación para mover recursos.');
+          loadPlanificacionRecursos_(state.activeComunaId);
+          return;
+        }
+        const pos = m.getLatLng();
+        // Puntos usan RPC específico (la geometría es PostGIS, no lat/lng simples)
+        const { error } = await supabaseClient.rpc('mover_punto_planificacion', {
+          p_id: r.id,
+          p_lat: pos.lat,
+          p_lng: pos.lng
+        });
+        if (error) {
+          mostrarToast_('Error al mover: ' + error.message);
+          loadPlanificacionRecursos_(state.activeComunaId);
+          return;
+        }
+        mostrarToast_('✅ Recurso reubicado');
+        const rec = (state.planificacionRecursos || []).find(x => x.id === r.id);
+        if (rec) { rec.lat = pos.lat; rec.lng = pos.lng; }
+      });
+    }
+    // Guardar referencia para activar/desactivar dragging
+    window.planRecursosMarkersById[r.id] = m;
+    // Registrar en el array de etiquetas del escenario (para toggle 🏷️)
+    const claveEsc = escenario === 'Verde' ? 'verde' : escenario === 'Amarilla' ? 'amarilla' : 'roja';
+    const arrEtiq = claveEsc === 'verde' ? alertaVerdeFeatureLayers : claveEsc === 'amarilla' ? alertaAmarillaFeatureLayers : alertaRojaFeatureLayers;
+    arrEtiq.push({ layer: m, texto: inst.nombre });
+    if (state.mostrarEtiquetasAlerta && state.mostrarEtiquetasAlerta[claveEsc]) {
+      m.bindTooltip(inst.nombre, { permanent: true, direction: 'top', offset: [0, -14], className: 'map-label' });
+    }
     layerDestino.addLayer(m);
-  });
+  }); // fin forEach recursos
 
-  if (state.alertaLayersOn && state.alertaLayersOn.amarilla) planificacionRecursosAmarillaLayer.addTo(map);
-  if (state.alertaLayersOn && state.alertaLayersOn.roja) planificacionRecursosRojaLayer.addTo(map);
+  if (state.alertaLayersOn && state.alertaLayersOn.verde)   { capaAlertaVerdeLayer.addTo(map);    planificacionRecursosVerdeLayer.addTo(map); }
+  if (state.alertaLayersOn && state.alertaLayersOn.amarilla) { capaAlertaAmarillaLayer.addTo(map); planificacionRecursosAmarillaLayer.addTo(map); }
+  if (state.alertaLayersOn && state.alertaLayersOn.roja)     { capaAlertaRojaLayer.addTo(map);     planificacionRecursosRojaLayer.addTo(map); }
   // En modo planificación, las figuras editables van al frente
   if (state.modoPlanificacion) priorizarCapasEditables_('planificacion');
   enviarLimiteAlFondo_();
@@ -7643,9 +8774,11 @@ async function cargarCatalogoMaestro_() {
     const inst = r.instituciones || { nombre: '—', color_hex: '#64748B' };
     const tr = document.createElement('tr');
     tr.innerHTML =
+      '<td>' + (r.icono_url ? '<img src="' + escapeHtml_(r.icono_url) + '" alt="" style="width:28px;height:28px;object-fit:contain;vertical-align:middle;" onerror="this.style.display=\'none\'">' : '<span style="color:#CBD5E1;">—</span>') + '</td>' +
       '<td><span class="ra-swatch" style="background:' + inst.color_hex + '"></span>' + inst.nombre + '</td>' +
       '<td>' + escapeHtml_(r.nombre_recurso || '—') + '</td>' +
       '<td>' + r.tipo_recurso + '</td>' +
+      '<td>' + (r.pertenencia === 'Protección' ? '<span class="uc-badge" style="background:#FEE2E2;color:#991B1B;">🛡️ Protección</span>' : '<span class="uc-badge" style="background:#DBEAFE;color:#1E40AF;">🤝 Relacionamiento</span>') + '</td>' +
       '<td>' + (r.tipo_movil || '—') + '</td>' +
       '<td>' + (r.cantidad_personas || 0) + '</td>' +
       '<td>' + escapeHtml_(r.descripcion_funcion || '—') + '</td>' +
@@ -7673,11 +8806,29 @@ function abrirModalRecursoMaestro_(item) {
   document.getElementById('rm-nombre').value = item ? (item.nombre_recurso || '') : '';
   document.getElementById('rm-tipo').value = item ? item.tipo_recurso : 'Brigada';
   document.getElementById('rm-movil').value = item ? (item.tipo_movil || 'No Aplica') : 'No Aplica';
+  document.getElementById('rm-pertenencia').value = item ? (item.pertenencia || 'Relacionamiento') : 'Relacionamiento';
   document.getElementById('rm-cantidad-personas').value = item ? (item.cantidad_personas || 0) : 0;
   document.getElementById('rm-descripcion').value = item ? (item.descripcion_funcion || '') : '';
+
+  // Ícono personalizado
+  rmIconoBase64 = null;         // nueva imagen seleccionada (base64)
+  rmIconoUrlActual = item ? (item.icono_url || null) : null;  // url existente
+  const img = document.getElementById('rm-icono-img');
+  const ph  = document.getElementById('rm-icono-placeholder');
+  const btnQuitar = document.getElementById('rm-icono-quitar');
+  if (rmIconoUrlActual) {
+    img.src = rmIconoUrlActual; img.style.display = 'block'; ph.style.display = 'none'; btnQuitar.style.display = 'inline-block';
+  } else {
+    img.src = ''; img.style.display = 'none'; ph.style.display = 'block'; btnQuitar.style.display = 'none';
+  }
+
   document.getElementById('recurso-maestro-modal-error').classList.remove('show');
   document.getElementById('recurso-maestro-modal-overlay').classList.add('show');
 }
+
+// Estado del ícono en edición
+let rmIconoBase64 = null;
+let rmIconoUrlActual = null;
 
 async function guardarRecursoMaestro_() {
   const btn = document.getElementById('btn-save-recurso-maestro');
@@ -7688,6 +8839,7 @@ async function guardarRecursoMaestro_() {
   const nombreRecurso = document.getElementById('rm-nombre').value.trim();
   const tipo = document.getElementById('rm-tipo').value;
   const movil = document.getElementById('rm-movil').value;
+  const pertenencia = document.getElementById('rm-pertenencia').value;
   const cantidadPersonas = parseInt(document.getElementById('rm-cantidad-personas').value, 10) || 0;
   const descripcion = document.getElementById('rm-descripcion').value.trim();
 
@@ -7696,9 +8848,27 @@ async function guardarRecursoMaestro_() {
 
   btn.textContent = 'Guardando…'; btn.disabled = true;
 
+  // Subir ícono si hay uno nuevo seleccionado
+  let iconoUrl = rmIconoUrlActual;  // mantener la url actual por defecto
+  if (rmIconoBase64) {
+    try {
+      const res = await fetch(rmIconoBase64);
+      const blob = await res.blob();
+      const ext = blob.type.includes('svg') ? 'svg' : blob.type.includes('webp') ? 'webp' : 'png';
+      const path = 'recurso-' + (editingRecursoMaestroId || Date.now()) + '-' + Date.now() + '.' + ext;
+      const { error: upErr } = await supabaseClient.storage.from('iconos-recursos').upload(path, blob, { contentType: blob.type, upsert: true });
+      if (upErr) { errEl.textContent = 'Error al subir el ícono: ' + upErr.message; errEl.classList.add('show'); btn.textContent = 'Guardar'; btn.disabled = false; return; }
+      const { data: urlData } = supabaseClient.storage.from('iconos-recursos').getPublicUrl(path);
+      iconoUrl = urlData.publicUrl;
+    } catch (e) {
+      errEl.textContent = 'Error al procesar el ícono.'; errEl.classList.add('show'); btn.textContent = 'Guardar'; btn.disabled = false; return;
+    }
+  }
+
   const payload = {
     institucion_id: institucionId, nombre_recurso: nombreRecurso, tipo_recurso: tipo, tipo_movil: movil,
-    cantidad_personas: cantidadPersonas, descripcion_funcion: descripcion,
+    pertenencia: pertenencia, cantidad_personas: cantidadPersonas, descripcion_funcion: descripcion,
+    icono_url: iconoUrl,
   };
 
   const { error } = editingRecursoMaestroId
@@ -7712,7 +8882,11 @@ async function guardarRecursoMaestro_() {
   document.getElementById('recurso-maestro-modal-overlay').classList.remove('show');
   mostrarToast_(editingRecursoMaestroId ? 'Recurso actualizado.' : 'Recurso agregado al catálogo.');
   editingRecursoMaestroId = null;
+  rmIconoBase64 = null; rmIconoUrlActual = null;
+  await cargarIconosRecursos_();  // refrescar mapa de íconos por tipo
   cargarCatalogoMaestro_();
+  // Refrescar las capas de recursos en el mapa para que tomen el nuevo ícono
+  if (typeof loadRecursosDisponiblesAreaLayer_ === 'function') loadRecursosDisponiblesAreaLayer_();
 }
 
 async function toggleActivoRecursoMaestro_(id, activoActual) {
@@ -7924,7 +9098,7 @@ async function cargarTablaRecursosArea_(zonaOZonas) {
   const esVarias = Array.isArray(zonaOZonas);
   thZona.style.display = esVarias ? '' : 'none';
 
-  let query = supabaseClient.from('recursos_disponibles_area_geojson').select('*, instituciones(nombre, color_hex, logo_url)').order('created_at', { ascending: false });
+  let query = supabaseClient.from('recursos_disponibles_area_geojson').select('*').order('nombre_recurso', { ascending: true });
   query = esVarias ? query.in('area', zonaOZonas) : query.eq('area', zonaOZonas);
   const { data, error } = await query;
 
@@ -9401,15 +10575,56 @@ function renderTabInterno_(tab) {
         c.appendChild(msg);
       }
 
-      const rowRecursosDisp = document.createElement('div'); rowRecursosDisp.className = 'layer-row';
-      const infoRD = state.recursosDisponiblesInfo || { ok: false, count: 0 };
-      rowRecursosDisp.innerHTML =
-        '<div class="toggle ' + (map.hasLayer(recursosDisponiblesAreaLayer) ? 'on' : '') + '" data-arealayer="recursosDisponibles"></div>' +
-        '<div class="layer-left"><span class="flame-dot" style="background:#0F172A"></span>' +
-        '<div><div class="layer-name">Recursos Disponibles</div><div class="layer-count">' + (infoRD.ok ? infoRD.count + ' recurso(s)' : 'Cargando…') + '</div></div></div>' +
-        '<button id="btn-toggle-etiquetas-recursos-area" class="icon-btn' + (state.mostrarEtiquetasRecursosArea ? ' active' : '') + '" title="Mostrar/ocultar nombres" style="width:26px;height:26px;font-size:12px;flex-shrink:0;">🏷️</button>';
-      c.appendChild(rowRecursosDisp);
-      c.querySelector('#btn-toggle-etiquetas-recursos-area').addEventListener('click', toggleEtiquetasRecursosArea_);
+      // ── Recursos Disponibles: ÁRBOL jerárquico (Recursos → Tipos) ──
+      {
+        const infoRD = state.recursosDisponiblesInfo || { ok: false, count: 0 };
+        renderArbolTiposRecurso_(c, {
+          titulo: 'Recursos Disponibles',
+          dotColor: '#0F172A',
+          colapsoKey: 'colapsoRecDisp',
+          layerGroup: recursosDisponiblesAreaLayer,
+          featureLayers: recursosDisponiblesFeatureLayers,
+          infoCount: infoRD.ok ? infoRD.count : null,
+          btnEtiqId: 'btn-toggle-etiquetas-recursos-area',
+          etiqActiva: state.mostrarEtiquetasRecursosArea,
+          onToggleEtiq: toggleEtiquetasRecursosArea_,
+          onToggleCapa: async () => {
+            if (map.hasLayer(recursosDisponiblesAreaLayer)) {
+              map.removeLayer(recursosDisponiblesAreaLayer);
+              state.areasLayersOn.recursosDisponibles = false;
+            } else {
+              recursosDisponiblesAreaLayer.addTo(map);
+              state.areasLayersOn.recursosDisponibles = true;
+            }
+          }
+        });
+      }
+
+      // ── CAPA ADMIN: Recursos filtrados por comuna (solo Administrador) ──
+      if (state.perfil.perfil === 'Administrador') {
+        const infoRCA = state.recursosComunaAdminInfo || { ok: false, count: 0 };
+        renderArbolTiposRecurso_(c, {
+          titulo: '📍 Recursos de la Comuna',
+          dotColor: '#2563EB',
+          colapsoKey: 'colapsoRecComuna',
+          layerGroup: recursosComunaAdminLayer,
+          featureLayers: recursosComunaAdminFeatureLayers,
+          infoCount: infoRCA.ok ? infoRCA.count : null,
+          btnEtiqId: 'btn-etiq-recursos-comuna-admin',
+          etiqActiva: state.mostrarEtiquetasRecursosComunaAdmin,
+          onToggleEtiq: toggleEtiquetasRecursosComunaAdmin_,
+          onToggleCapa: async () => {
+            if (map.hasLayer(recursosComunaAdminLayer)) {
+              map.removeLayer(recursosComunaAdminLayer);
+              state.recursosComunaAdminOn = false;
+            } else {
+              await loadRecursosComunaAdmin_();
+              recursosComunaAdminLayer.addTo(map);
+              state.recursosComunaAdminOn = true;
+            }
+          }
+        });
+      }
 
       c.querySelectorAll('[data-arealayer]').forEach(tg => {
         tg.addEventListener('click', () => {
@@ -9419,6 +10634,8 @@ function renderTabInterno_(tab) {
           if (visible) { map.removeLayer(layer); state.areasLayersOn[clave] = false; }
           else { layer.addTo(map); state.areasLayersOn[clave] = true; }
           tg.classList.toggle('on', !visible);
+          // Re-render para mostrar/ocultar el árbol de tipos de recurso
+          if (clave === 'recursosDisponibles') renderTab(state.activeTab || 'capas');
         });
       });
     }
@@ -9448,6 +10665,27 @@ function renderTabInterno_(tab) {
       tgPat.classList.toggle('on', state.patrullajeLayerOn);
       if (state.patrullajeLayerOn) patrullajeLayer.addTo(map); else map.removeLayer(patrullajeLayer);
     });
+
+    // ── CAPA ADMIN: Rutas filtradas por comuna (solo Administrador) ──
+    if (state.perfil.perfil === 'Administrador') {
+      const infoRCU = state.rutasComunaAdminInfo || { ok: false, count: 0 };
+      const rowRCU = document.createElement('div'); rowRCU.className = 'layer-row';
+      rowRCU.innerHTML =
+        '<div class="layer-left"><span class="flame-dot" style="background:#2563EB"></span>' +
+        '<div><div class="layer-name">📍 Rutas de la Comuna</div><div class="layer-count">' + (infoRCU.ok ? infoRCU.count + ' ruta(s) · comuna activa' : 'Cargando…') + '</div></div></div>' +
+        '<div class="toggle ' + (map.hasLayer(rutasComunaAdminLayer) ? 'on' : '') + '" id="toggle-rutas-comuna-admin"></div>';
+      c.appendChild(rowRCU);
+      c.querySelector('#toggle-rutas-comuna-admin').addEventListener('click', async (ev) => {
+        const tg = ev.currentTarget;
+        if (map.hasLayer(rutasComunaAdminLayer)) {
+          map.removeLayer(rutasComunaAdminLayer); state.rutasComunaAdminOn = false; tg.classList.remove('on');
+        } else {
+          await loadRutasComunaAdmin_();
+          rutasComunaAdminLayer.addTo(map); state.rutasComunaAdminOn = true; tg.classList.add('on');
+          renderTab(state.activeTab || 'capas');
+        }
+      });
+    }
 
     // ── App Móvil: posiciones en tiempo real ─────────────────────────────────
     {
@@ -9500,29 +10738,42 @@ function renderTabInterno_(tab) {
       labelAlertas.textContent = 'Alertas Territoriales (Planificación Previa)';
       c.appendChild(labelAlertas);
 
+      // Alerta Verde
+      // ── Alerta Verde ──
+      const rowVerde = document.createElement('div'); rowVerde.className = 'layer-row';
+      rowVerde.innerHTML =
+        '<div class="toggle ' + (map.hasLayer(capaAlertaVerdeLayer) ? 'on' : '') + '" data-alertalayer="verde"></div>' +
+        '<div class="layer-left"><span class="flame-dot" style="background:#16A34A"></span>' +
+        '<div><div class="layer-name">Alerta Verde</div><div class="layer-count">Comunas con plan activo</div></div></div>' +
+        '<button id="btn-etiq-verde" class="icon-btn' + (state.mostrarEtiquetasAlerta && state.mostrarEtiquetasAlerta.verde ? ' active' : '') + '" title="Mostrar/ocultar etiquetas" style="width:26px;height:26px;font-size:12px;flex-shrink:0;">🏷️</button>';
+      c.appendChild(rowVerde);
+      c.querySelector('#btn-etiq-verde').addEventListener('click', () => toggleEtiquetasAlerta_('verde'));
+
+      // ── Alerta Amarilla ──
       const rowAmarilla = document.createElement('div'); rowAmarilla.className = 'layer-row';
       rowAmarilla.innerHTML =
+        '<div class="toggle ' + (map.hasLayer(capaAlertaAmarillaLayer) ? 'on' : '') + '" data-alertalayer="amarilla"></div>' +
         '<div class="layer-left"><span class="flame-dot" style="background:#F59E0B"></span>' +
-        '<div><div class="layer-name">🟡 Alerta Amarilla</div><div class="layer-count">Comunas con plan activo</div></div></div>' +
-        '<button id="btn-etiq-amarilla" class="icon-btn' + (state.mostrarEtiquetasAlerta && state.mostrarEtiquetasAlerta.amarilla ? ' active' : '') + '" title="Mostrar/ocultar etiquetas en el mapa" style="width:26px;height:26px;font-size:12px;flex-shrink:0;">🏷️</button>' +
-        '<div class="toggle ' + (map.hasLayer(capaAlertaAmarillaLayer) ? 'on' : '') + '" data-alertalayer="amarilla"></div>';
+        '<div><div class="layer-name">Alerta Amarilla</div><div class="layer-count">Comunas con plan activo</div></div></div>' +
+        '<button id="btn-etiq-amarilla" class="icon-btn' + (state.mostrarEtiquetasAlerta && state.mostrarEtiquetasAlerta.amarilla ? ' active' : '') + '" title="Mostrar/ocultar etiquetas" style="width:26px;height:26px;font-size:12px;flex-shrink:0;">🏷️</button>';
       c.appendChild(rowAmarilla);
       c.querySelector('#btn-etiq-amarilla').addEventListener('click', () => toggleEtiquetasAlerta_('amarilla'));
 
+      // ── Alerta Roja ──
       const rowRoja = document.createElement('div'); rowRoja.className = 'layer-row';
       rowRoja.innerHTML =
+        '<div class="toggle ' + (map.hasLayer(capaAlertaRojaLayer) ? 'on' : '') + '" data-alertalayer="roja"></div>' +
         '<div class="layer-left"><span class="flame-dot" style="background:#EF4444"></span>' +
-        '<div><div class="layer-name">🔴 Alerta Roja</div><div class="layer-count">Comunas con plan activo</div></div></div>' +
-        '<button id="btn-etiq-roja" class="icon-btn' + (state.mostrarEtiquetasAlerta && state.mostrarEtiquetasAlerta.roja ? ' active' : '') + '" title="Mostrar/ocultar etiquetas en el mapa" style="width:26px;height:26px;font-size:12px;flex-shrink:0;">🏷️</button>' +
-        '<div class="toggle ' + (map.hasLayer(capaAlertaRojaLayer) ? 'on' : '') + '" data-alertalayer="roja"></div>';
+        '<div><div class="layer-name">Alerta Roja</div><div class="layer-count">Comunas con plan activo</div></div></div>' +
+        '<button id="btn-etiq-roja" class="icon-btn' + (state.mostrarEtiquetasAlerta && state.mostrarEtiquetasAlerta.roja ? ' active' : '') + '" title="Mostrar/ocultar etiquetas" style="width:26px;height:26px;font-size:12px;flex-shrink:0;">🏷️</button>';
       c.appendChild(rowRoja);
       c.querySelector('#btn-etiq-roja').addEventListener('click', () => toggleEtiquetasAlerta_('roja'));
 
       c.querySelectorAll('[data-alertalayer]').forEach(tg => {
         tg.addEventListener('click', () => {
           const clave = tg.dataset.alertalayer;
-          const layerComuna = clave === 'amarilla' ? capaAlertaAmarillaLayer : capaAlertaRojaLayer;
-          const layerRecursos = clave === 'amarilla' ? planificacionRecursosAmarillaLayer : planificacionRecursosRojaLayer;
+          const layerComuna = clave === 'verde' ? capaAlertaVerdeLayer : clave === 'amarilla' ? capaAlertaAmarillaLayer : capaAlertaRojaLayer;
+          const layerRecursos = clave === 'verde' ? planificacionRecursosVerdeLayer : clave === 'amarilla' ? planificacionRecursosAmarillaLayer : planificacionRecursosRojaLayer;
           const visible = map.hasLayer(layerComuna);
           if (visible) { map.removeLayer(layerComuna); map.removeLayer(layerRecursos); state.alertaLayersOn[clave] = false; }
           else { layerComuna.addTo(map); layerRecursos.addTo(map); state.alertaLayersOn[clave] = true; }
@@ -9652,7 +10903,7 @@ function renderTabInterno_(tab) {
         '<div class="periodo-head">' +
         '<div class="ph-left"><div><div class="ph-name">' + escapeHtml_(p.nombre_plan) + ' <span class="periodo-badge ' + p.estado_periodo + '">' + p.estado_periodo + '</span></div>' +
         '<div class="ph-fechas">' + (p.fecha_inicio || '—') + ' → ' + (p.fecha_fin || 'indefinido') + ' · Creado por ' + p.creador_nombre + '</div></div></div>' +
-        '<button class="icon-btn btn-etiq-periodo" data-pid="' + p.id + '" title="Mostrar/ocultar etiquetas" style="width:24px;height:24px;font-size:11px;flex-shrink:0;" ' + (state.mostrarEtiquetasPeriodo && state.mostrarEtiquetasPeriodo[p.id] ? 'class="icon-btn btn-etiq-periodo active"' : '') + '>🏷️</button>' +
+        '<button class="icon-btn btn-etiq-periodo' + (state.mostrarEtiquetasPeriodo && state.mostrarEtiquetasPeriodo[p.id] ? ' active' : '') + '" data-pid="' + p.id + '" title="Mostrar/ocultar etiquetas" style="width:24px;height:24px;font-size:11px;flex-shrink:0;">🏷️</button>' +
         '<div class="toggle ' + ((periodoLayers[p.id] && map.hasLayer(periodoLayers[p.id])) ? 'on' : '') + '" data-periodo="' + p.id + '"></div>' +
         '</div>' +
         (p.conclusion ? '<div class="periodo-body" style="display:block;border-top:1px solid #F1F5F9;"><span class="periodo-count" style="display:block;margin-bottom:2px;font-weight:700;">Conclusión:</span><span class="periodo-count">' + escapeHtml_(p.conclusion) + '</span></div>' : '') +
@@ -9778,6 +11029,12 @@ function bindEvents() {
     const railCop = document.querySelector('.rail-btn[data-tab="copamiento"]');
     if (railCop) railCop.click();
     setTimeout(() => toggleEditorMode(), 150);
+  });
+  document.getElementById('plan-verde').addEventListener('click', () => {
+    document.getElementById('planificar-panel').classList.remove('show');
+    if (state.alertaLayersOn) state.alertaLayersOn.verde = true;
+    renderTab(state.activeTab);
+    setTimeout(() => iniciarPlanificacionRapida_('Verde'), 150);
   });
   document.getElementById('plan-amarilla').addEventListener('click', () => {
     document.getElementById('planificar-panel').classList.remove('show');
@@ -9955,6 +11212,29 @@ function bindEvents() {
   document.getElementById('btn-nuevo-recurso-maestro').addEventListener('click', () => abrirModalRecursoMaestro_(null));
   document.getElementById('btn-cancel-recurso-maestro').addEventListener('click', () => document.getElementById('recurso-maestro-modal-overlay').classList.remove('show'));
   document.getElementById('btn-save-recurso-maestro').addEventListener('click', guardarRecursoMaestro_);
+  // Ícono personalizado del recurso
+  document.getElementById('rm-icono-btn').addEventListener('click', () => document.getElementById('rm-icono-input').click());
+  document.getElementById('rm-icono-input').addEventListener('change', (ev) => {
+    const file = ev.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      rmIconoBase64 = e.target.result;
+      const img = document.getElementById('rm-icono-img');
+      const ph = document.getElementById('rm-icono-placeholder');
+      img.src = rmIconoBase64; img.style.display = 'block'; ph.style.display = 'none';
+      document.getElementById('rm-icono-quitar').style.display = 'inline-block';
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('rm-icono-quitar').addEventListener('click', () => {
+    rmIconoBase64 = null; rmIconoUrlActual = null;
+    document.getElementById('rm-icono-input').value = '';
+    const img = document.getElementById('rm-icono-img');
+    img.src = ''; img.style.display = 'none';
+    document.getElementById('rm-icono-placeholder').style.display = 'block';
+    document.getElementById('rm-icono-quitar').style.display = 'none';
+  });
 
   document.getElementById('btn-close-recursos-area').addEventListener('click', () => document.getElementById('recursos-area-overlay').classList.remove('show'));
   document.getElementById('btn-ra-zonas-dropdown').addEventListener('click', (e) => {
@@ -9988,6 +11268,11 @@ function bindEvents() {
   document.getElementById('btn-ubicar-recurso-area').addEventListener('click', ubicarRecursoAreaEnMapa_);
 
   document.getElementById('btn-close-planificacion-previa').addEventListener('click', () => document.getElementById('planificacion-previa-overlay').classList.remove('show'));
+  document.getElementById('btn-escenario-verde').addEventListener('click', async () => {
+    state.escenarioActivo = 'Verde';
+    actualizarBotonesEscenario_();
+    await cargarPlanificacionPrevia_();
+  });
   document.getElementById('btn-escenario-amarilla').addEventListener('click', async () => {
     state.escenarioActivo = 'Amarilla';
     actualizarBotonesEscenario_();
@@ -10038,6 +11323,10 @@ function bindEvents() {
   if (btnSalirEd) btnSalirEd.addEventListener('click', () => {
     if (state.editorMode) toggleEditorMode();
   });
+  // Botones flotantes de escenario
+  document.getElementById('esc-btn-verde').addEventListener('click', () => activarEscenarioDesdeBoton_('Verde'));
+  document.getElementById('esc-btn-amarilla').addEventListener('click', () => activarEscenarioDesdeBoton_('Amarilla'));
+  document.getElementById('esc-btn-roja').addEventListener('click', () => activarEscenarioDesdeBoton_('Roja'));
   document.getElementById('btn-meteo-horaria-cerrar').addEventListener('click', cerrarMeteoHoraria_);
   document.getElementById('btn-meteo-ampliar').addEventListener('click', toggleMeteoAmpliar_);
   document.getElementById('meteo-horaria-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) cerrarMeteoHoraria_(); });
