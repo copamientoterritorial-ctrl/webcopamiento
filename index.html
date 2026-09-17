@@ -10,6 +10,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<!-- JSZip: necesario para abrir archivos KMZ, que son ZIP con un doc.kml dentro -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -437,6 +439,54 @@ body{
 .map-label.label-fundo{color:#047857 !important;font-size:9px !important;}
 .map-label.label-arearel{color:#6D28D9 !important;font-size:9px !important;}
 .map-label.label-recurso{color:#0F172A !important;}
+/* Sin marco negro al pasar el cursor o al hacer clic.
+   El navegador dibuja un contorno de foco sobre los elementos SVG y los
+   marcadores de Leaflet, que en el mapa se ve como un recuadro negro
+   rodeando la figura. Se desactiva en todos los elementos interactivos. */
+.leaflet-container a,
+.leaflet-container svg,
+.leaflet-container path,
+.leaflet-interactive,
+.leaflet-marker-icon,
+.leaflet-popup,
+.leaflet-tooltip,
+.leaflet-container .leaflet-interactive:focus,
+.leaflet-container .leaflet-interactive:focus-visible,
+.leaflet-marker-icon:focus,
+.leaflet-marker-icon:focus-visible,
+.leaflet-container svg:focus,
+.leaflet-container path:focus{
+  outline:none !important;
+  -webkit-tap-highlight-color:transparent !important;
+}
+.leaflet-interactive:active,
+.leaflet-marker-icon:active{outline:none !important;}
+/* Detalle al pasar el cursor: se sale del estilo "texto sobre el mapa" y pasa
+   a tarjeta oscura, porque el texto largo con sombra blanca es ilegible. */
+/* Mientras se dibuja o se edita una forma, las etiquetas y tarjetas de hover
+   dejan de capturar el puntero: si lo hacen, el clic que debería agregar un
+   vértice se lo come la etiqueta y el polígono no avanza. */
+#map.modo-dibujo .leaflet-tooltip,
+#map.modo-dibujo .map-label,
+#map.modo-dibujo .map-label-detalle{
+  pointer-events:none !important;
+}
+.map-label.map-label-detalle,
+.leaflet-tooltip.map-label-detalle{
+  background:rgba(15,23,42,0.94) !important;
+  color:#fff !important;
+  text-shadow:none !important;
+  font-weight:400 !important;
+  font-size:11.5px !important;
+  white-space:nowrap !important;
+  padding:6px 11px !important;
+  border-radius:7px !important;
+  box-shadow:0 4px 14px rgba(0,0,0,0.35) !important;
+  max-width:420px !important;
+  z-index:1000 !important;
+}
+.map-label.map-label-detalle::before,
+.leaflet-tooltip.map-label-detalle::before{display:none !important;}
 .flame-marker{filter:drop-shadow(0 2px 3px rgba(0,0,0,0.45));}
 
 /* ---- modal windy ---- */
@@ -450,12 +500,20 @@ body{
   padding:12px 16px;background:var(--navy-deep);color:#fff;font-size:12.5px;font-weight:700;
 }
 #windy-iframe{flex:1;width:100%;border:none;}
-.popup-actions{display:flex;gap:6px;margin-top:9px;}
+.popup-actions{
+  display:flex;gap:5px;margin-top:9px;
+  flex-wrap:wrap;              /* los botones bajan de fila en vez de desbordar */
+  max-width:100%;
+}
 .popup-btn{
-  flex:1;padding:6px 8px;border-radius:7px;border:1px solid var(--border);background:#F8FAFC;
+  flex:1 1 auto;min-width:0;   /* pueden encogerse: antes forzaban el ancho */
+  padding:6px 7px;border-radius:7px;border:1px solid var(--border);background:#F8FAFC;
   font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;color:var(--text-primary);
   display:flex;align-items:center;justify-content:center;gap:4px;
+  white-space:nowrap;
 }
+.leaflet-popup-content{max-width:330px;overflow-wrap:anywhere;}
+.leaflet-popup-content .popup-row{overflow-wrap:anywhere;}
 .popup-btn:hover{background:#EFF4FF;border-color:var(--cobalt);color:var(--cobalt-dark);}
 
 /* ---- modo edición ---- */
@@ -959,10 +1017,13 @@ body.modo-dashboard #editar-forma-banner{display:none !important;}
 
 /* ===== Simbología flotante ===== */
 #simbologia-flotante{
-  position:absolute;top:70px;right:16px;z-index:450;background:var(--white);border:1px solid var(--border);
+  /* Esquina inferior derecha: arriba chocaba con los controles del mapa y
+     con la barra de escenarios. */
+  position:absolute;bottom:16px;right:16px;z-index:450;background:var(--white);border:1px solid var(--border);
   border-radius:14px;box-shadow:var(--shadow-lift);display:flex;flex-direction:column;overflow:hidden;
-  transition:width .15s ease;
+  transition:width .15s ease;max-height:52vh;
 }
+#simbologia-flotante .sf-body{overflow-y:auto;}
 #simbologia-flotante.sf-size-s{width:190px;}
 #simbologia-flotante.sf-size-m{width:240px;}
 #simbologia-flotante.sf-size-l{width:300px;}
@@ -1031,6 +1092,20 @@ body.modo-dashboard #editar-forma-banner{display:none !important;}
 }
 .neon-hover-amarilla { animation: neon-amarilla-hover 0.9s ease-in-out infinite; }
 .neon-hover-roja     { animation: neon-roja-hover 0.9s ease-in-out infinite; }
+/* Faltaba la variante verde: se referenciaba en el código pero no existía en
+   el CSS, así que las entidades de Alerta Verde no brillaban al pasar el mouse. */
+@keyframes neon-verde-hover {
+  0%,100% { filter: drop-shadow(0 0 4px #16A34A) drop-shadow(0 0 10px #16A34A); }
+  50%     { filter: drop-shadow(0 0 10px #4ADE80) drop-shadow(0 0 22px #16A34A); }
+}
+.neon-hover-verde { animation: neon-verde-hover 0.9s ease-in-out infinite; }
+/* Variante genérica: toma el color de la variable --glow-c, para usarla en
+   cualquier entidad (puntos, líneas y áreas de cualquier capa). */
+@keyframes neon-generico-hover {
+  0%,100% { filter: drop-shadow(0 0 4px var(--glow-c,#2563EB)) drop-shadow(0 0 9px var(--glow-c,#2563EB)); }
+  50%     { filter: drop-shadow(0 0 9px var(--glow-c,#2563EB)) drop-shadow(0 0 20px var(--glow-c,#2563EB)); }
+}
+.neon-hover { animation: neon-generico-hover 0.9s ease-in-out infinite; }
 .periodo-hover-resalte { filter: drop-shadow(0 0 6px var(--glow-c, #2563EB)) drop-shadow(0 0 14px var(--glow-c, #2563EB)) brightness(1.15); }
 /* Tooltip de longitud al hacer hover en una ruta */
 .ruta-hover-tip{ background:rgba(17,24,39,0.92); color:#fff; border:none; font-size:11px; font-weight:700; padding:3px 7px; border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
@@ -1247,6 +1322,22 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
 <body>
 <div id="app">
   <div id="map">
+    <!-- REGLA DE MEDICIÓN: se muestra sola al dibujar o editar líneas y áreas.
+         Va en el costado derecho, en la misma columna que la herramienta 📐,
+         porque al pie del mapa quedaba tapada por la barra de modo dibujo. -->
+    <div id="regla-medicion" style="display:none;position:absolute;right:12px;top:136px;z-index:800;background:rgba(15,23,42,0.94);color:#fff;padding:10px 13px;border-radius:10px;font-size:12.5px;line-height:1.7;box-shadow:0 4px 16px rgba(0,0,0,0.4);pointer-events:none;max-width:210px;backdrop-filter:blur(3px);"></div>
+
+    <!-- HERRAMIENTA REGLA (medición libre con el cursor) -->
+    <button id="btn-regla" class="icon-btn" title="Regla: medir distancias y superficies" style="position:absolute;right:12px;top:96px;z-index:800;width:34px;height:34px;font-size:16px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.22);">📐</button>
+    <div id="regla-panel" style="display:none;position:absolute;right:12px;top:136px;z-index:800;background:rgba(15,23,42,0.94);color:#fff;padding:11px 13px;border-radius:10px;font-size:12.5px;line-height:1.6;box-shadow:0 4px 16px rgba(0,0,0,0.4);min-width:210px;backdrop-filter:blur(3px);">
+      <div style="font-weight:600;margin-bottom:5px;">📐 Regla</div>
+      <div id="regla-panel-datos" style="opacity:.92;">Haz clic en el mapa para empezar a medir.</div>
+      <div style="display:flex;gap:6px;margin-top:9px;">
+        <button id="btn-regla-cerrar-area" style="flex:1;font-size:11px;padding:5px 6px;border-radius:6px;border:none;background:#334155;color:#fff;cursor:pointer;">Cerrar área</button>
+        <button id="btn-regla-limpiar" style="flex:1;font-size:11px;padding:5px 6px;border-radius:6px;border:none;background:#334155;color:#fff;cursor:pointer;">Limpiar</button>
+        <button id="btn-regla-salir" style="flex:1;font-size:11px;padding:5px 6px;border-radius:6px;border:none;background:#B91C1C;color:#fff;cursor:pointer;">Salir</button>
+      </div>
+    </div>
     <!-- BOTONES FLOTANTES: cambiar escenario de alerta -->
     <div id="escenario-switcher">
       <button class="esc-btn verde" id="esc-btn-verde" title="Escenario Alerta Verde">
@@ -1514,6 +1605,18 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
             <span class="plan-icon" style="background:#FEE2E2;">🔴</span>
             <div><div class="plan-label">Escenario Alerta Roja</div><div class="plan-sub">Activa la capa y abre la planificación</div></div>
           </button>
+          <button class="planificar-item" id="plan-recursos-area" style="display:none;">
+            <span class="plan-icon" style="background:#E2E8F0;">📍</span>
+            <div><div class="plan-label">Recursos del Área</div><div class="plan-sub">Agregar en el mapa y reubicar arrastrando</div></div>
+          </button>
+          <button class="planificar-item" id="plan-propagar-copamiento" style="display:none;">
+            <span class="plan-icon" style="background:#EDE9FE;">⏫</span>
+            <div><div class="plan-label">Propagar copamiento</div><div class="plan-sub">Verde → Amarilla → Roja, sin duplicar</div></div>
+          </button>
+        </div>
+        <div class="dropdown-panel planificar-panel" id="zonas-recursos-panel">
+          <div class="planificar-header">¿En qué zona quieres editar?</div>
+          <div id="zonas-recursos-lista"></div>
         </div>
       </div>
 
@@ -1591,6 +1694,9 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
     <button class="popup-btn" id="btn-modo-punto" style="margin-left:8px;">📍 Punto</button>
     <button class="popup-btn" id="btn-modo-linea">📏 Línea</button>
     <button class="popup-btn" id="btn-modo-area">📐 Área</button>
+    <button class="popup-btn" id="btn-dibujo-libre" style="display:none;" title="Mantén pulsado y arrastra para trazar de corrido">✍️ Trazo libre</button>
+    <button class="popup-btn" id="btn-importar-kml" title="Importar rutas desde un archivo KML o KMZ">📥 Importar KML/KMZ</button>
+    <input type="file" id="input-kml" accept=".kml,.kmz,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz" style="display:none;">
     <button class="popup-btn" id="btn-finalizar-dibujo" style="display:none;color:#16A34A;">✓ Finalizar</button>
     <button class="popup-btn" id="btn-cancelar-dibujo" style="display:none;color:#DC2626;">✕ Cancelar</button>
     <button class="popup-btn" id="btn-salir-planificacion" style="display:none;">🚪 Salir de planificación</button>
@@ -1602,7 +1708,7 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
   <!-- SIMBOLOGÍA FLOTANTE DEL PERIODO ACTIVO -->
   <div id="simbologia-flotante" class="sf-size-m" style="display:none;">
     <div class="sf-header">
-      <span class="sf-title">Simbología del periodo</span>
+      <span class="sf-title">Simbología</span>
       <div class="sf-controls">
         <button class="sf-btn" id="sf-todas" title="Activar/desactivar todas">◉</button>
         <button class="sf-btn" id="sf-mas" title="Ampliar">A+</button>
@@ -1611,6 +1717,29 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
       </div>
     </div>
     <div class="sf-body" id="sf-body"></div>
+  </div>
+
+  <!-- MODAL IMPORTAR RUTAS DESDE KML / KMZ -->
+  <div class="modal-overlay" id="kml-modal-overlay">
+    <div class="modal" style="max-width:520px;">
+      <div class="modal-title" id="kml-modal-title">📥 Importar rutas desde KML/KMZ</div>
+      <div id="kml-resumen" style="font-size:12px;opacity:.8;margin-bottom:10px;"></div>
+
+      <label style="font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;opacity:.65;">Rutas a importar</label>
+      <div id="kml-modal-lista" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:2px 8px;margin-top:5px;"></div>
+
+      <div style="font-size:11.5px;opacity:.75;margin-top:10px;line-height:1.5;">
+        Solo se toman los vértices. Por cada ruta se abrirá el formulario de la
+        planificación activa para que completes institución, tipo de recurso y
+        descripción.
+      </div>
+
+      <div class="modal-error" id="kml-modal-error"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="kml-modal-cancelar">Cancelar</button>
+        <button class="btn-primary" id="kml-modal-guardar">Continuar</button>
+      </div>
+    </div>
   </div>
 
   <!-- BANNER EDICIÓN DE FORMA (punto 1b) -->
@@ -2761,6 +2890,15 @@ async function cargarCatalogosYEntrar() {
   // Cargar íconos personalizados en segundo plano (NO bloquea el arranque)
   cargarIconosRecursos_().catch(() => {});
 
+  // Cargar el catálogo de tipos de recurso (tabla tipos_recurso) en segundo plano.
+  // Se hace aquí y no en onAuthStateChange: hacer llamadas a Supabase dentro de
+  // ese callback bloquea el candado de autenticación y desconecta al usuario.
+  cargarTiposRecurso_().catch(() => {});
+
+  // Mapa tipo_recurso -> pertenencia (Protección / Relacionamiento), usado por
+  // el nivel intermedio del árbol de filtros de recursos.
+  cargarPertenenciaRecursos_().catch(() => {});
+
   await entrarAlSistema();
 }
 
@@ -2804,6 +2942,12 @@ async function entrarAlSistema() {
   // btn-alerta-rapida eliminado del DOM
   const btnPlan = document.getElementById('btn-planificar');
   if (btnPlan) btnPlan.style.display = puedeEditar ? 'flex' : 'none';
+  // Modo edición gráfica de recursos del área: EXCLUSIVO del perfil Administrador.
+  const itemRecArea = document.getElementById('plan-recursos-area');
+  if (itemRecArea) itemRecArea.style.display = state.perfil.perfil === 'Administrador' ? 'flex' : 'none';
+  // Propagación escalonada del copamiento: EXCLUSIVO del perfil Administrador.
+  const itemProp = document.getElementById('plan-propagar-copamiento');
+  if (itemProp) itemProp.style.display = state.perfil.perfil === 'Administrador' ? 'flex' : 'none';
   // btn-recursos-area-rapido eliminado del DOM
   document.getElementById('rail-usuarios').style.display = state.perfil.perfil === 'Administrador' ? 'flex' : 'none';
   document.getElementById('tab-admin').style.display = state.perfil.perfil === 'Administrador' ? '' : 'none';
@@ -4516,6 +4660,19 @@ function esInstitucionMunicipalidad_(inst) {
 
 // Devuelve el logo efectivo de una institución para la comuna activa:
 // si es Municipalidad y la comuna tiene logo propio, ese; si no, el de la institución.
+/* Ampliación del logo dentro de los marcadores pequeños.
+ *
+ * Muchos logos institucionales vienen en un lienzo con bastante margen
+ * transparente alrededor de la marca. A tamaño completo no se nota, pero
+ * reducidos al tamaño de un globo la marca visible queda en dos o tres
+ * píxeles y desaparece. Se amplía la imagen y se recorta el sobrante con
+ * overflow:hidden del contenedor circular.
+ *
+ * Si algún logo aparece cortado por los bordes, baja este valor a 1.
+ * Si sigue viéndose pequeño, súbelo a 1.6 o 1.8.
+ */
+const ZOOM_LOGO_MARCADOR = 1.45;
+
 function logoEfectivoInstitucion_(inst) {
   if (!inst) return null;
   if (esInstitucionMunicipalidad_(inst) && state.logoMunicipalComuna) return state.logoMunicipalComuna;
@@ -5231,11 +5388,127 @@ async function loadAreaLayers_() {
   if (document.querySelector('.rail-btn.active').dataset.tab === 'capas') renderTab('capas');
 }
 
-/* ============ Simbología por tipo de recurso (según nombre_recurso / tipo_movil) ============ */
+/* ============ Simbología por tipo de recurso (catálogo en BD: tipos_recurso) ============ */
+// Los tipos y su emoji de respaldo salen ahora de la tabla public.tipos_recurso.
+// Agregar un tipo nuevo ya no exige editar este archivo: basta un INSERT.
+// El ícono con imagen (icono_url) sigue teniendo prioridad sobre el emoji.
+
+state.tiposRecursoCatalogo = [];
+let tiposRecursoPromesa = null;
+
+/** Quita acentos y normaliza a minúsculas para comparar sin sorpresas. */
+function normalizarTipoTexto_(texto) {
+  return (texto === null || texto === undefined ? '' : String(texto))
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+/** Carga el catálogo de tipos desde la BD. Cachea el resultado. */
+async function cargarTiposRecurso_(forzar) {
+  if (tiposRecursoPromesa && !forzar) return tiposRecursoPromesa;
+
+  tiposRecursoPromesa = (async () => {
+    const { data, error } = await supabaseClient
+      .from('tipos_recurso')
+      .select('nombre, etiqueta, emoji, color_hex, sirena, patron_nombre, orden')
+      .eq('activo', true)
+      .order('orden', { ascending: true })
+      .order('nombre', { ascending: true });
+
+    if (error) {
+      console.error('No se pudo cargar tipos_recurso:', error.message);
+      tiposRecursoPromesa = null;
+      return state.tiposRecursoCatalogo;
+    }
+
+    state.tiposRecursoCatalogo = data || [];
+    return state.tiposRecursoCatalogo;
+  })();
+
+  return tiposRecursoPromesa;
+}
+
+/**
+ * Resuelve el tipo del catálogo que corresponde a un recurso.
+ * Prioridad: coincidencia exacta del tipo, luego patrón sobre el nombre.
+ *
+ * IMPORTANTE: los patrones se ordenan de MÁS LARGO a MÁS CORTO antes de
+ * buscar. Eso es lo que hace que 'tipo iii' gane sobre 'tipo i'. Si se
+ * quita ese ordenamiento, las brigadas Tipo I, II y III se clasifican mal.
+ */
+function buscarTipoRecurso_(rm) {
+  const lista = state.tiposRecursoCatalogo || [];
+  if (lista.length === 0) return null;
+
+  const tipo = normalizarTipoTexto_(rm && rm.tipo_recurso);
+  const nombre = normalizarTipoTexto_(rm && rm.nombre_recurso);
+
+  if (tipo) {
+    const exacto = lista.find(t => normalizarTipoTexto_(t.nombre) === tipo);
+    if (exacto) return exacto;
+  }
+
+  const texto = tipo + ' ' + nombre;
+  const conPatron = lista
+    .filter(t => t.patron_nombre && String(t.patron_nombre).trim() !== '')
+    .sort((a, b) => String(b.patron_nombre).length - String(a.patron_nombre).length);
+  const porPatron = conPatron.find(t => texto.includes(normalizarTipoTexto_(t.patron_nombre)));
+  if (porPatron) return porPatron;
+
+  return null;
+}
+
+/** Color asociado al tipo, útil para leyendas y tarjetas. */
+function colorParaRecursoMaestro_(rm) {
+  const tipo = buscarTipoRecurso_(rm || {});
+  return tipo && tipo.color_hex ? tipo.color_hex : '#64748B';
+}
+
+/** Rellena un <select> con los tipos activos del catálogo. */
+function poblarSelectTiposRecurso_(selectEl, valorSeleccionado) {
+  if (!selectEl) return;
+  const lista = state.tiposRecursoCatalogo || [];
+  if (lista.length === 0) {
+    // Sin catálogo se conservan las opciones fijas del HTML.
+    if (valorSeleccionado) selectEl.value = valorSeleccionado;
+    return;
+  }
+
+  selectEl.innerHTML = '';
+  lista.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.nombre;
+    opt.textContent = (t.emoji ? t.emoji + '  ' : '') + (t.etiqueta || t.nombre);
+    selectEl.appendChild(opt);
+  });
+
+  // Si el recurso tiene un tipo que ya no está activo, se agrega temporalmente
+  // para no perder el valor al editar.
+  if (valorSeleccionado) {
+    const existe = Array.prototype.some.call(selectEl.options, o => o.value === valorSeleccionado);
+    if (!existe) {
+      const opt = document.createElement('option');
+      opt.value = valorSeleccionado;
+      opt.textContent = valorSeleccionado + ' (tipo inactivo)';
+      selectEl.appendChild(opt);
+    }
+    selectEl.value = valorSeleccionado;
+  }
+}
+
 function emojiParaRecursoMaestro_(rm) {
-  // Priorizar tipo_recurso (VIGÍA INFANTERÍA, MONTADO, etc.) sobre nombre_recurso
-  const tipo = (rm.tipo_recurso || '').toLowerCase();
-  const nombre = (rm.nombre_recurso || '').toLowerCase();
+  const recurso = rm || {};
+
+  // 1. Emoji definido en el catálogo de tipos (tabla tipos_recurso).
+  const tipoCatalogo = buscarTipoRecurso_(recurso);
+  if (tipoCatalogo) return { emoji: tipoCatalogo.emoji || '🚶', sirena: !!tipoCatalogo.sirena };
+
+  // 2. Respaldo: si el catálogo no cargó, se aplica la lógica anterior
+  //    para que el mapa nunca quede sin iconos.
+  const tipo = (recurso.tipo_recurso || '').toLowerCase();
+  const nombre = (recurso.nombre_recurso || '').toLowerCase();
   const texto = tipo + ' ' + nombre;
   if (texto.includes('multiprop'))  return { emoji: '🚚', sirena: true };
   if (texto.includes('disuasiv'))   return { emoji: '🚚', sirena: false };
@@ -5244,9 +5517,376 @@ function emojiParaRecursoMaestro_(rm) {
   if (texto.includes('dron'))       return { emoji: '🛸', sirena: false };
   if (texto.includes('camioneta'))  return { emoji: '🚚', sirena: false };
   if (texto.includes('infanter'))   return { emoji: '🚶', sirena: false };
-  if (rm.tipo_movil === 'Camioneta' || rm.tipo_movil === 'CAMIONETA') return { emoji: '🚚', sirena: false };
-  if (rm.tipo_movil === 'Moto' || rm.tipo_movil === 'MOTO') return { emoji: '🏍️', sirena: false };
+  if (recurso.tipo_movil === 'Camioneta' || recurso.tipo_movil === 'CAMIONETA') return { emoji: '🚚', sirena: false };
+  if (recurso.tipo_movil === 'Moto' || recurso.tipo_movil === 'MOTO') return { emoji: '🏍️', sirena: false };
   return { emoji: '🚶', sirena: false };
+}
+
+/* ============ FILTRO POR INSTITUCIÓN EN LAS CAPAS DE ALERTA ============
+ * Enciende o apaga los polígonos, líneas y puntos de una institución en
+ * los TRES niveles de alerta a la vez. Sirve para leer el nivel de
+ * copamiento aportado por cada organización: se apagan todas menos una y
+ * queda a la vista qué territorio cubre esa institución en Verde,
+ * Amarilla y Roja.
+ *
+ * El filtro es visual: no modifica la base de datos ni el estado de las
+ * capas. Convive con el interruptor de cada nivel de alerta, que sigue
+ * mandando: si Roja está apagada, nada de Roja se ve aunque su
+ * institución esté encendida aquí.
+ */
+state.institucionesAlertaOcultas = state.institucionesAlertaOcultas || {};
+
+/* Filtro por tipo de figura: punto, línea y polígono.
+ * Es independiente del filtro por institución y se cruza con él. */
+state.tipoGeomOculto = state.tipoGeomOculto || { punto: false, linea: false, area: false };
+
+/* Jerarquía interna de una institución: pertenencia y tipo de recurso.
+ * Se usa para CMPC y solo la ven los perfiles que planifican recursos
+ * propios (Administrador y Jefe de Área). */
+state.pertenenciaAlertaOculta = state.pertenenciaAlertaOculta || {};
+state.tipoRecursoAlertaOculto = state.tipoRecursoAlertaOculto || {};
+state.colapsoJerarquiaInst = state.colapsoJerarquiaInst || {};
+
+function pertenenciaAlertaOculta_(p) { return !!state.pertenenciaAlertaOculta[p]; }
+function setPertenenciaAlertaOculta_(p, o) { state.pertenenciaAlertaOculta[p] = o; }
+function tipoRecursoAlertaOculto_(t) { return !!state.tipoRecursoAlertaOculto[t]; }
+function setTipoRecursoAlertaOculto_(t, o) { state.tipoRecursoAlertaOculto[t] = o; }
+
+/** Desglose de una institución: pertenencia -> tipo -> cantidad. */
+function desgloseInstitucionAlerta_(idInstitucion) {
+  const arbol = {};
+  capasAlertaPlanificacion_().forEach(grupo => {
+    if (!grupo || typeof grupo.eachLayer !== 'function') return;
+    grupo.eachLayer(ly => {
+      if (String(ly._institucionId) !== String(idInstitucion)) return;
+      if (ly._esLogoDeFigura) return;   // acompaña a una figura ya contada
+      const pert = ly._pertenencia || 'Sin clasificar';
+      const tipo = ly._tipoRecurso || 'Sin tipo';
+      if (!arbol[pert]) arbol[pert] = {};
+      arbol[pert][tipo] = (arbol[pert][tipo] || 0) + 1;
+    });
+  });
+  return arbol;
+}
+
+/** Etiqueta corta para la pertenencia dentro del árbol. */
+const PERTENENCIA_CORTA = {
+  'Protección': '🛡️ R. Protección',
+  'Relacionamiento': '🤝 R. Relacionamiento',
+  'Sin clasificar': '❔ Sin clasificar',
+};
+
+function institucionConJerarquia_(nombre) {
+  // Por ahora solo CMPC tiene catálogo propio de tipos.
+  return esInstitucionCmpc_({ nombre }) && perfilPuedeUsarCatalogoCmpc_();
+}
+
+function tipoGeomOculto_(t) {
+  return !!(state.tipoGeomOculto && state.tipoGeomOculto[t]);
+}
+function setTipoGeomOculto_(t, oculto) {
+  if (!state.tipoGeomOculto) state.tipoGeomOculto = { punto: false, linea: false, area: false };
+  state.tipoGeomOculto[t] = oculto;
+}
+
+/** "CARABINEROS DE CHILE" -> "Carabineros de Chile".
+ *  Preposiciones y artículos en minúscula (salvo al inicio) y siglas
+ *  respetadas: CMPC y CONAF no deben convertirse en Cmpc ni Conaf. */
+const MINUSCULAS_TITULO = ['de', 'del', 'la', 'las', 'los', 'el', 'y', 'e', 'en', 'a'];
+const SIGLAS_CONOCIDAS = ['CMPC', 'CONAF', 'SENAPRED', 'ONEMI', 'SIGEI', 'GRD', 'PDI', 'BMP', 'SIDCO', 'KM'];
+
+function esSigla_(palabra) {
+  const p = palabra.toUpperCase();
+  if (SIGLAS_CONOCIDAS.indexOf(p) !== -1) return true;
+  // Una abreviatura con punto no es sigla: "Br." debe quedar "Br.", no "BR.".
+  if (p.indexOf('.') !== -1) return false;
+  // Palabra corta sin vocales: casi siempre una sigla (CMPC, SPA, etc.).
+  return p.length <= 5 && !/[AEIOUÁÉÍÓÚ]/.test(p);
+}
+
+function aTitulo_(texto) {
+  const t = (texto === null || texto === undefined) ? '' : String(texto).trim();
+  if (!t) return '';
+  // Si ya viene en formato mixto, se respeta tal cual.
+  if (t !== t.toUpperCase()) return t;
+  return t.split(/\s+/).map((palabra, i) => {
+    if (esSigla_(palabra)) return palabra.toUpperCase();
+    const min = palabra.toLowerCase();
+    if (i > 0 && MINUSCULAS_TITULO.indexOf(min) !== -1) return min;
+    return min.charAt(0).toUpperCase() + min.slice(1);
+  }).join(' ');
+}
+
+function capasAlertaPlanificacion_() {
+  return [
+    planificacionRecursosVerdeLayer,
+    planificacionRecursosAmarillaLayer,
+    planificacionRecursosRojaLayer,
+  ];
+}
+
+function institucionAlertaOculta_(id) {
+  return !!state.institucionesAlertaOcultas[id];
+}
+
+function setInstitucionAlertaOculta_(id, oculto) {
+  state.institucionesAlertaOcultas[id] = oculto;
+}
+
+/** Aplica el filtro a las tres capas de alerta. */
+function aplicarVisibilidadInstitucionesAlerta_() {
+  capasAlertaPlanificacion_().forEach(grupo => {
+    if (!grupo || typeof grupo.eachLayer !== 'function') return;
+    grupo.eachLayer(ly => {
+      const id = ly._institucionId;
+      if (!id) return;
+      // Se ocultan si está apagada su institución, su tipo de figura, su
+      // pertenencia o su tipo de recurso. Cualquiera de los cuatro basta.
+      const oculto = institucionAlertaOculta_(id)
+        || tipoGeomOculto_(ly._tipoGeometria)
+        || pertenenciaAlertaOculta_(ly._pertenencia || 'Sin clasificar')
+        || tipoRecursoAlertaOculto_(ly._tipoRecurso || 'Sin tipo');
+      try {
+        const el = ly.getElement && ly.getElement();
+        if (el) el.style.display = oculto ? 'none' : '';
+        const tt = ly.getTooltip && ly.getTooltip();
+        if (tt) { const tel = tt.getElement && tt.getElement(); if (tel) tel.style.display = oculto ? 'none' : ''; }
+      } catch (e) { /* una figura problemática no debe cortar el resto */ }
+    });
+  });
+}
+
+/** Resumen por institución: cuántos elementos aporta en cada nivel. */
+function resumenInstitucionesAlerta_() {
+  const mapa = {};
+  const niveles = ['verde', 'amarilla', 'roja'];
+  capasAlertaPlanificacion_().forEach((grupo, idx) => {
+    if (!grupo || typeof grupo.eachLayer !== 'function') return;
+    grupo.eachLayer(ly => {
+      const id = ly._institucionId;
+      if (!id) return;
+      // Los marcadores de logo acompañan a una figura ya contada.
+      if (ly._esLogoDeFigura) return;
+      if (!mapa[id]) {
+        mapa[id] = { id, nombre: ly._institucionNombre || 'Institución', verde: 0, amarilla: 0, roja: 0, total: 0 };
+      }
+      mapa[id][niveles[idx]]++;
+      mapa[id].total++;
+    });
+  });
+  return Object.values(mapa).sort((a, b) => b.total - a.total || a.nombre.localeCompare(b.nombre));
+}
+
+/** Enciende o apaga todas las instituciones de una vez. */
+function setTodasInstitucionesAlerta_(ocultar) {
+  resumenInstitucionesAlerta_().forEach(i => { state.institucionesAlertaOcultas[i.id] = !!ocultar; });
+  aplicarVisibilidadInstitucionesAlerta_();
+}
+
+/* Reaplica los filtros visuales de las capas de alerta.
+ *
+ * Es necesario llamarlo cada vez que una capa se agrega al mapa: Leaflet
+ * reconstruye los elementos del DOM al reinsertar un layerGroup, y con eso
+ * se pierde el display:none que aplica el filtro por institución. Sin esto,
+ * al cambiar de nivel de alerta reaparecían todas las instituciones.
+ *
+ * El doble llamado (inmediato y diferido) cubre el caso en que Leaflet aún
+ * no ha creado los elementos en el momento de la invocación.
+ */
+function reaplicarFiltrosAlerta_() {
+  const aplicar = () => {
+    try {
+      aplicarVisibilidadInstitucionesAlerta_();
+      ['verde', 'amarilla', 'roja'].forEach(k => aplicarOpacidadAlerta_(k));
+      // El panel flotante muestra el mismo copamiento por institución:
+      // se redibuja para que los conteos reflejen las capas encendidas.
+      const pf = document.getElementById('simbologia-flotante');
+      if (pf && pf.style.display !== 'none' && typeof renderSimbologiaInstituciones_ === 'function') {
+        renderSimbologiaInstituciones_();
+      }
+    } catch (e) { /* no debe interrumpir el flujo del mapa */ }
+  };
+  aplicar();
+  setTimeout(aplicar, 0);
+}
+
+/** Activa el efecto neón al pasar el cursor sobre una entidad del mapa.
+ *  Sirve para puntos, líneas y áreas de cualquier capa. Si se indica una
+ *  clase de escenario se usa esa; si no, la genérica con el color dado. */
+function activarNeonHover_(capa, color, clase) {
+  if (!capa || capa._neonHoverActivo) return;
+  capa._neonHoverActivo = true;
+  const cls = clase || 'neon-hover';
+
+  capa.on('mouseover', () => {
+    try {
+      const el = capa.getElement && capa.getElement();
+      if (!el) return;
+      if (color && !clase) el.style.setProperty('--glow-c', color);
+      el.classList.add(cls);
+    } catch (e) { /* no debe interrumpir el mapa */ }
+  });
+
+  capa.on('mouseout', () => {
+    try {
+      const el = capa.getElement && capa.getElement();
+      if (el) el.classList.remove(cls);
+    } catch (e) { /* idem */ }
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// HOVER ENRIQUECIDO SOBRE LAS ETIQUETAS DEL MAPA
+//
+// Al pasar el cursor por una figura o por su etiqueta, el tooltip pasa a
+// mostrar institución, tipo y descripción del recurso; al salir vuelve al
+// texto corto de siempre.
+//
+// Funciona en los dos estados:
+//   · Etiquetas encendidas -> se reemplaza el contenido y se restaura.
+//   · Etiquetas apagadas   -> se muestra un tooltip temporal solo al pasar.
+//
+// Los manejadores se registran una sola vez sobre la capa, así que
+// sobreviven a que el usuario encienda o apague las etiquetas con 🏷️.
+// ════════════════════════════════════════════════════════════════
+
+/** Arma el bloque HTML del detalle. Devuelve null si no hay nada que mostrar. */
+function detalleHoverRecurso_(datos) {
+  const institucion = (datos && datos.institucion) ? String(datos.institucion).trim() : '';
+  const tipo = (datos && datos.tipo) ? String(datos.tipo).trim() : '';
+  const nombre = (datos && datos.nombre) ? String(datos.nombre).trim() : '';
+  const descripcion = (datos && datos.descripcion) ? String(datos.descripcion).trim() : '';
+  if (!institucion && !tipo && !descripcion && !nombre) return null;
+
+  // Formato ancho y compacto: los datos cortos van en una sola línea separados
+  // por puntos medios, y la descripción debajo. Antes se apilaban en una
+  // columna estrecha que crecía hacia abajo y tapaba el mapa.
+  const encabezado = [];
+  if (institucion) encabezado.push('<b>' + escapeHtml_(aTitulo_(institucion)) + '</b>');
+  if (nombre && nombre !== institucion) encabezado.push(escapeHtml_(nombre));
+  if (tipo) encabezado.push('<span style="opacity:.8;">' + escapeHtml_(aTitulo_(tipo)) + '</span>');
+
+  let html = '<div style="text-align:left;line-height:1.4;">';
+  html += '<div style="white-space:nowrap;">' + encabezado.join('<span style="opacity:.45;"> · </span>') + '</div>';
+  if (descripcion) {
+    const corta = descripcion.length > 160 ? descripcion.slice(0, 157) + '…' : descripcion;
+    html += '<div style="margin-top:3px;opacity:.85;font-size:11px;white-space:normal;">' + escapeHtml_(corta) + '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+/** Activa el hover enriquecido sobre una capa del mapa. */
+function habilitarHoverEtiqueta_(capa, datos, opcionesTooltip) {
+  if (!capa || capa._hoverEtiquetaActivo) return;
+  const detalle = detalleHoverRecurso_(datos);
+  if (!detalle) return;
+
+  capa._detalleHover = detalle;
+  capa._hoverEtiquetaActivo = true;
+  const opts = opcionesTooltip || { direction: 'top', offset: [0, -14] };
+
+  capa.on('mouseover', () => {
+    try {
+      // Solo se suprime mientras se está dibujando de verdad: en modo
+      // edición o planificación con una herramienta de línea o área activa,
+      // o editando una forma. Fuera de eso el hover funciona normalmente.
+      if (state.editandoForma) return;
+      if ((state.editorMode || state.modoPlanificacion) &&
+          (state.dibujoModo === 'linea' || state.dibujoModo === 'area')) return;
+      const tt = capa.getTooltip && capa.getTooltip();
+      if (tt) {
+        // Ya hay etiqueta visible: se guarda su texto y se reemplaza.
+        if (capa._textoEtiquetaPrevio == null) capa._textoEtiquetaPrevio = tt.getContent();
+        capa.setTooltipContent(capa._detalleHover);
+        // El estilo de etiqueta (nowrap + sombra blanca) no sirve para texto
+        // largo, así que se cambia a tarjeta mientras dura el hover.
+        const el = tt.getElement && tt.getElement();
+        if (el) el.classList.add('map-label-detalle');
+      } else {
+        // Etiquetas apagadas: se muestra un tooltip solo mientras dura el hover.
+        capa.bindTooltip(capa._detalleHover, {
+          permanent: false,
+          direction: opts.direction || 'top',
+          offset: opts.offset || [0, -14],
+          className: 'map-label map-label-detalle',
+          sticky: true,
+        });
+        capa._tooltipTemporal = true;
+        capa.openTooltip();
+      }
+    } catch (e) { /* un fallo de tooltip no debe romper el mapa */ }
+  });
+
+  capa.on('mouseout', () => {
+    try {
+      if (capa._tooltipTemporal) {
+        capa.closeTooltip();
+        capa.unbindTooltip();
+        capa._tooltipTemporal = false;
+        return;
+      }
+      const tt = capa.getTooltip && capa.getTooltip();
+      if (tt) {
+        const el = tt.getElement && tt.getElement();
+        if (el) el.classList.remove('map-label-detalle');
+      }
+      if (capa._textoEtiquetaPrevio != null) {
+        capa.setTooltipContent(capa._textoEtiquetaPrevio);
+        capa._textoEtiquetaPrevio = null;
+      }
+    } catch (e) { /* idem */ }
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// PERTENENCIA DEL RECURSO: Protección / Relacionamiento
+// Nivel intermedio del árbol de filtros. El dato vive en
+// recursos_maestro.pertenencia; si la vista geojson no lo expone, se
+// resuelve con un mapa auxiliar por tipo de recurso.
+// ════════════════════════════════════════════════════════════════
+state.pertenenciaPorTipo = state.pertenenciaPorTipo || {};
+state.pertenenciaOculta = state.pertenenciaOculta || {};
+
+const PERTENENCIA_ETIQUETA = {
+  'Protección': '🛡️ Recursos de Protección',
+  'Relacionamiento': '🤝 Recursos de Relacionamiento',
+  'Sin clasificar': '❔ Sin clasificar',
+};
+const PERTENENCIA_ORDEN = ['Protección', 'Relacionamiento', 'Sin clasificar'];
+
+/** Carga el mapa tipo_recurso -> pertenencia desde el catálogo maestro. */
+async function cargarPertenenciaRecursos_() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('recursos_maestro')
+      .select('tipo_recurso, pertenencia');
+    if (error) { console.error('pertenencia:', error.message); return; }
+    const mapa = {};
+    (data || []).forEach(r => {
+      if (r.tipo_recurso && r.pertenencia) {
+        mapa[String(r.tipo_recurso).trim().toUpperCase()] = r.pertenencia;
+      }
+    });
+    state.pertenenciaPorTipo = mapa;
+  } catch (e) {
+    console.error('cargarPertenenciaRecursos_:', e);
+  }
+}
+
+/** Determina la pertenencia de un registro de recurso. */
+function pertenenciaDeRecurso_(r) {
+  if (!r) return 'Sin clasificar';
+  if (r.pertenencia) return r.pertenencia;
+  const clave = String(r.tipo_recurso || '').trim().toUpperCase();
+  return (state.pertenenciaPorTipo && state.pertenenciaPorTipo[clave]) || 'Sin clasificar';
+}
+
+function pertenenciaOculta_(p) {
+  return !!state.pertenenciaOculta[p];
+}
+function setPertenenciaOculta_(p, oculto) {
+  state.pertenenciaOculta[p] = oculto;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -5266,7 +5906,9 @@ function aplicarVisibilidadTiposRecurso_(layerGroup) {
   layerGroup.eachLayer(m => {
     const tipo = m._tipoRecurso;
     if (!tipo) return;
-    const oculto = tipoRecursoOculto_(tipo);
+    // Una figura se oculta si su tipo está apagado O si lo está su pertenencia.
+    const pert = m._pertenencia || 'Sin clasificar';
+    const oculto = tipoRecursoOculto_(tipo) || pertenenciaOculta_(pert);
     const el = m.getElement && m.getElement();
     if (el) el.style.display = oculto ? 'none' : '';
     // También el tooltip
@@ -5283,13 +5925,20 @@ function renderArbolTiposRecurso_(contenedor, opts) {
   const { titulo, dotColor, colapsoKey, layerGroup, featureLayers, infoCount,
           onToggleCapa, btnEtiqId, etiqActiva, onToggleEtiq } = opts;
 
-  // Agrupar por tipo
-  const porTipo = {};
+  // Agrupar en dos niveles: pertenencia -> tipo de recurso
+  const porPertenencia = {};
+  let totalTipos = 0;
   featureLayers.forEach(({ layer }) => {
+    const p = layer._pertenencia || 'Sin clasificar';
     const t = layer._tipoRecurso || 'Sin tipo';
-    porTipo[t] = (porTipo[t] || 0) + 1;
+    if (!porPertenencia[p]) porPertenencia[p] = {};
+    porPertenencia[p][t] = (porPertenencia[p][t] || 0) + 1;
   });
-  const tipos = Object.keys(porTipo).sort();
+  const pertenencias = Object.keys(porPertenencia).sort((a, b) => {
+    const ia = PERTENENCIA_ORDEN.indexOf(a), ib = PERTENENCIA_ORDEN.indexOf(b);
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+  });
+  pertenencias.forEach(p => { totalTipos += Object.keys(porPertenencia[p]).length; });
   const encendida = map.hasLayer(layerGroup);
 
   if (state[colapsoKey] === undefined) state[colapsoKey] = true; // arranca colapsado
@@ -5302,29 +5951,70 @@ function renderArbolTiposRecurso_(contenedor, opts) {
     '<span class="tree-check ' + (encendida ? 'on' : '') + '" data-recurso-raiz="1"></span>' +
     '<span class="flame-dot" style="background:' + dotColor + ';margin-right:2px;"></span>' +
     '<span class="tree-label">' + escapeHtml_(titulo) + '</span>' +
-    '<span class="tree-count">' + (infoCount != null ? infoCount + ' rec.' : tipos.length + ' tipo(s)') + '</span>' +
+    '<span class="tree-count">' + (infoCount != null ? infoCount + ' rec.' : totalTipos + ' tipo(s)') + '</span>' +
     (btnEtiqId ? '<button id="' + btnEtiqId + '" class="icon-btn' + (etiqActiva ? ' active' : '') + '" title="Mostrar/ocultar nombres" style="width:22px;height:22px;font-size:11px;flex-shrink:0;margin-left:4px;">🏷️</button>' : '');
   raiz.appendChild(rowRaiz);
 
   const hijos = document.createElement('div');
   hijos.className = 'tree-children' + (state[colapsoKey] ? ' collapsed' : '');
 
-  // Hijos: un nodo por tipo de recurso
-  tipos.forEach(tipo => {
-    const visible = encendida && !tipoRecursoOculto_(tipo);
-    const nodo = document.createElement('div'); nodo.className = 'tree-node sector';
-    const row = document.createElement('div'); row.className = 'tree-row';
-    row.innerHTML =
-      '<span class="tree-caret leaf">▼</span>' +
-      '<span class="tree-check ' + (visible ? 'on' : '') + '" data-recurso-tipo="' + escapeHtml_(tipo) + '"></span>' +
-      '<span class="tree-label">' + escapeHtml_(tipo) + '</span>' +
-      '<span class="tree-count">' + porTipo[tipo] + '</span>';
-    nodo.appendChild(row);
-    hijos.appendChild(nodo);
+  // Nivel 2: pertenencia (Protección / Relacionamiento)
+  pertenencias.forEach(pert => {
+    const tiposDe = Object.keys(porPertenencia[pert]).sort();
+    const totalPert = tiposDe.reduce((n, t) => n + porPertenencia[pert][t], 0);
+    const pertVisible = encendida && !pertenenciaOculta_(pert);
+    const claveColapsoPert = colapsoKey + '_pert_' + pert;
+    if (state[claveColapsoPert] === undefined) state[claveColapsoPert] = false;
 
-    row.querySelector('[data-recurso-tipo]').addEventListener('click', () => {
-      if (!map.hasLayer(layerGroup)) return; // solo si la capa está encendida
-      setTipoRecursoOculto_(tipo, !tipoRecursoOculto_(tipo));
+    const nodoPert = document.createElement('div'); nodoPert.className = 'tree-node sector';
+    const rowPert = document.createElement('div'); rowPert.className = 'tree-row';
+    rowPert.innerHTML =
+      '<span class="tree-caret ' + (state[claveColapsoPert] ? 'collapsed' : '') + '">▼</span>' +
+      '<span class="tree-check ' + (pertVisible ? 'on' : '') + '" data-recurso-pert="' + escapeHtml_(pert) + '"></span>' +
+      '<span class="tree-label">' + escapeHtml_(PERTENENCIA_ETIQUETA[pert] || pert) + '</span>' +
+      '<span class="tree-count">' + totalPert + '</span>';
+    nodoPert.appendChild(rowPert);
+
+    const hijosPert = document.createElement('div');
+    hijosPert.className = 'tree-children' + (state[claveColapsoPert] ? ' collapsed' : '');
+
+    // Nivel 3: tipos de recurso dentro de esa pertenencia
+    tiposDe.forEach(tipo => {
+      const visible = encendida && !pertenenciaOculta_(pert) && !tipoRecursoOculto_(tipo);
+      const nodo = document.createElement('div'); nodo.className = 'tree-node sector';
+      const row = document.createElement('div'); row.className = 'tree-row';
+      row.style.paddingLeft = '14px';
+      row.innerHTML =
+        '<span class="tree-caret leaf">▼</span>' +
+        '<span class="tree-check ' + (visible ? 'on' : '') + '" data-recurso-tipo="' + escapeHtml_(tipo) + '"></span>' +
+        '<span class="tree-label">' + escapeHtml_(tipo) + '</span>' +
+        '<span class="tree-count">' + porPertenencia[pert][tipo] + '</span>';
+      nodo.appendChild(row);
+      hijosPert.appendChild(nodo);
+
+      row.querySelector('[data-recurso-tipo]').addEventListener('click', () => {
+        if (!map.hasLayer(layerGroup)) return; // solo si la capa está encendida
+        setTipoRecursoOculto_(tipo, !tipoRecursoOculto_(tipo));
+        aplicarVisibilidadTiposRecurso_(layerGroup);
+        renderTab(state.activeTab || 'capas');
+      });
+    });
+
+    nodoPert.appendChild(hijosPert);
+    hijos.appendChild(nodoPert);
+
+    // Caret de la pertenencia
+    rowPert.querySelector('.tree-caret').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      state[claveColapsoPert] = !state[claveColapsoPert];
+      hijosPert.classList.toggle('collapsed', state[claveColapsoPert]);
+      rowPert.querySelector('.tree-caret').classList.toggle('collapsed', state[claveColapsoPert]);
+    });
+
+    // Checkbox de la pertenencia: apaga o enciende todo el grupo de una vez
+    rowPert.querySelector('[data-recurso-pert]').addEventListener('click', () => {
+      if (!map.hasLayer(layerGroup)) return;
+      setPertenenciaOculta_(pert, !pertenenciaOculta_(pert));
       aplicarVisibilidadTiposRecurso_(layerGroup);
       renderTab(state.activeTab || 'capas');
     });
@@ -5464,10 +6154,24 @@ async function loadRecursosDisponiblesAreaLayer_() {
     if (r.tipo_geometria === 'linea' || r.tipo_geometria === 'area') {
       let geojson;
       try { geojson = JSON.parse(r.geom_geojson); } catch (e) { return; }
-      const latlngs = (geojson.coordinates || []).map(c => r.tipo_geometria === 'area' ? c.map(p => [p[1], p[0]]) : [c[1], c[0]]);
+      // Se admiten geometrías simples y múltiples. Una ruta unida por un
+      // vértice intermedio se guarda como MultiLineString: varios tramos que
+      // se tocan en el empalme, sin repetir ningún segmento.
+      const aLatLng = p => [p[1], p[0]];
+      const tipoGeo = geojson.type || '';
+      let latlngs;
+      if (tipoGeo === 'MultiLineString') {
+        latlngs = (geojson.coordinates || []).map(parte => parte.map(aLatLng));
+      } else if (tipoGeo === 'MultiPolygon') {
+        latlngs = (geojson.coordinates || []).map(poly => (poly[0] || []).map(aLatLng));
+      } else if (r.tipo_geometria === 'area') {
+        latlngs = (geojson.coordinates || []).map(anillo => anillo.map(aLatLng));
+      } else {
+        latlngs = (geojson.coordinates || []).map(aLatLng);
+      }
       const figura = r.tipo_geometria === 'area'
         ? L.polygon(latlngs, { color: inst.color_hex, weight: 3, dashArray: '6,5', fillColor: inst.color_hex, fillOpacity: 0.15 })
-        : L.polyline(latlngs, { color: inst.color_hex, weight: 4, dashArray: '6,5' });
+        : L.polyline(latlngs, { color: inst.color_hex, weight: 4 });
       figura.bindPopup(popupHtml);
       figura.on('popupopen', () => {
         if (!state.editorMode && !state.modoRecursosArea) { figura.closePopup(); mostrarToast_('✏️ Activa el modo edición para modificar.'); return; }
@@ -5477,7 +6181,9 @@ async function loadRecursosDisponiblesAreaLayer_() {
       if (state.mostrarEtiquetasRecursosArea) {
         figura.bindTooltip(etiqueta, { permanent: true, direction: 'center', className: 'map-label' });
       }
-      figura._tipoRecurso = r.tipo_recurso || 'Sin tipo';
+      figura._tipoRecurso = r.tipo_recurso || 'Sin tipo'; figura._pertenencia = pertenenciaDeRecurso_(r);
+      habilitarHoverEtiqueta_(figura, { institucion: inst.nombre, nombre: r.nombre_recurso, tipo: r.tipo_recurso, descripcion: r.descripcion_funcion }, { direction: 'center', offset: [0, 0] });
+      activarNeonHover_(figura, inst.color_hex);
       recursosDisponiblesAreaLayer.addLayer(figura);
       return;
     }
@@ -5492,11 +6198,13 @@ async function loadRecursosDisponiblesAreaLayer_() {
     if (enEdicionEstaZona) {
       m.on('dragend', () => reubicarRecursoArea_(r.id, m));
     }
-    m._tipoRecurso = r.tipo_recurso || 'Sin tipo';
+    m._tipoRecurso = r.tipo_recurso || 'Sin tipo'; m._pertenencia = pertenenciaDeRecurso_(r);
     recursosDisponiblesFeatureLayers.push({ layer: m, nombre: etiqueta });
     if (state.mostrarEtiquetasRecursosArea && !tipoRecursoOculto_(m._tipoRecurso)) {
-      m.bindTooltip(etiqueta, { permanent: true, direction: 'top', offset: [0, -16], className: 'map-label' });
+      m.bindTooltip(etiqueta, { permanent: true, interactive: true, direction: 'top', offset: [0, -16], className: 'map-label' });
     }
+    habilitarHoverEtiqueta_(m, { institucion: inst.nombre, nombre: r.nombre_recurso, tipo: r.tipo_recurso, descripcion: r.descripcion_funcion }, { direction: 'top', offset: [0, -18] });
+    activarNeonHover_(m, inst.color_hex);
     recursosDisponiblesAreaLayer.addLayer(m);
     if (tipoRecursoOculto_(m._tipoRecurso)) { const el = m.getElement && m.getElement(); if (el) el.style.display = 'none'; }
   });
@@ -5651,10 +6359,10 @@ async function loadRecursosComunaAdmin_() {
       '<div class="popup-row">🗺️ ' + escapeHtml_(r.area || '—') + ' · ' + escapeHtml_(r.sector || '—') + '</div>' +
       '<div class="popup-row">📍 ' + escapeHtml_(r.comuna || '—') + '</div>'
     );
-    m._tipoRecurso = r.tipo_recurso || 'Sin tipo';
+    m._tipoRecurso = r.tipo_recurso || 'Sin tipo'; m._pertenencia = pertenenciaDeRecurso_(r);
     recursosComunaAdminFeatureLayers.push({ layer: m, nombre: etiqueta });
     if (state.mostrarEtiquetasRecursosComunaAdmin && !tipoRecursoOculto_(m._tipoRecurso)) {
-      m.bindTooltip(etiqueta, { permanent: true, direction: 'top', offset: [0, -16], className: 'map-label' });
+      m.bindTooltip(etiqueta, { permanent: true, interactive: true, direction: 'top', offset: [0, -16], className: 'map-label' });
     }
     recursosComunaAdminLayer.addLayer(m);
     if (tipoRecursoOculto_(m._tipoRecurso)) { const el = m.getElement && m.getElement(); if (el) el.style.display = 'none'; }
@@ -5667,7 +6375,7 @@ function toggleEtiquetasRecursosComunaAdmin_() {
   state.mostrarEtiquetasRecursosComunaAdmin = !state.mostrarEtiquetasRecursosComunaAdmin;
   recursosComunaAdminFeatureLayers.forEach(({ layer, nombre }) => {
     if (state.mostrarEtiquetasRecursosComunaAdmin) {
-      layer.bindTooltip(nombre, { permanent: true, direction: 'top', offset: [0, -16], className: 'map-label' });
+      layer.bindTooltip(nombre, { permanent: true, interactive: true, direction: 'top', offset: [0, -16], className: 'map-label' });
     } else {
       layer.unbindTooltip();
     }
@@ -5934,6 +6642,13 @@ function iniciarEdicionForma_(tabla, id) {
   // Parsear la geometría a un array de latlng
   let gj;
   try { gj = JSON.parse(r.geom_geojson); } catch (e) { mostrarToast_('Geometría inválida.'); return; }
+  // Una ruta unida por un vértice intermedio se guarda como MultiLineString.
+  // El editor de vértices trabaja sobre un solo trazado, así que aplanarla
+  // destruiría la estructura de tramos: se bloquea con un aviso claro.
+  if (gj.type === 'MultiLineString' || gj.type === 'MultiPolygon') {
+    mostrarToast_('⚠️ Esta ruta tiene varios tramos unidos. Usa ✂️ Separar en su popup, edita el tramo que necesites y vuelve a unirlos.');
+    return;
+  }
   let coords = r.tipo_geometria === 'area' ? gj.coordinates[0].slice(0, -1) : gj.coordinates; // área: quitar el punto de cierre
   tempDibujoVertices = coords.map(c => L.latLng(c[1], c[0]));
   state.dibujoModo = r.tipo_geometria;
@@ -6001,7 +6716,78 @@ function finalizarEdicionForma_() {
   document.getElementById('editar-forma-banner').style.display = 'none';
 }
 
+/* Tipos de recurso del catálogo CMPC en el formulario de creación.
+ *
+ * El selector trae tres opciones genéricas (Vehículo, Punto Stand-By,
+ * Punto de Control). Para CMPC se amplía con el catálogo real de
+ * tipos_recurso —Vigía Camioneta, Br. Disuasiva, Br. Tipo I, etc.— pero
+ * solo para los perfiles que planifican recursos propios: Administrador
+ * y Jefe de Área. El resto conserva las opciones genéricas.
+ */
+const TIPOS_GENERICOS_FORMULARIO = ['Vehículo', 'Punto Stand-By', 'Punto de Control'];
+const TIPOS_GENERICOS_EDICION = ['Personal', 'Vehículo', 'Punto de Control'];
+
+function perfilPuedeUsarCatalogoCmpc_() {
+  const p = state.perfil && state.perfil.perfil;
+  return p === 'Administrador' || p === 'Jefe de Área';
+}
+
+function esInstitucionCmpc_(inst) {
+  if (!inst || !inst.nombre) return false;
+  return String(inst.nombre).trim().toUpperCase().indexOf('CMPC') !== -1;
+}
+
+/** Repuebla un selector de tipo según la institución elegida.
+ *  Sirve tanto para el formulario de creación (f-institucion / f-tipo-recurso)
+ *  como para el de edición de recursos ya aplicados (erp-institucion / erp-tipo). */
+function actualizarCatalogoTiposFormulario_(idInst, idTipo, genericos) {
+  const fInst = document.getElementById(idInst || 'f-institucion');
+  const fTipo = document.getElementById(idTipo || 'f-tipo-recurso');
+  if (!fInst || !fTipo) return;
+  const listaGenericos = genericos || TIPOS_GENERICOS_FORMULARIO;
+
+  const inst = (state.instituciones || []).find(i => String(i.id) === String(fInst.value));
+  const usarCatalogo = esInstitucionCmpc_(inst) && perfilPuedeUsarCatalogoCmpc_();
+  const seleccionPrevia = fTipo.value;
+
+  fTipo.innerHTML = '';
+
+  // Las genéricas se mantienen siempre disponibles.
+  listaGenericos.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    fTipo.appendChild(opt);
+  });
+
+  if (usarCatalogo) {
+    const catalogo = (state.tiposRecursoCatalogo || []);
+    if (catalogo.length > 0) {
+      const grupo = document.createElement('optgroup');
+      grupo.label = 'Catálogo CMPC';
+      catalogo.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.nombre;
+        opt.textContent = (t.emoji ? t.emoji + '  ' : '') + (t.etiqueta || aTitulo_(t.nombre));
+        grupo.appendChild(opt);
+      });
+      fTipo.appendChild(grupo);
+    } else {
+      // El catálogo aún no llegó: se pide y se vuelve a poblar al tenerlo.
+      cargarTiposRecurso_()
+        .then(() => actualizarCatalogoTiposFormulario_(idInst, idTipo, listaGenericos))
+        .catch(() => {});
+    }
+  }
+
+  // Conservar la selección si sigue existiendo.
+  const existe = Array.prototype.some.call(fTipo.options, o => o.value === seleccionPrevia);
+  if (seleccionPrevia && existe) fTipo.value = seleccionPrevia;
+}
+
 function actualizarTipoRecursoPorInstitucion_() {
+  // Primero se repuebla el selector según la institución (catálogo CMPC),
+  // y después se aplica la regla de "Punto de Control" sobre el resultado.
+  actualizarCatalogoTiposFormulario_();
   // "Punto de Control" solo disponible para: Carabineros, JEDENA, Fuerza Militar,
   // Municipalidad (coincidencia flexible por nombre). Para el resto se deshabilita
   // y, si estaba seleccionado, se cambia a Vehículo.
@@ -6105,23 +6891,31 @@ function flameDivIcon_(color) {
 }
 
 function pinDivIcon(color, conGlow, logoUrl) {
+  // Pin tipo GLOBO (gota), igual al de las capas de alerta: la punta inferior
+  // marca la coordenada exacta y el logo de la institución va al centro.
   const estiloGlow = conGlow ? '--glow-c:' + color + ';' : '';
   const claseGlow = conGlow ? ' recurso-activo-glow' : '';
+  const trazado = 'M13 33 C13 33 2.5 20.5 2.5 12.5 A10.5 10.5 0 1 1 23.5 12.5 C23.5 20.5 13 33 13 33 Z';
+
   if (logoUrl) {
-    // Pin con LOGO: círculo blanco con borde del color institucional y la imagen dentro,
-    // más una pequeña punta abajo para indicar el punto exacto.
     return L.divIcon({
-      className: '', iconSize: [36, 44], iconAnchor: [18, 44], popupAnchor: [0, -42],
-      html: '<div class="custom-pin' + claseGlow + '" style="' + estiloGlow + 'position:relative;width:36px;height:44px;">' +
-        '<div style="width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid ' + color + ';box-shadow:0 2px 6px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
-        '<img src="' + escapeHtml_(logoUrl) + '" alt="" style="width:28px;height:28px;object-fit:contain;" onerror="this.style.display=\'none\'"></div>' +
-        '<div style="position:absolute;left:50%;bottom:0;width:0;height:0;transform:translateX(-50%);border-left:6px solid transparent;border-right:6px solid transparent;border-top:9px solid ' + color + ';"></div>' +
+      className: '', iconSize: [26, 34], iconAnchor: [13, 33], popupAnchor: [0, -30],
+      html: '<div class="custom-pin' + claseGlow + '" style="' + estiloGlow + 'position:relative;width:26px;height:34px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.45));">' +
+        '<svg width="26" height="34" viewBox="0 0 26 34" style="position:absolute;inset:0;z-index:1;">' +
+          '<path d="' + trazado + '" fill="#fff" stroke="' + color + '" stroke-width="2.2"/>' +
+        '</svg>' +
+        '<div style="position:absolute;top:5.5px;left:6px;width:14px;height:14px;background:#F1F5F9;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;z-index:2;">' +
+        '<img src="' + escapeHtml_(logoUrl) + '" alt="" style="width:13px;height:13px;object-fit:contain;transform:scale(' + ZOOM_LOGO_MARCADOR + ');" onerror="this.parentElement.innerHTML=\'<div style=&quot;width:10px;height:10px;border-radius:50%;background:' + color + '&quot;></div>\'"></div>' +
         '</div>',
     });
   }
+
   return L.divIcon({
-    className: '', iconSize: [30, 40], iconAnchor: [15, 40], popupAnchor: [0, -38],
-    html: '<svg style="' + estiloGlow + '" class="custom-pin' + claseGlow + '" width="30" height="40" viewBox="0 0 30 40"><path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 25 15 25s15-14.5 15-25C30 6.7 23.3 0 15 0Z" fill="' + color + '"/><circle cx="15" cy="15" r="6" fill="white"/></svg>'
+    className: '', iconSize: [26, 34], iconAnchor: [13, 33], popupAnchor: [0, -30],
+    html: '<svg style="' + estiloGlow + 'filter:drop-shadow(0 1px 3px rgba(0,0,0,0.4));" class="custom-pin' + claseGlow + '" width="26" height="34" viewBox="0 0 26 34">' +
+      '<path d="' + trazado + '" fill="' + color + '" stroke="#fff" stroke-width="2"/>' +
+      '<circle cx="13" cy="12.5" r="4.5" fill="#fff"/>' +
+      '</svg>',
   });
 }
 
@@ -6180,8 +6974,10 @@ function renderRecursosEnMapa() {
       if (!periodoFeatureLayers[claveGrupo]) periodoFeatureLayers[claveGrupo] = [];
       periodoFeatureLayers[claveGrupo].push({ layer: figura, nombre: inst.nombre });
       if (state.mostrarEtiquetasPeriodo && state.mostrarEtiquetasPeriodo[claveGrupo]) {
-        figura.bindTooltip(inst.nombre, { permanent: true, direction: 'center', className: 'map-label label-recurso' });
+        figura.bindTooltip(inst.nombre, { permanent: true, interactive: true, direction: 'center', className: 'map-label label-recurso' });
       }
+      habilitarHoverEtiqueta_(figura, { institucion: inst.nombre, tipo: r.tipo_recurso, descripcion: r.descripcion }, { direction: 'center', offset: [0, 0] });
+      activarNeonHover_(figura, inst.color_hex);
       figura.bindPopup(popupHtml);
       figura.on('popupopen', () => {
         if (!state.editorMode) { figura.closePopup(); mostrarToast_('✏️ Activa el modo edición para modificar.'); return; }
@@ -6209,8 +7005,10 @@ function renderRecursosEnMapa() {
     if (!periodoFeatureLayers[claveGrupo]) periodoFeatureLayers[claveGrupo] = [];
     periodoFeatureLayers[claveGrupo].push({ layer: m, nombre: inst.nombre });
     if (state.mostrarEtiquetasPeriodo && state.mostrarEtiquetasPeriodo[claveGrupo]) {
-      m.bindTooltip(inst.nombre, { permanent: true, direction: 'top', offset: [0, -38], className: 'map-label label-recurso' });
+      m.bindTooltip(inst.nombre, { permanent: true, interactive: true, direction: 'top', offset: [0, -38], className: 'map-label label-recurso' });
     }
+    habilitarHoverEtiqueta_(m, { institucion: inst.nombre, tipo: r.tipo_recurso, descripcion: r.descripcion }, { direction: 'top', offset: [0, -40] });
+    activarNeonHover_(m, inst.color_hex);
     m.on('popupopen', () => {
       if (!state.editorMode) {
         m.closePopup();
@@ -6460,7 +7258,7 @@ function redibujarVerticesEdicion_() {
     mid.on('drag', (ev) => {
       if (!insertado) return;
       tempDibujoVertices[insertarEn] = ev.target.getLatLng();
-      if (tempDibujoLayer) tempDibujoLayer.setLatLngs(tempDibujoVertices);
+      if (tempDibujoLayer) tempDibujoLayer.setLatLngs(tempDibujoVertices); actualizarReglaMedicion_();
     });
     mid.on('dragend', () => {
       redibujarVerticesEdicion_(); // reconstruye vértices + nuevos intermedios
@@ -6474,18 +7272,18 @@ function redibujarVerticesEdicion_() {
     const m = L.marker(ll, {
       draggable: true,
       icon: L.divIcon({ className: '', iconSize: [14, 14], iconAnchor: [7, 7],
-        html: '<div style="width:14px;height:14px;border-radius:50%;background:#fff;border:2.5px solid #2563EB;box-shadow:0 1px 3px rgba(0,0,0,0.4);cursor:move;"></div>' }),
+        html: '<div style="width:10px;height:10px;border-radius:50%;background:#fff;border:2.5px solid #2563EB;box-shadow:0 1px 3px rgba(0,0,0,0.4);cursor:move;"></div>' }),
     });
     m.on('drag', (ev) => {
       tempDibujoVertices[idx] = ev.target.getLatLng();
-      if (tempDibujoLayer) tempDibujoLayer.setLatLngs(tempDibujoVertices);
+      if (tempDibujoLayer) tempDibujoLayer.setLatLngs(tempDibujoVertices); actualizarReglaMedicion_();
     });
     m.on('dragend', () => { redibujarVerticesEdicion_(); actualizarBotonesModoDibujo_(); });
     m.on('contextmenu', () => {
       const minimo = esArea ? 3 : 2;
       if (tempDibujoVertices.length <= minimo) { mostrarToast_('No puedes eliminar más vértices (mínimo ' + minimo + ').'); return; }
       tempDibujoVertices.splice(idx, 1);
-      if (tempDibujoLayer) tempDibujoLayer.setLatLngs(tempDibujoVertices);
+      if (tempDibujoLayer) tempDibujoLayer.setLatLngs(tempDibujoVertices); actualizarReglaMedicion_();
       redibujarVerticesEdicion_();
       actualizarBotonesModoDibujo_();
     });
@@ -6621,6 +7419,641 @@ function priorizarCapasEditables_(modo) {
   } catch (e) { /* no crítico */ }
 }
 
+/* ============ REGLA DE MEDICIÓN (dibujo y edición de líneas y áreas) ============
+ * Calcula en vivo longitud, perímetro y superficie mientras se dibuja o se
+ * edita una geometría. No usa librerías externas: la distancia se obtiene con
+ * la fórmula de Haversine y la superficie con exceso esférico, que para las
+ * escalas de una comuna da un error muy por debajo del margen operativo.
+ */
+const RADIO_TIERRA_M = 6371008.8;
+
+function distanciaHaversine_(a, b) {
+  const rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad;
+  const dLng = (b.lng - a.lng) * rad;
+  const lat1 = a.lat * rad, lat2 = b.lat * rad;
+  const h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return 2 * RADIO_TIERRA_M * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/** Longitud acumulada de una secuencia de puntos. Si cerrar=true suma el tramo final. */
+function longitudTotal_(puntos, cerrar) {
+  if (!puntos || puntos.length < 2) return 0;
+  let total = 0;
+  for (let i = 0; i < puntos.length - 1; i++) total += distanciaHaversine_(puntos[i], puntos[i + 1]);
+  if (cerrar) total += distanciaHaversine_(puntos[puntos.length - 1], puntos[0]);
+  return total;
+}
+
+/** Superficie de un polígono sobre la esfera, en metros cuadrados. */
+function areaEsferica_(puntos) {
+  if (!puntos || puntos.length < 3) return 0;
+  const rad = Math.PI / 180;
+  let total = 0;
+  for (let i = 0; i < puntos.length; i++) {
+    const p1 = puntos[i];
+    const p2 = puntos[(i + 1) % puntos.length];
+    total += (p2.lng - p1.lng) * rad *
+             (2 + Math.sin(p1.lat * rad) + Math.sin(p2.lat * rad));
+  }
+  return Math.abs(total * RADIO_TIERRA_M * RADIO_TIERRA_M / 2);
+}
+
+function formatearDistancia_(metros) {
+  if (metros < 1000) return metros.toFixed(0) + ' m';
+  return (metros / 1000).toFixed(metros < 10000 ? 2 : 1).replace('.', ',') + ' km';
+}
+
+function formatearArea_(m2) {
+  const ha = m2 / 10000;
+  if (ha < 1) return m2.toFixed(0) + ' m²';
+  if (ha < 1000) return ha.toFixed(2).replace('.', ',') + ' ha';
+  return (ha / 100).toFixed(2).replace('.', ',') + ' km² (' + ha.toFixed(0) + ' ha)';
+}
+
+/** Refresca el indicador flotante. Se llama en cada cambio de la geometría. */
+function actualizarReglaMedicion_() {
+  const caja = document.getElementById('regla-medicion');
+  if (!caja) return;
+
+  const modo = state.dibujoModo;
+  const pts = tempDibujoVertices || [];
+
+  if ((modo !== 'linea' && modo !== 'area') || pts.length < 2) {
+    caja.style.display = 'none';
+    caja.innerHTML = '';
+    return;
+  }
+
+  let html = '';
+  if (modo === 'linea') {
+    const largo = longitudTotal_(pts, false);
+    const ultimo = distanciaHaversine_(pts[pts.length - 2], pts[pts.length - 1]);
+    html = '<div style="font-weight:600;margin-bottom:4px;">📏 Medición</div>' +
+           '<div><b>Longitud</b><br>' + formatearDistancia_(largo) + '</div>' +
+           '<div style="opacity:.85;"><b>Último tramo</b><br>' + formatearDistancia_(ultimo) + '</div>' +
+           '<div style="opacity:.7;font-size:11px;">' + pts.length + ' vértice(s)</div>';
+  } else {
+    const perimetro = longitudTotal_(pts, true);
+    if (pts.length < 3) {
+      html = '<div style="font-weight:600;margin-bottom:4px;">📏 Medición</div>' +
+             '<div><b>Perímetro parcial</b><br>' + formatearDistancia_(longitudTotal_(pts, false)) + '</div>' +
+             '<div style="opacity:.7;font-size:11px;">' + pts.length + ' vértice(s)<br>faltan ' + (3 - pts.length) + ' para cerrar</div>';
+    } else {
+      html = '<div style="font-weight:600;margin-bottom:4px;">📐 Medición</div>' +
+             '<div><b>Superficie</b><br>' + formatearArea_(areaEsferica_(pts)) + '</div>' +
+             '<div style="opacity:.85;"><b>Perímetro</b><br>' + formatearDistancia_(perimetro) + '</div>' +
+             '<div style="opacity:.7;font-size:11px;">' + pts.length + ' vértice(s)</div>';
+    }
+  }
+
+  caja.innerHTML = html;
+  caja.style.display = 'block';
+}
+
+/* ============ HERRAMIENTA REGLA: medición libre con el cursor ============
+ * Modo independiente del dibujo. Se activa con el botón 📐 del mapa.
+ *   · Clic en el mapa       -> agrega un punto de medición
+ *   · Doble clic            -> termina la medición en curso
+ *   · Clic derecho          -> deshace el último punto
+ *   · Botón "Cerrar área"   -> une el último punto con el primero y calcula superficie
+ *   · Tecla Escape          -> sale de la herramienta
+ * No escribe nada en la base de datos: es una ayuda visual para las reuniones.
+ */
+state.modoRegla = false;
+let reglaPuntos = [];
+let reglaCerrada = false;
+const reglaLayerGroup = L.layerGroup();
+let reglaLineaSeguimiento = null;
+
+function toggleRegla_() {
+  if (state.modoRegla) { salirRegla_(); return; }
+
+  // La regla y el modo dibujo comparten el clic del mapa: no pueden convivir.
+  if (state.dibujoModo === 'linea' || state.dibujoModo === 'area') {
+    if (tempDibujoVertices && tempDibujoVertices.length > 0) {
+      mostrarToast_('⚠️ Termina o cancela el dibujo en curso antes de usar la regla.');
+      return;
+    }
+  }
+
+  state.modoRegla = true;
+  reglaPuntos = [];
+  reglaCerrada = false;
+  if (!map.hasLayer(reglaLayerGroup)) reglaLayerGroup.addTo(map);
+  reglaLayerGroup.clearLayers();
+
+  document.getElementById('btn-regla').classList.add('active');
+  document.getElementById('regla-panel').style.display = 'block';
+  document.getElementById('map').style.cursor = 'crosshair';
+
+  map.on('click', reglaClick_);
+  map.on('mousemove', reglaMouseMove_);
+  map.on('dblclick', reglaDobleClick_);
+  map.on('contextmenu', reglaDeshacer_);
+  map.doubleClickZoom.disable();
+
+  actualizarPanelRegla_();
+  mostrarToast_('📐 Regla activa. Clic para medir; doble clic para terminar.');
+}
+
+function salirRegla_() {
+  state.modoRegla = false;
+  reglaPuntos = [];
+  reglaCerrada = false;
+  reglaLayerGroup.clearLayers();
+  if (reglaLineaSeguimiento) { map.removeLayer(reglaLineaSeguimiento); reglaLineaSeguimiento = null; }
+
+  document.getElementById('btn-regla').classList.remove('active');
+  document.getElementById('regla-panel').style.display = 'none';
+  document.getElementById('map').style.cursor = '';
+
+  map.off('click', reglaClick_);
+  map.off('mousemove', reglaMouseMove_);
+  map.off('dblclick', reglaDobleClick_);
+  map.off('contextmenu', reglaDeshacer_);
+  map.doubleClickZoom.enable();
+}
+
+function reglaLimpiar_() {
+  reglaPuntos = [];
+  reglaCerrada = false;
+  reglaLayerGroup.clearLayers();
+  if (reglaLineaSeguimiento) { map.removeLayer(reglaLineaSeguimiento); reglaLineaSeguimiento = null; }
+  actualizarPanelRegla_();
+}
+
+function reglaClick_(e) {
+  if (!state.modoRegla) return;
+  if (reglaCerrada) reglaLimpiar_();
+  reglaPuntos.push(e.latlng);
+  redibujarRegla_();
+}
+
+function reglaDeshacer_(e) {
+  if (!state.modoRegla) return;
+  if (e && e.originalEvent) e.originalEvent.preventDefault();
+  if (reglaPuntos.length === 0) return;
+  reglaPuntos.pop();
+  reglaCerrada = false;
+  redibujarRegla_();
+}
+
+function reglaDobleClick_(e) {
+  if (!state.modoRegla) return;
+  if (e && e.originalEvent) { e.originalEvent.preventDefault(); e.originalEvent.stopPropagation(); }
+  if (reglaLineaSeguimiento) { map.removeLayer(reglaLineaSeguimiento); reglaLineaSeguimiento = null; }
+  actualizarPanelRegla_();
+}
+
+function reglaCerrarArea_() {
+  if (reglaPuntos.length < 3) { mostrarToast_('⚠️ Se necesitan al menos 3 puntos para medir una superficie.'); return; }
+  reglaCerrada = true;
+  if (reglaLineaSeguimiento) { map.removeLayer(reglaLineaSeguimiento); reglaLineaSeguimiento = null; }
+  redibujarRegla_();
+}
+
+function reglaMouseMove_(e) {
+  if (!state.modoRegla || reglaPuntos.length === 0 || reglaCerrada) return;
+  const ultimo = reglaPuntos[reglaPuntos.length - 1];
+  if (!reglaLineaSeguimiento) {
+    reglaLineaSeguimiento = L.polyline([ultimo, e.latlng], {
+      color: '#0EA5E9', weight: 2, dashArray: '5,6', opacity: 0.85, interactive: false,
+    }).addTo(map);
+  } else {
+    reglaLineaSeguimiento.setLatLngs([ultimo, e.latlng]);
+  }
+  const parcial = longitudTotal_(reglaPuntos, false) + distanciaHaversine_(ultimo, e.latlng);
+  const datos = document.getElementById('regla-panel-datos');
+  if (datos) {
+    datos.innerHTML =
+      '<b>Distancia:</b> ' + formatearDistancia_(parcial) + ' <span style="opacity:.6;">(en curso)</span><br>' +
+      '<b>Puntos:</b> ' + reglaPuntos.length;
+  }
+}
+
+function redibujarRegla_() {
+  reglaLayerGroup.clearLayers();
+  if (reglaPuntos.length === 0) { actualizarPanelRegla_(); return; }
+
+  if (reglaCerrada && reglaPuntos.length >= 3) {
+    L.polygon(reglaPuntos, {
+      color: '#0EA5E9', weight: 3, fillColor: '#38BDF8', fillOpacity: 0.18, interactive: false,
+    }).addTo(reglaLayerGroup);
+  } else if (reglaPuntos.length >= 2) {
+    L.polyline(reglaPuntos, { color: '#0EA5E9', weight: 3, interactive: false }).addTo(reglaLayerGroup);
+  }
+
+  // Vértices con la distancia acumulada hasta ese punto.
+  let acumulado = 0;
+  reglaPuntos.forEach((p, i) => {
+    if (i > 0) acumulado += distanciaHaversine_(reglaPuntos[i - 1], p);
+    const etiqueta = i === 0 ? 'Inicio' : formatearDistancia_(acumulado);
+    L.marker(p, {
+      interactive: false,
+      icon: L.divIcon({
+        className: '', iconSize: [12, 12], iconAnchor: [6, 6],
+        html: '<div style="width:12px;height:12px;border-radius:50%;background:#fff;border:2.5px solid #0EA5E9;box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div>' +
+              '<div style="position:absolute;left:15px;top:-4px;background:rgba(15,23,42,0.9);color:#fff;font-size:10.5px;padding:1px 5px;border-radius:4px;white-space:nowrap;">' + etiqueta + '</div>',
+      }),
+    }).addTo(reglaLayerGroup);
+  });
+
+  actualizarPanelRegla_();
+}
+
+function actualizarPanelRegla_() {
+  const datos = document.getElementById('regla-panel-datos');
+  if (!datos) return;
+
+  if (reglaPuntos.length === 0) {
+    datos.innerHTML = 'Haz clic en el mapa para empezar a medir.';
+    return;
+  }
+  if (reglaPuntos.length === 1) {
+    datos.innerHTML = 'Primer punto marcado.<br><span style="opacity:.7;">Agrega otro para ver la distancia.</span>';
+    return;
+  }
+
+  const largo = longitudTotal_(reglaPuntos, reglaCerrada);
+  let html = '<b>' + (reglaCerrada ? 'Perímetro:' : 'Distancia:') + '</b> ' + formatearDistancia_(largo) + '<br>';
+  if (reglaCerrada && reglaPuntos.length >= 3) {
+    html += '<b>Superficie:</b> ' + formatearArea_(areaEsferica_(reglaPuntos)) + '<br>';
+  }
+  html += '<b>Puntos:</b> ' + reglaPuntos.length +
+          '<div style="opacity:.6;font-size:11px;margin-top:4px;">Clic derecho deshace el último.</div>';
+  datos.innerHTML = html;
+}
+
+/* ============ IMPORTAR RUTAS DESDE KML / KMZ ============
+ * Trae los trazados de un archivo de Google Earth a la planificación
+ * activa. Solo se importan LÍNEAS: los puntos y polígonos se ignoran,
+ * porque el caso de uso son rutas de recorrido.
+ *
+ * Cada LineString se crea como una ENTIDAD INDEPENDIENTE. Es habitual que
+ * un KMZ traiga un único Placemark con un MultiGeometry que agrupa varios
+ * tramos; esos tramos se separan y cada uno pasa a ser su propia ruta,
+ * que después se puede editar, unir o propagar por separado.
+ *
+ * Los trazados de Google Earth suelen traer cientos de puntos por tramo,
+ * así que se simplifican con Douglas-Peucker antes de guardarlos.
+ */
+state.kmlImportacion = null;
+
+/** Extrae el texto del KML desde un archivo .kml o .kmz. */
+async function leerArchivoKml_(file) {
+  const nombre = (file.name || '').toLowerCase();
+
+  if (nombre.endsWith('.kmz')) {
+    if (typeof JSZip === 'undefined') {
+      throw new Error('No se pudo cargar el lector de archivos KMZ. Revisa tu conexión y recarga la página.');
+    }
+    const zip = await JSZip.loadAsync(file);
+    // El KML principal suele llamarse doc.kml, pero no siempre.
+    let entrada = zip.file('doc.kml');
+    if (!entrada) {
+      const candidatos = zip.file(/\.kml$/i);
+      if (!candidatos || candidatos.length === 0) throw new Error('El archivo KMZ no contiene ningún KML dentro.');
+      entrada = candidatos[0];
+    }
+    return await entrada.async('string');
+  }
+
+  return await file.text();
+}
+
+/** Devuelve las líneas del KML: [{ nombre, puntos: [LatLng, ...] }, ...] */
+function extraerLineasKml_(textoKml) {
+  const doc = new DOMParser().parseFromString(textoKml, 'text/xml');
+  if (doc.querySelector('parsererror')) throw new Error('El archivo no es un KML válido.');
+
+  const parsearCoordenadas = (texto) => {
+    return (texto || '')
+      .trim()
+      .split(/\s+/)
+      .map(par => {
+        const t = par.split(',');
+        const lng = parseFloat(t[0]), lat = parseFloat(t[1]);
+        if (isNaN(lat) || isNaN(lng)) return null;
+        return L.latLng(lat, lng);   // el KML viene como lng,lat,altura
+      })
+      .filter(Boolean);
+  };
+
+  const lineas = [];
+  const placemarks = doc.getElementsByTagName('Placemark');
+
+  for (let i = 0; i < placemarks.length; i++) {
+    const pm = placemarks[i];
+    const nodoNombre = pm.getElementsByTagName('name')[0];
+    const base = nodoNombre ? nodoNombre.textContent.trim() : 'Ruta ' + (i + 1);
+
+    const tramos = pm.getElementsByTagName('LineString');
+    for (let j = 0; j < tramos.length; j++) {
+      const nodoCoords = tramos[j].getElementsByTagName('coordinates')[0];
+      if (!nodoCoords) continue;
+      const puntos = parsearCoordenadas(nodoCoords.textContent);
+      if (puntos.length < 2) continue;
+      lineas.push({
+        // Si el Placemark agrupa varios tramos, se numeran para distinguirlos.
+        nombre: tramos.length > 1 ? base + ' · tramo ' + (j + 1) : base,
+        puntos,
+      });
+    }
+  }
+
+  return lineas;
+}
+
+function abrirImportacionKml_() {
+  if (!state.modoPlanificacion || !state.modoPlanificacion.planId) {
+    mostrarToast_('📥 Entra primero al modo planificación del escenario donde quieres importar las rutas.');
+    return;
+  }
+  const input = document.getElementById('input-kml');
+  if (input) { input.value = ''; input.click(); }
+}
+
+async function procesarArchivoKml_(file) {
+  if (!file) return;
+  if (!state.modoPlanificacion || !state.modoPlanificacion.planId) {
+    mostrarToast_('📥 Necesitas estar en modo planificación para importar.');
+    return;
+  }
+
+  mostrarToast_('📥 Leyendo ' + file.name + '…');
+
+  let lineas;
+  try {
+    const texto = await leerArchivoKml_(file);
+    lineas = extraerLineasKml_(texto);
+  } catch (e) {
+    mostrarToast_('No se pudo leer el archivo: ' + e.message);
+    console.error('importar KML:', e);
+    return;
+  }
+
+  if (!lineas || lineas.length === 0) {
+    mostrarToast_('⚠️ El archivo no contiene líneas. Solo se importan rutas, no puntos ni polígonos.');
+    return;
+  }
+
+  // Simplificación: los trazados de Google Earth traen cientos de puntos.
+  const tolerancia = 0.00004;   // unos 4 m
+  let totalCrudos = 0, totalFinal = 0;
+  lineas.forEach(l => {
+    totalCrudos += l.puntos.length;
+    l.simplificados = simplificarTrazo_(l.puntos, tolerancia);
+    if (l.simplificados.length < 2) l.simplificados = l.puntos;
+    l.largo = longitudTotal_(l.simplificados, false);
+    totalFinal += l.simplificados.length;
+  });
+
+  state.kmlImportacion = { archivo: file.name, lineas };
+  abrirModalImportarKml_(totalCrudos, totalFinal);
+}
+
+function abrirModalImportarKml_(totalCrudos, totalFinal) {
+  const imp = state.kmlImportacion;
+  if (!imp) return;
+
+  const cont = document.getElementById('kml-modal-lista');
+  if (!cont) return;
+
+  document.getElementById('kml-resumen').textContent =
+    imp.lineas.length + ' ruta(s) encontrada(s) en ' + imp.archivo +
+    ' · ' + totalFinal + ' vértices tras simplificar (de ' + totalCrudos + ')';
+
+  cont.innerHTML = imp.lineas.map((l, i) =>
+    '<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--border);cursor:pointer;">' +
+      '<input type="checkbox" data-kml-linea="' + i + '" checked>' +
+      '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">' +
+        escapeHtml_(l.nombre) + '</span>' +
+      '<span style="font-size:11px;opacity:.7;white-space:nowrap;">' +
+        formatearDistancia_(l.largo) + ' · ' + l.simplificados.length + ' vért.</span>' +
+    '</label>'
+  ).join('');
+
+  document.getElementById('kml-modal-error').classList.remove('show');
+  document.getElementById('kml-modal-overlay').classList.add('show');
+}
+
+/* Cola de importación.
+ *
+ * No se piden atributos aquí: por cada ruta seleccionada se abre el
+ * formulario de creación de la planificación activa, el mismo que aparece
+ * al terminar de dibujar una línea a mano. Así la ruta se guarda en el
+ * escenario que se está editando y con las mismas validaciones, sin
+ * duplicar lógica ni listas de tipos.
+ */
+state.kmlCola = null;
+
+function confirmarImportacionKml_() {
+  const imp = state.kmlImportacion;
+  if (!imp) return;
+
+  const seleccionadas = [];
+  document.querySelectorAll('[data-kml-linea]').forEach(chk => {
+    if (chk.checked) seleccionadas.push(imp.lineas[parseInt(chk.dataset.kmlLinea, 10)]);
+  });
+
+  if (seleccionadas.length === 0) {
+    const err = document.getElementById('kml-modal-error');
+    err.textContent = 'Selecciona al menos una ruta.';
+    err.classList.add('show');
+    return;
+  }
+
+  document.getElementById('kml-modal-overlay').classList.remove('show');
+  state.kmlImportacion = null;
+  state.kmlCola = { pendientes: seleccionadas, total: seleccionadas.length, hechas: 0 };
+  siguienteRutaKml_();
+}
+
+/** Toma la siguiente ruta de la cola y abre el formulario de la planificación. */
+function siguienteRutaKml_() {
+  const cola = state.kmlCola;
+  if (!cola) return;
+
+  if (cola.pendientes.length === 0) {
+    const n = cola.hechas;
+    state.kmlCola = null;
+    mostrarToast_(n > 0 ? '📥 ' + n + ' ruta(s) importada(s).' : 'Importación terminada.');
+    if (state.activeComunaId) loadPlanificacionRecursos_(state.activeComunaId);
+    return;
+  }
+
+  if (!state.modoPlanificacion) {
+    state.kmlCola = null;
+    mostrarToast_('📥 Se salió del modo planificación: importación cancelada.');
+    return;
+  }
+
+  const ruta = cola.pendientes.shift();
+  cola.actual = ruta;
+
+  // Se reutiliza exactamente el mismo flujo que al terminar un dibujo a mano.
+  state.editingIdPlan = null;
+  state.pendingLatLng = null;
+  state.pendingAreaPuntos = null;
+  state.pendingLineaPuntos = ruta.simplificados.slice();
+
+  const esc = state.modoPlanificacion.escenario;
+  const ico = esc === 'Verde' ? '🟢' : esc === 'Amarilla' ? '🟡' : '🔴';
+  const restantes = cola.pendientes.length;
+
+  document.getElementById('modal-title').textContent =
+    'Línea importada — ' + ico + ' Alerta ' + esc;
+  document.getElementById('modal-coords').textContent =
+    escapeHtml_(ruta.nombre) + ' · ' + ruta.simplificados.length + ' vértices · ' +
+    formatearDistancia_(ruta.largo) +
+    '  (ruta ' + (cola.total - restantes) + ' de ' + cola.total + ')';
+  actualizarTipoRecursoPorInstitucion_();
+  document.getElementById('f-descripcion').value = ruta.nombre || '';
+  document.getElementById('modal-fechas-wrap').style.display = 'none';
+  document.getElementById('modal-periodo-wrap').style.display = 'none';
+  document.getElementById('modal-error').classList.remove('show');
+  document.getElementById('btn-save-modal').textContent =
+    restantes > 0 ? 'Guardar y seguir (' + restantes + ' más)' : 'Guardar en la planificación';
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+/* ============ DIBUJO A MANO ALZADA (TRAZO LIBRE) ============
+ * Evita tener que hacer clic vértice por vértice: se mantiene pulsado el
+ * botón del mouse y se arrastra, y el recorrido se captura de corrido.
+ *
+ * Al soltar, el trazado se simplifica con el algoritmo de Douglas-Peucker:
+ * un trazo a mano genera cientos de puntos casi colineales, y guardarlos
+ * todos haría la geometría pesada y el mapa lento sin ganar precisión.
+ * La tolerancia se ajusta al zoom, de modo que al alejarse no se conserve
+ * un detalle que de todas formas no se ve.
+ */
+state.dibujoLibre = false;
+let trazoLibreActivo = false;
+let trazoLibrePuntos = [];
+
+function toggleDibujoLibre_() {
+  if (state.dibujoModo !== 'linea' && state.dibujoModo !== 'area') {
+    mostrarToast_('✍️ Elige primero 📏 Línea o 📐 Área.');
+    return;
+  }
+  state.dibujoLibre = !state.dibujoLibre;
+  actualizarBotonesModoDibujo_();
+  if (state.dibujoLibre) {
+    mostrarToast_('✍️ Trazo libre activo: mantén pulsado y arrastra sobre el mapa.');
+  } else {
+    mostrarToast_('Trazo libre desactivado: vuelve al dibujo por clics.');
+  }
+}
+
+/** Distancia perpendicular de un punto al segmento a-b, en grados proyectados. */
+function distanciaPerpendicular_(p, a, b) {
+  const escalaLng = Math.cos(((a.lat + b.lat) / 2) * Math.PI / 180) || 1;
+  const px = p.lng * escalaLng, py = p.lat;
+  const ax = a.lng * escalaLng, ay = a.lat;
+  const bx = b.lng * escalaLng, by = b.lat;
+  const dx = bx - ax, dy = by - ay;
+  const largo2 = dx * dx + dy * dy;
+  if (largo2 === 0) return Math.hypot(px - ax, py - ay);
+  let t = ((px - ax) * dx + (py - ay) * dy) / largo2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+/** Douglas-Peucker: conserva la forma descartando los puntos redundantes. */
+function simplificarTrazo_(puntos, tolerancia) {
+  if (!puntos || puntos.length < 3) return puntos || [];
+  let maxDist = 0, indice = 0;
+  const primero = puntos[0], ultimo = puntos[puntos.length - 1];
+  for (let i = 1; i < puntos.length - 1; i++) {
+    const d = distanciaPerpendicular_(puntos[i], primero, ultimo);
+    if (d > maxDist) { maxDist = d; indice = i; }
+  }
+  if (maxDist > tolerancia) {
+    const izq = simplificarTrazo_(puntos.slice(0, indice + 1), tolerancia);
+    const der = simplificarTrazo_(puntos.slice(indice), tolerancia);
+    return izq.slice(0, -1).concat(der);
+  }
+  return [primero, ultimo];
+}
+
+/** Tolerancia en grados según el zoom: más zoom, más detalle conservado. */
+function toleranciaSegunZoom_() {
+  const z = map.getZoom();
+  // A zoom 15 ronda los 4 m; a zoom 11, unos 60 m.
+  return 0.00004 * Math.pow(2, Math.max(0, 15 - z));
+}
+
+function iniciarTrazoLibre_(e) {
+  if (!state.dibujoLibre) return;
+  if (state.dibujoModo !== 'linea' && state.dibujoModo !== 'area') return;
+  if (!state.editorMode && !state.modoPlanificacion) return;
+  if (state.modoRegla || state.unionLinea) return;
+
+  trazoLibreActivo = true;
+  trazoLibrePuntos = [e.latlng];
+  map.dragging.disable();            // el arrastre movería el mapa en vez de dibujar
+  if (map.boxZoom) map.boxZoom.disable();
+
+  if (tempDibujoLayer) { map.removeLayer(tempDibujoLayer); tempDibujoLayer = null; }
+  tempDibujoLayer = (state.dibujoModo === 'area')
+    ? L.polygon(trazoLibrePuntos, { color: '#7C3AED', weight: 3, fillOpacity: 0.12 }).addTo(map)
+    : L.polyline(trazoLibrePuntos, { color: '#7C3AED', weight: 4 }).addTo(map);
+}
+
+function continuarTrazoLibre_(e) {
+  if (!trazoLibreActivo) return;
+  const ultimo = trazoLibrePuntos[trazoLibrePuntos.length - 1];
+  // Umbral mínimo entre muestras: evita acumular cientos de puntos pegados.
+  if (ultimo && distanciaHaversine_(ultimo, e.latlng) < 3) return;
+  trazoLibrePuntos.push(e.latlng);
+  if (tempDibujoLayer) tempDibujoLayer.setLatLngs(trazoLibrePuntos);
+
+  const caja = document.getElementById('regla-medicion');
+  if (caja) {
+    caja.innerHTML = '<div style="font-weight:600;margin-bottom:4px;">✍️ Trazo libre</div>' +
+      '<div><b>Recorrido</b><br>' + formatearDistancia_(longitudTotal_(trazoLibrePuntos, false)) + '</div>' +
+      '<div style="opacity:.7;font-size:11px;">' + trazoLibrePuntos.length + ' muestras</div>';
+    caja.style.display = 'block';
+  }
+}
+
+function terminarTrazoLibre_() {
+  if (!trazoLibreActivo) return;
+  trazoLibreActivo = false;
+  map.dragging.enable();
+  if (map.boxZoom) map.boxZoom.enable();
+
+  const crudos = trazoLibrePuntos.slice();
+  trazoLibrePuntos = [];
+
+  const minimo = state.dibujoModo === 'area' ? 3 : 2;
+  if (crudos.length < minimo) {
+    mostrarToast_('✍️ Trazo demasiado corto. Mantén pulsado y arrastra un poco más.');
+    if (tempDibujoLayer) { map.removeLayer(tempDibujoLayer); tempDibujoLayer = null; }
+    return;
+  }
+
+  const simplificados = simplificarTrazo_(crudos, toleranciaSegunZoom_());
+  const puntos = simplificados.length >= minimo ? simplificados : crudos;
+
+  // Los vértices del trazo se AÑADEN a lo que ya hubiera dibujado, así se
+  // pueden combinar tramos a mano alzada con vértices puestos por clic.
+  tempDibujoVertices = tempDibujoVertices.concat(puntos);
+
+  if (tempDibujoLayer) { map.removeLayer(tempDibujoLayer); tempDibujoLayer = null; }
+  tempDibujoLayer = (state.dibujoModo === 'area')
+    ? L.polygon(tempDibujoVertices, { color: '#7C3AED', weight: 3, dashArray: '8,6', fillOpacity: 0.12 }).addTo(map)
+    : L.polyline(tempDibujoVertices, { color: '#7C3AED', weight: 4, dashArray: '8,6' }).addTo(map);
+
+  redibujarVerticesEdicion_();
+  actualizarBotonesModoDibujo_();
+
+  const ahorro = crudos.length > 0 ? Math.round((1 - puntos.length / crudos.length) * 100) : 0;
+  mostrarToast_('✍️ Trazo capturado: ' + puntos.length + ' vértices (' + ahorro + '% menos que las ' + crudos.length + ' muestras).');
+}
+
 function actualizarBotonesModoDibujo_() {
   document.getElementById('btn-modo-punto').classList.toggle('active', state.dibujoModo === 'punto');
   document.getElementById('btn-modo-linea').classList.toggle('active', state.dibujoModo === 'linea');
@@ -6628,25 +8061,64 @@ function actualizarBotonesModoDibujo_() {
 
   const enDibujo = state.dibujoModo === 'linea' || state.dibujoModo === 'area';
   const minimo = MIN_VERTICES[state.dibujoModo] || 0;
+
+  // Trazo libre: solo tiene sentido dibujando líneas o áreas.
+  const btnLibre = document.getElementById('btn-dibujo-libre');
+  if (btnLibre) {
+    btnLibre.style.display = enDibujo ? 'inline-block' : 'none';
+    btnLibre.classList.toggle('active', enDibujo && !!state.dibujoLibre);
+    if (!enDibujo) state.dibujoLibre = false;
+  }
   document.getElementById('btn-finalizar-dibujo').style.display = (enDibujo && tempDibujoVertices.length >= minimo) ? 'inline-block' : 'none';
   document.getElementById('btn-cancelar-dibujo').style.display = (enDibujo && tempDibujoVertices.length > 0) ? 'inline-block' : 'none';
 
-  if (state.dibujoModo === 'linea') {
+  if (enDibujo && state.dibujoLibre) {
+    document.getElementById('editor-banner-texto').textContent =
+      (state.dibujoModo === 'area' ? 'Modo área' : 'Modo línea') +
+      ' · ✍️ TRAZO LIBRE — mantén pulsado y arrastra sobre el mapa para trazar de corrido (' +
+      tempDibujoVertices.length + ' vértice(s))';
+  } else if (state.dibujoModo === 'linea') {
     document.getElementById('editor-banner-texto').textContent = 'Modo línea — clic para agregar puntos · arrastra un vértice para moverlo · arrastra un punto intermedio para insertar · clic derecho borra (' + tempDibujoVertices.length + ' agregado(s), mín. 2)';
   } else if (state.dibujoModo === 'area') {
     document.getElementById('editor-banner-texto').textContent = 'Modo área — clic para agregar vértices · arrastra para mover · arrastra un punto intermedio para insertar · clic derecho borra (' + tempDibujoVertices.length + ' agregado(s), mín. 3)';
   } else {
     document.getElementById('editor-banner-texto').textContent = 'Modo edición activo — haz clic en el mapa para posicionar un recurso';
   }
+
+  // Marca para el CSS: con dibujo activo las etiquetas no capturan el clic.
+  const contenedorMapa = document.getElementById('map');
+  const dibujandoDeVerdad = (!!state.editorMode || !!state.modoPlanificacion) && !!enDibujo;
+  if (contenedorMapa) contenedorMapa.classList.toggle('modo-dibujo', dibujandoDeVerdad || !!state.editandoForma);
+
+  // Regla de medición: se actualiza en cada cambio de la geometría.
+  actualizarReglaMedicion_();
 }
 
 function setModoDibujo_(modo) {
   cancelarDibujo_();
   state.dibujoModo = modo;
+  // Cerrar cualquier tarjeta de hover que haya quedado abierta: si no, se
+  // queda flotando sobre el mapa mientras se dibuja.
+  cerrarTarjetasHover_();
   actualizarBotonesModoDibujo_();
 }
 
+/** Restaura las etiquetas que estuvieran mostrando el detalle de hover. */
+function cerrarTarjetasHover_() {
+  try {
+    document.querySelectorAll('.map-label-detalle').forEach(el => {
+      el.classList.remove('map-label-detalle');
+    });
+  } catch (e) { /* no debe interrumpir el flujo */ }
+}
+
 function cancelarDibujo_() {
+  // Si quedó un trazo libre a medias, se suelta el mapa antes de limpiar.
+  if (trazoLibreActivo) {
+    trazoLibreActivo = false;
+    trazoLibrePuntos = [];
+    try { map.dragging.enable(); if (map.boxZoom) map.boxZoom.enable(); } catch (e) {}
+  }
   tempDibujoVertices = [];
   if (tempDibujoLayer) { map.removeLayer(tempDibujoLayer); tempDibujoLayer = null; }
   tempVerticeMarkers.clearLayers();
@@ -6672,6 +8144,7 @@ function finalizarDibujo_() {
     document.getElementById('modal-title').textContent = (state.dibujoModo === 'area' ? 'Área planificada — ' : 'Línea planificada — ') + icoEscModal + ' Alerta ' + state.modoPlanificacion.escenario;
     document.getElementById('modal-coords').textContent = tempDibujoVertices.length + ' vértices trazados';
     document.getElementById('f-institucion').selectedIndex = 0;
+    actualizarTipoRecursoPorInstitucion_();
     document.getElementById('f-tipo-recurso').selectedIndex = 0;
     document.getElementById('f-descripcion').value = '';
     document.getElementById('modal-fechas-wrap').style.display = 'none';
@@ -6704,6 +8177,8 @@ function finalizarDibujo_() {
 }
 
 map.on('click', (e) => {
+  if (state.modoRegla) return;      // la regla toma el control del clic
+  if (state.dibujoLibre && (state.dibujoModo === 'linea' || state.dibujoModo === 'area')) return; // el trazo libre usa arrastre, no clic
   if (state.editandoForma) return; // en edición de forma: solo arrastrar/borrar vértices, no agregar por clic
   if (!state.editorMode) return;
 
@@ -6738,6 +8213,7 @@ map.on('click', (e) => {
     document.getElementById('modal-title').textContent = 'Recurso planificado — ' + (state.modoPlanificacion.escenario === 'Verde' ? '🟢' : state.modoPlanificacion.escenario === 'Amarilla' ? '🟡' : '🔴') + ' Alerta ' + state.modoPlanificacion.escenario;
     document.getElementById('modal-coords').textContent = 'Lat ' + e.latlng.lat.toFixed(4) + ', Lng ' + e.latlng.lng.toFixed(4);
     document.getElementById('f-institucion').selectedIndex = 0;
+    actualizarTipoRecursoPorInstitucion_();
     document.getElementById('f-tipo-recurso').selectedIndex = 0;
     document.getElementById('f-descripcion').value = '';
     document.getElementById('modal-fechas-wrap').style.display = 'none';
@@ -6787,7 +8263,16 @@ function abrirModalEdicion_(idRecurso) {
     : (iconoTipoGeometria_(r.tipo_geometria) + ' (la geometría no se edita aquí — elimina y vuelve a trazarla si necesitas cambiarla)');
   document.getElementById('f-institucion').value = r.institucion_id;
   actualizarTipoRecursoPorInstitucion_();
-  document.getElementById('f-tipo-recurso').value = r.tipo_recurso || 'Vehículo';
+  // Si el tipo guardado ya no está en la lista, se agrega para no perderlo.
+  const fTipoEd = document.getElementById('f-tipo-recurso');
+  const tipoGuardado = r.tipo_recurso || 'Vehículo';
+  if (!Array.prototype.some.call(fTipoEd.options, o => o.value === tipoGuardado)) {
+    const opt = document.createElement('option');
+    opt.value = tipoGuardado;
+    opt.textContent = tipoGuardado + ' (fuera del catálogo)';
+    fTipoEd.appendChild(opt);
+  }
+  fTipoEd.value = tipoGuardado;
   document.getElementById('f-fecha-inicio').value = r.fecha_inicio || '';
   document.getElementById('f-fecha-termino').value = r.fecha_termino || '';
   document.getElementById('f-periodo').value = r.periodo_trabajo || 'Turno mañana (08:00–14:00)';
@@ -6873,9 +8358,19 @@ async function guardarRecursoDesdeModal_() {
 
     document.getElementById('modal-overlay').classList.remove('show');
     document.getElementById('f-descripcion').value = '';
-    mostrarToast_('Recurso agregado a la planificación.');
     state.pendingLatLng = null;
     cancelarDibujo_();
+
+    // Importación de KML en curso: encadenar con la siguiente ruta en vez de
+    // recargar entre una y otra, que sería lento con varios tramos.
+    if (state.kmlCola) {
+      state.kmlCola.hechas++;
+      mostrarToast_('📥 Ruta guardada (' + state.kmlCola.hechas + ' de ' + state.kmlCola.total + ').');
+      siguienteRutaKml_();
+      return;
+    }
+
+    mostrarToast_('Recurso agregado a la planificación.');
     loadPlanificacionRecursos_(state.activeComunaId);
     return;
   }
@@ -7852,8 +9347,100 @@ function salirModoPlanificacion_() {
   actualizarBotonModoActivo_();
 }
 
-/* ============ MODO RECURSOS DEL ÁREA (dibujar ubicaciones en el mapa) — solo Admin/Jefe de Área ============ */
+/* ============ COPAMIENTO ESCALONADO ENTRE ESCENARIOS (solo Administrador) ============
+ * Copia las entidades de Alerta Verde a Amarilla y luego de Amarilla a Roja.
+ * Toda la lógica vive en la función SQL propagar_copamiento_comuna, que copia
+ * la geometría directamente y registra el origen de cada copia para que la
+ * operación se pueda repetir sin duplicar nada.
+ */
+async function propagarCopamientoComuna_() {
+  if (!state.perfil || state.perfil.perfil !== 'Administrador') {
+    mostrarToast_('🔒 Solo un Administrador puede propagar el copamiento.');
+    return;
+  }
+  if (!state.activeComunaId) {
+    mostrarToast_('⚠️ Selecciona primero una comuna.');
+    return;
+  }
+
+  const nombre = nombreComuna_(state.activeComunaId);
+  const aviso =
+    'Copamiento escalonado en ' + nombre + '\n\n' +
+    '1) Todo lo de Alerta Verde pasa a Alerta Amarilla.\n' +
+    '2) Todo lo de Alerta Amarilla (incluido lo recién heredado) pasa a Alerta Roja.\n\n' +
+    'Lo que ya se copió antes no se duplica. ¿Continuar?';
+  if (!confirm(aviso)) return;
+
+  mostrarToast_('⏫ Propagando copamiento…');
+
+  const { data, error } = await supabaseClient.rpc('propagar_copamiento_comuna', {
+    p_comuna_id: String(state.activeComunaId),
+  });
+
+  if (error) {
+    mostrarToast_('No se pudo propagar: ' + error.message);
+    console.error('propagar_copamiento_comuna:', error);
+    return;
+  }
+
+  const filas = data || [];
+  const total = filas.reduce((s, f) => s + (Number(f.copiados) || 0), 0);
+  const detalle = filas.map(f => f.paso + ': ' + f.copiados).join('  ·  ');
+
+  if (total > 0) {
+    mostrarToast_('✅ ' + total + ' entidad(es) copiada(s).  ' + detalle);
+  } else {
+    // Sin copias puede significar que ya estaba todo propagado, o que falta
+    // crear alguno de los planes. El mensaje del servidor lo aclara.
+    const msg = filas.map(f => f.mensaje).filter(Boolean).join('\n');
+    mostrarToast_('ℹ️ Nada nuevo que copiar.');
+    if (msg) console.info('Detalle de la propagación:\n' + msg);
+  }
+
+  // Refrescar lo que está dibujado en el mapa.
+  try {
+    if (typeof cargarCapasAlertaGlobales_ === 'function') await cargarCapasAlertaGlobales_();
+    if (typeof loadPlanificacionRecursos_ === 'function') await loadPlanificacionRecursos_(state.activeComunaId);
+  } catch (e) {
+    console.error('No se pudieron refrescar las capas tras propagar:', e);
+  }
+}
+
+/* ============ MODO RECURSOS DEL ÁREA (dibujar ubicaciones en el mapa) — solo Administrador ============ */
+
+/** Abre el selector de zona cuando el usuario tiene más de un área disponible. */
+function abrirSelectorZonaRecursos_(zonas) {
+  const panel = document.getElementById('zonas-recursos-panel');
+  const lista = document.getElementById('zonas-recursos-lista');
+  if (!panel || !lista) { iniciarModoRecursosArea_(zonas[0]); return; }
+
+  lista.innerHTML = '';
+  zonas.forEach(z => {
+    const b = document.createElement('button');
+    b.className = 'planificar-item';
+    b.innerHTML = '<span class="plan-icon" style="background:#E2E8F0;">📍</span>' +
+      '<div><div class="plan-label">' + escapeHtml_(z) + '</div>' +
+      '<div class="plan-sub">Editar los recursos de esta zona</div></div>';
+    b.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      panel.classList.remove('show');
+      iniciarModoRecursosArea_(z);
+    });
+    lista.appendChild(b);
+  });
+
+  panel.classList.add('show');
+}
+
 function iniciarModoRecursosArea_(area) {
+  // Blindaje de permisos: aunque el botón esté oculto para otros perfiles,
+  // la función se protege por si se invocara desde otro punto del código.
+  if (!state.perfil || state.perfil.perfil !== 'Administrador') {
+    mostrarToast_('🔒 Solo un Administrador puede editar los recursos del área.');
+    return;
+  }
+  if (!area) { mostrarToast_('⚠️ No se indicó la zona a editar.'); return; }
+
   const _rarp = document.getElementById('recursos-area-rapido-panel'); if(_rarp) _rarp.classList.remove('show');
   state.modoRecursosArea = { area };
   state.editorMode = true;
@@ -7865,9 +9452,12 @@ function iniciarModoRecursosArea_(area) {
   document.getElementById('map').classList.add('editing-mode');
   document.getElementById('btn-salir-planificacion').style.display = 'inline-block';
   document.getElementById('editor-banner-texto').textContent = '⚠️ Modo edición activo — ' + area + ' · haz clic para agregar recursos o arrastra los existentes para reubicarlos';
+  const indEdit = document.getElementById('indicador-edicion');
+  if (indEdit) indEdit.classList.add('show');
   actualizarBotonesModoDibujo_();
   loadRecursosDisponiblesAreaLayer_();
   actualizarBotonModoActivo_();
+  mostrarToast_('📍 Modo edición de recursos activo en ' + area + '. Clic en el mapa para agregar; arrastra para reubicar.');
 }
 
 function salirModoRecursosArea_() {
@@ -7879,6 +9469,8 @@ function salirModoRecursosArea_() {
   document.getElementById('editor-banner').style.background = '';
   document.getElementById('map').classList.remove('editing-mode');
   document.getElementById('btn-salir-planificacion').style.display = 'none';
+  const indEdit = document.getElementById('indicador-edicion');
+  if (indEdit) indEdit.classList.remove('show');
   loadRecursosDisponiblesAreaLayer_();
   actualizarBotonModoActivo_();
 }
@@ -7968,6 +9560,66 @@ async function guardarRecursoAreaDesdeDibujo_() {
 // Toggle etiquetas en capas de alerta (activar/desactivar desde panel de capas)
 if (!state.mostrarEtiquetasAlerta) state.mostrarEtiquetasAlerta = { verde: false, amarilla: false, roja: false };
 
+/* ============ OPACIDAD POR CAPA DE ALERTA (0 a 100 %) ============
+ * Valor en porcentaje. 22 es el que traía el sistema por defecto.
+ * Se aplica tanto a las zonas comunales como a los recursos planificados
+ * de ese escenario, y sobrevive a las recargas de capa porque
+ * cargarCapasAlertaGlobales_ lee este mismo estado al construir el estilo.
+ */
+if (!state.opacidadAlerta) state.opacidadAlerta = { verde: 22, amarilla: 22, roja: 22 };
+
+/** Opacidad de relleno (0 a 1) configurada para un escenario. */
+function opacidadRellenoAlerta_(clave) {
+  const pct = (state.opacidadAlerta && state.opacidadAlerta[clave] != null) ? state.opacidadAlerta[clave] : 22;
+  return Math.max(0, Math.min(100, pct)) / 100;
+}
+
+/** Opacidad del borde. Se mantiene más alta que el relleno para que la
+ *  silueta siga siendo legible en proyector incluso con relleno bajo. */
+function opacidadBordeAlerta_(clave) {
+  const relleno = opacidadRellenoAlerta_(clave);
+  if (relleno === 0) return 0;
+  return Math.max(0.35, Math.min(1, relleno * 2.2));
+}
+
+/** Aplica la opacidad a todas las figuras ya dibujadas de un escenario. */
+function aplicarOpacidadAlerta_(clave) {
+  const relleno = opacidadRellenoAlerta_(clave);
+  const borde = opacidadBordeAlerta_(clave);
+
+  const grupos = [
+    clave === 'verde' ? capaAlertaVerdeLayer : clave === 'amarilla' ? capaAlertaAmarillaLayer : capaAlertaRojaLayer,
+    clave === 'verde' ? planificacionRecursosVerdeLayer : clave === 'amarilla' ? planificacionRecursosAmarillaLayer : planificacionRecursosRojaLayer,
+  ];
+
+  const aplicar = (capa) => {
+    try {
+      if (!capa) return;
+      if (typeof capa.setStyle === 'function') {
+        capa.setStyle({ fillOpacity: relleno, opacity: borde });
+        if (typeof capa.eachLayer === 'function') capa.eachLayer(aplicar);
+      } else if (typeof capa.eachLayer === 'function') {
+        capa.eachLayer(aplicar);
+      } else if (typeof capa.setOpacity === 'function') {
+        // Marcadores (recursos puntuales): solo tienen opacidad global.
+        capa.setOpacity(borde);
+      }
+    } catch (e) { /* una figura problemática no debe cortar el resto */ }
+  };
+
+  grupos.forEach(g => { if (g && typeof g.eachLayer === 'function') g.eachLayer(aplicar); });
+}
+
+/** Cambia la opacidad de un escenario y la aplica de inmediato. */
+function setOpacidadAlerta_(clave, pct) {
+  const valor = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
+  if (!state.opacidadAlerta) state.opacidadAlerta = { verde: 22, amarilla: 22, roja: 22 };
+  state.opacidadAlerta[clave] = valor;
+  aplicarOpacidadAlerta_(clave);
+  const et = document.getElementById('opac-val-' + clave);
+  if (et) et.textContent = valor + '%';
+}
+
 function toggleEtiquetasAlerta_(clave) {
   if (!state.mostrarEtiquetasAlerta) state.mostrarEtiquetasAlerta = { verde: false, amarilla: false, roja: false };
   state.mostrarEtiquetasAlerta[clave] = !state.mostrarEtiquetasAlerta[clave];
@@ -7994,25 +9646,203 @@ function mostrarSimbologiaEscenario_(escenario) {
   const panel = document.getElementById('simbologia-flotante');
   const body  = document.getElementById('sf-body');
   if (!panel || !body) return;
-  const esAm = escenario === 'Amarilla';
-  const color = esAm ? '#F59E0B' : '#EF4444';
-  const ico   = esAm ? '🟡' : '🔴';
-  body.innerHTML =
-    '<div style="padding:6px 2px;">' +
-    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
-    '<span style="width:22px;height:22px;border-radius:50%;background:' + color + ';display:flex;align-items:center;justify-content:center;font-size:12px;">' + ico + '</span>' +
-    '<span style="font-weight:800;font-size:11px;color:var(--text-primary);">Alerta ' + escenario + '</span></div>' +
-    '<div class="sf-row" style="display:flex;align-items:center;gap:6px;padding:3px 0;">' +
-    '<span style="width:28px;height:10px;display:inline-block;border-radius:3px;background:' + color + ';opacity:.7;border:1.5px solid ' + color + ';"></span>' +
-    '<span>Zona afectada</span></div>' +
-    '<div class="sf-row" style="display:flex;align-items:center;gap:6px;padding:3px 0;">' +
-    '<span style="width:14px;height:14px;border-radius:50%;background:#2563EB;display:inline-block;border:2px solid #1D4ED8;"></span>' +
-    '<span>Recurso planificado</span></div>' +
-    '<div class="sf-row" style="display:flex;align-items:center;gap:6px;padding:3px 0;">' +
-    '<span style="width:14px;height:14px;border-radius:50%;background:#F97316;display:inline-block;border:2px solid #EA580C;"></span>' +
-    '<span>Sin cobertura</span></div>' +
-    '</div>';
+
+  const titulo = document.querySelector('#simbologia-flotante .sf-title');
+  if (titulo) titulo.textContent = 'Simbología';
+
+  renderSimbologiaInstituciones_();
   panel.style.display = '';
+}
+
+/* Contenido del panel flotante: el mismo copamiento por institución del
+ * panel de Capas, con idéntica lógica de encendido y apagado en los tres
+ * niveles de alerta. Se mantiene sincronizado con el otro control porque
+ * ambos leen y escriben state.institucionesAlertaOcultas.
+ */
+function renderSimbologiaInstituciones_() {
+  const body = document.getElementById('sf-body');
+  if (!body) return;
+
+  const instituciones = resumenInstitucionesAlerta_();
+
+  const tipos = [
+    { k: 'punto', icono: '📍', etiqueta: 'Puntos' },
+    { k: 'linea', icono: '📏', etiqueta: 'Líneas' },
+    { k: 'area',  icono: '📐', etiqueta: 'Polígonos' },
+  ];
+
+  // Barra de tipos de figura: visible siempre, aunque no haya instituciones.
+  let html =
+    '<div style="display:flex;gap:5px;padding:4px 2px 8px;border-bottom:1px solid var(--border);margin-bottom:6px;">' +
+    tipos.map(t => {
+      const activo = !tipoGeomOculto_(t.k);
+      return '<button data-sf-geom="' + t.k + '" title="Mostrar u ocultar ' + t.etiqueta.toLowerCase() + '" ' +
+        'style="flex:1;font-size:10px;padding:5px 3px;border-radius:6px;cursor:pointer;white-space:nowrap;' +
+        'border:1px solid ' + (activo ? '#2563EB' : 'var(--border)') + ';' +
+        'background:' + (activo ? 'rgba(37,99,235,0.10)' : 'transparent') + ';' +
+        'color:inherit;opacity:' + (activo ? '1' : '.45') + ';">' +
+        t.icono + ' ' + t.etiqueta + '</button>';
+    }).join('') +
+    '</div>';
+
+  if (instituciones.length === 0) {
+    html += '<div style="padding:8px 4px;font-size:11px;opacity:.7;">' +
+      'Sin entidades planificadas en las capas de alerta encendidas.</div>';
+    body.innerHTML = html;
+    enlazarBotonesGeomSimbologia_(body);
+    return;
+  }
+
+  const colorDe = (nombre) => {
+    const i = (state.instituciones || []).find(x => x.nombre === nombre);
+    return (i && i.color_hex) ? i.color_hex : '#64748B';
+  };
+
+  html +=
+    '<div style="display:flex;gap:6px;padding:0 2px 8px;">' +
+      '<button data-sf-inst-todas="1" style="flex:1;font-size:10px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:transparent;color:inherit;cursor:pointer;">Ver todas</button>' +
+      '<button data-sf-inst-ninguna="1" style="flex:1;font-size:10px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:transparent;color:inherit;cursor:pointer;">Ocultar todas</button>' +
+    '</div>';
+
+  html += instituciones.map(ins => {
+    const visible = !institucionAlertaOculta_(ins.id);
+    const conJerarquia = institucionConJerarquia_(ins.nombre);
+    const abierta = !state.colapsoJerarquiaInst[ins.id];
+
+    let fila = '<div class="sf-row" data-sf-inst="' + escapeHtml_(String(ins.id)) + '" ' +
+      'style="display:flex;align-items:center;gap:6px;padding:4px 2px;cursor:pointer;' +
+      (visible ? '' : 'opacity:.42;') + '">' +
+      (conJerarquia
+        ? '<span data-sf-caret="' + escapeHtml_(String(ins.id)) + '" style="width:11px;flex-shrink:0;font-size:9px;opacity:.6;' +
+          'transform:rotate(' + (abierta ? '0' : '-90') + 'deg);transition:transform .12s;">▼</span>'
+        : '<span style="width:11px;flex-shrink:0;"></span>') +
+      '<span style="width:13px;height:13px;border-radius:4px;flex-shrink:0;border:2px solid ' + colorDe(ins.nombre) + ';' +
+        'background:' + (visible ? colorDe(ins.nombre) : 'transparent') + ';"></span>' +
+      '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:600;">' +
+        escapeHtml_(aTitulo_(ins.nombre)) + '</span>' +
+      '<span title="Verde · Amarilla · Roja" style="font-size:10px;font-variant-numeric:tabular-nums;flex-shrink:0;">' +
+        '<span style="color:#16A34A;">' + ins.verde + '</span>' +
+        '<span style="opacity:.4;">·</span>' +
+        '<span style="color:#F59E0B;">' + ins.amarilla + '</span>' +
+        '<span style="opacity:.4;">·</span>' +
+        '<span style="color:#EF4444;">' + ins.roja + '</span>' +
+      '</span>' +
+    '</div>';
+
+    if (conJerarquia && abierta) fila += subarbolInstitucion_(ins);
+    return fila;
+  }).join('');
+
+  body.innerHTML = html;
+  enlazarBotonesGeomSimbologia_(body);
+
+  body.querySelectorAll('[data-sf-inst]').forEach(fila => {
+    fila.addEventListener('click', (ev) => {
+      // El clic en la flecha solo pliega o despliega, no apaga la capa.
+      if (ev.target && ev.target.dataset && ev.target.dataset.sfCaret) {
+        ev.stopPropagation();
+        const idc = ev.target.dataset.sfCaret;
+        state.colapsoJerarquiaInst[idc] = !state.colapsoJerarquiaInst[idc];
+        renderSimbologiaInstituciones_();
+        return;
+      }
+      const id = fila.dataset.sfInst;
+      setInstitucionAlertaOculta_(id, !institucionAlertaOculta_(id));
+      aplicarVisibilidadInstitucionesAlerta_();
+      renderSimbologiaInstituciones_();
+      renderTab(state.activeTab || 'capas');
+    });
+  });
+
+  body.querySelectorAll('[data-sf-pert]').forEach(el => {
+    el.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const pert = el.dataset.sfPert;
+      setPertenenciaAlertaOculta_(pert, !pertenenciaAlertaOculta_(pert));
+      aplicarVisibilidadInstitucionesAlerta_();
+      renderSimbologiaInstituciones_();
+    });
+  });
+
+  body.querySelectorAll('[data-sf-tipo]').forEach(el => {
+    el.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const tipo = el.dataset.sfTipo;
+      setTipoRecursoAlertaOculto_(tipo, !tipoRecursoAlertaOculto_(tipo));
+      aplicarVisibilidadInstitucionesAlerta_();
+      renderSimbologiaInstituciones_();
+    });
+  });
+
+  const btnTodas = body.querySelector('[data-sf-inst-todas]');
+  if (btnTodas) btnTodas.addEventListener('click', () => {
+    setTodasInstitucionesAlerta_(false);
+    renderSimbologiaInstituciones_();
+    renderTab(state.activeTab || 'capas');
+  });
+
+  const btnNinguna = body.querySelector('[data-sf-inst-ninguna]');
+  if (btnNinguna) btnNinguna.addEventListener('click', () => {
+    setTodasInstitucionesAlerta_(true);
+    renderSimbologiaInstituciones_();
+    renderTab(state.activeTab || 'capas');
+  });
+}
+
+/** Subárbol de una institución: pertenencia -> tipo de recurso. */
+function subarbolInstitucion_(ins) {
+  const arbol = desgloseInstitucionAlerta_(ins.id);
+  const pertenencias = Object.keys(arbol).sort((a, b) => {
+    const orden = ['Relacionamiento', 'Protección', 'Sin clasificar'];
+    return orden.indexOf(a) - orden.indexOf(b);
+  });
+  if (pertenencias.length === 0) return '';
+
+  const instApagada = institucionAlertaOculta_(ins.id);
+
+  return pertenencias.map(pert => {
+    const tipos = Object.keys(arbol[pert]).sort();
+    const total = tipos.reduce((n, t) => n + arbol[pert][t], 0);
+    const pertVisible = !instApagada && !pertenenciaAlertaOculta_(pert);
+
+    let bloque =
+      '<div data-sf-pert="' + escapeHtml_(pert) + '" ' +
+        'style="display:flex;align-items:center;gap:6px;padding:3px 2px 3px 22px;cursor:pointer;' +
+        (pertVisible ? '' : 'opacity:.4;') + '">' +
+        '<span style="width:9px;height:9px;border-radius:3px;flex-shrink:0;border:1.5px solid #64748B;' +
+          'background:' + (pertVisible ? '#64748B' : 'transparent') + ';"></span>' +
+        '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;">' +
+          escapeHtml_(PERTENENCIA_CORTA[pert] || pert) + '</span>' +
+        '<span style="font-size:10px;opacity:.6;flex-shrink:0;">' + total + '</span>' +
+      '</div>';
+
+    bloque += tipos.map(tipo => {
+      const tipoVisible = pertVisible && !tipoRecursoAlertaOculto_(tipo);
+      return '<div data-sf-tipo="' + escapeHtml_(tipo) + '" ' +
+        'style="display:flex;align-items:center;gap:6px;padding:2px 2px 2px 40px;cursor:pointer;' +
+        (tipoVisible ? '' : 'opacity:.4;') + '">' +
+        '<span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;border:1.5px solid #94A3B8;' +
+          'background:' + (tipoVisible ? '#94A3B8' : 'transparent') + ';"></span>' +
+        '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;">' +
+          escapeHtml_(aTitulo_(tipo)) + '</span>' +
+        '<span style="font-size:9.5px;opacity:.55;flex-shrink:0;">' + arbol[pert][tipo] + '</span>' +
+      '</div>';
+    }).join('');
+
+    return bloque;
+  }).join('');
+}
+
+/** Conecta los tres botones de tipo de figura del panel de simbología. */
+function enlazarBotonesGeomSimbologia_(body) {
+  body.querySelectorAll('[data-sf-geom]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const t = btn.dataset.sfGeom;
+      setTipoGeomOculto_(t, !tipoGeomOculto_(t));
+      aplicarVisibilidadInstitucionesAlerta_();
+      renderSimbologiaInstituciones_();
+    });
+  });
 }
 
 // ══ Toggle etiquetas de periodo crítico ═════════════════════════════════════
@@ -8158,6 +9988,8 @@ async function activarEscenarioDesdeBoton_(escenario) {
     capasActivas[clave].forEach(l => l.addTo(map));
     // Cargar datos si no están
     await cargarCapasAlertaGlobales_();
+    // Conservar el filtro por institución al cambiar de nivel de alerta.
+    reaplicarFiltrosAlerta_();
     // Actualizar simbología
     mostrarSimbologiaEscenario_(escenario);
     mostrarToast_('🗺️ Escenario ' + escenario + ' activo');
@@ -8316,7 +10148,8 @@ async function cargarCapasAlertaGlobales_() {
     if (!geojson || !geojson.type) return;
     const color = c.escenario === 'Verde' ? '#16A34A' : c.escenario === 'Amarilla' ? '#F59E0B' : '#EF4444';
     const ico   = c.escenario === 'Verde' ? '🟢' : c.escenario === 'Amarilla' ? '🟡' : '🔴';
-    const capa = L.geoJSON(geojson, { style: { color, weight: 3, fillColor: color, fillOpacity: 0.22 } });
+    const clavePrevia = c.escenario === 'Verde' ? 'verde' : c.escenario === 'Amarilla' ? 'amarilla' : 'roja';
+    const capa = L.geoJSON(geojson, { style: { color, weight: 3, fillColor: color, fillOpacity: opacidadRellenoAlerta_(clavePrevia), opacity: opacidadBordeAlerta_(clavePrevia) } });
     // Etiqueta: se activa con 🏷️ en el panel de capas
     const textoEtiqueta = ico + ' ' + c.comuna_nombre;
     capa._etiquetaTexto = textoEtiqueta;
@@ -8357,6 +10190,7 @@ async function cargarCapasAlertaGlobales_() {
   if (state.alertaLayersOn && state.alertaLayersOn.verde)   { capaAlertaVerdeLayer.addTo(map);    planificacionRecursosVerdeLayer.addTo(map); }
   if (state.alertaLayersOn && state.alertaLayersOn.amarilla) { capaAlertaAmarillaLayer.addTo(map); planificacionRecursosAmarillaLayer.addTo(map); }
   if (state.alertaLayersOn && state.alertaLayersOn.roja)     { capaAlertaRojaLayer.addTo(map);     planificacionRecursosRojaLayer.addTo(map); }
+  reaplicarFiltrosAlerta_();
 
   // Reglas 2 y 3a: encender rutas de las comunas con alerta activa, con glow por nivel.
   encenderRutasEnAlerta_(data || []);
@@ -8475,15 +10309,36 @@ async function loadPlanificacionRecursos_(comunaId) {
       (puedeEditar ? '<div class="popup-actions">' +
         '<button class="popup-btn" data-action="editar-planificacion" data-id="' + r.id + '">Editar</button>' +
         ((r.tipo_geometria === 'linea' || r.tipo_geometria === 'area') ? '<button class="popup-btn" data-action="editar-forma-plan" data-id="' + r.id + '">✏️ Editar forma</button>' : '') +
+        (r.tipo_geometria === 'linea' ? '<button class="popup-btn" data-action="unir-linea" data-id="' + r.id + '" data-inst="' + r.institucion_id + '" style="color:#0E7490;">🔗 Unir</button>' : '') +
+        ((r.tipo_geometria === 'linea' && String(r.geom_geojson || '').indexOf('MultiLineString') !== -1)
+          ? '<button class="popup-btn" data-action="separar-ruta" data-id="' + r.id + '" style="color:#B45309;">✂️ Separar</button>'
+          : '') +
+        ((state.perfil.perfil === 'Administrador' && escenario !== 'Roja')
+          ? '<button class="popup-btn" data-action="propagar-entidad" data-id="' + r.id + '" data-esc="' + escenario + '" style="color:#7C3AED;">⏫ Propagar</button>'
+          : '') +
         '<button class="popup-btn" data-action="eliminar-planificacion" data-id="' + r.id + '" style="color:#DC2626;">Eliminar</button></div>' : '');
 
     if (r.tipo_geometria === 'linea' || r.tipo_geometria === 'area') {
       let geojson;
       try { geojson = JSON.parse(r.geom_geojson); } catch (e) { return; }
-      const latlngs = (geojson.coordinates || []).map(c => r.tipo_geometria === 'area' ? c.map(p => [p[1], p[0]]) : [c[1], c[0]]);
+      // Se admiten geometrías simples y múltiples. Una ruta unida por un
+      // vértice intermedio se guarda como MultiLineString: varios tramos que
+      // se tocan en el empalme, sin repetir ningún segmento.
+      const aLatLng = p => [p[1], p[0]];
+      const tipoGeo = geojson.type || '';
+      let latlngs;
+      if (tipoGeo === 'MultiLineString') {
+        latlngs = (geojson.coordinates || []).map(parte => parte.map(aLatLng));
+      } else if (tipoGeo === 'MultiPolygon') {
+        latlngs = (geojson.coordinates || []).map(poly => (poly[0] || []).map(aLatLng));
+      } else if (r.tipo_geometria === 'area') {
+        latlngs = (geojson.coordinates || []).map(anillo => anillo.map(aLatLng));
+      } else {
+        latlngs = (geojson.coordinates || []).map(aLatLng);
+      }
       const figura = r.tipo_geometria === 'area'
         ? L.polygon(latlngs, { color: colorInstitucion, weight: 3, dashArray: '6,5', fillColor: colorInstitucion, fillOpacity: 0.18, className: puedeEditar ? 'plan-editable' : '' })
-        : L.polyline(latlngs, { color: colorInstitucion, weight: 4, dashArray: '6,5', className: puedeEditar ? 'plan-editable' : '' });
+        : L.polyline(latlngs, { color: colorInstitucion, weight: 4, className: puedeEditar ? 'plan-editable' : '' });
       figura._etiquetaNombre = inst.nombre;
       figura.bindPopup(popupHtml);
       const claveEscFig = escenario === 'Verde' ? 'verde' : escenario === 'Amarilla' ? 'amarilla' : 'roja';
@@ -8492,6 +10347,7 @@ async function loadPlanificacionRecursos_(comunaId) {
       if (state.mostrarEtiquetasAlerta && state.mostrarEtiquetasAlerta[claveEscFig]) {
         figura.bindTooltip(inst.nombre, { permanent: true, direction: 'center', className: 'map-label' });
       }
+      habilitarHoverEtiqueta_(figura, { institucion: inst.nombre, tipo: r.tipo_recurso, descripcion: r.descripcion }, { direction: 'center', offset: [0, 0] });
       figura.on('popupopen', () => {
         if (!state.modoPlanificacion && !state.editorMode) { figura.closePopup(); mostrarToast_('✏️ Activa el modo planificación para modificar.'); return; }
         bindPopupActionsPlanificacion_();
@@ -8500,21 +10356,48 @@ async function loadPlanificacionRecursos_(comunaId) {
       const claseNeon = escenario === 'Verde' ? 'neon-hover-verde' : escenario === 'Amarilla' ? 'neon-hover-amarilla' : 'neon-hover-roja';
       figura.on('mouseover', () => { const el = figura.getElement && figura.getElement(); if (el) { el.classList.add(claseNeon); figura.setStyle({ weight: 5, fillOpacity: 0.32 }); } });
       figura.on('mouseout',  () => { const el = figura.getElement && figura.getElement(); if (el) { el.classList.remove(claseNeon); figura.setStyle({ weight: r.tipo_geometria === 'area' ? 3 : 4, fillOpacity: 0.18 }); } });
+      figura._institucionId = r.institucion_id;
+      figura._institucionNombre = inst.nombre;
+      figura._esLinea = (r.tipo_geometria === 'linea');
+      figura._escenario = escenario;   // Verde | Amarilla | Roja
+      figura._tipoGeometria = r.tipo_geometria;
+      figura._tipoRecurso = r.tipo_recurso || 'Sin tipo';
+      figura._pertenencia = pertenenciaDeRecurso_(r);
       layerDestino.addLayer(figura);
       window.planRecursosMarkersById[r.id] = figura;
 
-      // Marcador con el LOGO de la institución en el centro de la figura
+      // Marcador con el LOGO de la institución
+      //   · Líneas: se ancla en el VÉRTICE CENTRAL del trazado. El centroide
+      //     puede caer fuera del recorrido cuando la línea es curva o tiene
+      //     cruces, y el logo quedaba flotando lejos de la ruta.
+      //   · Áreas: se mantiene el centro del bounding box, que sí queda dentro.
       const logoFig = logoEfectivoInstitucion_(inst);
       if (logoFig) {
         try {
-          // Usar el centro del bounding box de la figura (robusto para línea y área)
-          const centro = figura.getBounds().getCenter();
+          let centro;
+          if (r.tipo_geometria === 'linea') {
+            const puntos = figura.getLatLngs();
+            // getLatLngs puede devolver un arreglo anidado en multilíneas.
+            const planos = Array.isArray(puntos[0]) ? puntos[0] : puntos;
+            centro = (planos && planos.length > 0)
+              ? planos[Math.floor(planos.length / 2)]
+              : figura.getBounds().getCenter();
+          } else {
+            centro = figura.getBounds().getCenter();
+          }
+          // Tamaño reducido respecto del original (34 px) para que no tape el trazado.
           const iconoLogo = L.divIcon({
-            className: '', iconSize: [34, 34], iconAnchor: [17, 17],
-            html: '<div style="width:34px;height:34px;border-radius:50%;background:#fff;border:2.5px solid ' + colorInstitucion + ';box-shadow:0 2px 5px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
-              '<img src="' + escapeHtml_(logoFig) + '" alt="" style="width:26px;height:26px;object-fit:contain;" onerror="this.style.display=\'none\'"></div>',
+            className: '', iconSize: [24, 24], iconAnchor: [12, 12],
+            html: '<div style="width:24px;height:24px;border-radius:50%;background:#F1F5F9;border:2px solid ' + colorInstitucion + ';box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
+              '<img src="' + escapeHtml_(logoFig) + '" alt="" style="width:17px;height:17px;object-fit:contain;transform:scale(' + ZOOM_LOGO_MARCADOR + ');" onerror="this.style.display=\'none\'"></div>',
           });
           const mLogo = L.marker(centro, { icon: iconoLogo, interactive: false, keyboard: false });
+          mLogo._institucionId = r.institucion_id;
+          mLogo._institucionNombre = inst.nombre;
+          mLogo._esLogoDeFigura = true;
+          mLogo._tipoGeometria = r.tipo_geometria;   // sigue a su figura
+          mLogo._tipoRecurso = r.tipo_recurso || 'Sin tipo';
+          mLogo._pertenencia = pertenenciaDeRecurso_(r);
           layerDestino.addLayer(mLogo);
           figura._logoMarker = mLogo;
         } catch(e) {}
@@ -8526,21 +10409,32 @@ async function loadPlanificacionRecursos_(comunaId) {
     if (isNaN(lat) || isNaN(lng)) return;
     const logoInst = logoEfectivoInstitucion_(inst);
     let icono;
+    // Los PUNTOS se dibujan como pin tipo globo (gota) y no como círculo.
+    // La punta inferior marca la coordenada exacta y la silueta los distingue
+    // de los logos redondos que acompañan a líneas y áreas.
+    // Contorno continuo con el color del escenario y logo institucional dentro.
     if (logoInst) {
-      // Punto CON logo: círculo blanco con logo + borde del color institucional + anillo dashed del escenario
       icono = L.divIcon({
-        className: '', iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -20],
-        html: '<div style="position:relative;width:40px;height:40px;">' +
-          '<div style="position:absolute;inset:0;border-radius:50%;border:2.5px dashed ' + colorEscenario + ';"></div>' +
-          '<div style="position:absolute;top:4px;left:4px;width:32px;height:32px;border-radius:50%;background:#fff;border:2.5px solid ' + colorInstitucion + ';box-shadow:0 2px 5px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
-          '<img src="' + escapeHtml_(logoInst) + '" alt="" style="width:26px;height:26px;object-fit:contain;" onerror="this.parentElement.innerHTML=\'<div style=&quot;width:12px;height:12px;border-radius:50%;background:' + colorInstitucion + '&quot;></div>\'"></div>' +
+        className: '', iconSize: [26, 34], iconAnchor: [13, 33], popupAnchor: [0, -30],
+        html: '<div style="position:relative;width:26px;height:34px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.45));">' +
+          '<svg width="26" height="34" viewBox="0 0 26 34" style="position:absolute;inset:0;z-index:1;">' +
+            '<path d="M13 33 C13 33 2.5 20.5 2.5 12.5 A10.5 10.5 0 1 1 23.5 12.5 C23.5 20.5 13 33 13 33 Z" fill="#fff" stroke="' + colorEscenario + '" stroke-width="2.2"/>' +
+          '</svg>' +
+          '<div style="position:absolute;top:5.5px;left:6px;width:14px;height:14px;background:#F1F5F9;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;z-index:2;">' +
+          '<img src="' + escapeHtml_(logoInst) + '" alt="" style="width:13px;height:13px;object-fit:contain;transform:scale(' + ZOOM_LOGO_MARCADOR + ');" onerror="this.parentElement.innerHTML=\'<div style=&quot;width:10px;height:10px;border-radius:50%;background:' + colorInstitucion + '&quot;></div>\'"></div>' +
           '</div>',
       });
     } else {
-      // Sin logo: círculo con color institucional
+      // Sin logo cargado en la institución: globo blanco con la inicial, para
+      // que el punto siga identificando a quién pertenece.
+      const inicial = escapeHtml_(String(inst.nombre || '?').trim().charAt(0).toUpperCase());
       icono = L.divIcon({
-        className: '', iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -13],
-        html: '<svg class="plan-marker-icon" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="10" fill="' + colorInstitucion + '" fill-opacity="0.5" stroke="' + colorEscenario + '" stroke-width="2.5" stroke-dasharray="4,3"/><circle cx="13" cy="13" r="3.5" fill="' + colorInstitucion + '"/></svg>',
+        className: '', iconSize: [26, 34], iconAnchor: [13, 33], popupAnchor: [0, -30],
+        html: '<svg class="plan-marker-icon" width="26" height="34" viewBox="0 0 26 34" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,0.4));">' +
+          '<path d="M13 33 C13 33 2.5 20.5 2.5 12.5 A10.5 10.5 0 1 1 23.5 12.5 C23.5 20.5 13 33 13 33 Z" fill="#fff" stroke="' + colorEscenario + '" stroke-width="2.2"/>' +
+          '<circle cx="13" cy="12.5" r="7.5" fill="' + colorInstitucion + '"/>' +
+          '<text x="13" y="16" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#fff">' + inicial + '</text>' +
+          '</svg>',
       });
     }
     const m = L.marker([lat, lng], { icon: icono, draggable: puedeEditar && !!(state.modoPlanificacion || state.editorMode) });
@@ -8585,14 +10479,25 @@ async function loadPlanificacionRecursos_(comunaId) {
     const arrEtiq = claveEsc === 'verde' ? alertaVerdeFeatureLayers : claveEsc === 'amarilla' ? alertaAmarillaFeatureLayers : alertaRojaFeatureLayers;
     arrEtiq.push({ layer: m, texto: inst.nombre });
     if (state.mostrarEtiquetasAlerta && state.mostrarEtiquetasAlerta[claveEsc]) {
-      m.bindTooltip(inst.nombre, { permanent: true, direction: 'top', offset: [0, -14], className: 'map-label' });
+      m.bindTooltip(inst.nombre, { permanent: true, interactive: true, direction: 'top', offset: [0, -14], className: 'map-label' });
     }
+    habilitarHoverEtiqueta_(m, { institucion: inst.nombre, tipo: r.tipo_recurso, descripcion: r.descripcion }, { direction: 'top', offset: [0, -22] });
+    activarNeonHover_(m, null, escenario === 'Verde' ? 'neon-hover-verde' : escenario === 'Amarilla' ? 'neon-hover-amarilla' : 'neon-hover-roja');
+    m._institucionId = r.institucion_id;
+    m._institucionNombre = inst.nombre;
+    m._tipoGeometria = 'punto';
+    m._tipoRecurso = r.tipo_recurso || 'Sin tipo';
+    m._pertenencia = pertenenciaDeRecurso_(r);
     layerDestino.addLayer(m);
   }); // fin forEach recursos
+
+  // Reaplicar los filtros visuales tras recargar las capas.
+  reaplicarFiltrosAlerta_();
 
   if (state.alertaLayersOn && state.alertaLayersOn.verde)   { capaAlertaVerdeLayer.addTo(map);    planificacionRecursosVerdeLayer.addTo(map); }
   if (state.alertaLayersOn && state.alertaLayersOn.amarilla) { capaAlertaAmarillaLayer.addTo(map); planificacionRecursosAmarillaLayer.addTo(map); }
   if (state.alertaLayersOn && state.alertaLayersOn.roja)     { capaAlertaRojaLayer.addTo(map);     planificacionRecursosRojaLayer.addTo(map); }
+  reaplicarFiltrosAlerta_();
   // En modo planificación, las figuras editables van al frente
   if (state.modoPlanificacion) priorizarCapasEditables_('planificacion');
   enviarLimiteAlFondo_();
@@ -8604,8 +10509,15 @@ function bindPopupActionsPlanificacion_() {
   document.querySelectorAll('.popup-btn[data-action="eliminar-planificacion"]').forEach(btn => {
     btn.onclick = async () => {
       if (!confirm('¿Eliminar este recurso planificado?')) return;
-      const { error } = await supabaseClient.from('planificacion_recursos').delete().eq('id', btn.dataset.id);
+      // .select() devuelve las filas realmente borradas: un DELETE bloqueado
+      // por RLS responde con éxito y cero filas, sin error.
+      const { data: borradas, error } = await supabaseClient
+        .from('planificacion_recursos').delete().eq('id', btn.dataset.id).select('id');
       if (error) { mostrarToast_('Error: ' + error.message); return; }
+      if (!borradas || borradas.length === 0) {
+        mostrarToast_('🔒 No se eliminó: no tienes permisos sobre ese registro o ya no existe.');
+        return;
+      }
       map.closePopup();
       mostrarToast_('Eliminado.');
       loadPlanificacionRecursos_(state.activeComunaId);
@@ -8617,6 +10529,389 @@ function bindPopupActionsPlanificacion_() {
   document.querySelectorAll('.popup-btn[data-action="editar-forma-plan"]').forEach(btn => {
     btn.onclick = () => iniciarEdicionForma_('planificacion', btn.dataset.id);
   });
+  document.querySelectorAll('.popup-btn[data-action="propagar-entidad"]').forEach(btn => {
+    btn.onclick = () => propagarEntidadIndividual_(btn.dataset.id, btn.dataset.esc);
+  });
+  document.querySelectorAll('.popup-btn[data-action="unir-linea"]').forEach(btn => {
+    btn.onclick = () => unirLineaPaso_(btn.dataset.id);
+  });
+  document.querySelectorAll('.popup-btn[data-action="separar-ruta"]').forEach(btn => {
+    btn.onclick = () => separarRutaPlanificacion_(btn.dataset.id);
+  });
+}
+
+/* ============ UNIR DOS LÍNEAS POR EL VÉRTICE ELEGIDO ============
+ * Pensado para caminos con cruces, donde la ruta de un recurso se dibujó por
+ * tramos y hay que consolidarla en un trazado continuo.
+ *
+ * A diferencia de una unión por extremos, aquí TÚ eliges en qué vértice se
+ * empalma cada línea. Al pulsar 🔗 Unir aparecen todos los vértices de las
+ * líneas visibles como puntos azules; haces clic en el vértice de la primera
+ * línea y luego en el de la segunda.
+ *
+ * Qué se conserva: cada línea se recorta en el vértice indicado y se queda el
+ * tramo MÁS LARGO de los dos que quedan. Si el vértice elegido es un extremo,
+ * no se recorta nada y se une la línea completa. La segunda línea se elimina.
+ */
+state.unionLinea = null;          // { id, institucionId, indice, vertices }
+const unionVerticesLayer = L.layerGroup();
+
+function salirModoUnionLinea_() {
+  state.unionLinea = null;
+  state.unionEscenario = null;
+  try { unionVerticesLayer.clearLayers(); map.removeLayer(unionVerticesLayer); } catch (e) {}
+  const caja = document.getElementById('regla-medicion');
+  if (caja && caja.dataset.modoUnion === '1') {
+    caja.style.display = 'none';
+    caja.innerHTML = '';
+    delete caja.dataset.modoUnion;
+  }
+}
+
+function avisoUnionLinea_(texto) {
+  const caja = document.getElementById('regla-medicion');
+  if (!caja) return;
+  caja.dataset.modoUnion = '1';
+  caja.innerHTML = '<div style="font-weight:600;margin-bottom:4px;">🔗 Unir líneas</div>' +
+                   '<div style="font-size:11.5px;line-height:1.5;">' + texto + '</div>';
+  caja.style.display = 'block';
+}
+
+/** Dibuja los vértices seleccionables.
+ *  excluirId: línea que NO se ofrece (la ya elegida).
+ *  soloId: si se indica, se muestran únicamente los vértices de esa línea.
+ *  Mostrar de a una evita la confusión de ver todos los vértices del mapa
+ *  a la vez sin saber cuál pertenece a qué ruta. */
+function mostrarVerticesUnion_(excluirId, soloId, escenario) {
+  unionVerticesLayer.clearLayers();
+  if (!map.hasLayer(unionVerticesLayer)) unionVerticesLayer.addTo(map);
+
+  const registro = window.planRecursosMarkersById || {};
+  Object.keys(registro).forEach(idRec => {
+    if (excluirId && String(idRec) === String(excluirId)) return;
+    if (soloId && String(idRec) !== String(soloId)) return;
+    const capa = registro[idRec];
+    if (!capa || !capa._esLinea) return;
+    // La unión se confina al escenario que se está editando: mezclar líneas
+    // de Verde, Amarilla y Roja rompería la coherencia del copamiento.
+    if (escenario && capa._escenario !== escenario) return;
+
+    const partes = partesDeLinea_(capa);
+    if (partes.length === 0) return;
+
+    partes.forEach((vs, idxParte) => {
+      vs.forEach((v, idx) => {
+        const esExtremo = (idx === 0 || idx === vs.length - 1);
+        const marcador = L.marker(v, {
+          icon: L.divIcon({
+            className: '', iconSize: [14, 14], iconAnchor: [7, 7],
+            html: '<div style="width:14px;height:14px;border-radius:50%;background:' +
+                  (esExtremo ? '#0EA5E9' : '#fff') + ';border:3px solid #0EA5E9;box-shadow:0 1px 4px rgba(0,0,0,0.45);cursor:pointer;"></div>',
+          }),
+          zIndexOffset: 1200,
+        });
+        marcador.on('click', (ev) => {
+          if (ev && ev.originalEvent) L.DomEvent.stopPropagation(ev.originalEvent);
+          elegirVerticeUnion_(idRec, capa, { parte: idxParte, indice: idx }, partes);
+        });
+        unionVerticesLayer.addLayer(marcador);
+      });
+    });
+  });
+}
+
+/** Devuelve los tramos de una línea como arreglo de arreglos de latlng.
+ *  Una línea simple tiene un solo tramo; una ruta unida tiene varios. */
+function partesDeLinea_(capa) {
+  if (!capa || typeof capa.getLatLngs !== 'function') return [];
+  const crudos = capa.getLatLngs();
+  if (!crudos || crudos.length === 0) return [];
+  const partes = Array.isArray(crudos[0]) ? crudos : [crudos];
+  return partes
+    .map(parte => (parte || []).filter(p => p && typeof p.lat === 'number' && typeof p.lng === 'number'))
+    .filter(parte => parte.length >= 2);
+}
+
+/** Extrae los vértices de una capa de línea como arreglo plano (compatibilidad). */
+function verticesDeLinea_(capa) {
+  const partes = partesDeLinea_(capa);
+  if (partes.length === 0) return null;
+  return partes.reduce((acc, p) => acc.concat(p), []);
+}
+
+/* Construye la ruta unida conservando TODOS los vértices y SIN repetir
+ * ningún tramo.
+ *
+ * La entidad resultante es una multilínea: los tramos de ambas rutas se
+ * guardan como partes separadas que se tocan exactamente en el vértice de
+ * empalme. El vértice elegido de la segunda línea se desplaza a la posición
+ * del vértice elegido de la primera, que es lo que significa unirlos.
+ *
+ * Así no hay ida y vuelta artificial y la longitud calculada es la real.
+ */
+function construirRutaUnida_(partesA, refA, partesB, refB) {
+  const empalme = partesA[refA.parte][refA.indice];
+
+  // Los tramos de A se conservan tal cual.
+  const partes = partesA.map(parte => parte.slice());
+
+  // Los de B también, salvo el vértice de empalme, que se mueve al de A.
+  partesB.forEach((parte, idxParte) => {
+    const copia = parte.slice();
+    if (idxParte === refB.parte) copia[refB.indice] = empalme;
+    partes.push(copia);
+  });
+
+  const totalVertices = partes.reduce((n, p) => n + p.length, 0);
+  return { partes, tramos: partes.length, totalVertices };
+}
+
+async function elegirVerticeUnion_(idRec, capa, refVertice, partes) {
+  // ---- Primer vértice ----
+  if (!state.unionLinea) {
+    state.unionLinea = {
+      id: idRec,
+      institucionId: capa._institucionId,
+      ref: refVertice,
+      partes,
+      escenario: capa._escenario || null,
+    };
+    try { capa.setStyle({ dashArray: '8,6', weight: 6 }); } catch (e) {}
+    const esc = capa._escenario || state.unionEscenario || null;
+    avisoUnionLinea_('<b>Paso 2 de 2</b>' + (esc ? ' · Alerta ' + esc : '') + '<br>' +
+                     'Punto de enganche marcado. Ahora haz clic en el punto azul de la <b>otra línea</b> que debe quedar unido a ese.<br><br>' +
+                     '<span style="opacity:.7;">Solo se muestran líneas de Alerta ' + (esc || 'la misma') + '.<br>Escape para cancelar.</span>');
+    // Solo las demás líneas del MISMO escenario.
+    mostrarVerticesUnion_(idRec, null, esc);
+    return;
+  }
+
+  const primera = state.unionLinea;
+  if (String(primera.id) === String(idRec)) {
+    mostrarToast_('⚠️ Elige un vértice de OTRA línea.');
+    return;
+  }
+  // Blindaje: nunca unir entre escenarios distintos.
+  if (primera.escenario && capa._escenario && primera.escenario !== capa._escenario) {
+    mostrarToast_('🔒 Solo se pueden unir líneas del mismo escenario (Alerta ' + primera.escenario + ').');
+    return;
+  }
+
+  if (String(primera.institucionId) !== String(capa._institucionId)) {
+    if (!confirm('Las dos líneas pertenecen a instituciones distintas.\n\nLa ruta resultante quedará asignada a la institución de la primera. ¿Continuar?')) return;
+  }
+
+  // ---- Armar la multilínea ----
+  const resultado = construirRutaUnida_(primera.partes, primera.ref, partes, refVertice);
+  const longitudTotalRuta = resultado.partes.reduce((n, p) => n + longitudTotal_(p, false), 0);
+  const separacion = distanciaHaversine_(
+    primera.partes[primera.ref.parte][primera.ref.indice],
+    partes[refVertice.parte][refVertice.indice]
+  );
+
+  const aviso =
+    'Unir las dos líneas en el vértice elegido.\n\n' +
+    'No se descarta ningún vértice y ningún tramo se recorre dos veces:\n' +
+    'la ruta queda como una geometría de varios tramos que se tocan en el\n' +
+    'punto de empalme.\n\n' +
+    'Tramos de la ruta final: ' + resultado.tramos + '\n' +
+    'Vértices: ' + resultado.totalVertices + '\n' +
+    'Longitud real: ' + formatearDistancia_(longitudTotalRuta) + '\n' +
+    'Separación entre los vértices elegidos: ' + formatearDistancia_(separacion) + '\n\n' +
+    'La segunda línea se eliminará y su trazado pasa a formar parte de la primera. ¿Continuar?';
+  if (!confirm(aviso)) return;
+
+  const partesGeo = resultado.partes.map(parte => parte.map(ll => [ll.lng, ll.lat]));
+  // Una sola llamada: el servidor actualiza la de destino y elimina la
+  // absorbida en la misma transacción. Antes se hacían dos llamadas y, si
+  // el DELETE quedaba bloqueado por RLS, PostgREST respondía con éxito sin
+  // borrar nada y la ruta aparecía duplicada en el mapa.
+  const { data: resUnion, error: errUnion } = await supabaseClient.rpc('unir_lineas_planificacion', {
+    p_id_destino: primera.id,
+    p_partes: partesGeo,
+    p_id_eliminar: idRec,
+  });
+
+  if (errUnion) {
+    mostrarToast_('No se pudo unir: ' + errUnion.message);
+    console.error('unir_lineas_planificacion:', errUnion);
+    return;
+  }
+
+  const fila = (resUnion && resUnion[0]) ? resUnion[0] : null;
+  if (!fila || fila.ok === false) {
+    mostrarToast_('No se pudo unir: ' + ((fila && fila.mensaje) || 'respuesta vacía del servidor.'));
+    return;
+  }
+
+  salirModoUnionLinea_();
+  map.closePopup();
+  mostrarToast_('🔗 Rutas unidas: ' + resultado.tramos + ' tramo(s), ' + formatearDistancia_(longitudTotalRuta) + '.');
+  await loadPlanificacionRecursos_(state.activeComunaId);
+}
+
+/** Extrae los vértices de una capa de línea como arreglo plano. */
+function verticesDeLinea_(capa) {
+  if (!capa || typeof capa.getLatLngs !== 'function') return null;
+  const crudos = capa.getLatLngs();
+  if (!crudos || crudos.length === 0) return null;
+  const planos = Array.isArray(crudos[0]) ? crudos[0] : crudos;
+  return planos.filter(p => p && typeof p.lat === 'number' && typeof p.lng === 'number');
+}
+
+/* ============ SEPARAR UNA RUTA UNIDA EN SUS LÍNEAS ============
+ * Operación inversa de la unión por vértice. Cada tramo vuelve a ser una
+ * entidad independiente, heredando institución, tipo, descripción y plan.
+ *
+ * Es el camino para corregir la forma de una ruta ya unida: separar,
+ * editar el tramo que corresponda con ✏️ Editar forma, y volver a unir.
+ */
+async function separarRutaPlanificacion_(id) {
+  if (!state.modoPlanificacion && !state.editorMode) {
+    mostrarToast_('✏️ Activa el modo edición para separar rutas.');
+    return;
+  }
+  if (!id) return;
+
+  const capa = window.planRecursosMarkersById && window.planRecursosMarkersById[id];
+  const partes = partesDeLinea_(capa);
+  const nTramos = partes.length || 0;
+
+  const aviso =
+    'Separar esta ruta en sus líneas individuales.\n\n' +
+    (nTramos > 1 ? 'Tramos detectados: ' + nTramos + '\n' : '') +
+    'El primer tramo se queda en esta entidad y cada tramo adicional pasa a\n' +
+    'ser una entidad nueva, con la misma institución, tipo de recurso y\n' +
+    'descripción.\n\n' +
+    'Después podrás editar la forma de cada una por separado y volver a\n' +
+    'unirlas si quieres. ¿Continuar?';
+  if (!confirm(aviso)) return;
+
+  mostrarToast_('✂️ Separando la ruta…');
+
+  const { data, error } = await supabaseClient.rpc('separar_ruta_planificacion', { p_id: id });
+  if (error) {
+    mostrarToast_('No se pudo separar: ' + error.message);
+    console.error('separar_ruta_planificacion:', error);
+    return;
+  }
+
+  const fila = (data && data[0]) ? data[0] : null;
+  if (!fila || fila.ok === false) {
+    mostrarToast_('ℹ️ ' + ((fila && fila.mensaje) || 'No hubo cambios.'));
+    return;
+  }
+
+  map.closePopup();
+  mostrarToast_('✂️ ' + fila.mensaje);
+  await loadPlanificacionRecursos_(state.activeComunaId);
+}
+
+/** Punto de entrada desde el popup: activa el modo de selección de vértices. */
+function unirLineaPaso_(id) {
+  if (!state.modoPlanificacion && !state.editorMode) {
+    mostrarToast_('✏️ Activa el modo edición para unir líneas.');
+    return;
+  }
+  const capa = window.planRecursosMarkersById && window.planRecursosMarkersById[id];
+  const partes = partesDeLinea_(capa);
+  if (partes.length === 0) {
+    mostrarToast_('⚠️ No se pudieron leer los vértices de esta línea.');
+    return;
+  }
+
+  const escenarioBase = capa._escenario || null;
+
+  salirModoUnionLinea_();
+  map.closePopup();
+  state.unionEscenario = escenarioBase;
+  // Paso 1: solo los vértices de ESTA línea, para no confundir con el resto.
+  mostrarVerticesUnion_(null, id, escenarioBase);
+  avisoUnionLinea_('<b>Paso 1 de 2</b>' +
+                   (escenarioBase ? ' · Alerta ' + escenarioBase : '') + '<br>' +
+                   'Haz clic en el punto azul de <b>esta</b> línea donde quieres que se enganche la otra.<br><br>' +
+                   '<span style="opacity:.7;">Solo se podrá unir con líneas del mismo escenario.<br>Escape para cancelar.</span>');
+  mostrarToast_('🔗 Paso 1: elige el punto de enganche en esta línea.');
+}
+
+/* ============ PROPAGACIÓN INDIVIDUAL DE UNA ENTIDAD ============
+ * Escala una figura concreta al o a los escenarios superiores, sin tocar
+ * el resto del plan. Desde Verde ofrece tres caminos; desde Amarilla solo
+ * queda Roja, así que se ejecuta directo.
+ */
+async function propagarEntidadIndividual_(id, escenarioActual) {
+  if (!state.perfil || state.perfil.perfil !== 'Administrador') {
+    mostrarToast_('🔒 Solo un Administrador puede propagar entidades.');
+    return;
+  }
+  if (!id) return;
+
+  let destino = null; // 'Amarilla' | 'Roja' | 'TODOS'
+
+  if (escenarioActual === 'Verde') {
+    const opcion = prompt(
+      'Propagar esta entidad desde Alerta Verde.\n\n' +
+      'Escribe el número de la opción:\n' +
+      '  1 = Solo a Amarilla\n' +
+      '  2 = Solo a Roja\n' +
+      '  3 = A Amarilla y Roja\n',
+      '3'
+    );
+    if (opcion === null) return;
+    const op = String(opcion).trim();
+    if (op === '1') destino = 'Amarilla';
+    else if (op === '2') destino = 'Roja';
+    else if (op === '3') destino = 'TODOS';
+    else { mostrarToast_('⚠️ Opción no válida.'); return; }
+  } else if (escenarioActual === 'Amarilla') {
+    if (!confirm('¿Propagar esta entidad a Alerta Roja?')) return;
+    destino = 'Roja';
+  } else {
+    mostrarToast_('ℹ️ La entidad ya está en el nivel más alto.');
+    return;
+  }
+
+  mostrarToast_('⏫ Propagando entidad…');
+
+  let respuesta;
+  if (destino === 'TODOS') {
+    respuesta = await supabaseClient.rpc('propagar_entidad_planificada', { p_recurso_id: id });
+  } else {
+    respuesta = await supabaseClient.rpc('copiar_entidad_planificada', { p_recurso_id: id, p_destino: destino });
+  }
+
+  if (respuesta.error) {
+    mostrarToast_('No se pudo propagar: ' + respuesta.error.message);
+    console.error('propagar entidad:', respuesta.error);
+    return;
+  }
+
+  const filas = respuesta.data || [];
+  const copiadas = filas.filter(f => f.copiada).length;
+  const mensajes = filas.map(f => (f.paso ? f.paso + ': ' : '') + f.mensaje).join('  ·  ');
+
+  if (copiadas > 0) {
+    mostrarToast_('✅ ' + mensajes);
+  } else {
+    mostrarToast_('ℹ️ ' + (mensajes || 'No hubo cambios.'));
+  }
+
+  map.closePopup();
+
+  // Encender las capas destino para que el resultado se vea de inmediato.
+  try {
+    if (state.alertaLayersOn) {
+      if (destino === 'Amarilla' || destino === 'TODOS') state.alertaLayersOn.amarilla = true;
+      if (destino === 'Roja' || destino === 'TODOS') state.alertaLayersOn.roja = true;
+    }
+    await loadPlanificacionRecursos_(state.activeComunaId);
+    if (state.alertaLayersOn && state.alertaLayersOn.amarilla) planificacionRecursosAmarillaLayer.addTo(map);
+    if (state.alertaLayersOn && state.alertaLayersOn.roja) planificacionRecursosRojaLayer.addTo(map);
+    reaplicarFiltrosAlerta_();
+    renderTab(state.activeTab || 'capas');
+  } catch (e) {
+    console.error('No se pudo refrescar tras propagar la entidad:', e);
+  }
 }
 
 async function abrirEditarRecursoPlanificado_(id) {
@@ -8631,7 +10926,24 @@ async function abrirEditarRecursoPlanificado_(id) {
     fInst.appendChild(opt);
   });
   fInst.value = r.institucion_id;
-  document.getElementById('erp-tipo').value = r.tipo_recurso;
+
+  // Catálogo CMPC también al editar un recurso ya aplicado, con la misma
+  // regla de perfil. Se repuebla al abrir y al cambiar de institución.
+  const refrescarTiposErp = () => actualizarCatalogoTiposFormulario_(
+    'erp-institucion', 'erp-tipo', TIPOS_GENERICOS_EDICION);
+  fInst.onchange = refrescarTiposErp;
+  refrescarTiposErp();
+
+  // Si el tipo guardado no está en la lista (por ejemplo, un tipo que dejó de
+  // estar activo), se agrega para no perder el valor al editar otra cosa.
+  const fTipoErp = document.getElementById('erp-tipo');
+  if (r.tipo_recurso && !Array.prototype.some.call(fTipoErp.options, o => o.value === r.tipo_recurso)) {
+    const opt = document.createElement('option');
+    opt.value = r.tipo_recurso;
+    opt.textContent = r.tipo_recurso + ' (fuera del catálogo)';
+    fTipoErp.appendChild(opt);
+  }
+  fTipoErp.value = r.tipo_recurso;
   document.getElementById('erp-descripcion').value = r.descripcion || '';
   document.getElementById('editar-recurso-plan-error').classList.remove('show');
   map.closePopup();
@@ -8696,8 +11008,13 @@ async function abrirAdminRecursosPlan_() {
     tr.querySelector('[data-accion="editar"]').addEventListener('click', () => abrirEditarRecursoPlanificado_(r.id));
     tr.querySelector('[data-accion="eliminar"]').addEventListener('click', async () => {
       if (!confirm('¿Eliminar este recurso planificado?')) return;
-      const { error: errDel } = await supabaseClient.from('planificacion_recursos').delete().eq('id', r.id);
+      const { data: borradas, error: errDel } = await supabaseClient
+        .from('planificacion_recursos').delete().eq('id', r.id).select('id');
       if (errDel) { mostrarToast_('Error: ' + errDel.message); return; }
+      if (!borradas || borradas.length === 0) {
+        mostrarToast_('🔒 No se eliminó: no tienes permisos sobre ese registro o ya no existe.');
+        return;
+      }
       mostrarToast_('Eliminado.');
       loadPlanificacionRecursos_(state.activeComunaId);
       abrirAdminRecursosPlan_();
@@ -8804,7 +11121,14 @@ function abrirModalRecursoMaestro_(item) {
   });
   if (item) fInst.value = item.institucion_id;
   document.getElementById('rm-nombre').value = item ? (item.nombre_recurso || '') : '';
-  document.getElementById('rm-tipo').value = item ? item.tipo_recurso : 'Brigada';
+  // El tipo se llena desde el catálogo tipos_recurso. Si el catálogo aún no
+  // cargó, se conservan las opciones fijas del HTML como respaldo.
+  const fTipo = document.getElementById('rm-tipo');
+  const tipoActual = item
+    ? item.tipo_recurso
+    : ((state.tiposRecursoCatalogo && state.tiposRecursoCatalogo.length > 0) ? state.tiposRecursoCatalogo[0].nombre : fTipo.value);
+  poblarSelectTiposRecurso_(fTipo, tipoActual);
+  cargarTiposRecurso_().then(() => poblarSelectTiposRecurso_(fTipo, tipoActual)).catch(() => {});
   document.getElementById('rm-movil').value = item ? (item.tipo_movil || 'No Aplica') : 'No Aplica';
   document.getElementById('rm-pertenencia').value = item ? (item.pertenencia || 'Relacionamiento') : 'Relacionamiento';
   document.getElementById('rm-cantidad-personas').value = item ? (item.cantidad_personas || 0) : 0;
@@ -8884,6 +11208,7 @@ async function guardarRecursoMaestro_() {
   editingRecursoMaestroId = null;
   rmIconoBase64 = null; rmIconoUrlActual = null;
   await cargarIconosRecursos_();  // refrescar mapa de íconos por tipo
+  await cargarPertenenciaRecursos_();  // refrescar mapa de pertenencias
   cargarCatalogoMaestro_();
   // Refrescar las capas de recursos en el mapa para que tomen el nuevo ícono
   if (typeof loadRecursosDisponiblesAreaLayer_ === 'function') loadRecursosDisponiblesAreaLayer_();
@@ -10769,6 +13094,37 @@ function renderTabInterno_(tab) {
       c.appendChild(rowRoja);
       c.querySelector('#btn-etiq-roja').addEventListener('click', () => toggleEtiquetasAlerta_('roja'));
 
+      // ── Control de opacidad 0-100 % por capa de alerta ──
+      const filaOpac = document.createElement('div');
+      filaOpac.style.cssText = 'padding:8px 10px 10px;margin-top:2px;';
+      const claves = [
+        { k: 'verde',    etiqueta: 'Verde',    color: '#16A34A' },
+        { k: 'amarilla', etiqueta: 'Amarilla', color: '#F59E0B' },
+        { k: 'roja',     etiqueta: 'Roja',     color: '#EF4444' },
+      ];
+      filaOpac.innerHTML =
+        '<div style="font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;opacity:.6;margin-bottom:7px;">Opacidad de las capas</div>' +
+        claves.map(x =>
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+            '<span style="width:9px;height:9px;border-radius:50%;background:' + x.color + ';flex-shrink:0;"></span>' +
+            '<span style="font-size:11.5px;width:56px;flex-shrink:0;">' + x.etiqueta + '</span>' +
+            '<input type="range" min="0" max="100" step="1" value="' + (state.opacidadAlerta[x.k] != null ? state.opacidadAlerta[x.k] : 22) + '" ' +
+              'data-opac-alerta="' + x.k + '" style="flex:1;min-width:60px;accent-color:' + x.color + ';cursor:pointer;">' +
+            '<span id="opac-val-' + x.k + '" style="font-size:11px;width:34px;text-align:right;opacity:.75;flex-shrink:0;">' +
+              (state.opacidadAlerta[x.k] != null ? state.opacidadAlerta[x.k] : 22) + '%</span>' +
+          '</div>'
+        ).join('');
+      c.appendChild(filaOpac);
+
+      filaOpac.querySelectorAll('[data-opac-alerta]').forEach(sl => {
+        const clave = sl.dataset.opacAlerta;
+        sl.addEventListener('input', () => setOpacidadAlerta_(clave, sl.value));
+      });
+
+      // El copamiento por institución vive ahora en el panel flotante de
+      // Simbología, con el mismo estado compartido. Se quitó de aquí para
+      // no duplicar el mismo control en dos lugares.
+
       c.querySelectorAll('[data-alertalayer]').forEach(tg => {
         tg.addEventListener('click', () => {
           const clave = tg.dataset.alertalayer;
@@ -10776,7 +13132,7 @@ function renderTabInterno_(tab) {
           const layerRecursos = clave === 'verde' ? planificacionRecursosVerdeLayer : clave === 'amarilla' ? planificacionRecursosAmarillaLayer : planificacionRecursosRojaLayer;
           const visible = map.hasLayer(layerComuna);
           if (visible) { map.removeLayer(layerComuna); map.removeLayer(layerRecursos); state.alertaLayersOn[clave] = false; }
-          else { layerComuna.addTo(map); layerRecursos.addTo(map); state.alertaLayersOn[clave] = true; }
+          else { layerComuna.addTo(map); layerRecursos.addTo(map); state.alertaLayersOn[clave] = true; reaplicarFiltrosAlerta_(); }
           tg.classList.toggle('on', !visible);
         });
       });
@@ -11022,6 +13378,32 @@ function bindEvents() {
   document.addEventListener('click', () => {
     const p = document.getElementById('planificar-panel');
     if (p) p.classList.remove('show');
+    const z = document.getElementById('zonas-recursos-panel');
+    if (z) z.classList.remove('show');
+  });
+  // ---- Modo edición gráfica de recursos del área (solo Administrador) ----
+  const itemRecursosArea = document.getElementById('plan-recursos-area');
+  if (itemRecursosArea) itemRecursosArea.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('planificar-panel').classList.remove('show');
+    if (!state.perfil || state.perfil.perfil !== 'Administrador') {
+      mostrarToast_('🔒 Solo un Administrador puede editar los recursos del área.');
+      return;
+    }
+    const zonas = areasDisponibles_();
+    if (!zonas || zonas.length === 0) {
+      mostrarToast_('⚠️ No hay zonas de relacionamiento disponibles para editar.');
+      return;
+    }
+    if (zonas.length === 1) { iniciarModoRecursosArea_(zonas[0]); return; }
+    abrirSelectorZonaRecursos_(zonas);
+  });
+  // ---- Propagación escalonada del copamiento (solo Administrador) ----
+  const itemPropagar = document.getElementById('plan-propagar-copamiento');
+  if (itemPropagar) itemPropagar.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('planificar-panel').classList.remove('show');
+    propagarCopamientoComuna_();
   });
   document.getElementById('plan-periodo').addEventListener('click', () => {
     document.getElementById('planificar-panel').classList.remove('show');
@@ -11051,6 +13433,23 @@ function bindEvents() {
     setTimeout(() => iniciarPlanificacionRapida_('Roja'), 150);
   });
   const _betEv=document.getElementById('btn-editor-toggle'); if(_betEv) _betEv.addEventListener('click', toggleEditorMode);
+  // ---- Herramienta regla (medición libre con el cursor) ----
+  const btnRegla = document.getElementById('btn-regla');
+  if (btnRegla) btnRegla.addEventListener('click', (e) => { e.stopPropagation(); toggleRegla_(); });
+  const btnReglaArea = document.getElementById('btn-regla-cerrar-area');
+  if (btnReglaArea) btnReglaArea.addEventListener('click', (e) => { e.stopPropagation(); reglaCerrarArea_(); });
+  const btnReglaLimpiar = document.getElementById('btn-regla-limpiar');
+  if (btnReglaLimpiar) btnReglaLimpiar.addEventListener('click', (e) => { e.stopPropagation(); reglaLimpiar_(); });
+  const btnReglaSalir = document.getElementById('btn-regla-salir');
+  if (btnReglaSalir) btnReglaSalir.addEventListener('click', (e) => { e.stopPropagation(); salirRegla_(); });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape') return;
+    if (state.modoRegla) salirRegla_();
+    if (state.unionLinea || (unionVerticesLayer && map.hasLayer(unionVerticesLayer))) {
+      salirModoUnionLinea_();
+      mostrarToast_('Unión cancelada.');
+    }
+  });
   document.getElementById('btn-fav-comuna').addEventListener('click', toggleFavoritoComuna_);
   // Pestañas de vista Dashboard | Mapa | Administración
   document.querySelectorAll('.vista-tab').forEach(b => b.addEventListener('click', () => { mostrarVista_(b.dataset.vista); document.body.classList.remove('menu-movil-abierto'); }));
@@ -11108,6 +13507,32 @@ function bindEvents() {
   document.getElementById('btn-modo-punto').addEventListener('click', () => setModoDibujo_('punto'));
   document.getElementById('btn-modo-linea').addEventListener('click', () => setModoDibujo_('linea'));
   document.getElementById('btn-modo-area').addEventListener('click', () => setModoDibujo_('area'));
+  document.getElementById('btn-dibujo-libre').addEventListener('click', toggleDibujoLibre_);
+  // ---- Importación de rutas desde KML / KMZ ----
+  document.getElementById('btn-importar-kml').addEventListener('click', abrirImportacionKml_);
+  document.getElementById('input-kml').addEventListener('change', (ev) => {
+    const f = ev.target.files && ev.target.files[0];
+    if (f) procesarArchivoKml_(f);
+  });
+  document.getElementById('kml-modal-cancelar').addEventListener('click', () => {
+    document.getElementById('kml-modal-overlay').classList.remove('show');
+    state.kmlImportacion = null;
+  });
+  // Cerrar el formulario a media cola detiene la importación.
+  document.getElementById('btn-cancel-modal').addEventListener('click', () => {
+    if (state.kmlCola) {
+      const hechas = state.kmlCola.hechas, total = state.kmlCola.total;
+      state.kmlCola = null;
+      mostrarToast_('📥 Importación detenida: ' + hechas + ' de ' + total + ' rutas guardadas.');
+      if (state.activeComunaId) loadPlanificacionRecursos_(state.activeComunaId);
+    }
+  });
+  document.getElementById('kml-modal-guardar').addEventListener('click', confirmarImportacionKml_);
+  // Trazo a mano alzada: se captura el arrastre sobre el mapa.
+  map.on('mousedown', iniciarTrazoLibre_);
+  map.on('mousemove', continuarTrazoLibre_);
+  map.on('mouseup', terminarTrazoLibre_);
+  map.getContainer().addEventListener('mouseleave', terminarTrazoLibre_);
   document.getElementById('btn-finalizar-dibujo').addEventListener('click', finalizarDibujo_);
   document.getElementById('btn-cancelar-dibujo').addEventListener('click', cancelarDibujo_);
 
