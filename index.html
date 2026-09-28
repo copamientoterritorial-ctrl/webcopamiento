@@ -669,10 +669,21 @@ body{
 
 /* ---- modal cambio de contraseña (self-service) ---- */
 .modal-overlay{
-  position:absolute;inset:0;z-index:900;background:rgba(15,23,42,0.5);backdrop-filter:blur(3px);
+  position:absolute;inset:0;z-index:900;background:rgba(15,23,42,0.62);backdrop-filter:blur(5px);
   display:none;align-items:center;justify-content:center;
 }
 .modal-overlay.show{display:flex;}
+/* Caja base de los modales. No existía como regla propia: los modales
+   nuevos quedaban transparentes y se veía el mapa a través de ellos. */
+.modal{
+  width:100%;max-width:520px;max-height:88vh;overflow-y:auto;
+  background:var(--white);color:var(--text-primary);
+  border-radius:18px;border:1px solid var(--border);
+  box-shadow:0 30px 80px rgba(15,23,42,0.38);
+  padding:24px 26px 20px;
+}
+body.tema-oscuro .modal{ background:#0F172A;border-color:#1E293B; }
+.modal .modal-title{font-size:16px;font-weight:800;margin-bottom:14px;}
 .modal-card{
   width:420px;max-height:88vh;overflow-y:auto;background:var(--white);border-radius:18px;
   box-shadow:0 30px 80px rgba(0,0,0,0.35);padding:26px 26px 22px;
@@ -1079,7 +1090,13 @@ body.modo-dashboard #editar-forma-banner{display:none !important;}
   0%,100% { filter: drop-shadow(0 0 3px #06B6D4) drop-shadow(0 0 8px #06B6D4); }
   50%     { filter: drop-shadow(0 0 8px #22D3EE) drop-shadow(0 0 20px #06B6D4) drop-shadow(0 0 30px #06B6D4); }
 }
-.ruta-seleccionada-neon { animation: neon-ruta-sel 1s ease-in-out infinite; }
+.ruta-seleccionada-neon { animation: neon-ruta-sel 1s ease-in-out infinite; outline:none !important; }
+/* Refuerzo: sobre las rutas el navegador dibujaba un recuadro de foco al
+   pasar el cursor o hacer clic. Se elimina en todos sus estados. */
+.leaflet-container path.leaflet-interactive:hover,
+.leaflet-container path.leaflet-interactive:focus,
+.leaflet-container path.leaflet-interactive:focus-visible,
+.leaflet-container path.leaflet-interactive:active{ outline:none !important; }
 
 /* Hover neón en polígonos de planificación (alerta) y resaltado en periodo crítico */
 @keyframes neon-amarilla-hover {
@@ -1283,18 +1300,18 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
 
 /* ===== BOTONES FLOTANTES DE ESCENARIO (inferior del mapa) ===== */
 #escenario-switcher{
-  position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
-  z-index:500;display:none;align-items:center;gap:10px;
+  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+  z-index:500;display:none;align-items:center;gap:7px;
   background:rgba(15,23,42,0.72);backdrop-filter:blur(8px);
-  border-radius:40px;padding:8px 14px;
+  border-radius:30px;padding:5px 9px;
   box-shadow:0 4px 24px rgba(0,0,0,0.3);
   border:1px solid rgba(255,255,255,0.08);
 }
 #escenario-switcher.show{ display:flex; }
 .esc-btn{
-  display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:30px;
-  border:none;cursor:pointer;font-size:12.5px;font-weight:800;letter-spacing:.2px;
-  transition:all .18s ease;color:#fff;
+  display:flex;align-items:center;gap:7px;padding:5px 13px;border-radius:24px;
+  border:none;cursor:pointer;font-size:11.5px;font-weight:700;letter-spacing:.2px;
+  transition:all .18s ease;color:#fff;line-height:1.2;
 }
 .esc-btn:not(.active){ background:rgba(255,255,255,0.1); }
 .esc-btn:hover:not(.active){ background:rgba(255,255,255,0.18); }
@@ -1304,14 +1321,123 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
 .esc-btn.amarilla.active{ background:#D97706;box-shadow:0 0 16px rgba(217,119,6,0.5); }
 .esc-btn.roja{ }
 .esc-btn.roja.active{ background:#DC2626;box-shadow:0 0 16px rgba(220,38,38,0.5); }
+/* Un solo punto por escenario. Al estar activo emite un anillo tipo radar
+   que se expande y se desvanece, en lugar del parpadeo anterior. */
 .esc-btn .esc-dot{
-  width:9px;height:9px;border-radius:50%;flex-shrink:0;
+  position:relative;width:8px;height:8px;border-radius:50%;flex-shrink:0;
 }
 .esc-btn.verde  .esc-dot{ background:#4ADE80; }
 .esc-btn.amarilla .esc-dot{ background:#FCD34D; }
 .esc-btn.roja   .esc-dot{ background:#FCA5A5; }
-.esc-btn.active .esc-dot{ background:#fff;animation:dotPulse 1.5s infinite; }
-@keyframes dotPulse{ 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.5;transform:scale(1.4);} }
+.esc-btn.active .esc-dot{ background:#fff; }
+.esc-btn.active .esc-dot::before,
+.esc-btn.active .esc-dot::after{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  border:1.5px solid rgba(255,255,255,0.9);
+  animation:radarPing 1.8s cubic-bezier(0,0,0.2,1) infinite;
+}
+.esc-btn.active .esc-dot::after{ animation-delay:.9s; }
+/* Radar del resumen: hereda el color del escenario mediante currentColor,
+   así el mismo bloque sirve para verde, amarillo y rojo. */
+.res-radar{ position:relative;display:inline-block;width:8px;height:8px;border-radius:50%;
+  background:currentColor;flex-shrink:0; }
+.res-radar::before,
+.res-radar::after{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  border:1.5px solid currentColor;
+  animation:radarPing 1.8s cubic-bezier(0,0,0.2,1) infinite;
+}
+.res-radar::after{ animation-delay:.9s; }
+#btn-influencia.active{ background:rgba(56,189,248,0.28) !important; border-color:#38BDF8 !important; }
+/* Botones de la cabecera del informe: sobre fondo oscuro, no sirven los
+   estilos claros del resto de modales. */
+.informe-btn{
+  flex-shrink:0;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.20);
+  color:#fff;font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer;
+  padding:7px 12px;border-radius:8px;transition:background .15s ease;white-space:nowrap;
+}
+.informe-btn:hover{background:rgba(255,255,255,0.22);}
+.informe-btn-cerrar{padding:7px 10px;font-size:13px;line-height:1;}
+.informe-btn-cerrar:hover{background:rgba(239,68,68,0.55);border-color:rgba(239,68,68,0.8);}
+/* Modal de traspaso de rutas */
+/* Cada alerta y su opacidad forman un solo bloque visual. */
+.alerta-bloque{border-bottom:1px solid var(--border);padding-bottom:7px;margin-bottom:2px;}
+.alerta-bloque:last-of-type{border-bottom:none;}
+.alerta-opacidad{display:flex;align-items:center;gap:7px;padding:0 10px 0 38px;margin-top:-2px;}
+.ao-icono{font-size:10px;opacity:.45;flex-shrink:0;}
+.ao-valor{font-size:10px;opacity:.6;width:32px;text-align:right;flex-shrink:0;
+  font-variant-numeric:tabular-nums;}
+.alerta-opacidad input[type=range]{height:3px;}
+.rt-cabecera{display:flex;align-items:center;gap:13px;padding:18px 22px;
+  background:linear-gradient(135deg,#312E81 0%,#4338CA 55%,#6D28D9 130%);color:#fff;}
+.rt-icono{width:40px;height:40px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:19px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.2);}
+.rt-titulo{font-size:15.5px;font-weight:700;letter-spacing:-.2px;line-height:1.25;}
+.rt-subtitulo{font-size:11px;opacity:.72;margin-top:2px;}
+.rt-modal{background:var(--white);}
+body.tema-oscuro .rt-modal{background:#0F172A;}
+.rt-cuerpo{padding:18px 22px 4px;background:var(--white);}
+body.tema-oscuro .rt-cuerpo{background:#0F172A;}
+.rt-ruta{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:11px;
+  background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.18);margin-bottom:16px;}
+.rt-ruta-icono{font-size:19px;flex-shrink:0;}
+.rt-ruta-nombre{font-weight:700;font-size:13.5px;letter-spacing:-.1px;}
+.rt-ruta-meta{font-size:11px;opacity:.68;margin-top:2px;}
+.rt-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;opacity:.6;
+  font-weight:700;margin-bottom:7px;}
+.rt-presets{display:flex;gap:6px;margin-bottom:10px;}
+.rt-presets button{flex:1;font-family:inherit;font-size:10.5px;font-weight:600;padding:6px 4px;
+  border-radius:8px;border:1px solid var(--border);background:transparent;color:inherit;
+  cursor:pointer;transition:all .13s ease;}
+.rt-presets button:hover{background:rgba(99,102,241,0.09);border-color:#A5B4FC;}
+.rt-escenarios{display:flex;flex-direction:column;gap:6px;}
+.rt-esc{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;
+  border:1.5px solid var(--border);cursor:pointer;transition:all .14s ease;position:relative;}
+.rt-esc input{position:absolute;opacity:0;pointer-events:none;}
+.rt-esc-punto{width:11px;height:11px;border-radius:50%;flex-shrink:0;background:#CBD5E1;transition:background .14s;}
+.rt-esc-nombre{flex:1;font-size:12.5px;font-weight:600;}
+.rt-esc-check{opacity:0;font-size:13px;font-weight:800;transition:opacity .14s;}
+.rt-esc-conteo{font-size:10.5px;opacity:.6;font-variant-numeric:tabular-nums;margin-right:4px;}
+.rt-esc:hover{border-color:#CBD5E1;}
+.rt-esc-verde:has(input:checked){border-color:#16A34A;background:rgba(22,163,74,0.08);}
+.rt-esc-verde:has(input:checked) .rt-esc-punto{background:#16A34A;}
+.rt-esc-verde:has(input:checked) .rt-esc-check{opacity:1;color:#16A34A;}
+.rt-esc-amarilla:has(input:checked){border-color:#F59E0B;background:rgba(245,158,11,0.09);}
+.rt-esc-amarilla:has(input:checked) .rt-esc-punto{background:#F59E0B;}
+.rt-esc-amarilla:has(input:checked) .rt-esc-check{opacity:1;color:#B45309;}
+.rt-esc-roja:has(input:checked){border-color:#EF4444;background:rgba(239,68,68,0.08);}
+.rt-esc-roja:has(input:checked) .rt-esc-punto{background:#EF4444;}
+.rt-esc-roja:has(input:checked) .rt-esc-check{opacity:1;color:#DC2626;}
+.rt-aviso{display:flex;gap:8px;align-items:flex-start;font-size:11px;line-height:1.5;
+  opacity:.75;margin-top:14px;padding:10px 12px;border-radius:9px;background:rgba(127,127,127,0.07);}
+.rt-pie{display:flex;gap:9px;justify-content:flex-end;padding:14px 22px 18px;
+  background:var(--white);border-top:1px solid var(--border);}
+body.tema-oscuro .rt-pie{background:#0F172A;border-top-color:#1E293B;}
+/* Los dos botones del pie comparten alto, tipografía y radio: el de
+   cancelar quedaba más pequeño y desalineado. */
+.rt-pie .btn-primary,
+.rt-pie .btn-ghost{
+  font-family:inherit;font-size:13px;font-weight:700;
+  padding:11px 20px;border-radius:10px;cursor:pointer;line-height:1.2;
+}
+.rt-pie .btn-ghost{
+  flex:0 0 auto;min-width:110px;
+  border:1px solid var(--border);background:transparent;color:var(--text-secondary);
+}
+.rt-pie .btn-ghost:hover{background:rgba(127,127,127,0.08);color:var(--text-primary);}
+.rt-pie .btn-primary{flex:1;max-width:240px;}
+.informe-chip{
+  display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;
+  background:rgba(255,255,255,0.14);font-weight:600;font-size:10.5px;
+}
+#btn-kpi-incendios.active{ background:rgba(249,115,22,0.30) !important; border-color:#F97316 !important; }
+.res-punto{ display:inline-block;width:8px;height:8px;border-radius:50%;
+  background:currentColor;opacity:.45;flex-shrink:0; }
+@keyframes radarPing{
+  0%   { transform:scale(1);   opacity:.9; }
+  70%  { transform:scale(3.2); opacity:0; }
+  100% { transform:scale(3.2); opacity:0; }
+}
 
 
 /* ===== ETIQUETAS PERIODO — control por CSS ===== */
@@ -1325,11 +1451,28 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
     <!-- REGLA DE MEDICIÓN: se muestra sola al dibujar o editar líneas y áreas.
          Va en el costado derecho, en la misma columna que la herramienta 📐,
          porque al pie del mapa quedaba tapada por la barra de modo dibujo. -->
-    <div id="regla-medicion" style="display:none;position:absolute;right:12px;top:136px;z-index:800;background:rgba(15,23,42,0.94);color:#fff;padding:10px 13px;border-radius:10px;font-size:12.5px;line-height:1.7;box-shadow:0 4px 16px rgba(0,0,0,0.4);pointer-events:none;max-width:210px;backdrop-filter:blur(3px);"></div>
+    <div id="regla-medicion" style="display:none;position:absolute;right:12px;top:124px;z-index:800;background:rgba(15,23,42,0.94);color:#fff;padding:10px 13px;border-radius:10px;font-size:12.5px;line-height:1.7;box-shadow:0 4px 16px rgba(0,0,0,0.4);pointer-events:none;max-width:210px;backdrop-filter:blur(3px);"></div>
+
+    <!-- RESUMEN DINÁMICO DE RECURSOS POR ALERTA -->
+    <div id="resumen-alertas" style="display:none;position:absolute;right:16px;bottom:16px;z-index:460;background:rgba(15,23,42,0.92);color:#fff;border-radius:11px;box-shadow:0 4px 16px rgba(0,0,0,0.35);backdrop-filter:blur(4px);font-size:11px;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;">
+        <span style="font-weight:600;font-size:11px;">Nivel de copamiento</span>
+        <button id="btn-kpi-incendios" title="Copamiento sobre la zona de ocurrencia de incendios"
+          style="margin-left:auto;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);color:#fff;
+                 cursor:pointer;font-size:9.5px;padding:2px 7px;border-radius:5px;white-space:nowrap;">🔥 Incendios</button>
+        <button id="btn-influencia" title="Mostrar las áreas de influencia de 500 m y el % de comuna copada"
+          style="margin-left:4px;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);color:#fff;
+                 cursor:pointer;font-size:9.5px;padding:2px 7px;border-radius:5px;white-space:nowrap;">🎯 Influencia</button>
+        <button id="btn-resumen-alertas-toggle" title="Mostrar u ocultar el detalle"
+          style="margin-left:4px;background:transparent;border:none;color:#fff;cursor:pointer;font-size:10px;opacity:.7;padding:0 2px;">▾</button>
+      </div>
+      <div id="resumen-alertas-cuerpo" style="padding:0 10px 9px;"></div>
+      <div id="kpi-incendios-cuerpo" style="display:none;padding:0 10px 9px;border-top:1px solid rgba(255,255,255,0.12);"></div>
+    </div>
 
     <!-- HERRAMIENTA REGLA (medición libre con el cursor) -->
-    <button id="btn-regla" class="icon-btn" title="Regla: medir distancias y superficies" style="position:absolute;right:12px;top:96px;z-index:800;width:34px;height:34px;font-size:16px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.22);">📐</button>
-    <div id="regla-panel" style="display:none;position:absolute;right:12px;top:136px;z-index:800;background:rgba(15,23,42,0.94);color:#fff;padding:11px 13px;border-radius:10px;font-size:12.5px;line-height:1.6;box-shadow:0 4px 16px rgba(0,0,0,0.4);min-width:210px;backdrop-filter:blur(3px);">
+    <button id="btn-regla" class="icon-btn" title="Regla: medir distancias y superficies" style="position:absolute;right:12px;top:84px;z-index:800;width:34px;height:34px;font-size:16px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.22);">📐</button>
+    <div id="regla-panel" style="display:none;position:absolute;right:12px;top:124px;z-index:800;background:rgba(15,23,42,0.94);color:#fff;padding:11px 13px;border-radius:10px;font-size:12.5px;line-height:1.6;box-shadow:0 4px 16px rgba(0,0,0,0.4);min-width:210px;backdrop-filter:blur(3px);">
       <div style="font-weight:600;margin-bottom:5px;">📐 Regla</div>
       <div id="regla-panel-datos" style="opacity:.92;">Haz clic en el mapa para empezar a medir.</div>
       <div style="display:flex;gap:6px;margin-top:9px;">
@@ -1341,13 +1484,13 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
     <!-- BOTONES FLOTANTES: cambiar escenario de alerta -->
     <div id="escenario-switcher">
       <button class="esc-btn verde" id="esc-btn-verde" title="Escenario Alerta Verde">
-        <span class="esc-dot"></span>🟢 Alerta Verde
+        <span class="esc-dot"></span>Alerta Verde
       </button>
       <button class="esc-btn amarilla" id="esc-btn-amarilla" title="Escenario Alerta Amarilla">
-        <span class="esc-dot"></span>🟡 Alerta Amarilla
+        <span class="esc-dot"></span>Alerta Amarilla
       </button>
       <button class="esc-btn roja" id="esc-btn-roja" title="Escenario Alerta Roja">
-        <span class="esc-dot"></span>🔴 Alerta Roja
+        <span class="esc-dot"></span>Alerta Roja
       </button>
     </div>
   </div>
@@ -1609,6 +1752,10 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
             <span class="plan-icon" style="background:#E2E8F0;">📍</span>
             <div><div class="plan-label">Recursos del Área</div><div class="plan-sub">Agregar en el mapa y reubicar arrastrando</div></div>
           </button>
+          <button class="planificar-item" id="plan-exportar">
+            <span class="plan-icon" style="background:#DBEAFE;">📤</span>
+            <div><div class="plan-label">Exportar plan</div><div class="plan-sub">Descargar en GeoJSON o KML</div></div>
+          </button>
           <button class="planificar-item" id="plan-propagar-copamiento" style="display:none;">
             <span class="plan-icon" style="background:#EDE9FE;">⏫</span>
             <div><div class="plan-label">Propagar copamiento</div><div class="plan-sub">Verde → Amarilla → Roja, sin duplicar</div></div>
@@ -1660,23 +1807,11 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
 <button class="rail-btn" data-tab="copamiento" title="Copamiento">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
       </button>
-      <button class="rail-btn" data-tab="usuarios" id="rail-usuarios" title="Usuarios" style="display:none;">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      </button>
-      <button class="rail-btn" data-tab="instituciones" id="rail-instituciones" title="Instituciones" style="display:none;">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M9 21v-4h6v4"/></svg>
-      </button>
-      <button class="rail-btn" data-tab="resumen-general" id="rail-resumen-general" title="Resumen General" style="display:none;">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
-      </button>
-      <button class="rail-btn" data-tab="planificacion-previa" id="rail-planificacion-previa" title="Planificación Previa" style="display:none;">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      </button>
-      <button class="rail-btn" data-tab="recursos-area" id="rail-recursos-area" title="Recursos Disponibles del Área" style="display:none;">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8Z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-      </button>
-      <button class="rail-btn" data-tab="recursos-maestro" id="rail-recursos-maestro" title="Catálogo de Recursos" style="display:none;">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+      <!-- Los accesos a Usuarios, Instituciones, Resumen General,
+           Planificación Previa, Recursos del Área y Catálogo de Recursos
+           se retiraron de aquí: ya están en el panel de Administración. -->
+      <button class="rail-btn" data-tab="informe" id="rail-informe" title="Informe de copamiento">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
       </button>
     </div>
     <div class="sidebar-body">
@@ -1717,6 +1852,167 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
       </div>
     </div>
     <div class="sf-body" id="sf-body"></div>
+  </div>
+
+  <!-- MODAL EXPORTAR PLAN -->
+  <div class="modal-overlay" id="exportar-overlay">
+    <div class="modal" style="max-width:460px;padding:0;overflow:hidden;">
+      <div class="rt-cabecera" style="background:linear-gradient(135deg,#0C4A6E 0%,#0369A1 55%,#0EA5E9 145%);">
+        <div class="rt-icono">📤</div>
+        <div style="flex:1;min-width:0;">
+          <div class="rt-titulo">Exportar plan de alerta</div>
+          <div class="rt-subtitulo" id="exportar-comuna"></div>
+        </div>
+      </div>
+
+      <div class="rt-cuerpo">
+        <div class="rt-label">Escenario</div>
+        <div class="rt-escenarios" style="margin-bottom:14px;">
+          <label class="rt-esc rt-esc-verde">
+            <input type="radio" name="exp-esc" value="Verde">
+            <span class="rt-esc-punto"></span>
+            <span class="rt-esc-nombre">Alerta Verde</span>
+            <span class="rt-esc-conteo" id="exp-n-verde"></span>
+            <span class="rt-esc-check">✓</span>
+          </label>
+          <label class="rt-esc rt-esc-amarilla">
+            <input type="radio" name="exp-esc" value="Amarilla" checked>
+            <span class="rt-esc-punto"></span>
+            <span class="rt-esc-nombre">Alerta Amarilla</span>
+            <span class="rt-esc-conteo" id="exp-n-amarilla"></span>
+            <span class="rt-esc-check">✓</span>
+          </label>
+          <label class="rt-esc rt-esc-roja">
+            <input type="radio" name="exp-esc" value="Roja">
+            <span class="rt-esc-punto"></span>
+            <span class="rt-esc-nombre">Alerta Roja</span>
+            <span class="rt-esc-conteo" id="exp-n-roja"></span>
+            <span class="rt-esc-check">✓</span>
+          </label>
+        </div>
+
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-bottom:4px;">
+          <input type="checkbox" id="exp-solo-lineas">
+          Exportar solo las rutas (líneas), sin puntos ni áreas
+        </label>
+
+        <div class="rt-aviso">
+          <span>💡</span>
+          <span><b>GeoJSON</b> para sistemas GIS (QGIS, ArcGIS).
+          <b>KML</b> para Google Earth, con un color por institución.</span>
+        </div>
+
+        <div class="modal-error" id="exportar-error"></div>
+      </div>
+
+      <div class="rt-pie">
+        <button class="btn-ghost" id="exportar-cancelar">Cancelar</button>
+        <button class="btn-ghost" id="exportar-kml" style="border-color:#0EA5E9;color:#0369A1;">🌍 KML</button>
+        <button class="btn-primary" id="exportar-geojson">⬇️ GeoJSON</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL TRASPASO DE RUTA DE PATRULLAJE A LAS ALERTAS -->
+  <div class="modal-overlay" id="ruta-traspaso-overlay">
+    <div class="modal rt-modal" style="max-width:500px;padding:0;overflow:hidden;">
+
+      <div class="rt-cabecera">
+        <div class="rt-icono">⏫</div>
+        <div style="flex:1;min-width:0;">
+          <div class="rt-titulo">Sumar ruta al nivel de copamiento</div>
+          <div class="rt-subtitulo">La ruta se copia como línea de planificación</div>
+        </div>
+      </div>
+
+      <div class="rt-cuerpo">
+        <div class="rt-ruta">
+          <span class="rt-ruta-icono">🚓</span>
+          <div style="min-width:0;">
+            <div id="ruta-traspaso-nombre" class="rt-ruta-nombre"></div>
+            <div id="ruta-traspaso-meta" class="rt-ruta-meta"></div>
+          </div>
+        </div>
+
+        <div class="rt-label">¿A qué alertas se suma?</div>
+        <div class="rt-presets">
+          <button id="ruta-preset-1">Solo Amarilla</button>
+          <button id="ruta-preset-2">Amarilla y Roja</button>
+          <button id="ruta-preset-3">Las tres</button>
+        </div>
+
+        <div class="rt-escenarios">
+          <label class="rt-esc rt-esc-verde">
+            <input type="checkbox" id="ruta-esc-verde">
+            <span class="rt-esc-punto"></span>
+            <span class="rt-esc-nombre">Alerta Verde</span>
+            <span class="rt-esc-check">✓</span>
+          </label>
+          <label class="rt-esc rt-esc-amarilla">
+            <input type="checkbox" id="ruta-esc-amarilla" checked>
+            <span class="rt-esc-punto"></span>
+            <span class="rt-esc-nombre">Alerta Amarilla</span>
+            <span class="rt-esc-check">✓</span>
+          </label>
+          <label class="rt-esc rt-esc-roja">
+            <input type="checkbox" id="ruta-esc-roja" checked>
+            <span class="rt-esc-punto"></span>
+            <span class="rt-esc-nombre">Alerta Roja</span>
+            <span class="rt-esc-check">✓</span>
+          </label>
+        </div>
+
+        <div class="form-row" style="margin-top:14px;">
+          <div class="form-group">
+            <label>INSTITUCIÓN</label>
+            <select id="ruta-traspaso-institucion"></select>
+          </div>
+          <div class="form-group">
+            <label>TIPO DE RECURSO</label>
+            <select id="ruta-traspaso-tipo"></select>
+          </div>
+        </div>
+
+        <div class="rt-aviso">
+          <span>💡</span>
+          <span>Su área de influencia de 500 m pasa a contar en el copamiento.
+          La ruta original permanece intacta en su capa.</span>
+        </div>
+
+        <div class="modal-error" id="ruta-traspaso-error"></div>
+      </div>
+
+      <div class="rt-pie">
+        <button class="btn-ghost" id="ruta-traspaso-cancelar">Cancelar</button>
+        <button class="btn-primary" id="ruta-traspaso-guardar">Sumar al copamiento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL INFORME DE COPAMIENTO -->
+  <div class="modal-overlay" id="informe-modal-overlay">
+    <div class="modal" style="max-width:940px;width:94vw;max-height:90vh;display:flex;flex-direction:column;padding:0;">
+      <div style="display:flex;align-items:center;gap:14px;padding:16px 22px;flex-shrink:0;
+           background:linear-gradient(135deg,#0F172A 0%,#1E293B 55%,#1D4ED8 160%);color:#fff;">
+        <div style="width:38px;height:38px;border-radius:11px;flex-shrink:0;display:flex;
+             align-items:center;justify-content:center;font-size:19px;
+             background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);">📊</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:16px;font-weight:700;letter-spacing:-.2px;line-height:1.25;">
+            Informe de nivel de copamiento</div>
+          <div id="informe-modal-sub" style="font-size:11px;opacity:.72;margin-top:3px;
+               display:flex;align-items:center;gap:7px;flex-wrap:wrap;"></div>
+        </div>
+        <button id="btn-descargar-pdf" class="informe-btn" title="Descargar como PDF">📕 PDF</button>
+        <button id="btn-descargar-informe" class="informe-btn" title="Descargar como documento HTML">⬇️ HTML</button>
+        <button id="btn-descargar-csv" class="informe-btn" title="Descargar como planilla">📄 CSV</button>
+        <button id="btn-cerrar-informe" class="informe-btn informe-btn-cerrar" title="Cerrar">✕</button>
+      </div>
+      <div id="informe-contenido" style="overflow-y:auto;padding:18px 22px 26px;font-size:12px;color:#0F172A;
+           background:#F7FAFD;
+           background-image:radial-gradient(circle at 1px 1px, rgba(37,99,235,0.055) 1px, transparent 0);
+           background-size:18px 18px;"></div>
+    </div>
   </div>
 
   <!-- MODAL IMPORTAR RUTAS DESDE KML / KMZ -->
@@ -2651,6 +2947,7 @@ let state = {
   fundosCmpcInfo: { ok: false, count: 0 },
   areaRelacionamientoInfo: { ok: false, count: 0 },
   temporadasDetectadas: [],
+  focosPorTemporada: {},      // { '2025-2026': [[lng,lat], ...] }
   incendiosMatched: true,
 };
 
@@ -2677,8 +2974,24 @@ const BASEMAPS = [
 ];
 
 /* ============ MAPA ============ */
-const map = L.map('map', { zoomControl:false, attributionControl:true }).setView([VISTA_INICIAL_CHILE.lat, VISTA_INICIAL_CHILE.lng], VISTA_INICIAL_CHILE.zoom);
-L.control.zoom({ position:'bottomright' }).addTo(map);
+/* Zoom fino.
+ *   zoomSnap 0.25  -> el mapa puede quedar en niveles intermedios (12.25, 12.5)
+ *                     en vez de saltar de entero en entero.
+ *   zoomDelta 0.25 -> cada clic en + o − avanza un cuarto de nivel.
+ *   wheelPxPerZoomLevel 200 -> hay que girar bastante más la rueda para
+ *                     completar un nivel, así el acercamiento es gradual.
+ * Con esto el salto visual al acercar o alejar deja de ser brusco, que es
+ * lo que descolocaba en las reuniones al pasar de la comuna al detalle.
+ */
+const map = L.map('map', {
+  zoomControl: false,
+  attributionControl: true,
+  zoomSnap: 0.25,
+  zoomDelta: 0.25,
+  wheelPxPerZoomLevel: 200,
+  wheelDebounceTime: 45,
+}).setView([VISTA_INICIAL_CHILE.lat, VISTA_INICIAL_CHILE.lng], VISTA_INICIAL_CHILE.zoom);
+L.control.zoom({ position:'topright' }).addTo(map);   // zona A3, sobre la regla
 
 let currentBaseLayer = null;
 function setBasemap(basemapId) {
@@ -2721,6 +3034,11 @@ const recursosMarkersById = {};
 const planificacionRecursosVerdeLayer    = L.layerGroup();
 const planificacionRecursosAmarillaLayer = L.layerGroup();
 const planificacionRecursosRojaLayer     = L.layerGroup();
+/* Áreas de influencia: una capa por escenario. Se dibujan por debajo de
+   las figuras para que no tapen los recursos ni sus etiquetas. */
+const influenciaVerdeLayer    = L.layerGroup();
+const influenciaAmarillaLayer = L.layerGroup();
+const influenciaRojaLayer     = L.layerGroup();
 const periodoLayers = {}; // { [periodoId|'sin_periodo']: L.layerGroup }
 const periodoFeatureLayers = {}; // { [periodoId]: [{layer, nombre}] } — para toggle etiquetas
 
@@ -2949,15 +3267,11 @@ async function entrarAlSistema() {
   const itemProp = document.getElementById('plan-propagar-copamiento');
   if (itemProp) itemProp.style.display = state.perfil.perfil === 'Administrador' ? 'flex' : 'none';
   // btn-recursos-area-rapido eliminado del DOM
-  document.getElementById('rail-usuarios').style.display = state.perfil.perfil === 'Administrador' ? 'flex' : 'none';
   document.getElementById('tab-admin').style.display = state.perfil.perfil === 'Administrador' ? '' : 'none';
   document.getElementById('tab-patrullajes').style.display = state.perfil.perfil === 'Administrador' ? '' : 'none';
-  document.getElementById('rail-instituciones').style.display = state.perfil.perfil === 'Administrador' ? 'flex' : 'none';
-  // btn-patrulleros eliminado del DOM
-  document.getElementById('rail-resumen-general').style.display = state.perfil.perfil === 'Administrador' ? 'flex' : 'none';
-  document.getElementById('rail-planificacion-previa').style.display = ['Administrador','GRD','Jefe de Área Relacionamiento'].includes(state.perfil.perfil) ? 'flex' : 'none';
-  document.getElementById('rail-recursos-area').style.display = ['Administrador','Jefe de Área Relacionamiento'].includes(state.perfil.perfil) ? 'flex' : 'none';
-  document.getElementById('rail-recursos-maestro').style.display = state.perfil.perfil === 'Administrador' ? 'flex' : 'none';
+  // Los botones de Usuarios, Instituciones, Resumen General, Planificación
+  // Previa, Recursos del Área y Catálogo salieron de la barra lateral: se
+  // administran desde el panel de Administración.
 
   const fInst = document.getElementById('f-institucion');
   fInst.innerHTML = '';
@@ -5021,6 +5335,11 @@ function setActiveComuna(comunaId, esCargaInicial) {
       if (window.innerWidth > 600) { sb.classList.remove('collapsed'); const ct = document.getElementById('collapse-toggle'); if (ct) ct.classList.remove('panel-collapsed'); }
     }
   }
+  // Todo indicador calculado pertenece a UNA comuna: al cambiar hay que
+  // descartarlo. Sin esto, el copamiento y las amebas de la comuna anterior
+  // seguían mostrándose sobre la nueva.
+  limpiarIndicadoresComuna_();
+
   state.activeComunaId = comunaId;
   const cfg = state.comunas.find(c => c.id === comunaId);
   if (!cfg) { console.error('Comuna no encontrada en catálogo:', comunaId); return; }
@@ -5546,27 +5865,49 @@ state.tipoGeomOculto = state.tipoGeomOculto || { punto: false, linea: false, are
 state.pertenenciaAlertaOculta = state.pertenenciaAlertaOculta || {};
 state.tipoRecursoAlertaOculto = state.tipoRecursoAlertaOculto || {};
 state.colapsoJerarquiaInst = state.colapsoJerarquiaInst || {};
+// Los tipos arrancan plegados dentro de cada pertenencia: con 15 tipos la
+// lista ocupaba toda la altura del panel y obligaba a desplazarse.
+state.colapsoPertenencia = state.colapsoPertenencia || {};
 
 function pertenenciaAlertaOculta_(p) { return !!state.pertenenciaAlertaOculta[p]; }
 function setPertenenciaAlertaOculta_(p, o) { state.pertenenciaAlertaOculta[p] = o; }
 function tipoRecursoAlertaOculto_(t) { return !!state.tipoRecursoAlertaOculto[t]; }
 function setTipoRecursoAlertaOculto_(t, o) { state.tipoRecursoAlertaOculto[t] = o; }
 
-/** Desglose de una institución: pertenencia -> tipo -> cantidad. */
+/** Desglose de una institución: pertenencia -> tipo -> conteo por escenario.
+ *  Se cuenta por alerta y no en total: un número único mezclaba los tres
+ *  escenarios y hacía imposible saber de dónde venía. */
 function desgloseInstitucionAlerta_(idInstitucion) {
   const arbol = {};
-  capasAlertaPlanificacion_().forEach(grupo => {
+  const niveles = ['Verde', 'Amarilla', 'Roja'];
+
+  capasAlertaPlanificacion_().forEach((grupo, idx) => {
     if (!grupo || typeof grupo.eachLayer !== 'function') return;
+    const esc = niveles[idx];
     grupo.eachLayer(ly => {
       if (String(ly._institucionId) !== String(idInstitucion)) return;
       if (ly._esLogoDeFigura) return;   // acompaña a una figura ya contada
       const pert = ly._pertenencia || 'Sin clasificar';
       const tipo = ly._tipoRecurso || 'Sin tipo';
       if (!arbol[pert]) arbol[pert] = {};
-      arbol[pert][tipo] = (arbol[pert][tipo] || 0) + 1;
+      if (!arbol[pert][tipo]) arbol[pert][tipo] = { Verde: 0, Amarilla: 0, Roja: 0 };
+      arbol[pert][tipo][esc]++;
     });
   });
   return arbol;
+}
+
+/** Tres cifras por escenario, con el color de cada alerta. */
+function cifrasPorEscenario_(c, tamano) {
+  const t = tamano || 10;
+  return '<span title="Verde · Amarilla · Roja" style="font-size:' + t + 'px;' +
+    'font-variant-numeric:tabular-nums;flex-shrink:0;">' +
+    '<span style="color:#16A34A;">' + c.Verde + '</span>' +
+    '<span style="opacity:.35;">·</span>' +
+    '<span style="color:#F59E0B;">' + c.Amarilla + '</span>' +
+    '<span style="opacity:.35;">·</span>' +
+    '<span style="color:#EF4444;">' + c.Roja + '</span>' +
+  '</span>';
 }
 
 /** Etiqueta corta para la pertenencia dentro del árbol. */
@@ -5633,8 +5974,44 @@ function setInstitucionAlertaOculta_(id, oculto) {
   state.institucionesAlertaOcultas[id] = oculto;
 }
 
+/** Deja la figura vigilada: el filtro se aplica cada vez que entra al mapa.
+ *
+ * Aplicarlo solo al crearla no basta. Si el grupo todavía no está en el
+ * mapa, la figura no tiene elemento HTML y no hay nada que ocultar; al
+ * encender la capa después, Leaflet crea el elemento visible y el filtro
+ * llegaba tarde. De ahí el destello con todas las entidades.
+ *
+ * El evento 'add' se dispara justo cuando el elemento existe, así que ese
+ * es el momento correcto.
+ */
+function vigilarFiltroEntidad_(ly) {
+  if (!ly || ly._filtroVigilado) return;
+  ly._filtroVigilado = true;
+  aplicarFiltroAEntidad_(ly);
+  ly.on('add', () => aplicarFiltroAEntidad_(ly));
+}
+
+/** Aplica el filtro a UNA figura. */
+function aplicarFiltroAEntidad_(ly) {
+  try {
+    if (!ly || !ly._institucionId) return;
+    const oculto = institucionAlertaOculta_(ly._institucionId)
+      || tipoGeomOculto_(ly._tipoGeometria)
+      || pertenenciaAlertaOculta_(ly._pertenencia || 'Sin clasificar')
+      || tipoRecursoAlertaOculto_(ly._tipoRecurso || 'Sin tipo');
+    if (!oculto) return;
+    const el = ly.getElement && ly.getElement();
+    if (el) el.style.display = 'none';
+    const tt = ly.getTooltip && ly.getTooltip();
+    if (tt) { const tel = tt.getElement && tt.getElement(); if (tel) tel.style.display = 'none'; }
+  } catch (e) { /* no debe interrumpir la carga */ }
+}
+
 /** Aplica el filtro a las tres capas de alerta. */
 function aplicarVisibilidadInstitucionesAlerta_() {
+  // Todos los filtros del panel terminan pasando por aquí, así que es el
+  // único punto donde hace falta enganchar el recálculo.
+  if (typeof programarRecalculoCopamiento_ === 'function') programarRecalculoCopamiento_();
   capasAlertaPlanificacion_().forEach(grupo => {
     if (!grupo || typeof grupo.eachLayer !== 'function') return;
     grupo.eachLayer(ly => {
@@ -5683,6 +6060,973 @@ function setTodasInstitucionesAlerta_(ocultar) {
   aplicarVisibilidadInstitucionesAlerta_();
 }
 
+/* ============ RESUMEN DINÁMICO DE RECURSOS POR ALERTA ============
+ * Barras horizontales con el total de entidades planificadas en cada
+ * escenario y su desglose por tipo de figura. Se recalcula solo cada vez
+ * que cambian las capas, los filtros o la comuna activa.
+ *
+ * Se mantiene deliberadamente pequeño y traslúcido, arriba y al centro:
+ * ahí no estorba a los controles de zoom, ni al panel de Capas, ni a la
+ * barra de escenarios ni a la simbología.
+ */
+state.resumenAlertasColapsado = state.resumenAlertasColapsado || false;
+
+function contarRecursosPorAlerta_() {
+  const conteo = {
+    Verde:    { total: 0, visibles: 0, punto: 0, linea: 0, area: 0 },
+    Amarilla: { total: 0, visibles: 0, punto: 0, linea: 0, area: 0 },
+    Roja:     { total: 0, visibles: 0, punto: 0, linea: 0, area: 0 },
+  };
+  const grupos = [
+    ['Verde', planificacionRecursosVerdeLayer],
+    ['Amarilla', planificacionRecursosAmarillaLayer],
+    ['Roja', planificacionRecursosRojaLayer],
+  ];
+
+  grupos.forEach(([esc, grupo]) => {
+    if (!grupo || typeof grupo.eachLayer !== 'function') return;
+    grupo.eachLayer(ly => {
+      // Los marcadores de logo acompañan a una figura ya contada.
+      if (ly._esLogoDeFigura) return;
+      const g = ly._tipoGeometria || (ly.getLatLngs ? 'linea' : 'punto');
+      conteo[esc].total++;
+      if (conteo[esc][g] !== undefined) conteo[esc][g]++;
+
+      const oculto = institucionAlertaOculta_(ly._institucionId)
+        || tipoGeomOculto_(g)
+        || pertenenciaAlertaOculta_(ly._pertenencia || 'Sin clasificar')
+        || tipoRecursoAlertaOculto_(ly._tipoRecurso || 'Sin tipo');
+      if (!oculto) conteo[esc].visibles++;
+    });
+  });
+
+  return conteo;
+}
+
+/* Apila el resumen justo encima de la simbología y le da su mismo ancho,
+ * para que el bloque de la esquina C3 se lea como una sola pieza.
+ * La simbología cambia de alto según cuántas instituciones haya y de ancho
+ * con los botones S/M/L, así que la medida se toma en cada render. */
+function alinearResumenConSimbologia_() {
+  const resumen = document.getElementById('resumen-alertas');
+  const simb = document.getElementById('simbologia-flotante');
+  if (!resumen) return;
+
+  if (!simb || simb.style.display === 'none' || !simb.offsetParent) {
+    resumen.style.bottom = '16px';
+    resumen.style.width = '240px';
+    return;
+  }
+
+  const alto = simb.offsetHeight || 0;
+  const ancho = simb.offsetWidth || 240;
+  resumen.style.bottom = (16 + alto + 8) + 'px';
+  resumen.style.width = ancho + 'px';
+}
+
+/* ============ ÁREAS DE INFLUENCIA Y NIVEL DE COPAMIENTO ============
+ * Reglas de negocio (aplicadas en PostGIS, no aquí):
+ *   · Líneas -> franja de 500 m a cada lado.
+ *   · Puntos -> círculo de 500 m de radio.
+ *   · Áreas  -> sin zona de influencia, se usan tal cual.
+ *   · La capa resultante une todas las influencias disolviendo los solapes
+ *     y se recorta al límite comunal.
+ *
+ * El cálculo vive en la base porque el buffer debe ser geodésico y la
+ * unión con disolución es costosa. Aquí solo se dibuja el resultado.
+ */
+const BUFFER_INFLUENCIA_M = 500;
+state.influenciaVisible = state.influenciaVisible || false;
+state.copamiento = state.copamiento || {};        // { Verde: {...}, Amarilla: {...}, Roja: {...} }
+state.copamientoCargando = false;
+
+/* Ids de las entidades VISIBLES de cada escenario.
+ *
+ * Es lo que hace dinámico el copamiento: al apagar una institución, una
+ * pertenencia, un tipo de recurso o un tipo de figura, esas entidades
+ * salen del conjunto y el indicador baja. Al encender la Municipalidad,
+ * sus entidades entran y el porcentaje sube.
+ *
+ * Se aplica exactamente el mismo criterio de visibilidad que usa el mapa,
+ * para que lo que se mide sea lo que se ve.
+ */
+function idsVisiblesPorEscenario_() {
+  const res = { Verde: [], Amarilla: [], Roja: [] };
+  const grupos = [
+    ['Verde', planificacionRecursosVerdeLayer],
+    ['Amarilla', planificacionRecursosAmarillaLayer],
+    ['Roja', planificacionRecursosRojaLayer],
+  ];
+
+  grupos.forEach(([esc, grupo]) => {
+    if (!grupo || typeof grupo.eachLayer !== 'function') return;
+    grupo.eachLayer(ly => {
+      if (ly._esLogoDeFigura) return;          // acompaña a una figura ya contada
+      if (!ly._recursoId) return;
+      const oculto = institucionAlertaOculta_(ly._institucionId)
+        || tipoGeomOculto_(ly._tipoGeometria)
+        || pertenenciaAlertaOculta_(ly._pertenencia || 'Sin clasificar')
+        || tipoRecursoAlertaOculto_(ly._tipoRecurso || 'Sin tipo');
+      if (!oculto) res[esc].push(ly._recursoId);
+    });
+  });
+
+  return res;
+}
+
+/** Firma del conjunto visible, para no recalcular si nada cambió. */
+function firmaVisibles_(ids) {
+  return ['Verde', 'Amarilla', 'Roja'].map(e => e + ':' + ids[e].length).join('|')
+    + '#' + JSON.stringify(state.institucionesAlertaOcultas)
+    + JSON.stringify(state.tipoGeomOculto)
+    + JSON.stringify(state.pertenenciaAlertaOculta)
+    + JSON.stringify(state.tipoRecursoAlertaOculto);
+}
+
+/* Descarta todo lo calculado para la comuna anterior.
+ *
+ * Los indicadores —áreas de influencia, amebas de incendios, KPI e
+ * informe— son siempre relativos a una comuna. Al cambiar de comuna hay
+ * que borrarlos, o se muestran cifras de un territorio sobre otro.
+ *
+ * Las amebas siguen guardadas en la base por comuna, así que al volver se
+ * recuperan de inmediato: aquí solo se limpia lo que está en memoria.
+ */
+function limpiarIndicadoresComuna_() {
+  try {
+    // Áreas de influencia
+    ['Verde', 'Amarilla', 'Roja'].forEach(esc => {
+      const capa = capaInfluenciaDe_(esc);
+      if (capa) { capa.clearLayers(); if (map.hasLayer(capa)) map.removeLayer(capa); }
+    });
+    state.copamiento = {};
+
+    // Amebas de incendios
+    Object.keys(amebaLayers).forEach(id => {
+      const capa = amebaLayers[id];
+      if (capa) { capa.clearLayers(); if (map.hasLayer(capa)) map.removeLayer(capa); }
+      state.amebaVisible[id] = false;
+      state.amebaCargando[id] = false;
+    });
+    state.amebaDatos = {};
+    state.amebaKpi = {};
+
+    // Focos por temporada: pertenecen a la comuna anterior.
+    state.focosPorTemporada = {};
+
+    // Informe y firmas de recálculo
+    state.informe = null;
+    state.firmaCopamiento = null;
+    state.idsVisiblesCache = null;
+
+    const modalInforme = document.getElementById('informe-modal-overlay');
+    if (modalInforme) modalInforme.classList.remove('show');
+
+    if (typeof renderKpiIncendios_ === 'function') renderKpiIncendios_();
+    if (typeof renderResumenAlertas_ === 'function') renderResumenAlertas_();
+  } catch (e) {
+    console.error('limpiarIndicadoresComuna_:', e);
+  }
+}
+
+function capaInfluenciaDe_(escenario) {
+  return escenario === 'Verde' ? influenciaVerdeLayer
+       : escenario === 'Amarilla' ? influenciaAmarillaLayer
+       : influenciaRojaLayer;
+}
+
+/** Pide a la base la capa unida de un escenario y la dibuja. */
+async function cargarInfluenciaEscenario_(escenario) {
+  const capa = capaInfluenciaDe_(escenario);
+  capa.clearLayers();
+  if (!state.activeComunaId) return;
+  // Se anota la comuna al iniciar: si el usuario cambia de comuna mientras
+  // la consulta está en vuelo, el resultado se descarta.
+  const comunaSolicitada = String(state.activeComunaId);
+
+  // Solo las entidades visibles: el copamiento sigue a los filtros del panel.
+  const ids = (state.idsVisiblesCache || idsVisiblesPorEscenario_())[escenario] || [];
+  if (ids.length === 0) {
+    state.copamiento[escenario] = { area_km2: 0, pct: 0, entidades: 0 };
+    return;
+  }
+
+  const { data, error } = await supabaseClient.rpc('capa_influencia_ids_geojson', {
+    p_comuna_id: String(state.activeComunaId),
+    p_ids: ids,
+    p_buffer_m: BUFFER_INFLUENCIA_M,
+  });
+
+  if (error) {
+    console.error('capa_influencia_ids_geojson (' + escenario + '):', error.message);
+    return;
+  }
+
+  if (String(state.activeComunaId) !== comunaSolicitada) return;   // cambió de comuna
+
+  const fila = (data && data[0]) ? data[0] : null;
+  state.copamiento[escenario] = fila
+    ? { area_km2: Number(fila.area_km2) || 0, pct: fila.pct_comuna, entidades: Number(fila.entidades) || 0 }
+    : { area_km2: 0, pct: null, entidades: 0 };
+
+  if (!fila || !fila.geojson) return;
+
+  let geo;
+  try { geo = JSON.parse(fila.geojson); } catch (e) { return; }
+
+  const color = escenario === 'Verde' ? '#16A34A' : escenario === 'Amarilla' ? '#F59E0B' : '#EF4444';
+  L.geoJSON(geo, {
+    style: { color, weight: 1.5, opacity: 0.75, fillColor: color, fillOpacity: 0.16, dashArray: '5,4' },
+    interactive: false,     // no debe robar clics a las figuras ni al dibujo
+  }).addTo(capa);
+}
+
+/* Recálculo automático al cambiar los filtros.
+ *
+ * Cada clic en una institución, pertenencia, tipo o figura cambia el
+ * conjunto visible. Se espera medio segundo antes de recalcular para no
+ * lanzar una consulta por clic cuando se apagan varias seguidas, y se
+ * compara la firma del conjunto para no repetir el mismo cálculo.
+ */
+state.firmaCopamiento = null;
+let temporizadorCopamiento = null;
+
+function programarRecalculoCopamiento_() {
+  // Solo si hay algún indicador encendido: si no, no hay nada que actualizar.
+  if (!state.influenciaVisible && !state.kpiIncendiosVisible) return;
+
+  if (temporizadorCopamiento) clearTimeout(temporizadorCopamiento);
+  temporizadorCopamiento = setTimeout(async () => {
+    const ids = idsVisiblesPorEscenario_();
+    const firma = firmaVisibles_(ids);
+    if (firma === state.firmaCopamiento) return;   // nada cambió de verdad
+    state.firmaCopamiento = firma;
+
+    if (state.influenciaVisible) await refrescarInfluencia_();
+    if (state.kpiIncendiosVisible) await cargarKpiIncendios_();
+  }, 500);
+}
+
+/** Recarga las tres capas y actualiza el indicador. */
+async function refrescarInfluencia_() {
+  if (state.copamientoCargando) return;
+  state.copamientoCargando = true;
+  // Una sola foto del conjunto visible para los tres escenarios.
+  state.idsVisiblesCache = idsVisiblesPorEscenario_();
+  try {
+    await Promise.all(['Verde', 'Amarilla', 'Roja'].map(e => cargarInfluenciaEscenario_(e)));
+    aplicarVisibilidadInfluencia_();
+  } catch (e) {
+    console.error('refrescarInfluencia_:', e);
+  } finally {
+    state.copamientoCargando = false;
+    state.idsVisiblesCache = null;
+    renderResumenAlertas_();
+  }
+}
+
+/** Muestra u oculta las capas según el interruptor y las alertas activas. */
+function aplicarVisibilidadInfluencia_() {
+  [['Verde', 'verde'], ['Amarilla', 'amarilla'], ['Roja', 'roja']].forEach(([esc, clave]) => {
+    const capa = capaInfluenciaDe_(esc);
+    const debeVerse = state.influenciaVisible
+      && !!(state.alertaLayersOn && state.alertaLayersOn[clave]);
+    if (debeVerse) {
+      if (!map.hasLayer(capa)) capa.addTo(map);
+      capa.bringToBack();     // por debajo de las figuras y sus etiquetas
+    } else if (map.hasLayer(capa)) {
+      map.removeLayer(capa);
+    }
+  });
+}
+
+async function toggleInfluencia_() {
+  state.influenciaVisible = !state.influenciaVisible;
+  const btn = document.getElementById('btn-influencia');
+  if (btn) btn.classList.toggle('active', state.influenciaVisible);
+
+  if (state.influenciaVisible) {
+    mostrarToast_('🎯 Calculando áreas de influencia (500 m)…');
+    await refrescarInfluencia_();
+    const total = ['Verde', 'Amarilla', 'Roja']
+      .filter(e => state.alertaLayersOn && state.alertaLayersOn[e.toLowerCase()])
+      .map(e => state.copamiento[e])
+      .filter(Boolean);
+    if (total.length === 0) mostrarToast_('⚠️ Enciende alguna capa de alerta para ver su influencia.');
+  } else {
+    aplicarVisibilidadInfluencia_();
+  }
+  renderResumenAlertas_();
+}
+
+/* ============ AMEBAS DE INCENDIOS Y KPI SOBRE LA OCURRENCIA ============
+ * Una "ameba" es la unión de círculos alrededor de cada foco histórico:
+ * representa el territorio donde de verdad se producen incendios.
+ *
+ * Se calculan tres niveles según cuántas temporadas se consideren:
+ *   N1 -> la última temporada
+ *   N2 -> las tres últimas
+ *   N3 -> las cinco últimas
+ *
+ * El KPI resultante es más exigente que el porcentaje de comuna copada:
+ * se puede cubrir mucho territorio y aun así dejar fuera la zona donde
+ * históricamente se quema. Ese es el dato que importa.
+ *
+ * Los focos llegan por Edge Function, no por tabla, así que las
+ * coordenadas se envían desde aquí a PostGIS, que hace el buffer
+ * geodésico, la unión y el cruce con las áreas de influencia.
+ */
+const BUFFER_AMEBA_M = 500;    // radio alrededor de cada foco
+
+const NIVELES_AMEBA = [
+  { id: 'n1', temporadas: 1, etiqueta: 'Ameba 1 temporada',   color: '#F97316' },
+  { id: 'n2', temporadas: 3, etiqueta: 'Ameba 3 temporadas',  color: '#DC2626' },
+  { id: 'n3', temporadas: 5, etiqueta: 'Ameba 5 temporadas',  color: '#7F1D1D' },
+];
+
+const amebaLayers = { n1: L.layerGroup(), n2: L.layerGroup(), n3: L.layerGroup() };
+state.amebaVisible = state.amebaVisible || { n1: false, n2: false, n3: false };
+state.amebaDatos = state.amebaDatos || {};        // { n1: {area_km2, pct_comuna, focos} }
+state.amebaKpi = state.amebaKpi || {};            // { n1: [{escenario, pct_ameba, ...}] }
+state.amebaCargando = state.amebaCargando || {};
+
+/** Temporadas ordenadas de la más reciente a la más antigua. */
+function temporadasOrdenadas_() {
+  return (state.temporadasDetectadas || [])
+    .filter(t => t && t !== 'Sin clasificar')
+    .slice()
+    .sort()
+    .reverse();
+}
+
+/** Focos acumulados de las N temporadas más recientes. */
+function focosDeUltimasTemporadas_(n) {
+  const temporadas = temporadasOrdenadas_().slice(0, n);
+  const puntos = [];
+  temporadas.forEach(t => {
+    (state.focosPorTemporada[t] || []).forEach(p => puntos.push([p[0], p[1]]));
+  });
+  return { puntos, temporadas };
+}
+
+async function cargarAmeba_(nivel) {
+  const cfg = NIVELES_AMEBA.find(x => x.id === nivel);
+  if (!cfg || !state.activeComunaId) return;
+
+  const capa = amebaLayers[nivel];
+  capa.clearLayers();
+
+  const comunaSolicitada = String(state.activeComunaId);
+  const { puntos, temporadas } = focosDeUltimasTemporadas_(cfg.temporadas);
+
+  state.amebaCargando[nivel] = true;
+  try {
+    // Primera llamada SIN los focos: la ameba es histórica y suele estar ya
+    // guardada en la base. Solo si no existe o quedó obsoleta se vuelve a
+    // llamar enviando las coordenadas, que pueden ser miles.
+    const args = {
+      p_comuna_id: String(state.activeComunaId),
+      p_nivel: cfg.temporadas,
+      p_temporadas: temporadas,
+      p_buffer_m: BUFFER_AMEBA_M,
+    };
+
+    let { data, error } = await supabaseClient.rpc('obtener_ameba_incendios', args);
+    if (error) { console.error('obtener_ameba_incendios:', error.message); return; }
+
+    let fila = (data && data[0]) ? data[0] : null;
+
+    if (fila && fila.requiere_calculo) {
+      if (puntos.length === 0) {
+        state.amebaDatos[nivel] = { area_km2: 0, pct_comuna: null, focos: 0, temporadas: [] };
+        return;
+      }
+      mostrarToast_('🔥 Calculando por primera vez la zona de ocurrencia (' + puntos.length + ' focos)…');
+      const r2 = await supabaseClient.rpc('obtener_ameba_incendios',
+        Object.assign({}, args, { p_puntos: puntos }));
+      if (r2.error) { console.error('obtener_ameba_incendios (cálculo):', r2.error.message); return; }
+      fila = (r2.data && r2.data[0]) ? r2.data[0] : null;
+    }
+
+    if (!fila) return;
+    if (String(state.activeComunaId) !== comunaSolicitada) return;   // cambió de comuna
+
+    state.amebaDatos[nivel] = {
+      area_km2: Number(fila.area_km2) || 0,
+      pct_comuna: fila.pct_comuna,
+      focos: Number(fila.focos) || 0,
+      temporadas: fila.temporadas || temporadas,
+      desdeCache: !!fila.desde_cache,
+      calculadaEn: fila.calculada_en,
+    };
+
+    if (fila.geojson) {
+      let geo;
+      try { geo = JSON.parse(fila.geojson); } catch (e) { geo = null; }
+      if (geo) {
+        L.geoJSON(geo, {
+          style: { color: cfg.color, weight: 2, opacity: 0.9, fillColor: cfg.color, fillOpacity: 0.14, dashArray: '2,5' },
+          interactive: false,
+        }).addTo(capa);
+      }
+    }
+
+    // El KPI sí se recalcula siempre: la planificación cambia. Es liviano
+    // porque cruza contra la ameba ya guardada.
+    const kpi = await supabaseClient.rpc('kpi_copamiento_ameba', {
+      p_comuna_id: String(state.activeComunaId),
+      p_nivel: cfg.temporadas,
+      p_buffer_influencia_m: BUFFER_INFLUENCIA_M,
+    });
+    if (!kpi.error) state.amebaKpi[nivel] = kpi.data || [];
+    else console.error('kpi_copamiento_ameba:', kpi.error.message);
+  } finally {
+    state.amebaCargando[nivel] = false;
+  }
+}
+
+async function toggleAmeba_(nivel) {
+  // Evita dobles clics mientras se está calculando.
+  if (state.amebaCargando[nivel]) {
+    mostrarToast_('⏳ La zona de ocurrencia se está calculando…');
+    return;
+  }
+
+  const encender = !state.amebaVisible[nivel];
+  state.amebaVisible[nivel] = encender;
+
+  // Respuesta visual inmediata: la casilla no espera al cálculo.
+  pintarEstadoAmeba_(nivel, encender, encender);
+
+  if (!encender) {
+    if (map.hasLayer(amebaLayers[nivel])) map.removeLayer(amebaLayers[nivel]);
+    pintarEstadoAmeba_(nivel, false, false);
+    return;
+  }
+
+  // Si la geometría ya está en memoria, se muestra sin volver a pedirla.
+  const yaCargada = amebaLayers[nivel].getLayers().length > 0 && state.amebaDatos[nivel];
+  if (!yaCargada) await cargarAmeba_(nivel);
+
+  // El usuario pudo apagarla mientras se calculaba.
+  if (!state.amebaVisible[nivel]) { pintarEstadoAmeba_(nivel, false, false); return; }
+
+  amebaLayers[nivel].addTo(map);
+  amebaLayers[nivel].bringToBack();
+  pintarEstadoAmeba_(nivel, true, false);
+
+  const d = state.amebaDatos[nivel];
+  if (d && d.focos > 0) {
+    const kpi = (state.amebaKpi[nivel] || []).map(k => k.escenario + ' ' + k.pct_ameba + '%').join(' · ');
+    mostrarToast_('🔥 ' + d.focos + ' focos · ' + d.area_km2 + ' km²' +
+      (d.pct_comuna != null ? ' (' + d.pct_comuna + '% de la comuna)' : '') +
+      (kpi ? '  |  Copado: ' + kpi : '') +
+      (d.desdeCache ? '  ·  guardada' : ''));
+  } else {
+    mostrarToast_('⚠️ No hay focos cargados para esas temporadas en esta comuna.');
+    state.amebaVisible[nivel] = false;
+    pintarEstadoAmeba_(nivel, false, false);
+  }
+}
+
+/* Actualiza la fila sin repintar todo el panel.
+ * Repintar con renderTab reconstruye el árbol completo, pierde el scroll y
+ * cierra los nodos desplegados; para un interruptor eso es desproporcionado. */
+function pintarEstadoAmeba_(nivel, activo, cargando) {
+  const chk = document.querySelector('[data-ameba="' + nivel + '"]');
+  if (!chk) return;
+  chk.classList.toggle('on', !!activo);
+
+  const fila = chk.closest('.tree-row');
+  if (!fila) return;
+  const contador = fila.querySelector('.tree-count');
+  if (!contador) return;
+
+  if (cargando) { contador.textContent = 'calculando…'; return; }
+
+  const cfg = NIVELES_AMEBA.find(x => x.temporadas === nivelATemporadas_(nivel));
+  const d = state.amebaDatos[nivel];
+  const kpi = state.amebaKpi[nivel] || [];
+  const roja = kpi.find(k => k.escenario === 'Roja');
+  contador.textContent = (d && d.focos > 0)
+    ? d.area_km2 + ' km²' + (roja ? ' · ' + roja.pct_ameba + '%' : '')
+    : (temporadasOrdenadas_().length > 0 ? '—' : 'sin datos');
+}
+
+function nivelATemporadas_(nivel) {
+  const cfg = NIVELES_AMEBA.find(x => x.id === nivel);
+  return cfg ? cfg.temporadas : 0;
+}
+
+/* ============ SEGUNDO NIVEL DE COPAMIENTO: SOBRE INCENDIOS ============
+ * El primer nivel mide qué porcentaje de la COMUNA está copado.
+ * Este mide algo más exigente: qué porcentaje de la ZONA DONDE
+ * HISTÓRICAMENTE SE QUEMA está cubierto por los recursos de cada alerta.
+ *
+ * Es el cruce entre dos superficies que ya se calculan por separado:
+ *   · áreas de influencia de los recursos, por escenario (500 m)
+ *   · amebas de ocurrencia de incendios, por ventana histórica (500 m)
+ *
+ * Se presenta como una matriz de 3 escenarios por 3 ventanas: última
+ * temporada, tres temporadas y quinquenio.
+ */
+state.kpiIncendiosVisible = state.kpiIncendiosVisible || false;
+state.kpiIncendiosCargando = false;
+
+async function cargarKpiIncendios_() {
+  if (!state.activeComunaId) return;
+  state.kpiIncendiosCargando = true;
+  renderKpiIncendios_();
+
+  try {
+    // Cada ameba se asegura primero: si ya está guardada en la base, la
+    // llamada es inmediata; si no, se calcula una vez y queda persistida.
+    for (const cfg of NIVELES_AMEBA) {
+      if (!state.amebaDatos[cfg.id] || !state.amebaKpi[cfg.id]) {
+        await cargarAmeba_(cfg.id);
+      } else {
+        // La ameba no cambia, pero la planificación sí: el KPI se refresca.
+        await recalcularKpiAmebaVisible_(cfg);
+      }
+    }
+  } catch (e) {
+    console.error('cargarKpiIncendios_:', e);
+  } finally {
+    state.kpiIncendiosCargando = false;
+    renderKpiIncendios_();
+  }
+}
+
+/* Recalcula el KPI de una ameba escenario por escenario, usando solo las
+ * entidades visibles. Es la versión dinámica: refleja los filtros activos. */
+async function recalcularKpiAmebaVisible_(cfg) {
+  const ids = idsVisiblesPorEscenario_();
+  const filas = [];
+
+  for (const esc of ['Verde', 'Amarilla', 'Roja']) {
+    const lista = ids[esc] || [];
+    if (lista.length === 0) {
+      const base = (state.amebaDatos[cfg.id] || {}).area_km2 || 0;
+      filas.push({ escenario: esc, ameba_km2: base, copado_km2: 0, pct_ameba: 0, sin_cubrir_km2: base });
+      continue;
+    }
+    const { data, error } = await supabaseClient.rpc('kpi_ameba_ids', {
+      p_comuna_id: String(state.activeComunaId),
+      p_nivel: cfg.temporadas,
+      p_ids: lista,
+      p_buffer_m: BUFFER_INFLUENCIA_M,
+    });
+    if (error) { console.error('kpi_ameba_ids:', error.message); continue; }
+    const f = (data && data[0]) ? data[0] : null;
+    filas.push({
+      escenario: esc,
+      ameba_km2: f ? f.ameba_km2 : 0,
+      copado_km2: f ? f.copado_km2 : 0,
+      pct_ameba: f ? f.pct_ameba : 0,
+      sin_cubrir_km2: f ? f.sin_cubrir_km2 : 0,
+    });
+  }
+
+  state.amebaKpi[cfg.id] = filas;
+}
+
+function renderKpiIncendios_() {
+  const cont = document.getElementById('kpi-incendios-cuerpo');
+  if (!cont) return;
+
+  if (!state.kpiIncendiosVisible) { cont.style.display = 'none'; cont.innerHTML = ''; return; }
+  cont.style.display = '';
+
+  if (state.kpiIncendiosCargando) {
+    cont.innerHTML = '<div style="padding:7px 0;font-size:10px;opacity:.7;">Calculando copamiento sobre incendios…</div>';
+    setTimeout(alinearResumenConSimbologia_, 0);
+    return;
+  }
+
+  const escenarios = [
+    { esc: 'Verde',    color: '#22C55E' },
+    { esc: 'Amarilla', color: '#F59E0B' },
+    { esc: 'Roja',     color: '#EF4444' },
+  ];
+
+  const hayDatos = NIVELES_AMEBA.some(cfg => (state.amebaKpi[cfg.id] || []).length > 0);
+  if (!hayDatos) {
+    cont.innerHTML = '<div style="padding:7px 0;font-size:10px;opacity:.7;">' +
+      'Sin zona de ocurrencia calculada para esta comuna.</div>';
+    setTimeout(alinearResumenConSimbologia_, 0);
+    return;
+  }
+
+  // Color de fondo según el nivel de cobertura, para leer la matriz de un vistazo.
+  const tinte = (v) => {
+    if (v == null) return 'transparent';
+    if (v >= 75) return 'rgba(34,197,94,0.28)';
+    if (v >= 50) return 'rgba(245,158,11,0.26)';
+    if (v >= 25) return 'rgba(249,115,22,0.26)';
+    return 'rgba(239,68,68,0.26)';
+  };
+
+  let html = '<div style="font-size:9.5px;opacity:.6;margin:7px 0 5px;">Copamiento sobre incendios</div>';
+
+  // Cabecera con las tres ventanas históricas.
+  html += '<div style="display:flex;align-items:center;gap:4px;font-size:9px;opacity:.6;margin-bottom:3px;">' +
+    '<span style="width:52px;flex-shrink:0;"></span>' +
+    NIVELES_AMEBA.map(cfg =>
+      '<span style="flex:1;text-align:center;">' + cfg.temporadas + ' temp.</span>').join('') +
+    '</div>';
+
+  html += escenarios.map(e => {
+    const celdas = NIVELES_AMEBA.map(cfg => {
+      const fila = (state.amebaKpi[cfg.id] || []).find(k => k.escenario === e.esc);
+      const v = fila && fila.pct_ameba != null ? Number(fila.pct_ameba) : null;
+      const titulo = fila
+        ? e.esc + ' · ' + cfg.temporadas + ' temporada(s): ' + fila.copado_km2 +
+          ' de ' + fila.ameba_km2 + ' km² cubiertos, ' + fila.sin_cubrir_km2 + ' km² sin cubrir'
+        : '';
+      return '<span title="' + titulo + '" style="flex:1;text-align:center;padding:3px 0;border-radius:4px;' +
+        'background:' + tinte(v) + ';font-variant-numeric:tabular-nums;font-weight:700;font-size:10px;">' +
+        (v != null ? v.toFixed(0) + '%' : '—') + '</span>';
+    }).join('');
+
+    return '<div style="display:flex;align-items:center;gap:4px;margin-top:3px;">' +
+      '<span style="width:52px;flex-shrink:0;font-size:10px;display:flex;align-items:center;gap:5px;color:' + e.color + ';">' +
+        '<span class="res-punto"></span><span style="color:#fff;opacity:.85;">' + e.esc + '</span></span>' +
+      celdas +
+    '</div>';
+  }).join('');
+
+  html += '<div style="margin-top:6px;font-size:9px;opacity:.5;">% de la zona de ocurrencia cubierta por los recursos</div>';
+
+  cont.innerHTML = html;
+  setTimeout(alinearResumenConSimbologia_, 0);
+}
+
+async function toggleKpiIncendios_() {
+  state.kpiIncendiosVisible = !state.kpiIncendiosVisible;
+  const btn = document.getElementById('btn-kpi-incendios');
+  if (btn) btn.classList.toggle('active', state.kpiIncendiosVisible);
+
+  if (state.kpiIncendiosVisible) await cargarKpiIncendios_();
+  else renderKpiIncendios_();
+}
+
+/* ============ EXPORTAR UN PLAN DE ALERTA ============
+ * Descarga todas las entidades planificadas de un escenario en la comuna
+ * activa, en dos formatos:
+ *   · GeoJSON -> para QGIS, ArcGIS y cualquier sistema GIS.
+ *   · KML     -> para Google Earth, con un color por institución.
+ *
+ * Se genera en el navegador a partir de la vista geojson, sin funciones
+ * nuevas en la base.
+ */
+state.exportarDatos = null;
+
+function abrirExportarPlan_() {
+  const panel = document.getElementById('planificar-panel');
+  if (panel) panel.classList.remove('show');
+
+  if (!state.activeComunaId) { mostrarToast_('⚠️ Selecciona una comuna primero.'); return; }
+
+  document.getElementById('exportar-comuna').textContent = nombreComuna_(state.activeComunaId);
+  document.getElementById('exportar-error').classList.remove('show');
+
+  // Conteo por escenario, a partir de lo que ya está cargado en el mapa.
+  const conteo = contarRecursosPorAlerta_();
+  ['Verde', 'Amarilla', 'Roja'].forEach(esc => {
+    const el = document.getElementById('exp-n-' + esc.toLowerCase());
+    if (el) el.textContent = (conteo[esc] ? conteo[esc].total : 0) + ' entidades';
+  });
+
+  document.getElementById('exportar-overlay').classList.add('show');
+}
+
+function escenarioExportSeleccionado_() {
+  const r = document.querySelector('input[name="exp-esc"]:checked');
+  return r ? r.value : 'Amarilla';
+}
+
+/** Trae del servidor las entidades del plan indicado. */
+async function datosPlanParaExportar_(escenario) {
+  const { data: planes, error: errPlanes } = await supabaseClient
+    .from('planes_contingencia')
+    .select('id, escenario')
+    .eq('ambito', 'comuna')
+    .eq('comuna_id', state.activeComunaId);
+  if (errPlanes) throw new Error(errPlanes.message);
+
+  const plan = (planes || []).find(p => p.escenario === escenario);
+  if (!plan) throw new Error('No existe un plan de Alerta ' + escenario + ' en esta comuna.');
+
+  const { data, error } = await supabaseClient
+    .from('planificacion_recursos_geojson')
+    .select('id, tipo_recurso, tipo_geometria, descripcion, geom_geojson, institucion_id, instituciones(nombre, color_hex)')
+    .eq('plan_id', plan.id);
+  if (error) throw new Error(error.message);
+
+  const soloLineas = document.getElementById('exp-solo-lineas').checked;
+  const filas = (data || []).filter(r => r.geom_geojson && (!soloLineas || r.tipo_geometria === 'linea'));
+  if (filas.length === 0) throw new Error('El plan no tiene entidades que exportar con ese criterio.');
+
+  return { filas, escenario, comuna: nombreComuna_(state.activeComunaId) };
+}
+
+function nombreArchivoPlan_(escenario, ext) {
+  const comuna = String(nombreComuna_(state.activeComunaId) || 'comuna')
+    .replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ0-9]+/g, '_');
+  const fecha = new Date().toISOString().slice(0, 10);
+  return 'plan_' + escenario.toLowerCase() + '_' + comuna + '_' + fecha + '.' + ext;
+}
+
+async function exportarPlanGeoJSON_() {
+  const esc = escenarioExportSeleccionado_();
+  const err = document.getElementById('exportar-error');
+  try {
+    const { filas, comuna } = await datosPlanParaExportar_(esc);
+
+    const features = filas.map(r => {
+      let geom = null;
+      try { geom = JSON.parse(r.geom_geojson); } catch (e) { return null; }
+      if (!geom) return null;
+      const inst = r.instituciones || {};
+      return {
+        type: 'Feature',
+        geometry: geom,
+        properties: {
+          id: r.id,
+          institucion: inst.nombre || 'Sin institución',
+          color: inst.color_hex || '#64748B',
+          tipo_recurso: r.tipo_recurso || '',
+          tipo_geometria: r.tipo_geometria || '',
+          descripcion: r.descripcion || '',
+          escenario: esc,
+          comuna: comuna,
+        },
+      };
+    }).filter(Boolean);
+
+    const fc = {
+      type: 'FeatureCollection',
+      name: 'Plan Alerta ' + esc + ' — ' + comuna,
+      crs: { type: 'name', properties: { name: 'urn:ogc:def:crs:OGC:1.3:CRS84' } },
+      features,
+    };
+
+    descargarArchivo_(JSON.stringify(fc, null, 2), nombreArchivoPlan_(esc, 'geojson'),
+      'application/geo+json;charset=utf-8');
+    document.getElementById('exportar-overlay').classList.remove('show');
+    mostrarToast_('⬇️ ' + features.length + ' entidad(es) exportadas en GeoJSON.');
+  } catch (e) {
+    err.textContent = e.message;
+    err.classList.add('show');
+  }
+}
+
+/** #RRGGBB -> AABBGGRR, que es el orden que usa KML. */
+function colorKml_(hex, alfa) {
+  const h = String(hex || '#64748B').replace('#', '');
+  const rr = h.slice(0, 2) || '64', gg = h.slice(2, 4) || '74', bb = h.slice(4, 6) || '8B';
+  return (alfa || 'ff') + bb + gg + rr;
+}
+
+async function exportarPlanKML_() {
+  const esc = escenarioExportSeleccionado_();
+  const err = document.getElementById('exportar-error');
+  try {
+    const { filas, comuna } = await datosPlanParaExportar_(esc);
+
+    // Un estilo por institución: en Google Earth se distinguen por color.
+    const instituciones = {};
+    filas.forEach(r => {
+      const inst = r.instituciones || {};
+      const nom = inst.nombre || 'Sin institución';
+      if (!instituciones[nom]) instituciones[nom] = inst.color_hex || '#64748B';
+    });
+
+    const idEstilo = (nom) => 'est_' + String(nom).replace(/[^A-Za-z0-9]/g, '_');
+
+    let kml = '<?xml version="1.0" encoding="UTF-8"?>\\n' +
+      '<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\\n' +
+      '<name>' + escapeHtml_('Plan Alerta ' + esc + ' — ' + comuna) + '</name>\\n' +
+      '<description>' + escapeHtml_('SIG Copamiento Territorial · ' +
+        new Date().toLocaleDateString('es-CL')) + '</description>\\n';
+
+    Object.keys(instituciones).forEach(nom => {
+      const c = colorKml_(instituciones[nom]);
+      kml += '<Style id="' + idEstilo(nom) + '">' +
+        '<LineStyle><color>' + c + '</color><width>3</width></LineStyle>' +
+        '<PolyStyle><color>' + colorKml_(instituciones[nom], '66') + '</color></PolyStyle>' +
+        '<IconStyle><color>' + c + '</color><scale>1.1</scale></IconStyle>' +
+        '</Style>\\n';
+    });
+
+    // Una carpeta por institución, para poder encender y apagar en Earth.
+    Object.keys(instituciones).forEach(nom => {
+      const suyas = filas.filter(r => (r.instituciones && r.instituciones.nombre || 'Sin institución') === nom);
+      kml += '<Folder><name>' + escapeHtml_(nom) + '</name>\\n';
+
+      suyas.forEach(r => {
+        let geom = null;
+        try { geom = JSON.parse(r.geom_geojson); } catch (e) { return; }
+        if (!geom) return;
+
+        const titulo = (r.tipo_recurso || 'Recurso') +
+          (r.descripcion ? ' · ' + r.descripcion : '');
+
+        kml += '<Placemark><name>' + escapeHtml_(titulo.slice(0, 120)) + '</name>' +
+          '<styleUrl>#' + idEstilo(nom) + '</styleUrl>' +
+          '<description><![CDATA[' +
+            '<b>Institución:</b> ' + escapeHtml_(nom) + '<br>' +
+            '<b>Tipo:</b> ' + escapeHtml_(r.tipo_recurso || '—') + '<br>' +
+            '<b>Escenario:</b> Alerta ' + esc + '<br>' +
+            (r.descripcion ? '<b>Descripción:</b> ' + escapeHtml_(r.descripcion) : '') +
+          ']]></description>' +
+          geometriaKml_(geom) +
+          '</Placemark>\\n';
+      });
+
+      kml += '</Folder>\\n';
+    });
+
+    kml += '</Document></kml>';
+
+    descargarArchivo_(kml, nombreArchivoPlan_(esc, 'kml'),
+      'application/vnd.google-earth.kml+xml;charset=utf-8');
+    document.getElementById('exportar-overlay').classList.remove('show');
+    mostrarToast_('🌍 ' + filas.length + ' entidad(es) exportadas en KML.');
+  } catch (e) {
+    err.textContent = e.message;
+    err.classList.add('show');
+  }
+}
+
+/** Convierte una geometría GeoJSON al fragmento KML equivalente. */
+function geometriaKml_(g) {
+  const coords = (arr) => arr.map(c => c[0] + ',' + c[1] + ',0').join(' ');
+
+  if (g.type === 'Point') {
+    return '<Point><coordinates>' + g.coordinates[0] + ',' + g.coordinates[1] + ',0</coordinates></Point>';
+  }
+  if (g.type === 'LineString') {
+    return '<LineString><tessellate>1</tessellate><coordinates>' + coords(g.coordinates) + '</coordinates></LineString>';
+  }
+  if (g.type === 'MultiLineString') {
+    return '<MultiGeometry>' + g.coordinates.map(parte =>
+      '<LineString><tessellate>1</tessellate><coordinates>' + coords(parte) + '</coordinates></LineString>'
+    ).join('') + '</MultiGeometry>';
+  }
+  if (g.type === 'Polygon') {
+    return '<Polygon><outerBoundaryIs><LinearRing><coordinates>' +
+      coords(g.coordinates[0]) + '</coordinates></LinearRing></outerBoundaryIs></Polygon>';
+  }
+  if (g.type === 'MultiPolygon') {
+    return '<MultiGeometry>' + g.coordinates.map(poly =>
+      '<Polygon><outerBoundaryIs><LinearRing><coordinates>' +
+      coords(poly[0]) + '</coordinates></LinearRing></outerBoundaryIs></Polygon>'
+    ).join('') + '</MultiGeometry>';
+  }
+  return '';
+}
+
+function renderResumenAlertas_() {
+  const panel = document.getElementById('resumen-alertas');
+  const cuerpo = document.getElementById('resumen-alertas-cuerpo');
+  if (!panel || !cuerpo) return;
+
+  // Sigue la misma dinámica que la simbología: si ese panel no está visible,
+  // este tampoco. Son dos piezas del mismo bloque de la esquina.
+  const simb = document.getElementById('simbologia-flotante');
+  const simbVisible = !!(simb
+    && simb.style.display !== 'none'
+    && simb.offsetParent !== null
+    && simb.offsetHeight > 0);
+  if (!simbVisible) {
+    panel.style.display = 'none';
+    const kpiCont = document.getElementById('kpi-incendios-cuerpo');
+    if (kpiCont) kpiCont.style.display = 'none';
+    return;
+  }
+
+  const conteo = contarRecursosPorAlerta_();
+  const total = conteo.Verde.total + conteo.Amarilla.total + conteo.Roja.total;
+  if (total === 0) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+
+  const filas = [
+    { esc: 'Verde',    clave: 'verde',    color: '#22C55E' },
+    { esc: 'Amarilla', clave: 'amarilla', color: '#F59E0B' },
+    { esc: 'Roja',     clave: 'roja',     color: '#EF4444' },
+  ];
+
+  // El porcentaje se mide contra Roja, que es el nivel de copamiento máximo.
+  const base = conteo.Roja.total;
+  const pct = (n) => base > 0 ? Math.round((n / base) * 100) + '%' : '—';
+
+  const activo = (clave) => !!(state.alertaLayersOn && state.alertaLayersOn[clave]);
+  const maximo = Math.max(1, conteo.Verde.total, conteo.Amarilla.total, conteo.Roja.total);
+
+  setTimeout(alinearResumenConSimbologia_, 0);
+
+  if (state.resumenAlertasColapsado) {
+    const kpiCont = document.getElementById('kpi-incendios-cuerpo');
+    if (kpiCont) kpiCont.style.display = 'none';
+    cuerpo.innerHTML = '<div style="display:flex;gap:13px;padding-top:1px;">' +
+      filas.map(f => '<span style="display:inline-flex;align-items:center;gap:5px;color:' + f.color + ';">' +
+        '<span class="' + (activo(f.clave) ? 'res-radar' : 'res-punto') + '"></span>' +
+        '<b style="color:#fff;">' + conteo[f.esc].total + '</b></span>').join('') +
+      '</div>';
+    return;
+  }
+
+  // Con la influencia activa el indicador pasa a medir territorio copado
+  // en lugar de número de recursos: es el dato que importa en reunión.
+  const modoInfluencia = !!state.influenciaVisible;
+  const maxPct = Math.max(1, ...filas.map(f => {
+    const d = state.copamiento[f.esc];
+    return (d && d.pct != null) ? Number(d.pct) : 0;
+  }));
+
+  cuerpo.innerHTML = filas.map(f => {
+    const c = conteo[f.esc];
+    const cop = state.copamiento[f.esc];
+    const tienePct = modoInfluencia && cop && cop.pct != null;
+
+    const ancho = tienePct
+      ? Math.round((Number(cop.pct) / maxPct) * 100)
+      : Math.round((c.total / maximo) * 100);
+
+    const derecha = tienePct
+      ? Number(cop.pct).toFixed(1) + '%'
+      : pct(c.total);
+
+    const titulo = tienePct
+      ? 'Territorio copado: ' + Number(cop.pct).toFixed(1) + '% de la comuna (' + cop.area_km2 + ' km²)'
+      : '';
+
+    return '<div title="' + titulo + '" style="display:flex;align-items:center;gap:7px;margin-top:6px;white-space:nowrap;color:' + f.color + ';">' +
+      '<span class="' + (activo(f.clave) ? 'res-radar' : 'res-punto') + '"></span>' +
+      '<span style="width:52px;flex-shrink:0;font-size:10.5px;color:#fff;opacity:.85;">' + f.esc + '</span>' +
+      '<span style="flex:1;min-width:34px;height:8px;border-radius:4px;background:rgba(255,255,255,0.14);overflow:hidden;">' +
+        '<span style="display:block;height:100%;width:' + ancho + '%;background:' + f.color + ';border-radius:4px;"></span>' +
+      '</span>' +
+      '<span style="width:28px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;color:#fff;">' + c.total + '</span>' +
+      '<span style="width:42px;text-align:right;font-size:10px;opacity:.75;color:#fff;font-variant-numeric:tabular-nums;">' + derecha + '</span>' +
+    '</div>';
+  }).join('') +
+  '<div style="margin-top:6px;font-size:9.5px;opacity:.5;color:#fff;">' +
+    (modoInfluencia ? '% de la comuna copada · influencia 500 m' : '% respecto a Roja') +
+  '</div>';
+
+  renderKpiIncendios_();
+}
+
+function toggleResumenAlertas_() {
+  state.resumenAlertasColapsado = !state.resumenAlertasColapsado;
+  const btn = document.getElementById('btn-resumen-alertas-toggle');
+  if (btn) btn.textContent = state.resumenAlertasColapsado ? '▸' : '▾';
+  renderResumenAlertas_();
+  setTimeout(alinearResumenConSimbologia_, 60);
+}
+
 /* Reaplica los filtros visuales de las capas de alerta.
  *
  * Es necesario llamarlo cada vez que una capa se agrega al mapa: Leaflet
@@ -5704,6 +7048,8 @@ function reaplicarFiltrosAlerta_() {
       if (pf && pf.style.display !== 'none' && typeof renderSimbologiaInstituciones_ === 'function') {
         renderSimbologiaInstituciones_();
       }
+      if (typeof renderResumenAlertas_ === 'function') renderResumenAlertas_();
+      if (typeof aplicarVisibilidadInfluencia_ === 'function') aplicarVisibilidadInfluencia_();
     } catch (e) { /* no debe interrumpir el flujo del mapa */ }
   };
   aplicar();
@@ -6285,8 +7631,227 @@ function quitarPatrullajeNeon_() {
   Object.keys(window.patrullajeRutaCapas || {}).forEach(id => { window.patrullajeRutaCapas[id].eachLayer(s => { const el = s.getElement && s.getElement(); if (el) el.classList.remove('ruta-seleccionada-neon'); }); });
 }
 
+/* ============ TRASPASO DE RUTAS DE PATRULLAJE A LAS ALERTAS ============
+ * Una ruta de patrullaje es un recorrido ya definido en terreno. Traspasarla
+ * a un escenario de alerta la convierte en una entidad de planificación, con
+ * lo cual empieza a contar en el nivel de copamiento: su área de influencia
+ * de 500 m se suma a la cobertura de ese escenario.
+ *
+ * Se puede enviar a uno o varios escenarios a la vez. La ruta original
+ * permanece intacta en su capa: esto copia, no mueve.
+ */
+function puedeTraspasarRutas_() {
+  const p = state.perfil && state.perfil.perfil;
+  return p === 'Administrador' || p === 'Jefe de Área' || p === 'GRD';
+}
+
+function tooltipRuta_(r) {
+  const partes = [];
+  partes.push('<b>🚓 ' + escapeHtml_(r.nombre_ruta || r.id) + '</b>');
+  if (r.actividad) partes.push(escapeHtml_(r.actividad));
+  if (r.tipo_movil) partes.push(escapeHtml_(r.tipo_movil));
+  if (r.km != null) partes.push(Number(r.km).toFixed(1) + ' km');
+
+  let html = '<div style="text-align:left;line-height:1.45;">';
+  html += '<div style="white-space:nowrap;">' + partes.join('<span style="opacity:.45;"> · </span>') + '</div>';
+  const sub = [r.area, r.sector, r.comuna].filter(Boolean).map(escapeHtml_).join(' · ');
+  if (sub) html += '<div style="margin-top:3px;opacity:.85;font-size:11px;">' + sub + '</div>';
+  if (r.temporada) html += '<div style="margin-top:2px;opacity:.65;font-size:10.5px;">Temporada ' + escapeHtml_(r.temporada) + '</div>';
+  html += '</div>';
+  return html;
+}
+
+function bindAccionesRutaPopup_() {
+  document.querySelectorAll('.popup-btn[data-action="ruta-a-alertas"]').forEach(btn => {
+    btn.onclick = () => abrirTraspasoRuta_(btn.dataset.id);
+  });
+}
+
+state.rutaTraspaso = null;
+
+function abrirTraspasoRuta_(idRuta) {
+  const ruta = (state.patrullajeRutas || []).find(x => String(x.id) === String(idRuta));
+  if (!ruta) { mostrarToast_('No se encontró la ruta.'); return; }
+  if (!state.activeComunaId) { mostrarToast_('⚠️ Selecciona una comuna primero.'); return; }
+
+  state.rutaTraspaso = ruta;
+
+  document.getElementById('ruta-traspaso-nombre').textContent = ruta.nombre_ruta || ruta.id;
+  document.getElementById('ruta-traspaso-meta').textContent =
+    [ruta.actividad, ruta.tipo_movil, ruta.km != null ? Number(ruta.km).toFixed(1) + ' km' : null,
+     ruta.comuna].filter(Boolean).join('  ·  ');
+
+  // Institución: se preselecciona la que coincida con la empresa de la ruta.
+  const fInst = document.getElementById('ruta-traspaso-institucion');
+  fInst.innerHTML = '';
+  (state.instituciones || []).forEach(i => {
+    const opt = document.createElement('option');
+    opt.value = i.id; opt.textContent = i.nombre;
+    fInst.appendChild(opt);
+  });
+  // CMPC es la institución por defecto: es la que opera la mayoría de las
+  // rutas. Si la ruta declara otra empresa y existe como institución, manda esa.
+  const cmpc = (state.instituciones || []).find(i =>
+    String(i.nombre).trim().toUpperCase().indexOf('CMPC') !== -1);
+  if (cmpc) fInst.value = cmpc.id;
+
+  const empresa = String(ruta.empresa || '').trim().toUpperCase();
+  if (empresa) {
+    const coincide = (state.instituciones || []).find(i =>
+      String(i.nombre).trim().toUpperCase().indexOf(empresa) !== -1);
+    if (coincide) fInst.value = coincide.id;
+  }
+
+  const fTipo = document.getElementById('ruta-traspaso-tipo');
+  poblarSelectTiposRecurso_(fTipo, ruta.tipo_recurso || null);
+  cargarTiposRecurso_().then(() => poblarSelectTiposRecurso_(fTipo, ruta.tipo_recurso || null)).catch(() => {});
+
+  // Por defecto, la combinación más habitual.
+  document.getElementById('ruta-esc-verde').checked = false;
+  document.getElementById('ruta-esc-amarilla').checked = true;
+  document.getElementById('ruta-esc-roja').checked = true;
+
+  document.getElementById('ruta-traspaso-error').classList.remove('show');
+  map.closePopup();
+  document.getElementById('ruta-traspaso-overlay').classList.add('show');
+}
+
+function preajusteTraspaso_(cuales) {
+  document.getElementById('ruta-esc-verde').checked = cuales.indexOf('Verde') !== -1;
+  document.getElementById('ruta-esc-amarilla').checked = cuales.indexOf('Amarilla') !== -1;
+  document.getElementById('ruta-esc-roja').checked = cuales.indexOf('Roja') !== -1;
+}
+
+/** Tramos de la geometría de la ruta, como arreglos de [lng, lat]. */
+function tramosDeRuta_(geometry) {
+  if (!geometry) return [];
+  const g = geometry.type === 'Feature' ? geometry.geometry : geometry;
+  if (!g || !g.coordinates) return [];
+  if (g.type === 'LineString') return [g.coordinates];
+  if (g.type === 'MultiLineString') return g.coordinates;
+  return [];
+}
+
+async function confirmarTraspasoRuta_() {
+  const ruta = state.rutaTraspaso;
+  if (!ruta) return;
+
+  const escenarios = [];
+  if (document.getElementById('ruta-esc-verde').checked) escenarios.push('Verde');
+  if (document.getElementById('ruta-esc-amarilla').checked) escenarios.push('Amarilla');
+  if (document.getElementById('ruta-esc-roja').checked) escenarios.push('Roja');
+
+  const err = document.getElementById('ruta-traspaso-error');
+  if (escenarios.length === 0) {
+    err.textContent = 'Selecciona al menos un escenario de alerta.';
+    err.classList.add('show');
+    return;
+  }
+
+  const tramos = tramosDeRuta_(ruta.geometry);
+  if (tramos.length === 0) {
+    err.textContent = 'La ruta no tiene una geometría de línea válida.';
+    err.classList.add('show');
+    return;
+  }
+
+  const institucionId = document.getElementById('ruta-traspaso-institucion').value;
+  const tipoRecurso = document.getElementById('ruta-traspaso-tipo').value;
+  const descripcion = 'Ruta de patrullaje: ' + (ruta.nombre_ruta || ruta.id) +
+    (ruta.sector ? ' · ' + ruta.sector : '');
+
+  const btn = document.getElementById('ruta-traspaso-guardar');
+  btn.disabled = true;
+
+  // Planes de la comuna: uno por escenario.
+  const { data: planes, error: errPlanes } = await supabaseClient
+    .from('planes_contingencia')
+    .select('id, escenario')
+    .eq('ambito', 'comuna')
+    .eq('comuna_id', state.activeComunaId);
+
+  if (errPlanes) {
+    err.textContent = 'No se pudieron leer los planes: ' + errPlanes.message;
+    err.classList.add('show');
+    btn.disabled = false;
+    return;
+  }
+
+  let creadas = 0;
+  const faltan = [];
+  const fallos = [];
+
+  for (const esc of escenarios) {
+    const plan = (planes || []).find(p => p.escenario === esc);
+    if (!plan) { faltan.push(esc); continue; }
+
+    btn.textContent = 'Enviando a ' + esc + '…';
+
+    // UNA sola entidad por ruta, aunque el trazado venga en varios tramos.
+    // Antes se creaba una entidad por tramo y una ruta partida en cinco
+    // aparecía como cinco recursos, inflando el conteo y el copamiento.
+    const { data, error } = await supabaseClient.rpc('crear_linea_planificacion_catalogo', {
+      p_plan_id: plan.id,
+      p_institucion_id: institucionId,
+      p_tipo_recurso: tipoRecurso,
+      p_puntos: tramos[0],
+      p_descripcion: descripcion,
+    });
+
+    const fila = (data && data[0]) ? data[0] : null;
+    if (error) { fallos.push(esc + ': ' + error.message); continue; }
+    if (fila && fila.ok === false) { fallos.push(esc + ': ' + fila.mensaje); continue; }
+    if (!fila || !fila.id) { fallos.push(esc + ': respuesta sin identificador.'); continue; }
+
+    // Si la ruta tiene más de un tramo, se reemplaza su geometría por la
+    // multilínea completa: sigue siendo un solo registro.
+    if (tramos.length > 1) {
+      const geo = await supabaseClient.rpc('actualizar_geometria_multilinea_planificacion', {
+        p_id: fila.id,
+        p_partes: tramos,
+      });
+      if (geo.error) fallos.push(esc + ' (tramos): ' + geo.error.message);
+    }
+
+    creadas++;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Sumar al copamiento';
+
+  // Si algo falló, el modal se queda abierto mostrando el motivo real: que
+  // el usuario tenga que abrir la consola para saber qué pasó no sirve.
+  if (fallos.length > 0 && creadas === 0) {
+    console.error('Traspaso de ruta:', fallos);
+    err.innerHTML = '<b>No se pudo copiar la ruta.</b><br>' +
+      escapeHtml_(fallos[0].length > 220 ? fallos[0].slice(0, 219) + '…' : fallos[0]);
+    err.classList.add('show');
+    return;
+  }
+
+  document.getElementById('ruta-traspaso-overlay').classList.remove('show');
+  state.rutaTraspaso = null;
+
+  if (fallos.length > 0) {
+    console.error('Traspaso de ruta:', fallos);
+    mostrarToast_('⚠️ ' + creadas + ' copia(s) creadas · falló: ' + fallos[0]);
+  } else if (creadas === 0) {
+    mostrarToast_('⚠️ No se creó ninguna copia.');
+  } else {
+    mostrarToast_('⏫ Ruta sumada a ' + escenarios.filter(e => faltan.indexOf(e) === -1).join(' y ') +
+      (tramos.length > 1 ? ' · ' + tramos.length + ' tramos en una sola línea' : '') + '.');
+  }
+  if (faltan.length > 0) {
+    mostrarToast_('ℹ️ Sin plan en esta comuna para: ' + faltan.join(', ') + '. Créalo y repite.');
+  }
+
+  await loadPlanificacionRecursos_(state.activeComunaId);
+  if (state.influenciaVisible) refrescarInfluencia_();
+}
+
 async function loadPatrullajeLayer_() {
   patrullajeLayer.clearLayers();
+  window.arbolPatrullaje = {};
   try {
     const { data, error } = await supabaseClient
       .from('v_rutas_patrullaje')
@@ -6311,14 +7876,46 @@ async function loadPatrullajeLayer_() {
             '<div class="popup-row">Área: ' + escapeHtml_(r.area || '—') + ' · Sector: ' + escapeHtml_(r.sector || '—') + '</div>' +
             '<div class="popup-row">Comuna: ' + escapeHtml_(r.comuna || '—') + '</div>' +
             '<div class="popup-row">Actividad: ' + escapeHtml_(r.actividad || '—') + ' · ' + escapeHtml_(r.tipo_movil || '—') + '</div>' +
-            '<div class="popup-row">KM: ' + (r.km != null ? Number(r.km).toFixed(1) : '—') + ' · Temp: ' + escapeHtml_(r.temporada || '—') + '</div>'
+            '<div class="popup-row">KM: ' + (r.km != null ? Number(r.km).toFixed(1) : '—') + ' · Temp: ' + escapeHtml_(r.temporada || '—') + '</div>' +
+            (puedeTraspasarRutas_()
+              ? '<div class="popup-actions"><button class="popup-btn" data-action="ruta-a-alertas" ' +
+                'data-id="' + escapeHtml_(String(r.id)) + '" style="color:#7C3AED;">⏫ Sumar a alertas</button></div>'
+              : '')
           );
           // Neón mientras el popup de la ruta está abierto (seleccionada)
-          layer.on('popupopen', () => resaltarPatrullajeNeon_(r.id));
+          layer.on('popupopen', () => { resaltarPatrullajeNeon_(r.id); bindAccionesRutaPopup_(r.id); });
           layer.on('popupclose', () => quitarPatrullajeNeon_());
+
+          // Neón e información al pasar el cursor, sin necesidad de hacer clic.
+          // El tooltip se enlaza al crear la capa: Leaflet lo muestra y lo
+          // oculta solo al pasar el cursor. Intentar crearlo dentro del
+          // mouseover no funcionaba, porque setTooltipContent existe siempre
+          // en el prototipo y la condición nunca llegaba a enlazarlo.
+          layer.bindTooltip(tooltipRuta_(r), {
+            sticky: true,
+            direction: 'top',
+            opacity: 1,
+            className: 'map-label map-label-detalle',
+          });
+
+          layer.on('mouseover', () => {
+            if ((state.editorMode || state.modoPlanificacion) &&
+                (state.dibujoModo === 'linea' || state.dibujoModo === 'area')) {
+              layer.closeTooltip();
+              return;
+            }
+            resaltarPatrullajeNeon_(r.id);
+          });
+          layer.on('mouseout', () => quitarPatrullajeNeon_());
         },
       });
       window.patrullajeRutaCapas[r.id] = capaRuta;
+      // Árbol Área → Sector, igual que Áreas de Relacionamiento.
+      const areaP = r.area || 'Sin área';
+      const sectorP = r.sector || 'Sin sector';
+      if (!window.arbolPatrullaje[areaP]) window.arbolPatrullaje[areaP] = {};
+      if (!window.arbolPatrullaje[areaP][sectorP]) window.arbolPatrullaje[areaP][sectorP] = [];
+      window.arbolPatrullaje[areaP][sectorP].push(capaRuta);
       capaRuta.addTo(patrullajeLayer);
     });
 
@@ -6386,6 +7983,7 @@ function toggleEtiquetasRecursosComunaAdmin_() {
 
 async function loadRutasComunaAdmin_() {
   rutasComunaAdminLayer.clearLayers();
+  window.arbolRutasComuna = {};
   state.rutasComunaAdminInfo = { ok: false, count: 0 };
   const idc = idComunaActiva_();
   if (idc == null) { state.rutasComunaAdminInfo = { ok: true, count: 0 }; return; }
@@ -6396,8 +7994,19 @@ async function loadRutasComunaAdmin_() {
     .eq('id_comuna', idc);
   if (error) { state.rutasComunaAdminInfo = { ok: false, count: 0, error: error.message }; return; }
 
+  // Las rutas de la comuna se registran en el mismo índice que las de
+  // patrullaje: comparten el hover con neón y la acción de traspaso.
+  state.patrullajeRutas = state.patrullajeRutas || [];
+  window.patrullajeRutaCapas = window.patrullajeRutaCapas || {};
+
   (data || []).forEach(r => {
     if (!r.geometry) return;
+
+    // Registrar la ruta para que el traspaso pueda encontrarla por id.
+    if (!state.patrullajeRutas.some(x => String(x.id) === String(r.id))) {
+      state.patrullajeRutas.push(r);
+    }
+
     const capa = L.geoJSON(r.geometry, {
       style: { color: '#DC2626', weight: 3, opacity: 0.85 },
       onEachFeature: (f, layer) => {
@@ -6406,10 +8015,39 @@ async function loadRutasComunaAdmin_() {
           '<div class="popup-row">Área: ' + escapeHtml_(r.area || '—') + ' · Sector: ' + escapeHtml_(r.sector || '—') + '</div>' +
           '<div class="popup-row">Comuna: ' + escapeHtml_(r.comuna || '—') + '</div>' +
           '<div class="popup-row">Actividad: ' + escapeHtml_(r.actividad || '—') + ' · ' + escapeHtml_(r.tipo_movil || '—') + '</div>' +
-          '<div class="popup-row">KM: ' + (r.km != null ? Number(r.km).toFixed(1) : '—') + '</div>'
+          '<div class="popup-row">KM: ' + (r.km != null ? Number(r.km).toFixed(1) : '—') + '</div>' +
+          (puedeTraspasarRutas_()
+            ? '<div class="popup-actions"><button class="popup-btn" data-action="ruta-a-alertas" ' +
+              'data-id="' + escapeHtml_(String(r.id)) + '" style="color:#7C3AED;">⏫ Sumar a alertas</button></div>'
+            : '')
         );
+        layer.on('popupopen', () => { resaltarPatrullajeNeon_(r.id); bindAccionesRutaPopup_(); });
+        layer.on('popupclose', () => quitarPatrullajeNeon_());
+
+        layer.bindTooltip(tooltipRuta_(r), {
+          sticky: true,
+          direction: 'top',
+          opacity: 1,
+          className: 'map-label map-label-detalle',
+        });
+
+        layer.on('mouseover', () => {
+          if ((state.editorMode || state.modoPlanificacion) &&
+              (state.dibujoModo === 'linea' || state.dibujoModo === 'area')) {
+            layer.closeTooltip();
+            return;
+          }
+          resaltarPatrullajeNeon_(r.id);
+        });
+        layer.on('mouseout', () => quitarPatrullajeNeon_());
       }
     });
+    window.patrullajeRutaCapas[r.id] = capa;
+    const areaC = r.area || 'Sin área';
+    const sectorC = r.sector || 'Sin sector';
+    if (!window.arbolRutasComuna[areaC]) window.arbolRutasComuna[areaC] = {};
+    if (!window.arbolRutasComuna[areaC][sectorC]) window.arbolRutasComuna[areaC][sectorC] = [];
+    window.arbolRutasComuna[areaC][sectorC].push(capa);
     rutasComunaAdminLayer.addLayer(capa);
   });
   state.rutasComunaAdminInfo = { ok: true, count: (data || []).length };
@@ -6526,6 +8164,7 @@ function onGeoData(comunaId, geo) {
   incendiosContainerLayer.clearLayers();
   Object.keys(fireHeatLayers).forEach(k => delete fireHeatLayers[k]);
   state.temporadasDetectadas = [];
+  state.focosPorTemporada = {};
   state.incendiosMatched = true;
   if (geo.incendiosSidco && geo.incendiosSidco.ok) {
     const feats = geo.incendiosSidco.data.features || [];
@@ -6549,6 +8188,8 @@ function onGeoData(comunaId, geo) {
       });
       const combinado = L.layerGroup([heat, marcadores]);
       fireHeatLayers[nombre] = { layer: combinado, color, count: puntos.length };
+      // Se conservan las coordenadas crudas: las necesitan las amebas.
+      state.focosPorTemporada[nombre] = puntos;   // [[lng, lat], ...]
       if (state.layersOn[nombre] === undefined) state.layersOn[nombre] = false;
       if (state.layersOn[nombre]) incendiosContainerLayer.addLayer(combinado);
     });
@@ -7068,6 +8709,7 @@ function renderSimbologiaFlotante_() {
   const ids = Object.keys(insts);
   if (ids.length === 0) {
     panel.style.display = 'none';
+    if (typeof renderResumenAlertas_ === 'function') renderResumenAlertas_();
     return;
   }
   cont.innerHTML = '';
@@ -9566,11 +11208,11 @@ if (!state.mostrarEtiquetasAlerta) state.mostrarEtiquetasAlerta = { verde: false
  * de ese escenario, y sobrevive a las recargas de capa porque
  * cargarCapasAlertaGlobales_ lee este mismo estado al construir el estilo.
  */
-if (!state.opacidadAlerta) state.opacidadAlerta = { verde: 22, amarilla: 22, roja: 22 };
+if (!state.opacidadAlerta) state.opacidadAlerta = { verde: 50, amarilla: 50, roja: 50 };
 
 /** Opacidad de relleno (0 a 1) configurada para un escenario. */
 function opacidadRellenoAlerta_(clave) {
-  const pct = (state.opacidadAlerta && state.opacidadAlerta[clave] != null) ? state.opacidadAlerta[clave] : 22;
+  const pct = (state.opacidadAlerta && state.opacidadAlerta[clave] != null) ? state.opacidadAlerta[clave] : 50;
   return Math.max(0, Math.min(100, pct)) / 100;
 }
 
@@ -9613,7 +11255,7 @@ function aplicarOpacidadAlerta_(clave) {
 /** Cambia la opacidad de un escenario y la aplica de inmediato. */
 function setOpacidadAlerta_(clave, pct) {
   const valor = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
-  if (!state.opacidadAlerta) state.opacidadAlerta = { verde: 22, amarilla: 22, roja: 22 };
+  if (!state.opacidadAlerta) state.opacidadAlerta = { verde: 50, amarilla: 50, roja: 50 };
   state.opacidadAlerta[clave] = valor;
   aplicarOpacidadAlerta_(clave);
   const et = document.getElementById('opac-val-' + clave);
@@ -9735,6 +11377,7 @@ function renderSimbologiaInstituciones_() {
 
   body.innerHTML = html;
   enlazarBotonesGeomSimbologia_(body);
+  setTimeout(alinearResumenConSimbologia_, 0);
 
   body.querySelectorAll('[data-sf-inst]').forEach(fila => {
     fila.addEventListener('click', (ev) => {
@@ -9757,6 +11400,13 @@ function renderSimbologiaInstituciones_() {
   body.querySelectorAll('[data-sf-pert]').forEach(el => {
     el.addEventListener('click', (ev) => {
       ev.stopPropagation();
+      // La flecha solo pliega; el resto de la fila enciende o apaga.
+      if (ev.target && ev.target.dataset && ev.target.dataset.sfPertCaret) {
+        const k = ev.target.dataset.sfPertCaret;
+        state.colapsoPertenencia[k] = !state.colapsoPertenencia[k];
+        renderSimbologiaInstituciones_();
+        return;
+      }
       const pert = el.dataset.sfPert;
       setPertenenciaAlertaOculta_(pert, !pertenenciaAlertaOculta_(pert));
       aplicarVisibilidadInstitucionesAlerta_();
@@ -9802,19 +11452,33 @@ function subarbolInstitucion_(ins) {
 
   return pertenencias.map(pert => {
     const tipos = Object.keys(arbol[pert]).sort();
-    const total = tipos.reduce((n, t) => n + arbol[pert][t], 0);
+    const total = tipos.reduce((acc, t) => ({
+      Verde: acc.Verde + arbol[pert][t].Verde,
+      Amarilla: acc.Amarilla + arbol[pert][t].Amarilla,
+      Roja: acc.Roja + arbol[pert][t].Roja,
+    }), { Verde: 0, Amarilla: 0, Roja: 0 });
     const pertVisible = !instApagada && !pertenenciaAlertaOculta_(pert);
+
+    const clavePert = ins.id + '||' + pert;
+    if (state.colapsoPertenencia[clavePert] === undefined) state.colapsoPertenencia[clavePert] = true;
+    const pertAbierta = !state.colapsoPertenencia[clavePert];
 
     let bloque =
       '<div data-sf-pert="' + escapeHtml_(pert) + '" ' +
-        'style="display:flex;align-items:center;gap:6px;padding:3px 2px 3px 22px;cursor:pointer;' +
+        'style="display:flex;align-items:center;gap:5px;padding:3px 2px 3px 18px;cursor:pointer;' +
         (pertVisible ? '' : 'opacity:.4;') + '">' +
+        '<span data-sf-pert-caret="' + escapeHtml_(clavePert) + '" ' +
+          'style="width:10px;flex-shrink:0;font-size:8px;opacity:.55;text-align:center;' +
+          'transform:rotate(' + (pertAbierta ? '0' : '-90') + 'deg);transition:transform .12s;">▼</span>' +
         '<span style="width:9px;height:9px;border-radius:3px;flex-shrink:0;border:1.5px solid #64748B;' +
           'background:' + (pertVisible ? '#64748B' : 'transparent') + ';"></span>' +
         '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;">' +
           escapeHtml_(PERTENENCIA_CORTA[pert] || pert) + '</span>' +
-        '<span style="font-size:10px;opacity:.6;flex-shrink:0;">' + total + '</span>' +
+        '<span style="font-size:9px;opacity:.45;flex-shrink:0;">' + tipos.length + '</span>' +
+        cifrasPorEscenario_(total, 10) +
       '</div>';
+
+    if (!pertAbierta) return bloque;
 
     bloque += tipos.map(tipo => {
       const tipoVisible = pertVisible && !tipoRecursoAlertaOculto_(tipo);
@@ -9825,7 +11489,7 @@ function subarbolInstitucion_(ins) {
           'background:' + (tipoVisible ? '#94A3B8' : 'transparent') + ';"></span>' +
         '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;">' +
           escapeHtml_(aTitulo_(tipo)) + '</span>' +
-        '<span style="font-size:9.5px;opacity:.55;flex-shrink:0;">' + arbol[pert][tipo] + '</span>' +
+        cifrasPorEscenario_(arbol[pert][tipo], 9.5) +
       '</div>';
     }).join('');
 
@@ -9994,9 +11658,10 @@ async function activarEscenarioDesdeBoton_(escenario) {
     mostrarSimbologiaEscenario_(escenario);
     mostrarToast_('🗺️ Escenario ' + escenario + ' activo');
   } else {
-    // Se apagó — ocultar simbología
+    // Se apagó — ocultar simbología y, con ella, la estadística
     const panel = document.getElementById('simbologia-flotante');
     if (panel) panel.style.display = 'none';
+    if (typeof renderResumenAlertas_ === 'function') renderResumenAlertas_();
   }
 
   actualizarSwitcherEscenarios_();
@@ -10363,7 +12028,9 @@ async function loadPlanificacionRecursos_(comunaId) {
       figura._tipoGeometria = r.tipo_geometria;
       figura._tipoRecurso = r.tipo_recurso || 'Sin tipo';
       figura._pertenencia = pertenenciaDeRecurso_(r);
+      figura._recursoId = r.id;
       layerDestino.addLayer(figura);
+      vigilarFiltroEntidad_(figura);
       window.planRecursosMarkersById[r.id] = figura;
 
       // Marcador con el LOGO de la institución
@@ -10396,6 +12063,7 @@ async function loadPlanificacionRecursos_(comunaId) {
           mLogo._institucionNombre = inst.nombre;
           mLogo._esLogoDeFigura = true;
           mLogo._tipoGeometria = r.tipo_geometria;   // sigue a su figura
+          vigilarFiltroEntidad_(mLogo);
           mLogo._tipoRecurso = r.tipo_recurso || 'Sin tipo';
           mLogo._pertenencia = pertenenciaDeRecurso_(r);
           layerDestino.addLayer(mLogo);
@@ -10488,11 +12156,15 @@ async function loadPlanificacionRecursos_(comunaId) {
     m._tipoGeometria = 'punto';
     m._tipoRecurso = r.tipo_recurso || 'Sin tipo';
     m._pertenencia = pertenenciaDeRecurso_(r);
+    m._recursoId = r.id;
     layerDestino.addLayer(m);
+    vigilarFiltroEntidad_(m);
   }); // fin forEach recursos
 
   // Reaplicar los filtros visuales tras recargar las capas.
   reaplicarFiltrosAlerta_();
+  // Si la influencia está encendida, se recalcula: cambió la geometría.
+  if (state.influenciaVisible) refrescarInfluencia_();
 
   if (state.alertaLayersOn && state.alertaLayersOn.verde)   { capaAlertaVerdeLayer.addTo(map);    planificacionRecursosVerdeLayer.addTo(map); }
   if (state.alertaLayersOn && state.alertaLayersOn.amarilla) { capaAlertaAmarillaLayer.addTo(map); planificacionRecursosAmarillaLayer.addTo(map); }
@@ -12433,7 +14105,1073 @@ const tabMeta = {
   capas: { title:'Capas', sub:'Incendios SIDCO, áreas pobladas y más' },
   copamiento: { title:'Copamiento', sub:'Recursos vigentes en esta comuna' },
   usuarios: { title:'Usuarios', sub:'Gestión de accesos por comuna' },
+  informe: { title:'Informe de copamiento', sub:'Por institución y sobre la ocurrencia de incendios' },
 };
+
+/* ============ INFORME DE COPAMIENTO ============
+ * Reúne los dos niveles en un documento imprimible y descargable:
+ *   · Nivel comunal por institución: recursos y km² copados.
+ *   · Nivel de incendios por alerta: km² de ocurrencia cubiertos en las
+ *     tres ventanas históricas.
+ *
+ * Los datos salen de las mismas funciones que alimentan el mapa, así que
+ * el informe siempre coincide con lo que se está viendo.
+ */
+state.informe = state.informe || null;
+
+function renderTabInforme_(c) {
+  const nombreComuna = state.activeComunaId ? nombreComuna_(state.activeComunaId) : '—';
+  c.innerHTML =
+    '<div style="padding:6px 2px;">' +
+      '<div style="font-size:12px;opacity:.8;margin-bottom:4px;">Comuna</div>' +
+      '<div style="font-size:14px;font-weight:700;margin-bottom:14px;">' + escapeHtml_(nombreComuna) + '</div>' +
+      '<div style="font-size:11.5px;opacity:.75;line-height:1.55;margin-bottom:14px;">' +
+        'Reúne el copamiento comunal por institución y el copamiento sobre la zona ' +
+        'de ocurrencia de incendios, con sus gráficos. Se abre en pantalla completa ' +
+        'y se puede descargar en HTML o CSV.' +
+      '</div>' +
+      '<button id="btn-generar-informe" class="btn-primary" style="width:100%;">📊 Generar y abrir informe</button>' +
+    '</div>';
+
+  document.getElementById('btn-generar-informe').addEventListener('click', generarInforme_);
+}
+
+function enlazarModalInforme_() {
+  const cerrar = document.getElementById('btn-cerrar-informe');
+  if (cerrar) cerrar.addEventListener('click', () => {
+    document.getElementById('informe-modal-overlay').classList.remove('show');
+  });
+  const bp = document.getElementById('btn-descargar-pdf');
+  if (bp) bp.addEventListener('click', descargarInformePdf_);
+  const bd = document.getElementById('btn-descargar-informe');
+  if (bd) bd.addEventListener('click', descargarInformeHtml_);
+  const bc = document.getElementById('btn-descargar-csv');
+  if (bc) bc.addEventListener('click', descargarInformeCsv_);
+}
+
+async function generarInforme_() {
+  if (!state.activeComunaId) { mostrarToast_('⚠️ Selecciona una comuna primero.'); return; }
+
+  const btn = document.getElementById('btn-generar-informe');
+  if (btn) { btn.disabled = true; btn.textContent = 'Calculando…'; }
+  mostrarToast_('📊 Calculando copamiento…');
+
+  try {
+    // Nivel comunal, por institución y escenario.
+    const porInst = await supabaseClient.rpc('copamiento_por_institucion', {
+      p_comuna_id: String(state.activeComunaId),
+      p_buffer_m: BUFFER_INFLUENCIA_M,
+    });
+    if (porInst.error) throw new Error(porInst.error.message);
+
+    // Superficie de la comuna: da contexto a los porcentajes.
+    const superficie = await supabaseClient.rpc('superficie_comuna', {
+      p_comuna_id: String(state.activeComunaId),
+    });
+
+    // Desglose por tipo de recurso, solo para quienes planifican recursos
+    // propios. Para el resto ese detalle es ruido.
+    let porTipo = [];
+    if (perfilPuedeUsarCatalogoCmpc_()) {
+      const rt = await supabaseClient.rpc('copamiento_por_tipo_recurso', {
+        p_comuna_id: String(state.activeComunaId),
+        p_buffer_m: BUFFER_INFLUENCIA_M,
+      });
+      if (!rt.error) porTipo = rt.data || [];
+      else console.error('copamiento_por_tipo_recurso:', rt.error.message);
+    }
+
+    // Nivel de incendios, por ventana histórica y escenario.
+    const incendios = {};
+    for (const cfg of NIVELES_AMEBA) {
+      if (!state.amebaDatos[cfg.id]) await cargarAmeba_(cfg.id);
+      const r = await supabaseClient.rpc('kpi_copamiento_ameba', {
+        p_comuna_id: String(state.activeComunaId),
+        p_nivel: cfg.temporadas,
+        p_buffer_influencia_m: BUFFER_INFLUENCIA_M,
+      });
+      incendios[cfg.id] = r.error ? [] : (r.data || []);
+    }
+
+    const sup = (superficie.data && superficie.data[0]) ? superficie.data[0] : null;
+
+    state.informe = {
+      comuna: nombreComuna_(state.activeComunaId),
+      superficie: sup,
+      porTipo,
+      generado: new Date(),
+      bufferInfluencia: BUFFER_INFLUENCIA_M,
+      bufferAmeba: BUFFER_AMEBA_M,
+      instituciones: porInst.data || [],
+      incendios,
+      amebas: NIVELES_AMEBA.map(cfg => ({
+        id: cfg.id,
+        temporadas: cfg.temporadas,
+        datos: state.amebaDatos[cfg.id] || null,
+      })),
+    };
+
+    pintarInforme_();
+    document.getElementById('informe-modal-overlay').classList.add('show');
+  } catch (e) {
+    console.error('generarInforme_:', e);
+    mostrarToast_('No se pudo generar el informe: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📊 Generar y abrir informe'; }
+  }
+}
+
+/* Gráficos del informe en SVG puro.
+ *
+ * No se usa ninguna librería de gráficos: el SVG generado aquí va tanto en
+ * el modal como dentro del archivo descargado, y así el HTML exportado se
+ * ve igual en cualquier navegador sin depender de internet.
+ */
+const COLOR_ESC = { Verde: '#16A34A', Amarilla: '#F59E0B', Roja: '#EF4444' };
+
+function envolverTexto_(t, max) {
+  const s = String(t || '');
+  return s.length > max ? s.slice(0, max - 1) + '…' : s;
+}
+
+/** Barras horizontales agrupadas. series = [{nombre, color, valores:[]}]
+ *
+ * Las series enteramente en cero se omiten: dibujar una pista vacía por
+ * cada escenario sin datos llenaba el gráfico de filas inútiles y hacía
+ * difícil leer las que sí tenían valores.
+ */
+function graficoBarras_(categorias, series, opts) {
+  const o = opts || {};
+  const activas = series.filter(s => s.valores.some(v => (Number(v) || 0) > 0));
+  const usar = activas.length > 0 ? activas : series.slice(0, 1);
+  const omitidas = series.filter(s => usar.indexOf(s) === -1).map(s => s.nombre);
+
+  const anchoEtiqueta = o.anchoEtiqueta || 150;
+  const altoBarra = 15;
+  const sepSerie = 4;
+  const sepCat = 14;
+  const margenDer = 62;
+  const ancho = o.ancho || 780;
+  const anchoBarras = ancho - anchoEtiqueta - margenDer;
+
+  const maximo = Math.max(1, ...usar.flatMap(s => s.valores.map(v => Number(v) || 0)));
+  const altoCat = usar.length * (altoBarra + sepSerie) - sepSerie + sepCat;
+  const yInicio = usar.length > 1 ? 26 : 10;
+  const alto = categorias.length * altoCat + yInicio + 6;
+
+  let svg = '<svg width="100%" viewBox="0 0 ' + ancho + ' ' + alto + '" ' +
+    'style="font-family:Inter,Segoe UI,sans-serif;max-width:' + ancho + 'px;">';
+
+  // Leyenda: solo las series que se dibujan.
+  if (usar.length > 1) {
+    let lx = anchoEtiqueta;
+    usar.forEach(s => {
+      svg += '<rect x="' + lx + '" y="3" width="10" height="10" rx="3" fill="' + s.color + '"/>' +
+             '<text x="' + (lx + 15) + '" y="12" font-size="11" fill="#475569">' + escapeHtml_(s.nombre) + '</text>';
+      lx += 30 + s.nombre.length * 6.4;
+    });
+  }
+
+  categorias.forEach((cat, i) => {
+    const y0 = yInicio + i * altoCat;
+    const altoGrupo = usar.length * (altoBarra + sepSerie) - sepSerie;
+
+    // Franja alterna para separar categorías sin líneas duras.
+    if (i % 2 === 1) {
+      svg += '<rect x="0" y="' + (y0 - 5) + '" width="' + ancho + '" height="' + (altoGrupo + 10) + '" fill="#F8FAFC"/>';
+    }
+
+    const logo = o.logos ? o.logos[i] : null;
+    const yTexto = y0 + altoGrupo / 2 + 4;
+    if (logo) {
+      // El logo va antes del nombre: ayuda a identificar la institución de
+      // un vistazo cuando la lista es larga.
+      svg += '<image href="' + escapeHtml_(logo) + '" x="' + (anchoEtiqueta - 30) + '" y="' +
+             (yTexto - 13) + '" width="17" height="17" preserveAspectRatio="xMidYMid meet"/>';
+      svg += '<text x="' + (anchoEtiqueta - 36) + '" y="' + yTexto + '" ' +
+        'text-anchor="end" font-size="11.5" font-weight="600" fill="#1E293B">' +
+        escapeHtml_(envolverTexto_(cat, 20)) + '</text>';
+    } else {
+      svg += '<text x="' + (anchoEtiqueta - 10) + '" y="' + yTexto + '" ' +
+        'text-anchor="end" font-size="11.5" font-weight="600" fill="#1E293B">' +
+        escapeHtml_(envolverTexto_(cat, 22)) + '</text>';
+    }
+
+    usar.forEach((s, j) => {
+      const v = Number(s.valores[i]) || 0;
+      const y = y0 + j * (altoBarra + sepSerie);
+      const w = v > 0 ? Math.max(3, Math.round((v / maximo) * anchoBarras)) : 0;
+
+      // Línea base tenue, no una pista de ancho completo.
+      svg += '<line x1="' + anchoEtiqueta + '" y1="' + (y + altoBarra) + '" x2="' + (anchoEtiqueta + anchoBarras) +
+             '" y2="' + (y + altoBarra) + '" stroke="#E2E8F0" stroke-width="1"/>';
+
+      if (w > 0) {
+        svg += '<rect x="' + anchoEtiqueta + '" y="' + y + '" width="' + w + '" height="' + altoBarra +
+               '" rx="3" fill="' + s.color + '"/>';
+        svg += '<text x="' + (anchoEtiqueta + w + 7) + '" y="' + (y + altoBarra - 3) + '" ' +
+               'font-size="10.5" font-weight="600" fill="#334155">' +
+               (o.formato ? o.formato(v) : v) + '</text>';
+      } else {
+        svg += '<text x="' + (anchoEtiqueta + 4) + '" y="' + (y + altoBarra - 3) + '" ' +
+               'font-size="10" fill="#CBD5E1">sin datos</text>';
+      }
+    });
+  });
+
+  svg += '</svg>';
+
+  if (omitidas.length > 0) {
+    svg += '<div class="omitidas">Sin recursos en: ' + escapeHtml_(omitidas.join(', ')) + '</div>';
+  }
+  return svg;
+}
+
+/** Anillos de progreso, uno por escenario. */
+function graficoAnillos_(items) {
+  const r = 34, grosor = 9, paso = 150, alto = 132;
+  const ancho = items.length * paso;
+  let svg = '<svg width="100%" viewBox="0 0 ' + ancho + ' ' + alto + '" ' +
+    'style="font-family:Inter,Segoe UI,sans-serif;max-width:' + ancho + 'px;">';
+
+  items.forEach((it, i) => {
+    const cx = paso / 2 + i * paso, cy = 50;
+    const pct = Math.max(0, Math.min(100, Number(it.valor) || 0));
+    const circ = 2 * Math.PI * r;
+    const avance = circ * (pct / 100);
+
+    svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#EEF2F7" stroke-width="' + grosor + '"/>';
+    if (pct > 0) {
+      svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + it.color + '" ' +
+        'stroke-width="' + grosor + '" stroke-linecap="round" ' +
+        'stroke-dasharray="' + avance.toFixed(1) + ' ' + (circ - avance).toFixed(1) + '" ' +
+        'transform="rotate(-90 ' + cx + ' ' + cy + ')"/>';
+    }
+    svg += '<text x="' + cx + '" y="' + (cy + 3) + '" text-anchor="middle" font-size="18" font-weight="800" fill="#0F172A">' +
+      pct.toFixed(pct >= 10 ? 0 : 1) + '<tspan font-size="11" font-weight="600" fill="#64748B">%</tspan></text>';
+    svg += '<circle cx="' + (cx - 32) + '" cy="' + (cy + r + 18) + '" r="4" fill="' + it.color + '"/>';
+    svg += '<text x="' + (cx - 24) + '" y="' + (cy + r + 22) + '" font-size="11.5" font-weight="600" fill="#1E293B">' +
+      escapeHtml_(it.etiqueta) + '</text>';
+    if (it.detalle) {
+      svg += '<text x="' + cx + '" y="' + (cy + r + 38) + '" text-anchor="middle" font-size="10" fill="#94A3B8">' +
+        escapeHtml_(it.detalle) + '</text>';
+    }
+  });
+
+  return svg + '</svg>';
+}
+
+/** Bloque de gráficos del informe. */
+function graficosInforme_() {
+  const inf = informeFiltrado_();
+  if (!inf) return '';
+
+  const escenarios = ['Verde', 'Amarilla', 'Roja'];
+  let html = '';
+
+  // ============================================================
+  // 1. NIVEL DE COPAMIENTO
+  // Abre el informe combinando las dos miradas: cuánto territorio comunal
+  // se cubre y cuánto de la zona donde históricamente se quema. Son dos
+  // preguntas distintas sobre el mismo despliegue y conviene leerlas juntas.
+  // ============================================================
+  const sup = inf.superficie;
+
+  const anillosComuna = escenarios.map(esc => {
+    const filas = inf.instituciones.filter(f => f.escenario === esc);
+    const km = filas.reduce((n, f) => n + (Number(f.area_km2) || 0), 0);
+    const pct = filas.reduce((n, f) => n + (Number(f.pct_comuna) || 0), 0);
+    const rec = filas.reduce((n, f) => n + (Number(f.entidades) || 0), 0);
+    return { etiqueta: 'Alerta ' + esc, valor: pct, color: COLOR_ESC[esc],
+             detalle: rec + ' rec · ' + km.toFixed(1) + ' km²' };
+  });
+
+  const nInst = new Set(inf.instituciones.filter(f => (Number(f.entidades) || 0) > 0)
+    .map(f => f.institucion)).size;
+
+  const datosTerritorio = [
+    { etiqueta: 'Superficie comunal', valor: sup && sup.area_km2 != null ? Number(sup.area_km2).toLocaleString('es-CL') : '—', unidad: 'km²' },
+    { etiqueta: 'Perímetro',          valor: sup && sup.perimetro_km != null ? Number(sup.perimetro_km).toLocaleString('es-CL') : '—', unidad: 'km' },
+    { etiqueta: 'Instituciones',      valor: nInst, unidad: 'participan' },
+  ];
+
+  html += '<h3>1. Nivel de copamiento</h3>';
+
+  // ---- 1.a Sobre el territorio comunal ----
+  html += '<h4 class="sub">a. Sobre el territorio comunal</h4>' +
+    '<p class="nota">Porcentaje de la superficie de la comuna cubierto por las áreas de ' +
+    'influencia de los recursos. Suma las coberturas por institución, de modo que un ' +
+    'sector cubierto por dos instituciones se cuenta dos veces.</p>' +
+    '<div class="grafico panel-copamiento">' +
+      '<div class="pc-anillos">' + graficoAnillos_(anillosComuna) + '</div>' +
+      '<div class="pc-datos">' +
+        datosTerritorio.map(t =>
+          '<div class="tarjeta-kpi">' +
+            '<div class="tk-etiqueta">' + escapeHtml_(t.etiqueta) + '</div>' +
+            '<div class="tk-valor">' + escapeHtml_(String(t.valor)) +
+              '<span class="tk-unidad">' + escapeHtml_(t.unidad) + '</span></div>' +
+          '</div>').join('') +
+      '</div>' +
+    '</div>';
+
+  // ---- 1.b Sobre la ocurrencia de incendios ----
+  const hayIncendios = NIVELES_AMEBA.some(cfg => (inf.incendios[cfg.id] || []).length > 0);
+
+  if (hayIncendios) {
+    html += '<h4 class="sub">b. Sobre la ocurrencia de incendios</h4>' +
+      '<p class="nota">Porcentaje de la zona donde históricamente se producen incendios que ' +
+      'queda cubierto por los recursos. Es un indicador más exigente: se puede copar mucho ' +
+      'territorio y aun así dejar fuera los sectores que se queman. ' +
+      (inf.filtrado ? '<b>No responde al filtro por institución:</b> se calcula con la unión de todos los recursos.' : '') +
+      '</p>';
+
+    const nombreVentana = { 1: 'Última temporada', 3: 'Últimas 3 temporadas', 5: 'Últimas 5 temporadas' };
+
+    NIVELES_AMEBA.forEach(cfg => {
+      const filas = inf.incendios[cfg.id] || [];
+      if (filas.length === 0) return;
+
+      const amebaKm = filas[0].ameba_km2;
+      const datosAmeba = (inf.amebas || []).find(a => a.id === cfg.id);
+      const focos = datosAmeba && datosAmeba.datos ? datosAmeba.datos.focos : null;
+      const pctComunaAmeba = datosAmeba && datosAmeba.datos ? datosAmeba.datos.pct_comuna : null;
+
+      const anillos = escenarios.map(esc => {
+        const f = filas.find(x => x.escenario === esc);
+        return {
+          etiqueta: 'Alerta ' + esc,
+          valor: f && f.pct_ameba != null ? Number(f.pct_ameba) : 0,
+          color: COLOR_ESC[esc],
+          detalle: f ? f.copado_km2 + ' de ' + f.ameba_km2 + ' km²' : '—',
+        };
+      });
+
+      html += '<div class="ventana-titulo">' +
+          '<span class="vt-nombre">' + escapeHtml_(nombreVentana[cfg.temporadas] || (cfg.temporadas + ' temporadas')) + '</span>' +
+          '<span class="vt-meta">' +
+            (focos != null ? focos + ' focos · ' : '') +
+            amebaKm + ' km² de zona de ocurrencia' +
+            (pctComunaAmeba != null ? ' · ' + pctComunaAmeba + '% de la comuna' : '') +
+          '</span>' +
+        '</div>' +
+        '<div class="grafico">' + graficoAnillos_(anillos) + '</div>';
+    });
+
+    // Comparación entre ventanas
+    const ventanas = NIVELES_AMEBA.map(cfg => nombreVentana[cfg.temporadas] || (cfg.temporadas + ' temp.'));
+    const seriesInc = escenarios.map(esc => ({
+      nombre: esc,
+      color: COLOR_ESC[esc],
+      valores: NIVELES_AMEBA.map(cfg => {
+        const f = (inf.incendios[cfg.id] || []).find(x => x.escenario === esc);
+        return f && f.pct_ameba != null ? Number(f.pct_ameba) : 0;
+      }),
+    }));
+    html += '<h4 class="sub">c. Comparación entre ventanas históricas</h4>' +
+      '<p class="nota">Si el porcentaje cae al ampliar la ventana, el despliegue está ajustado ' +
+      'a los incendios recientes y deja fuera sectores que se quemaron en temporadas anteriores.</p>' +
+      '<div class="grafico">' +
+        graficoBarras_(ventanas, seriesInc, { formato: v => v.toFixed(0) + '%', anchoEtiqueta: 160 }) +
+      '</div>';
+  }
+
+  // ---- Barras: km² copados por institución ----
+  // Solo las instituciones que aportan algo: una fila en cero por cada
+  // institución sin recursos no informa nada y alarga el gráfico.
+  const instituciones = [...new Set(inf.instituciones
+    .filter(f => (Number(f.entidades) || 0) > 0)
+    .map(f => aTitulo_(f.institucion)))];
+  if (instituciones.length > 0) {
+    const series = escenarios.map(esc => ({
+      nombre: esc,
+      color: COLOR_ESC[esc],
+      valores: instituciones.map(nom => {
+        const f = inf.instituciones.find(x => x.escenario === esc && aTitulo_(x.institucion) === nom);
+        return f ? Number(f.area_km2) || 0 : 0;
+      }),
+    }));
+    const logosInst = instituciones.map(nom => {
+      const i = (state.instituciones || []).find(x => aTitulo_(x.nombre) === nom);
+      return i ? logoEfectivoInstitucion_(i) : null;
+    });
+
+    html += '<h3>2. Aporte de cada institución</h3>' +
+      '<p class="nota">Superficie cubierta y cantidad de recursos aportados por cada ' +
+      'institución en los tres escenarios.</p>' +
+      '<h4 class="sub">a. Superficie copada</h4>' +
+      '<div class="grafico">' +
+        graficoBarras_(instituciones, series, { formato: v => v.toFixed(1) + ' km²', logos: logosInst, anchoEtiqueta: 178 }) +
+      '</div>';
+
+    const seriesRec = escenarios.map(esc => ({
+      nombre: esc,
+      color: COLOR_ESC[esc],
+      valores: instituciones.map(nom => {
+        const f = inf.instituciones.find(x => x.escenario === esc && aTitulo_(x.institucion) === nom);
+        return f ? Number(f.entidades) || 0 : 0;
+      }),
+    }));
+    html += '<h4 class="sub">b. Recursos aportados</h4>' +
+      '<div class="grafico">' + graficoBarras_(instituciones, seriesRec, { logos: logosInst, anchoEtiqueta: 178 }) + '</div>';
+  }
+
+  // ---- Barras: copamiento sobre incendios ----
+  const ventanas = NIVELES_AMEBA.map(cfg => cfg.temporadas + ' temporada' + (cfg.temporadas > 1 ? 's' : ''));
+  const seriesInc = escenarios.map(esc => ({
+    nombre: esc,
+    color: COLOR_ESC[esc],
+    valores: NIVELES_AMEBA.map(cfg => {
+      const f = (inf.incendios[cfg.id] || []).find(x => x.escenario === esc);
+      return f && f.pct_ameba != null ? Number(f.pct_ameba) : 0;
+    }),
+  }));
+  html += '<h3>Copamiento sobre la ocurrencia de incendios</h3>' +
+    '<p class="nota">Porcentaje de la zona de ocurrencia histórica cubierto por los recursos de cada alerta.</p>' +
+    '<div class="grafico">' +
+      graficoBarras_(ventanas, seriesInc, { formato: v => v.toFixed(0) + '%', anchoEtiqueta: 110 }) +
+    '</div>';
+
+  return html;
+}
+
+/** Tablas del informe, en HTML. Se usa igual en pantalla y en el archivo. */
+function tablasInforme_() {
+  const inf = informeFiltrado_();
+  if (!inf) return '';
+
+  const escenarios = ['Verde', 'Amarilla', 'Roja'];
+  const colorEsc = { Verde: '#16A34A', Amarilla: '#F59E0B', Roja: '#EF4444' };
+
+  let html = '';
+
+  // ---- Nivel comunal por institución ----
+  html += '<h3>3. Detalle por institución</h3>';
+  escenarios.forEach(esc => {
+    const filas = inf.instituciones.filter(f => f.escenario === esc);
+    if (filas.length === 0) return;
+
+    const totRec = filas.reduce((n, f) => n + (Number(f.entidades) || 0), 0);
+    const totKm = filas.reduce((n, f) => n + (Number(f.area_km2) || 0), 0);
+
+    html += '<h4 style="color:' + colorEsc[esc] + ';">Alerta ' + esc + '</h4>';
+    html += '<table><thead><tr>' +
+      '<th>Institución</th><th class="n">Recursos</th>' +
+      '<th class="n">Recursos fijos / Punto de control</th>' +
+      '<th class="n">Rutas de patrullaje</th><th class="n">Área de influencia</th>' +
+      '<th class="n">Copamiento km²</th><th class="n">% comuna</th>' +
+      '</tr></thead><tbody>';
+    filas.forEach(f => {
+      html += '<tr>' +
+        '<td>' + escapeHtml_(aTitulo_(f.institucion)) + '</td>' +
+        '<td class="n">' + f.entidades + '</td>' +
+        '<td class="n">' + f.puntos + '</td>' +
+        '<td class="n">' + f.lineas + '</td>' +
+        '<td class="n">' + f.areas + '</td>' +
+        '<td class="n">' + f.area_km2 + '</td>' +
+        '<td class="n">' + (f.pct_comuna != null ? f.pct_comuna + '%' : '—') + '</td>' +
+      '</tr>';
+    });
+    html += '<tr class="tot"><td>Total</td><td class="n">' + totRec + '</td>' +
+      '<td class="n"></td><td class="n"></td><td class="n"></td>' +
+      '<td class="n">' + totKm.toFixed(2) + '</td><td class="n"></td></tr>';
+    html += '</tbody></table>';
+  });
+
+  // ---- Tipos de recurso del área ----
+  // Solo para Administrador y Jefe de Área: son quienes planifican
+  // recursos propios y necesitan el detalle por tipo.
+  if (inf.porTipo && inf.porTipo.length > 0) {
+    html += '<h3>4. Tipos de recurso del área y su cobertura</h3>';
+    html += '<p class="nota">Superficie cubierta por cada tipo de recurso, con los solapes ' +
+      'entre entidades del mismo tipo ya descontados.</p>';
+
+    escenarios.forEach(esc => {
+      const filas = inf.porTipo.filter(f => f.escenario === esc);
+      if (filas.length === 0) return;
+
+      html += '<h4 style="color:' + colorEsc[esc] + ';">Alerta ' + esc + '</h4>';
+      html += '<table><thead><tr>' +
+        '<th>Tipo de recurso</th><th>Pertenencia</th><th>Institución</th>' +
+        '<th class="n">Recursos</th><th class="n">Rutas de patrullaje</th>' +
+        '<th class="n">Área de influencia</th>' +
+        '<th class="n">Cobertura km²</th><th class="n">% comuna</th>' +
+        '</tr></thead><tbody>';
+      filas.forEach(f => {
+        html += '<tr>' +
+          '<td>' + escapeHtml_(aTitulo_(f.tipo_recurso)) + '</td>' +
+          '<td>' + escapeHtml_(f.pertenencia) + '</td>' +
+          '<td>' + escapeHtml_(aTitulo_(f.institucion)) + '</td>' +
+          '<td class="n">' + f.entidades + '</td>' +
+          '<td class="n">' + f.lineas + '</td>' +
+          '<td class="n">' + f.areas + '</td>' +
+          '<td class="n">' + f.area_km2 + '</td>' +
+          '<td class="n">' + (f.pct_comuna != null ? f.pct_comuna + '%' : '—') + '</td>' +
+        '</tr>';
+      });
+      html += '</tbody></table>';
+    });
+  }
+
+  // ---- Nivel de incendios ----
+  html += '<h3>' + (inf.porTipo && inf.porTipo.length > 0 ? '5' : '4') +
+          '. Detalle del copamiento sobre incendios</h3>';
+  if (inf.filtrado) {
+    html += '<p class="nota" style="color:#B45309;">Este bloque no se ve afectado por el filtro: ' +
+      'se calcula con la unión de todos los recursos del escenario.</p>';
+  }
+  html += '<p class="nota">Zona de ocurrencia: unión de círculos de ' + inf.bufferAmeba +
+    ' m alrededor de cada foco histórico. Influencia de los recursos: ' + inf.bufferInfluencia + ' m.</p>';
+
+  html += '<table><thead><tr><th>Ventana histórica</th><th class="n">Zona km²</th>' +
+    escenarios.map(e => '<th class="n">' + e + ' km²</th><th class="n">' + e + ' %</th>').join('') +
+    '</tr></thead><tbody>';
+
+  NIVELES_AMEBA.forEach(cfg => {
+    const filas = inf.incendios[cfg.id] || [];
+    const base = filas.length > 0 ? filas[0].ameba_km2 : '—';
+    html += '<tr><td>' + cfg.temporadas + ' temporada' + (cfg.temporadas > 1 ? 's' : '') + '</td>' +
+      '<td class="n">' + base + '</td>';
+    escenarios.forEach(esc => {
+      const f = filas.find(x => x.escenario === esc);
+      html += '<td class="n">' + (f ? f.copado_km2 : '—') + '</td>' +
+              '<td class="n">' + (f && f.pct_ameba != null ? f.pct_ameba + '%' : '—') + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+
+  return html;
+}
+
+/* Filtro por institución.
+ *
+ * Trabaja sobre los datos ya calculados, sin volver a consultar: filtrar
+ * es recortar la vista, no recalcular el copamiento. Afecta a los bloques
+ * por institución y por tipo de recurso; el copamiento sobre incendios se
+ * mantiene global y así se indica, porque esa cifra se calcula con la
+ * unión de todos los recursos.
+ */
+state.informeFiltro = state.informeFiltro || null;   // null = todas
+
+function institucionesDelInforme_() {
+  const inf = state.informe;
+  if (!inf) return [];
+  return [...new Set(inf.instituciones
+    .filter(f => (Number(f.entidades) || 0) > 0)
+    .map(f => aTitulo_(f.institucion)))].sort();
+}
+
+function institucionActivaInforme_(nombre) {
+  return !state.informeFiltro || state.informeFiltro.indexOf(nombre) !== -1;
+}
+
+/** Copia del informe con el filtro aplicado. */
+function informeFiltrado_() {
+  const inf = state.informe;
+  if (!inf) return null;
+  if (!state.informeFiltro) return inf;
+
+  return Object.assign({}, inf, {
+    instituciones: inf.instituciones.filter(f => institucionActivaInforme_(aTitulo_(f.institucion))),
+    porTipo: (inf.porTipo || []).filter(f => institucionActivaInforme_(aTitulo_(f.institucion))),
+    filtrado: true,
+  });
+}
+
+function barraFiltroInforme_() {
+  const todas = institucionesDelInforme_();
+  if (todas.length === 0) return '';
+
+  const activas = todas.filter(institucionActivaInforme_).length;
+  return '<div class="filtro-inst">' +
+    '<span class="fi-titulo">Instituciones</span>' +
+    todas.map(nom => {
+      const on = institucionActivaInforme_(nom);
+      const i = (state.instituciones || []).find(x => aTitulo_(x.nombre) === nom);
+      const color = (i && i.color_hex) ? i.color_hex : '#64748B';
+      return '<button class="fi-chip' + (on ? ' on' : '') + '" data-fi="' + escapeHtml_(nom) + '" ' +
+        'style="' + (on ? 'border-color:' + color + ';background:' + color + '18;' : '') + '">' +
+        '<span class="fi-punto" style="background:' + (on ? color : '#CBD5E1') + ';"></span>' +
+        escapeHtml_(nom) + '</button>';
+    }).join('') +
+    '<button class="fi-chip fi-todas" data-fi-todas="1">' +
+      (activas === todas.length ? 'Ninguna' : 'Todas') + '</button>' +
+  '</div>';
+}
+
+function enlazarFiltroInforme_() {
+  document.querySelectorAll('[data-fi]').forEach(b => {
+    b.addEventListener('click', () => {
+      const nom = b.dataset.fi;
+      const todas = institucionesDelInforme_();
+      let sel = state.informeFiltro ? state.informeFiltro.slice() : todas.slice();
+      const i = sel.indexOf(nom);
+      if (i === -1) sel.push(nom); else sel.splice(i, 1);
+      state.informeFiltro = (sel.length === todas.length) ? null : sel;
+      pintarInforme_();
+    });
+  });
+  const bt = document.querySelector('[data-fi-todas]');
+  if (bt) bt.addEventListener('click', () => {
+    const todas = institucionesDelInforme_();
+    const activas = todas.filter(institucionActivaInforme_).length;
+    state.informeFiltro = (activas === todas.length) ? [] : null;
+    pintarInforme_();
+  });
+}
+
+function pintarInforme_() {
+  const cont = document.getElementById('informe-contenido');
+  const sub = document.getElementById('informe-modal-sub');
+  const inf = state.informe;
+  if (!cont || !inf) return;
+
+  if (sub) {
+    const sup = inf.superficie;
+    const lugar = sup
+      ? [sup.comuna, sup.provincia, sup.region].filter(Boolean).join(' · ')
+      : inf.comuna;
+    sub.innerHTML =
+      '<span class="informe-chip">📍 ' + escapeHtml_(lugar) + '</span>' +
+      '<span class="informe-chip">🗓 ' + inf.generado.toLocaleDateString('es-CL') + ' ' +
+        inf.generado.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) + '</span>' +
+      '<span class="informe-chip">🎯 Influencia ' + inf.bufferInfluencia + ' m</span>';
+  }
+
+  cont.innerHTML = estilosInforme_('#informe-contenido') +
+    barraFiltroInforme_() + graficosInforme_() + tablasInforme_();
+  enlazarFiltroInforme_();
+}
+
+/** Estilos compartidos entre el modal y el archivo descargado. */
+function estilosInforme_(scope) {
+  const p = scope ? scope + ' ' : '';
+  return '<style>' +
+    p + 'h4.sub{font-size:12px;font-weight:700;color:#334155;margin:16px 0 3px;}' +
+    p + '.ventana-titulo{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;' +
+        'margin:14px 0 0;padding:7px 12px;border-radius:9px 9px 0 0;' +
+        'background:linear-gradient(90deg,#EEF4FF 0%,#F8FAFC 100%);border:1px solid #E8EDF3;border-bottom:none;}' +
+    p + '.vt-nombre{font-size:11.5px;font-weight:700;color:#1E293B;}' +
+    p + '.vt-meta{font-size:10px;color:#64748B;}' +
+    p + '.ventana-titulo + .grafico{margin-top:0;border-radius:0 0 12px 12px;}' +
+    p + '.filtro-inst{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 16px;' +
+        'padding:10px 12px;border-radius:11px;background:#fff;border:1px solid #E8EDF3;' +
+        'box-shadow:0 1px 3px rgba(15,23,42,0.05);}' +
+    p + '.fi-titulo{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;' +
+        'color:#64748B;font-weight:700;margin-right:4px;}' +
+    p + '.fi-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;' +
+        'border:1px solid #E2E8F0;background:#F8FAFC;color:#475569;font-family:inherit;' +
+        'font-size:10.5px;font-weight:600;cursor:pointer;transition:all .13s ease;}' +
+    p + '.fi-chip:hover{border-color:#CBD5E1;}' +
+    p + '.fi-chip.on{color:#0F172A;}' +
+    p + '.fi-punto{width:8px;height:8px;border-radius:50%;flex-shrink:0;}' +
+    p + '.fi-todas{margin-left:auto;background:#EEF2F7;}' +
+    p + '.panel-copamiento{display:flex;gap:18px;align-items:center;flex-wrap:wrap;}' +
+    p + '.pc-anillos{flex:1 1 420px;min-width:300px;}' +
+    p + '.pc-datos{flex:0 0 170px;display:flex;flex-direction:column;gap:8px;' +
+        'border-left:1px solid #E8EDF3;padding-left:16px;}' +
+    p + '.tarjeta-kpi{padding:9px 12px;border-radius:9px;' +
+        'background:linear-gradient(135deg,#FFFFFF 0%,#F4F7FB 100%);border:1px solid #E2E8F0;' +
+        'box-shadow:0 1px 2px rgba(15,23,42,0.04);}' +
+    p + '.tk-etiqueta{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;' +
+        'color:#64748B;font-weight:700;margin-bottom:3px;}' +
+    p + '.tk-valor{font-size:18px;font-weight:800;color:#0F172A;line-height:1.15;letter-spacing:-.3px;}' +
+    p + '.tk-unidad{font-size:10.5px;font-weight:600;color:#94A3B8;margin-left:5px;letter-spacing:0;}' +
+    p + 'h3{font-size:14px;font-weight:700;margin:26px 0 2px;color:#0F172A;' +
+        'display:flex;align-items:center;gap:8px;}' +
+    p + 'h3::before{content:"";width:3px;height:15px;border-radius:2px;background:#2563EB;}' +
+    p + 'h3:first-child{margin-top:4px;}' +
+    p + 'h4{font-size:12px;font-weight:700;margin:16px 0 4px;}' +
+    p + '.nota{font-size:11px;color:#64748B;margin:0 0 10px;line-height:1.5;}' +
+    p + '.grafico{margin:8px 0 22px;padding:14px 12px 10px;border:1px solid #E8EDF3;' +
+        'border-radius:12px;overflow-x:auto;' +
+        'background:linear-gradient(180deg,#FFFFFF 0%,#FAFCFE 100%);' +
+        'box-shadow:0 1px 3px rgba(15,23,42,0.05);}' +
+    p + '.omitidas{font-size:10.5px;color:#94A3B8;padding:6px 2px 0;border-top:1px solid #F1F5F9;margin-top:8px;}' +
+    p + 'table{width:100%;border-collapse:separate;border-spacing:0;margin:6px 0 18px;font-size:11.5px;' +
+        'border:1px solid #E2E8F0;border-radius:8px;overflow:hidden;}' +
+    p + 'th,' + p + 'td{padding:6px 9px;text-align:left;border-bottom:1px solid #EEF2F7;}' +
+    p + 'th{background:#F8FAFC;font-weight:700;font-size:10.5px;text-transform:uppercase;' +
+        'letter-spacing:.03em;color:#475569;border-bottom:1px solid #E2E8F0;}' +
+    p + 'tbody tr:last-child td{border-bottom:none;}' +
+    p + 'tbody tr:nth-child(even) td{background:#FCFDFE;}' +
+    p + 'td.n,' + p + 'th.n{text-align:right;font-variant-numeric:tabular-nums;}' +
+    p + 'tr.tot td{font-weight:700;background:#F1F5F9 !important;border-top:1px solid #E2E8F0;}' +
+    '</style>';
+}
+
+/* ============ INFORME EN PDF ============
+ * Se dibuja con jsPDF directamente, sin capturar la pantalla. Así el texto
+ * queda seleccionable, las tablas nítidas a cualquier zoom y el archivo
+ * pesa una fracción de lo que pesaría una captura.
+ */
+function descargarInformePdf_() {
+  const inf = informeFiltrado_();
+  if (!inf) return;
+
+  const { jsPDF } = window.jspdf || {};
+  if (!jsPDF) { mostrarToast_('No se pudo cargar el generador de PDF.'); return; }
+
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const ANCHO = 297, ALTO = 210, M = 12;
+  const COL = { Verde: [22, 163, 74], Amarilla: [245, 158, 11], Roja: [239, 68, 68] };
+  let y = 0;
+
+  const nuevaPagina = (titulo) => {
+    doc.addPage();
+    y = M;
+    if (titulo) seccion(titulo);
+  };
+  const espacio = (n) => { if (y + n > ALTO - M) nuevaPagina(); };
+
+  // ---- Cabecera ----
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, ANCHO, 26, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
+  doc.text('Informe de nivel de copamiento', M, 12);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+  doc.setTextColor(190, 200, 215);
+  const sup = inf.superficie;
+  const lugar = sup ? [sup.comuna, sup.provincia, sup.region].filter(Boolean).join('  ·  ') : inf.comuna;
+  doc.text(lugar + '     ' + inf.generado.toLocaleDateString('es-CL') + ' ' +
+    inf.generado.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) +
+    '     Influencia ' + inf.bufferInfluencia + ' m', M, 19);
+  y = 34;
+
+  const seccion = (t) => {
+    espacio(14);
+    doc.setFillColor(37, 99, 235);
+    doc.rect(M, y - 4, 1.2, 5.5, 'F');
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5);
+    doc.text(t, M + 4, y);
+    y += 7;
+  };
+
+  const nota = (t) => {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
+    doc.setTextColor(100, 116, 139);
+    doc.splitTextToSize(t, ANCHO - M * 2).forEach(l => { espacio(5); doc.text(l, M, y); y += 3.6; });
+    y += 2;
+  };
+
+  /** Tabla simple con anchos proporcionales. */
+  const tabla = (cabeceras, filas, anchos, alineaDer) => {
+    const total = anchos.reduce((a, b) => a + b, 0);
+    const disp = ANCHO - M * 2;
+    const w = anchos.map(a => (a / total) * disp);
+
+    const pintarCabecera = () => {
+      espacio(10);
+      doc.setFillColor(241, 245, 249);
+      doc.rect(M, y - 3.8, disp, 6, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
+      doc.setTextColor(71, 85, 105);
+      let x = M + 1.5;
+      cabeceras.forEach((c, i) => {
+        const der = alineaDer && alineaDer.indexOf(i) !== -1;
+        doc.text(String(c), der ? x + w[i] - 3 : x, y, { align: der ? 'right' : 'left' });
+        x += w[i];
+      });
+      y += 5;
+    };
+
+    pintarCabecera();
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
+
+    filas.forEach((fila, n) => {
+      if (y + 6 > ALTO - M) { nuevaPagina(); pintarCabecera(); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); }
+      if (n % 2 === 1) { doc.setFillColor(250, 252, 254); doc.rect(M, y - 3.6, disp, 5.4, 'F'); }
+      doc.setTextColor(30, 41, 59);
+      let x = M + 1.5;
+      fila.forEach((celda, i) => {
+        const der = alineaDer && alineaDer.indexOf(i) !== -1;
+        const txt = String(celda == null ? '—' : celda);
+        doc.text(txt.length > 46 ? txt.slice(0, 45) + '…' : txt,
+          der ? x + w[i] - 3 : x, y, { align: der ? 'right' : 'left' });
+        x += w[i];
+      });
+      y += 5.4;
+    });
+    y += 5;
+  };
+
+  const escenarios = ['Verde', 'Amarilla', 'Roja'];
+
+  // ---- Datos del territorio y copamiento por alerta ----
+  seccion('1. Nivel de copamiento — territorio comunal');
+  const anchoCaja = (ANCHO - M * 2 - 12) / 3;
+  escenarios.forEach((esc, i) => {
+    const filas = inf.instituciones.filter(f => f.escenario === esc);
+    const pct = filas.reduce((n, f) => n + (Number(f.pct_comuna) || 0), 0);
+    const km = filas.reduce((n, f) => n + (Number(f.area_km2) || 0), 0);
+    const rec = filas.reduce((n, f) => n + (Number(f.entidades) || 0), 0);
+    const x = M + i * (anchoCaja + 6);
+
+    doc.setDrawColor(226, 232, 240); doc.setFillColor(255, 255, 255);
+    doc.roundedRect(x, y, anchoCaja, 20, 2, 2, 'FD');
+    doc.setFillColor(COL[esc][0], COL[esc][1], COL[esc][2]);
+    doc.roundedRect(x, y, 1.6, 20, 0.8, 0.8, 'F');
+
+    doc.setTextColor(100, 116, 139); doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
+    doc.text('ALERTA ' + esc.toUpperCase(), x + 5, y + 6);
+    doc.setTextColor(15, 23, 42); doc.setFontSize(15);
+    doc.text(pct.toFixed(1) + ' %', x + 5, y + 14);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.text(rec + ' recursos  ·  ' + km.toFixed(1) + ' km²', x + 5, y + 18);
+  });
+  y += 27;
+
+  if (sup) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    doc.text('Superficie comunal: ' + (sup.area_km2 != null ? Number(sup.area_km2).toLocaleString('es-CL') + ' km²' : '—') +
+      '     Perímetro: ' + (sup.perimetro_km != null ? Number(sup.perimetro_km).toLocaleString('es-CL') + ' km' : '—'), M, y);
+    y += 9;
+  }
+
+  // ---- Nivel de copamiento sobre incendios, por ventana histórica ----
+  const nombreVentanaPdf = { 1: 'Última temporada', 3: 'Últimas 3 temporadas', 5: 'Últimas 5 temporadas' };
+  const hayIncPdf = NIVELES_AMEBA.some(cfg => (inf.incendios[cfg.id] || []).length > 0);
+
+  if (hayIncPdf) {
+    espacio(16);
+    seccion('1. Nivel de copamiento — ocurrencia de incendios');
+    nota('Porcentaje de la zona donde históricamente se producen incendios cubierto por los recursos. ' +
+         'Considera todos los recursos del escenario, sin filtro por institución.');
+
+    NIVELES_AMEBA.forEach(cfg => {
+      const filas = inf.incendios[cfg.id] || [];
+      if (filas.length === 0) return;
+      espacio(30);
+
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+      doc.setTextColor(30, 41, 59);
+      doc.text(nombreVentanaPdf[cfg.temporadas] || (cfg.temporadas + ' temporadas'), M, y);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
+      doc.setTextColor(100, 116, 139);
+      doc.text('Zona de ocurrencia: ' + filas[0].ameba_km2 + ' km²', M + 55, y);
+      y += 4;
+
+      escenarios.forEach((esc, i) => {
+        const f = filas.find(x => x.escenario === esc);
+        const pct = f && f.pct_ameba != null ? Number(f.pct_ameba) : 0;
+        const x = M + i * (anchoCaja + 6);
+
+        doc.setDrawColor(226, 232, 240); doc.setFillColor(255, 255, 255);
+        doc.roundedRect(x, y, anchoCaja, 17, 2, 2, 'FD');
+        doc.setFillColor(COL[esc][0], COL[esc][1], COL[esc][2]);
+        doc.roundedRect(x, y, 1.6, 17, 0.8, 0.8, 'F');
+
+        // Barra de avance dentro de la caja.
+        const bx = x + 5, bw = anchoCaja - 10;
+        doc.setFillColor(237, 242, 247);
+        doc.roundedRect(bx, y + 11, bw, 2.6, 1.3, 1.3, 'F');
+        if (pct > 0) {
+          doc.setFillColor(COL[esc][0], COL[esc][1], COL[esc][2]);
+          doc.roundedRect(bx, y + 11, Math.max(2, bw * (pct / 100)), 2.6, 1.3, 1.3, 'F');
+        }
+
+        doc.setTextColor(100, 116, 139); doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5);
+        doc.text('ALERTA ' + esc.toUpperCase(), bx, y + 5);
+        doc.setTextColor(15, 23, 42); doc.setFontSize(11);
+        doc.text(pct.toFixed(1) + ' %', bx + bw, y + 5.5, { align: 'right' });
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text((f ? f.copado_km2 : 0) + ' km² cubiertos', bx, y + 9);
+      });
+      y += 23;
+    });
+  }
+
+  // ---- 1. Por institución ----
+  seccion('2. Detalle por institución');
+  escenarios.forEach(esc => {
+    const filas = inf.instituciones.filter(f => f.escenario === esc);
+    if (filas.length === 0) return;
+    espacio(12);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5);
+    doc.setTextColor(COL[esc][0], COL[esc][1], COL[esc][2]);
+    doc.text('Alerta ' + esc, M, y); y += 5;
+
+    tabla(
+      ['Institución', 'Recursos', 'Recursos fijos / Punto de control', 'Rutas de patrullaje',
+       'Área de influencia', 'Copamiento km²', '% comuna'],
+      filas.map(f => [aTitulo_(f.institucion), f.entidades, f.puntos, f.lineas, f.areas,
+                      f.area_km2, f.pct_comuna != null ? f.pct_comuna + '%' : '—']),
+      [30, 12, 26, 18, 18, 16, 12], [1, 2, 3, 4, 5, 6]
+    );
+  });
+
+  // ---- 2. Por tipo de recurso ----
+  if (inf.porTipo && inf.porTipo.length > 0) {
+    nuevaPagina();
+    seccion('3. Tipos de recurso del área y su cobertura');
+    escenarios.forEach(esc => {
+      const filas = inf.porTipo.filter(f => f.escenario === esc);
+      if (filas.length === 0) return;
+      espacio(12);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5);
+      doc.setTextColor(COL[esc][0], COL[esc][1], COL[esc][2]);
+      doc.text('Alerta ' + esc, M, y); y += 5;
+
+      tabla(
+        ['Tipo de recurso', 'Pertenencia', 'Institución', 'Recursos',
+         'Rutas de patrullaje', 'Área de influencia', 'Cobertura km²', '% comuna'],
+        filas.map(f => [aTitulo_(f.tipo_recurso), f.pertenencia, aTitulo_(f.institucion),
+                        f.entidades, f.lineas, f.areas, f.area_km2,
+                        f.pct_comuna != null ? f.pct_comuna + '%' : '—']),
+        [28, 20, 24, 12, 18, 18, 16, 12], [3, 4, 5, 6, 7]
+      );
+    });
+  }
+
+  // ---- 3. Sobre incendios ----
+  espacio(40);
+  seccion((inf.porTipo && inf.porTipo.length > 0 ? '4' : '3') + '. Detalle del copamiento sobre incendios');
+  nota('Zona de ocurrencia: unión de círculos de ' + inf.bufferAmeba +
+       ' m alrededor de cada foco histórico. Este bloque considera todos los recursos del escenario.');
+
+  const filasInc = [];
+  NIVELES_AMEBA.forEach(cfg => {
+    const filas = inf.incendios[cfg.id] || [];
+    const base = filas.length > 0 ? filas[0].ameba_km2 : '—';
+    const fila = [cfg.temporadas + ' temporada' + (cfg.temporadas > 1 ? 's' : ''), base];
+    escenarios.forEach(esc => {
+      const f = filas.find(x => x.escenario === esc);
+      fila.push(f ? f.copado_km2 : '—');
+      fila.push(f && f.pct_ameba != null ? f.pct_ameba + '%' : '—');
+    });
+    filasInc.push(fila);
+  });
+  tabla(['Ventana histórica', 'Zona km²', 'Verde km²', 'Verde %', 'Amarilla km²', 'Amarilla %',
+         'Roja km²', 'Roja %'], filasInc, [28, 16, 16, 12, 18, 14, 16, 12], [1, 2, 3, 4, 5, 6, 7]);
+
+  // ---- Pie en todas las páginas ----
+  const total = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(226, 232, 240);
+    doc.line(M, ALTO - 9, ANCHO - M, ALTO - 9);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text('SIG Copamiento Territorial  ·  ' + inf.comuna +
+      (inf.filtrado ? '  ·  Filtrado por institución' : ''), M, ALTO - 5);
+    doc.text('Página ' + i + ' de ' + total, ANCHO - M, ALTO - 5, { align: 'right' });
+  }
+
+  doc.save(nombreArchivoInforme_('pdf'));
+  mostrarToast_('📕 PDF descargado.');
+}
+
+function nombreArchivoInforme_(ext) {
+  const inf = state.informe;
+  const f = inf ? inf.generado : new Date();
+  const fecha = f.toISOString().slice(0, 10);
+  const comuna = (inf ? inf.comuna : 'comuna').replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ0-9]+/g, '_');
+  return 'copamiento_' + comuna + '_' + fecha + '.' + ext;
+}
+
+function descargarArchivo_(contenido, nombre, tipo) {
+  const blob = new Blob([contenido], { type: tipo });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombre;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function descargarInformeHtml_() {
+  const inf = informeFiltrado_();
+  if (!inf) return;
+
+  const doc =
+'<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
+'<title>Informe de copamiento — ' + escapeHtml_(inf.comuna) + '</title>' +
+'<style>' +
+'body{font-family:Inter,Segoe UI,sans-serif;color:#0F172A;line-height:1.45;margin:0;padding:34px 24px 40px;' +
+'background:#F7FAFD;background-image:radial-gradient(circle at 1px 1px, rgba(37,99,235,0.055) 1px, transparent 0);background-size:18px 18px;}' +
+'.hoja{max-width:900px;margin:0 auto;background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:30px 34px 36px;box-shadow:0 2px 10px rgba(15,23,42,0.06);}' +
+'h1{font-size:21px;margin:0 0 3px;letter-spacing:-.2px;}' +
+'h2{font-size:12.5px;font-weight:400;color:#64748B;margin:0 0 24px;}' +
+'footer{margin-top:32px;font-size:10.5px;color:#94A3B8;border-top:1px solid #E2E8F0;padding-top:10px;line-height:1.6;}' +
+'@media print{body{margin:0;} h3{page-break-after:avoid;} table,.grafico{page-break-inside:avoid;}}' +
+'</style>' + estilosInforme_('') + '</head><body><div class="hoja">' +
+'<h1>Informe de nivel de copamiento</h1>' +
+'<h2>' + escapeHtml_(inf.comuna) + ' · generado el ' +
+  inf.generado.toLocaleDateString('es-CL') + ' a las ' +
+  inf.generado.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) + '</h2>' +
+graficosInforme_() +
+tablasInforme_() +
+'<footer>SIG Copamiento Territorial · Influencia de recursos ' + inf.bufferInfluencia +
+' m · Zona de ocurrencia ' + inf.bufferAmeba + ' m · Las superficies descuentan los solapes entre recursos.</footer>' +
+'</div></body></html>';
+
+  descargarArchivo_(doc, nombreArchivoInforme_('html'), 'text/html;charset=utf-8');
+  mostrarToast_('⬇️ Informe descargado.');
+}
+
+function descargarInformeCsv_() {
+  const inf = informeFiltrado_();
+  if (!inf) return;
+
+  const esc = (v) => {
+    const t = (v === null || v === undefined) ? '' : String(v);
+    return /[";\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+  };
+
+  const lineas = [];
+  lineas.push(esc('Informe de nivel de copamiento'));
+  lineas.push(esc('Comuna') + ';' + esc(inf.comuna));
+  lineas.push(esc('Generado') + ';' + esc(inf.generado.toLocaleString('es-CL')));
+  if (inf.superficie) {
+    lineas.push(esc('Superficie comunal km2') + ';' + esc(inf.superficie.area_km2));
+    lineas.push(esc('Perímetro km') + ';' + esc(inf.superficie.perimetro_km));
+    lineas.push(esc('Región') + ';' + esc(inf.superficie.region));
+    lineas.push(esc('Provincia') + ';' + esc(inf.superficie.provincia));
+  }
+  lineas.push('');
+
+  lineas.push(esc('2. Detalle por institución'));
+  lineas.push(['Escenario', 'Institución', 'Recursos', 'Recursos fijos / Punto de control',
+               'Rutas de patrullaje', 'Área de influencia', 'Copamiento km2', '% comuna'].map(esc).join(';'));
+  inf.instituciones.forEach(f => {
+    lineas.push([f.escenario, aTitulo_(f.institucion), f.entidades, f.puntos, f.lineas, f.areas,
+                 f.area_km2, f.pct_comuna != null ? f.pct_comuna : ''].map(esc).join(';'));
+  });
+  lineas.push('');
+
+  if (inf.porTipo && inf.porTipo.length > 0) {
+    lineas.push(esc('3. Tipos de recurso del área y su cobertura'));
+    lineas.push(['Escenario', 'Tipo de recurso', 'Pertenencia', 'Institución', 'Recursos',
+                 'Recursos fijos / Punto de control', 'Rutas de patrullaje', 'Área de influencia',
+                 'Cobertura km2', '% comuna'].map(esc).join(';'));
+    inf.porTipo.forEach(f => {
+      lineas.push([f.escenario, aTitulo_(f.tipo_recurso), f.pertenencia, aTitulo_(f.institucion),
+                   f.entidades, f.puntos, f.lineas, f.areas, f.area_km2,
+                   f.pct_comuna != null ? f.pct_comuna : ''].map(esc).join(';'));
+    });
+    lineas.push('');
+  }
+
+  lineas.push(esc('4. Detalle del copamiento sobre incendios'));
+  lineas.push(['Ventana (temporadas)', 'Escenario', 'Zona km2', 'Copado km2', 'Sin cubrir km2', '% zona'].map(esc).join(';'));
+  NIVELES_AMEBA.forEach(cfg => {
+    (inf.incendios[cfg.id] || []).forEach(f => {
+      lineas.push([cfg.temporadas, f.escenario, f.ameba_km2, f.copado_km2,
+                   f.sin_cubrir_km2, f.pct_ameba != null ? f.pct_ameba : ''].map(esc).join(';'));
+    });
+  });
+
+  // BOM para que Excel reconozca los acentos.
+  descargarArchivo_('\ufeff' + lineas.join('\n'), nombreArchivoInforme_('csv'), 'text/csv;charset=utf-8');
+  mostrarToast_('📄 CSV descargado.');
+}
 
 function flameRowIcon_(color) {
   return '<svg width="18" height="18" viewBox="0 0 24 24" style="flex-shrink:0;"><path fill="' + color + '" d="M12 2c1 3-2 4-2 7a4 4 0 0 0 8 0c0-2-1-3-1-3s2 1 2 5a7 7 0 0 1-14 0c0-6 5-6 7-9Z"/></svg>';
@@ -12763,7 +15501,8 @@ function renderTabInterno_(tab) {
       const cont = document.createElement('div');
       const comunasMulti = idsMulti.map(id => state.comunas.find(cm => cm.id === id)).filter(Boolean).sort((a, b) => a.comuna.localeCompare(b.comuna));
       const visibles = comunasMulti.filter(cm => window.limitesPorComuna[cm.id] && limitesMultiLayer.hasLayer(window.limitesPorComuna[cm.id])).length;
-      if (state.arbolLimitesColapsado === undefined) state.arbolLimitesColapsado = false;
+      // Arranca plegado: con varias comunas la lista ocupaba media pantalla.
+      if (state.arbolLimitesColapsado === undefined) state.arbolLimitesColapsado = true;
       const raiz = document.createElement('div'); raiz.className = 'tree-node';
       const rowRaiz = document.createElement('div'); rowRaiz.className = 'tree-row';
       rowRaiz.innerHTML =
@@ -12971,45 +15710,75 @@ function renderTabInterno_(tab) {
     c.appendChild(labelPatrullaje);
 
     const infoPat = state.patrullajeInfo || { ok: false, count: 0, cargado: false };
-    const rowPatrullaje = document.createElement('div'); rowPatrullaje.className = 'layer-row';
-    rowPatrullaje.innerHTML =
-      '<div class="layer-left"><span class="flame-dot" style="background:#DC2626"></span>' +
-      '<div><div class="layer-name">Rutas de Patrullaje</div><div class="layer-count">' +
-      (infoPat.cargado ? (infoPat.ok ? infoPat.count + ' ruta(s)' : 'No disponible') : 'Cargando…') +
-      '</div></div></div>' +
-      '<div class="toggle ' + (map.hasLayer(patrullajeLayer) ? 'on' : '') + '" id="toggle-patrullaje"></div>';
-    c.appendChild(rowPatrullaje);
+    const arbolPat = window.arbolPatrullaje || {};
+
+    if (Object.keys(arbolPat).length > 0) {
+      // Árbol Área → Sector, igual que Áreas de Relacionamiento.
+      c.appendChild(construirArbolGenerico_({
+        titulo: 'Rutas de Patrullaje',
+        arbol: arbolPat,
+        layerGroup: patrullajeLayer,
+        ocultosKey: 'patrullajeSectoresOcultos',
+        colorDot: '#DC2626',
+        colapsoKey: 'colapsoPatrullaje',
+        conZoom: true,
+      }));
+    } else {
+      const rowPatrullaje = document.createElement('div'); rowPatrullaje.className = 'layer-row';
+      rowPatrullaje.innerHTML =
+        '<div class="layer-left"><span class="flame-dot" style="background:#DC2626"></span>' +
+        '<div><div class="layer-name">Rutas de Patrullaje</div><div class="layer-count">' +
+        (infoPat.cargado ? (infoPat.ok ? infoPat.count + ' ruta(s)' : 'No disponible') : 'Cargando…') +
+        '</div></div></div>' +
+        '<div class="toggle ' + (map.hasLayer(patrullajeLayer) ? 'on' : '') + '" id="toggle-patrullaje"></div>';
+      c.appendChild(rowPatrullaje);
+      const tgPat = c.querySelector('#toggle-patrullaje');
+      if (tgPat) tgPat.addEventListener('click', () => {
+        state.patrullajeLayerOn = !state.patrullajeLayerOn;
+        tgPat.classList.toggle('on', state.patrullajeLayerOn);
+        if (state.patrullajeLayerOn) patrullajeLayer.addTo(map); else map.removeLayer(patrullajeLayer);
+      });
+    }
     if (infoPat.ok === false && infoPat.error) {
       const msg = document.createElement('div'); msg.className = 'layer-empty-msg';
       msg.textContent = infoPat.error;
       c.appendChild(msg);
     }
-    const tgPat = c.querySelector('#toggle-patrullaje');
-    if (tgPat) tgPat.addEventListener('click', () => {
-      state.patrullajeLayerOn = !state.patrullajeLayerOn;
-      tgPat.classList.toggle('on', state.patrullajeLayerOn);
-      if (state.patrullajeLayerOn) patrullajeLayer.addTo(map); else map.removeLayer(patrullajeLayer);
-    });
 
     // ── CAPA ADMIN: Rutas filtradas por comuna (solo Administrador) ──
     if (state.perfil.perfil === 'Administrador') {
       const infoRCU = state.rutasComunaAdminInfo || { ok: false, count: 0 };
-      const rowRCU = document.createElement('div'); rowRCU.className = 'layer-row';
-      rowRCU.innerHTML =
-        '<div class="layer-left"><span class="flame-dot" style="background:#2563EB"></span>' +
-        '<div><div class="layer-name">📍 Rutas de la Comuna</div><div class="layer-count">' + (infoRCU.ok ? infoRCU.count + ' ruta(s) · comuna activa' : 'Cargando…') + '</div></div></div>' +
-        '<div class="toggle ' + (map.hasLayer(rutasComunaAdminLayer) ? 'on' : '') + '" id="toggle-rutas-comuna-admin"></div>';
-      c.appendChild(rowRCU);
-      c.querySelector('#toggle-rutas-comuna-admin').addEventListener('click', async (ev) => {
-        const tg = ev.currentTarget;
-        if (map.hasLayer(rutasComunaAdminLayer)) {
-          map.removeLayer(rutasComunaAdminLayer); state.rutasComunaAdminOn = false; tg.classList.remove('on');
-        } else {
-          await loadRutasComunaAdmin_();
-          rutasComunaAdminLayer.addTo(map); state.rutasComunaAdminOn = true; tg.classList.add('on');
-          renderTab(state.activeTab || 'capas');
-        }
-      });
+      const arbolRC = window.arbolRutasComuna || {};
+
+      if (Object.keys(arbolRC).length > 0) {
+        // Mismo árbol Área → Sector que las rutas de patrullaje.
+        c.appendChild(construirArbolGenerico_({
+          titulo: '📍 Rutas de la Comuna',
+          arbol: arbolRC,
+          layerGroup: rutasComunaAdminLayer,
+          ocultosKey: 'rutasComunaSectoresOcultos',
+          colorDot: '#2563EB',
+          colapsoKey: 'colapsoRutasComuna',
+          conZoom: true,
+        }));
+      } else {
+        const rowRCU = document.createElement('div'); rowRCU.className = 'layer-row';
+        rowRCU.innerHTML =
+          '<div class="layer-left"><span class="flame-dot" style="background:#2563EB"></span>' +
+          '<div><div class="layer-name">📍 Rutas de la Comuna</div><div class="layer-count">' + (infoRCU.ok ? infoRCU.count + ' ruta(s) · comuna activa' : 'Cargando…') + '</div></div></div>' +
+          '<div class="toggle ' + (map.hasLayer(rutasComunaAdminLayer) ? 'on' : '') + '" id="toggle-rutas-comuna-admin"></div>';
+        c.appendChild(rowRCU);
+        c.querySelector('#toggle-rutas-comuna-admin').addEventListener('click', async (ev) => {
+          const tg = ev.currentTarget;
+          if (map.hasLayer(rutasComunaAdminLayer)) {
+            map.removeLayer(rutasComunaAdminLayer); state.rutasComunaAdminOn = false; tg.classList.remove('on');
+          } else {
+            await loadRutasComunaAdmin_();
+            rutasComunaAdminLayer.addTo(map); state.rutasComunaAdminOn = true; tg.classList.add('on');
+            renderTab(state.activeTab || 'capas');
+          }
+        });
+      }
     }
 
     // ── App Móvil: posiciones en tiempo real ─────────────────────────────────
@@ -13063,62 +15832,40 @@ function renderTabInterno_(tab) {
       labelAlertas.textContent = 'Alertas Territoriales (Planificación Previa)';
       c.appendChild(labelAlertas);
 
-      // Alerta Verde
-      // ── Alerta Verde ──
-      const rowVerde = document.createElement('div'); rowVerde.className = 'layer-row';
-      rowVerde.innerHTML =
-        '<div class="toggle ' + (map.hasLayer(capaAlertaVerdeLayer) ? 'on' : '') + '" data-alertalayer="verde"></div>' +
-        '<div class="layer-left"><span class="flame-dot" style="background:#16A34A"></span>' +
-        '<div><div class="layer-name">Alerta Verde</div><div class="layer-count">Comunas con plan activo</div></div></div>' +
-        '<button id="btn-etiq-verde" class="icon-btn' + (state.mostrarEtiquetasAlerta && state.mostrarEtiquetasAlerta.verde ? ' active' : '') + '" title="Mostrar/ocultar etiquetas" style="width:26px;height:26px;font-size:12px;flex-shrink:0;">🏷️</button>';
-      c.appendChild(rowVerde);
-      c.querySelector('#btn-etiq-verde').addEventListener('click', () => toggleEtiquetasAlerta_('verde'));
+      // ── Las tres alertas, cada una con su control de opacidad integrado ──
+      // Antes la opacidad iba en un bloque aparte y no se veía a qué capa
+      // correspondía cada deslizador.
+      [
+        { k: 'verde',    nombre: 'Alerta Verde',    color: '#16A34A', capa: capaAlertaVerdeLayer },
+        { k: 'amarilla', nombre: 'Alerta Amarilla', color: '#F59E0B', capa: capaAlertaAmarillaLayer },
+        { k: 'roja',     nombre: 'Alerta Roja',     color: '#EF4444', capa: capaAlertaRojaLayer },
+      ].forEach(a => {
+        const bloque = document.createElement('div');
+        bloque.className = 'alerta-bloque';
 
-      // ── Alerta Amarilla ──
-      const rowAmarilla = document.createElement('div'); rowAmarilla.className = 'layer-row';
-      rowAmarilla.innerHTML =
-        '<div class="toggle ' + (map.hasLayer(capaAlertaAmarillaLayer) ? 'on' : '') + '" data-alertalayer="amarilla"></div>' +
-        '<div class="layer-left"><span class="flame-dot" style="background:#F59E0B"></span>' +
-        '<div><div class="layer-name">Alerta Amarilla</div><div class="layer-count">Comunas con plan activo</div></div></div>' +
-        '<button id="btn-etiq-amarilla" class="icon-btn' + (state.mostrarEtiquetasAlerta && state.mostrarEtiquetasAlerta.amarilla ? ' active' : '') + '" title="Mostrar/ocultar etiquetas" style="width:26px;height:26px;font-size:12px;flex-shrink:0;">🏷️</button>';
-      c.appendChild(rowAmarilla);
-      c.querySelector('#btn-etiq-amarilla').addEventListener('click', () => toggleEtiquetasAlerta_('amarilla'));
+        const opac = (state.opacidadAlerta && state.opacidadAlerta[a.k] != null) ? state.opacidadAlerta[a.k] : 50;
+        const etiquetaOn = state.mostrarEtiquetasAlerta && state.mostrarEtiquetasAlerta[a.k];
 
-      // ── Alerta Roja ──
-      const rowRoja = document.createElement('div'); rowRoja.className = 'layer-row';
-      rowRoja.innerHTML =
-        '<div class="toggle ' + (map.hasLayer(capaAlertaRojaLayer) ? 'on' : '') + '" data-alertalayer="roja"></div>' +
-        '<div class="layer-left"><span class="flame-dot" style="background:#EF4444"></span>' +
-        '<div><div class="layer-name">Alerta Roja</div><div class="layer-count">Comunas con plan activo</div></div></div>' +
-        '<button id="btn-etiq-roja" class="icon-btn' + (state.mostrarEtiquetasAlerta && state.mostrarEtiquetasAlerta.roja ? ' active' : '') + '" title="Mostrar/ocultar etiquetas" style="width:26px;height:26px;font-size:12px;flex-shrink:0;">🏷️</button>';
-      c.appendChild(rowRoja);
-      c.querySelector('#btn-etiq-roja').addEventListener('click', () => toggleEtiquetasAlerta_('roja'));
+        bloque.innerHTML =
+          '<div class="layer-row" style="border-bottom:none;padding-bottom:2px;">' +
+            '<div class="toggle ' + (map.hasLayer(a.capa) ? 'on' : '') + '" data-alertalayer="' + a.k + '"></div>' +
+            '<div class="layer-left"><span class="flame-dot" style="background:' + a.color + '"></span>' +
+            '<div><div class="layer-name">' + a.nombre + '</div>' +
+            '<div class="layer-count">Comunas con plan activo</div></div></div>' +
+            '<button id="btn-etiq-' + a.k + '" class="icon-btn' + (etiquetaOn ? ' active' : '') +
+              '" title="Mostrar/ocultar etiquetas" style="width:26px;height:26px;font-size:12px;flex-shrink:0;">🏷️</button>' +
+          '</div>' +
+          '<div class="alerta-opacidad">' +
+            '<span class="ao-icono">◐</span>' +
+            '<input type="range" min="0" max="100" step="1" value="' + opac + '" ' +
+              'data-opac-alerta="' + a.k + '" style="flex:1;accent-color:' + a.color + ';cursor:pointer;">' +
+            '<span id="opac-val-' + a.k + '" class="ao-valor">' + opac + '%</span>' +
+          '</div>';
 
-      // ── Control de opacidad 0-100 % por capa de alerta ──
-      const filaOpac = document.createElement('div');
-      filaOpac.style.cssText = 'padding:8px 10px 10px;margin-top:2px;';
-      const claves = [
-        { k: 'verde',    etiqueta: 'Verde',    color: '#16A34A' },
-        { k: 'amarilla', etiqueta: 'Amarilla', color: '#F59E0B' },
-        { k: 'roja',     etiqueta: 'Roja',     color: '#EF4444' },
-      ];
-      filaOpac.innerHTML =
-        '<div style="font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;opacity:.6;margin-bottom:7px;">Opacidad de las capas</div>' +
-        claves.map(x =>
-          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
-            '<span style="width:9px;height:9px;border-radius:50%;background:' + x.color + ';flex-shrink:0;"></span>' +
-            '<span style="font-size:11.5px;width:56px;flex-shrink:0;">' + x.etiqueta + '</span>' +
-            '<input type="range" min="0" max="100" step="1" value="' + (state.opacidadAlerta[x.k] != null ? state.opacidadAlerta[x.k] : 22) + '" ' +
-              'data-opac-alerta="' + x.k + '" style="flex:1;min-width:60px;accent-color:' + x.color + ';cursor:pointer;">' +
-            '<span id="opac-val-' + x.k + '" style="font-size:11px;width:34px;text-align:right;opacity:.75;flex-shrink:0;">' +
-              (state.opacidadAlerta[x.k] != null ? state.opacidadAlerta[x.k] : 22) + '%</span>' +
-          '</div>'
-        ).join('');
-      c.appendChild(filaOpac);
-
-      filaOpac.querySelectorAll('[data-opac-alerta]').forEach(sl => {
-        const clave = sl.dataset.opacAlerta;
-        sl.addEventListener('input', () => setOpacidadAlerta_(clave, sl.value));
+        c.appendChild(bloque);
+        bloque.querySelector('#btn-etiq-' + a.k).addEventListener('click', () => toggleEtiquetasAlerta_(a.k));
+        bloque.querySelector('[data-opac-alerta]').addEventListener('input', (ev) =>
+          setOpacidadAlerta_(a.k, ev.target.value));
       });
 
       // El copamiento por institución vive ahora en el panel flotante de
@@ -13177,6 +15924,56 @@ function renderTabInterno_(tab) {
         nodo.appendChild(row);
         hijos.appendChild(nodo);
       });
+      // ── Amebas de incendios: zona de ocurrencia histórica ──
+      // Van dentro del mismo árbol, debajo de las temporadas, porque se
+      // calculan a partir de ellas.
+      const sepAmeba = document.createElement('div');
+      sepAmeba.style.cssText = 'padding:6px 0 3px 22px;font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;opacity:.55;';
+      sepAmeba.textContent = 'Zona de ocurrencia (ameba)';
+      hijos.appendChild(sepAmeba);
+
+      NIVELES_AMEBA.forEach(cfg => {
+        const hayTemporadas = temporadasOrdenadas_().length > 0;
+        const visible = !!state.amebaVisible[cfg.id];
+        const d = state.amebaDatos[cfg.id];
+        const kpi = state.amebaKpi[cfg.id] || [];
+        const roja = kpi.find(k => k.escenario === 'Roja');
+
+        const nodo = document.createElement('div');
+        nodo.className = 'tree-node sector';
+        const row = document.createElement('div');
+        row.className = 'tree-row';
+        row.style.opacity = hayTemporadas ? '1' : '.45';
+        const tempsUsadas = (d && d.temporadas && d.temporadas.length)
+          ? d.temporadas.join(', ')
+          : temporadasOrdenadas_().slice(0, cfg.temporadas).join(', ');
+        row.title = cfg.etiqueta +
+          (tempsUsadas ? '\n' + tempsUsadas : '') +
+          (d && d.focos ? '\n' + d.focos + ' focos · ' + d.area_km2 + ' km²' : '') +
+          (roja ? '\nCopado en Roja: ' + roja.pct_ameba + '%' : '');
+        row.style.cursor = hayTemporadas ? 'pointer' : 'not-allowed';
+        row.innerHTML =
+          '<span class="tree-caret leaf">▼</span>' +
+          '<span class="tree-check ' + (visible ? 'on' : '') + '" data-ameba="' + cfg.id + '"></span>' +
+          '<span class="flame-dot" style="background:' + cfg.color + ';margin-right:2px;"></span>' +
+          '<span class="tree-label">' + escapeHtml_(cfg.etiqueta) + '</span>' +
+          '<span class="tree-count">' +
+            (state.amebaCargando[cfg.id]
+              ? 'calculando…'
+              : (d && d.focos > 0
+                  ? d.area_km2 + ' km²' + (roja ? ' · ' + roja.pct_ameba + '%' : '')
+                  : (hayTemporadas ? '—' : 'sin datos'))) +
+          '</span>';
+        nodo.appendChild(row);
+        hijos.appendChild(nodo);
+
+        // Toda la fila responde al clic, no solo la casilla de 13 píxeles.
+        row.addEventListener('click', () => {
+          if (!hayTemporadas) { mostrarToast_('⚠️ No hay temporadas de incendios cargadas en esta comuna.'); return; }
+          toggleAmeba_(cfg.id);
+        });
+      });
+
       nodoRaiz.appendChild(hijos);
       c.appendChild(nodoRaiz);
 
@@ -13322,6 +16119,10 @@ function renderTabInterno_(tab) {
     }
   }
 
+  if (tab === 'informe') {
+    renderTabInforme_(c);
+    return;
+  }
   if (tab === 'usuarios') {
     // Este tab ya no se usa directamente: el botón del riel abre el
     // panel de usuarios en un modal grande (abrirPanelUsuarios_), pensado
@@ -13436,6 +16237,43 @@ function bindEvents() {
   // ---- Herramienta regla (medición libre con el cursor) ----
   const btnRegla = document.getElementById('btn-regla');
   if (btnRegla) btnRegla.addEventListener('click', (e) => { e.stopPropagation(); toggleRegla_(); });
+  const btnResumen = document.getElementById('btn-resumen-alertas-toggle');
+  if (btnResumen) btnResumen.addEventListener('click', (e) => { e.stopPropagation(); toggleResumenAlertas_(); });
+  const btnInfl = document.getElementById('btn-influencia');
+  if (btnInfl) btnInfl.addEventListener('click', (e) => { e.stopPropagation(); toggleInfluencia_(); });
+  const btnKpiInc = document.getElementById('btn-kpi-incendios');
+  if (btnKpiInc) btnKpiInc.addEventListener('click', (e) => { e.stopPropagation(); toggleKpiIncendios_(); });
+  enlazarModalInforme_();
+  // ---- Exportación de planes ----
+  const pe = document.getElementById('plan-exportar');
+  if (pe) pe.addEventListener('click', (e) => { e.stopPropagation(); abrirExportarPlan_(); });
+  const ec = document.getElementById('exportar-cancelar');
+  if (ec) ec.addEventListener('click', () => document.getElementById('exportar-overlay').classList.remove('show'));
+  const eg = document.getElementById('exportar-geojson');
+  if (eg) eg.addEventListener('click', exportarPlanGeoJSON_);
+  const ek = document.getElementById('exportar-kml');
+  if (ek) ek.addEventListener('click', exportarPlanKML_);
+
+  // ---- Traspaso de rutas de patrullaje a las alertas ----
+  const rtc = document.getElementById('ruta-traspaso-cancelar');
+  if (rtc) rtc.addEventListener('click', () => {
+    document.getElementById('ruta-traspaso-overlay').classList.remove('show');
+    state.rutaTraspaso = null;
+  });
+  const rtg = document.getElementById('ruta-traspaso-guardar');
+  if (rtg) rtg.addEventListener('click', confirmarTraspasoRuta_);
+  const p1 = document.getElementById('ruta-preset-1');
+  if (p1) p1.addEventListener('click', () => preajusteTraspaso_(['Amarilla']));
+  const p2 = document.getElementById('ruta-preset-2');
+  if (p2) p2.addEventListener('click', () => preajusteTraspaso_(['Amarilla', 'Roja']));
+  const p3 = document.getElementById('ruta-preset-3');
+  if (p3) p3.addEventListener('click', () => preajusteTraspaso_(['Verde', 'Amarilla', 'Roja']));
+  window.addEventListener('resize', () => setTimeout(alinearResumenConSimbologia_, 60));
+  // Los botones de tamaño y colapso de la simbología cambian su alto y ancho.
+  ['sf-todas', 'sf-mas', 'sf-menos', 'sf-colapsar'].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.addEventListener('click', () => setTimeout(alinearResumenConSimbologia_, 60));
+  });
   const btnReglaArea = document.getElementById('btn-regla-cerrar-area');
   if (btnReglaArea) btnReglaArea.addEventListener('click', (e) => { e.stopPropagation(); reglaCerrarArea_(); });
   const btnReglaLimpiar = document.getElementById('btn-regla-limpiar');
@@ -13551,6 +16389,9 @@ function bindEvents() {
   document.getElementById('sf-colapsar').addEventListener('click', () => {
     const panel = document.getElementById('simbologia-flotante');
     panel.classList.toggle('sf-collapsed');
+    // Colapso independiente: el resumen conserva su propio estado. Solo se
+    // reajusta su posición, porque la simbología cambió de alto.
+    setTimeout(alinearResumenConSimbologia_, 60);
   });
   document.getElementById('sf-todas').addEventListener('click', () => {
     const insts = state.institucionesPeriodoActivo || {};
