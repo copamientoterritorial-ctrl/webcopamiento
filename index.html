@@ -947,6 +947,49 @@ body.modo-dashboard #editar-forma-banner{display:none !important;}
 .pat-pat-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #F1F5F9;}
 .pat-pat-row .pp-nombre{font-size:12px;font-weight:600;} .pat-pat-row .pp-sub{font-size:10.5px;color:var(--text-tertiary);}
 
+/* ===== Planificador de Recursos por Área (mapa exclusivo) ===== */
+#planificador-panel{position:absolute;top:60px;left:0;right:0;bottom:0;z-index:350;background:var(--bg-light);display:none;flex-direction:column;color:var(--text-primary);}
+#planificador-panel.show{display:flex;}
+.pl-kpis{margin:10px 14px 0;}
+.pl-body{flex:1;display:flex;min-height:0;margin-top:10px;border-top:1px solid var(--border);}
+#pl-map{flex:1;height:100%;min-width:0;}
+.pl-col-lista{width:300px;flex-shrink:0;background:var(--white);border-right:1px solid var(--border);overflow-y:auto;padding:6px;}
+.pl-col-ficha{width:390px;flex-shrink:0;background:var(--white);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+#pl-ficha{flex-direction:column;height:100%;}
+.pl-item{display:flex;gap:9px;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:10px;padding:8px 9px;cursor:pointer;font-family:inherit;color:inherit;}
+.pl-item:hover{background:var(--bg-light);}
+.pl-item.sel{border-color:var(--cobalt);background:var(--cobalt-soft);}
+.pl-dot{width:11px;height:11px;border-radius:50%;flex:0 0 11px;margin-top:3px;box-shadow:0 0 0 2px var(--white),0 0 0 3px var(--border);}
+.pl-item-body{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.pl-item-top{display:flex;align-items:center;gap:6px;font-size:12.5px;flex-wrap:wrap;}
+.pl-item-sub{font-size:11px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pl-tag{font-size:9.5px;font-weight:800;padding:1px 7px;border-radius:20px;border:1px solid var(--border);color:var(--text-secondary);}
+.pl-tag.ok{color:#166534;border-color:#86EFAC;background:#F0FDF4;}
+.pl-tag.warn{color:#B45309;border-color:#FCD34D;background:#FFFBEB;}
+.pl-ficha-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.pl-ficha-titulo{font-size:15px;font-weight:800;}
+.pl-ficha-meta{font-size:11px;color:var(--text-tertiary);margin-top:2px;}
+.pl-ficha-cuerpo{flex:1;overflow-y:auto;padding:4px 16px 12px;}
+.pl-aviso{margin:10px 0 2px;padding:8px 10px;border-radius:9px;font-size:11.5px;line-height:1.4;}
+.pl-aviso.warn{background:#FFFBEB;border:1px solid #FCD34D;color:#92400E;}
+.pl-aviso.ok{background:#F0FDF4;border:1px solid #86EFAC;color:#166534;}
+.pl-aviso.info{background:var(--bg-light);border:1px solid var(--border);color:var(--text-secondary);}
+.pl-seccion{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--text-tertiary);margin:14px 0 6px;}
+.pl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;}
+.pl-campo{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.pl-campo.full{grid-column:1 / -1;}
+.pl-campo label{font-size:10.5px;font-weight:700;color:var(--text-secondary);}
+.pl-campo input,.pl-campo select{height:32px;border:1.5px solid var(--border);border-radius:8px;padding:0 9px;font-family:inherit;font-size:12.5px;background:var(--white);color:var(--text-primary);min-width:0;}
+.pl-campo input:disabled,.pl-campo select:disabled{background:var(--bg-light);color:var(--text-secondary);}
+.pl-campo.falta input,.pl-campo.falta select{border-color:#FCD34D;}
+.pl-ruta-1 label::before{content:'';display:inline-block;width:14px;height:4px;border-radius:2px;background:#2563EB;margin-right:6px;vertical-align:middle;}
+.pl-ruta-2 label::before{content:'';display:inline-block;width:14px;height:4px;border-radius:2px;background:#EA580C;margin-right:6px;vertical-align:middle;}
+.pl-dato{font-size:12.5px;font-weight:700;}
+.pl-ficha-pie{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px;}
+.pl-pin{font-size:28px;line-height:28px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45));}
+body.tema-oscuro .pl-tag.ok,body.tema-oscuro .pl-aviso.ok{background:#0B2A17;}
+body.tema-oscuro .pl-tag.warn,body.tema-oscuro .pl-aviso.warn{background:#3B2A0A;color:#FCD34D;}
+
 /* ===== Mantenedores mejorados: KPIs, avatares, badges, grupos, densidad ===== */
 .adm-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px;}
 .adm-kpi{background:#fff;border:1px solid var(--border);border-radius:12px;padding:11px 13px;box-shadow:var(--shadow-soft);display:flex;align-items:center;gap:10px;}
@@ -1133,7 +1176,7 @@ body.modo-dashboard #editar-forma-banner{display:none !important;}
 @media (max-width: 600px) {
   /* --- Barra superior: hamburguesa + compacta --- */
   #topbar{ height:56px; padding:0 8px; gap:8px; }
-  #map, #dashboard, #patrullajes-panel{ top:56px; }
+  #map, #dashboard, #patrullajes-panel, #planificador-panel{ top:56px; }
   #admin-panel{ top:56px; }
   #simbologia-flotante{ top:auto; }
   #btn-hamburguesa{
@@ -1204,6 +1247,13 @@ body.modo-dashboard #editar-forma-banner{display:none !important;}
   .pat-body{ flex-direction:column; }
   #pat-map{ height:45vh; }
   .pat-side{ width:100%; border-left:none; border-top:1px solid var(--border); max-height:45vh; }
+  /* --- Planificador: mapa arriba, lista y ficha abajo --- */
+  #planificador-panel{ overflow-y:auto; }
+  .pl-body{ flex-direction:column; flex:none; }
+  #pl-map{ height:45vh; flex:none; }
+  .pl-col-lista{ width:100%; border-right:none; max-height:35vh; order:2; }
+  .pl-col-ficha{ width:100%; border-left:none; border-top:1px solid var(--border); order:3; }
+  #pl-map{ order:1; }
   .pat-toolbar{ flex-direction:column; align-items:stretch; }
   .pat-toolbar-left{ flex-direction:column; align-items:stretch; }
   .pat-toolbar .admin-search{ width:100%; }
@@ -1233,25 +1283,25 @@ body.modo-dashboard #editar-forma-banner{display:none !important;}
   .vista-tab{ font-size:11px; padding:7px 8px; }
 }
 
-/* ===== Menú de planificación unificado ===== */
-.planificar-panel{ min-width:290px; padding:0; overflow:hidden; }
+/* ===== Menú de planificación unificado (compacto) ===== */
+.planificar-panel{ min-width:248px; padding:0; overflow:hidden; }
 .planificar-header{
-  padding:10px 14px 8px; font-size:10px; font-weight:800; text-transform:uppercase;
+  padding:7px 12px 6px; font-size:9.5px; font-weight:800; text-transform:uppercase;
   letter-spacing:.5px; color:var(--text-tertiary); border-bottom:1px solid var(--border);
 }
 .planificar-item{
-  display:flex; align-items:center; gap:12px; width:100%; padding:12px 14px;
+  display:flex; align-items:center; gap:9px; width:100%; padding:8px 12px;
   background:none; border:none; cursor:pointer; text-align:left;
   transition:background .14s ease; border-bottom:1px solid var(--border);
 }
 .planificar-item:last-child{ border-bottom:none; }
 .planificar-item:hover{ background:var(--hover); }
 .plan-icon{
-  width:34px; height:34px; border-radius:9px; display:flex; align-items:center;
-  justify-content:center; font-size:17px; flex-shrink:0;
+  width:27px; height:27px; border-radius:7px; display:flex; align-items:center;
+  justify-content:center; font-size:14px; flex-shrink:0;
 }
-.plan-label{ font-size:12.5px; font-weight:700; color:var(--text-primary); line-height:1.3; }
-.plan-sub{ font-size:10.5px; color:var(--text-secondary); margin-top:2px; }
+.plan-label{ font-size:12px; font-weight:700; color:var(--text-primary); line-height:1.2; }
+.plan-sub{ font-size:10px; color:var(--text-secondary); margin-top:1px; line-height:1.2; }
 body.tema-oscuro .planificar-item:hover{ background:#1E293B; }
 body.tema-oscuro .planificar-header{ border-color:#334155; }
 body.tema-oscuro .planificar-item{ border-color:#334155; }
@@ -1443,6 +1493,127 @@ body.tema-oscuro .rt-pie{background:#0F172A;border-top-color:#1E293B;}
 /* ===== ETIQUETAS PERIODO — control por CSS ===== */
 /* regla obsoleta eliminada */
 
+
+/* ===== EFECTO LATIDO AMEBAS DE INCENDIOS (por temporada) ===== */
+/* Latido del relleno + borde para distinguir de las áreas de rutas */
+@keyframes amebaLatido1 {
+  0%, 100% { fill-opacity: 0.10; stroke-opacity: 0.7; stroke-width: 1.5; }
+  50%      { fill-opacity: 0.30; stroke-opacity: 1;   stroke-width: 3; }
+}
+@keyframes amebaLatido3 {
+  0%, 100% { fill-opacity: 0.14; stroke-opacity: 0.75; stroke-width: 2; }
+  50%      { fill-opacity: 0.38; stroke-opacity: 1;    stroke-width: 3.5; }
+}
+@keyframes amebaLatido5 {
+  0%, 100% { fill-opacity: 0.18; stroke-opacity: 0.8; stroke-width: 2.5; }
+  50%      { fill-opacity: 0.46; stroke-opacity: 1;   stroke-width: 4.5; }
+}
+/* Cada nivel late a distinta velocidad para diferenciarse entre sí */
+path.ameba-n1 { animation: amebaLatido1 2.4s ease-in-out infinite; }
+path.ameba-n3 { animation: amebaLatido3 1.8s ease-in-out infinite; }
+path.ameba-n5 { animation: amebaLatido5 1.3s ease-in-out infinite; }
+
+/* ===== EFECTO LATIDO MARCADOR DE INCENDIO ===== */
+@keyframes flamaPulso {
+  0%   { transform: scale(0.5); opacity: 0.85; }
+  80%  { transform: scale(2.6); opacity: 0; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+.flama-wrap { position: relative; width: 22px; height: 28px; }
+.flama-pulso {
+  position: absolute; left: 50%; bottom: 4px; margin-left: -9px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: radial-gradient(circle, var(--fire-c,#EA580C) 0%, transparent 70%);
+  animation: flamaPulso 1.6s ease-out infinite; pointer-events: none;
+}
+.flama-svg { position: relative; z-index: 2; filter: drop-shadow(0 0 3px var(--fire-c,#EA580C)); }
+
+/* ════════ CALENDARIO DE TURNOS v2 ════════ */
+#turnos-panel{display:none;position:fixed;inset:60px 0 0 0;background:var(--bg-light);overflow:auto;z-index:30;color:var(--text-primary);}
+.turnos-wrap{padding:18px 22px 28px;max-width:1500px;margin:0 auto;}
+.turnos-head{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px;}
+.turnos-head h2{margin:0;font-size:19px;font-weight:800;letter-spacing:-0.2px;}
+.turnos-head p{margin:3px 0 0;font-size:12.5px;color:var(--text-secondary);max-width:70ch;}
+.turnos-estado{font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:20px;background:var(--white);border:1px solid var(--border);color:var(--text-secondary);white-space:nowrap;}
+.turnos-estado.guardando{color:#B45309;border-color:#FCD34D;background:#FFFBEB;}
+.turnos-estado.ok{color:#166534;border-color:#86EFAC;background:#F0FDF4;}
+.turnos-estado.error{color:#B91C1C;border-color:#FCA5A5;background:#FEF2F2;}
+.turnos-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--white);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:12px;}
+.turnos-toolbar select,.turnos-toolbar input[type="search"]{height:34px;border:1.5px solid var(--border);border-radius:8px;padding:0 10px;font-family:inherit;font-size:12.5px;background:var(--white);color:var(--text-primary);}
+.turnos-toolbar input[type="search"]{min-width:170px;}
+.turnos-toolbar .sep{flex:1 1 auto;}
+.turnos-seg{display:flex;background:var(--bg-light);border:1px solid var(--border);border-radius:9px;padding:2px;}
+.turnos-seg button{padding:6px 14px;border:none;background:none;border-radius:7px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;color:var(--text-secondary);}
+.turnos-seg button.active{background:var(--cobalt);color:#fff;box-shadow:0 1px 3px rgba(37,99,235,0.35);}
+.turnos-nav{display:flex;align-items:center;gap:4px;}
+.turnos-nav button{height:34px;min-width:34px;border:1.5px solid var(--border);border-radius:8px;background:var(--white);color:var(--text-primary);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:0 10px;}
+.turnos-nav button:hover,.turnos-btn:hover{border-color:var(--cobalt);color:var(--cobalt);}
+.turnos-nav .lbl{font-size:13px;font-weight:800;min-width:170px;text-align:center;}
+.turnos-btn{height:34px;border:1.5px solid var(--border);border-radius:8px;background:var(--white);color:var(--text-primary);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:0 12px;white-space:nowrap;}
+.turnos-btn:disabled{opacity:.45;cursor:not-allowed;}
+.turnos-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px;}
+.turnos-kpi{background:var(--white);border:1px solid var(--border);border-radius:11px;padding:10px 13px;}
+.turnos-kpi .v{font-size:21px;font-weight:800;line-height:1.1;}
+.turnos-kpi .l{font-size:11.5px;color:var(--text-secondary);margin-top:2px;}
+.turnos-kpi.verde .v{color:#16A34A;}
+.turnos-kpi.ambar .v{color:#D97706;}
+.turnos-kpi.azul .v{color:var(--cobalt);}
+.turnos-grid-wrap{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:auto;max-height:calc(100vh - 330px);min-height:220px;}
+.turnos-vacio{padding:44px 20px;text-align:center;color:var(--text-tertiary);font-size:13px;}
+.turnos-tabla{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;}
+.turnos-tabla th,.turnos-tabla td{border-bottom:1px solid var(--border);}
+.turnos-tabla thead th{position:sticky;top:0;z-index:3;background:var(--white);}
+.turnos-tabla tfoot td{position:sticky;bottom:0;z-index:3;background:var(--bg-light);border-top:2px solid var(--border);border-bottom:none;font-weight:800;text-align:center;font-size:11.5px;padding:6px 2px;}
+.turnos-tabla .col-rec{position:sticky;left:0;z-index:2;background:var(--white);text-align:left;min-width:250px;max-width:300px;padding:7px 10px;border-right:1px solid var(--border);}
+.turnos-tabla thead .col-rec{z-index:4;}
+.turnos-tabla tfoot .col-rec{z-index:4;background:var(--bg-light);text-align:left;padding:6px 10px;}
+.turnos-tabla .col-total{text-align:center;min-width:48px;font-weight:800;border-left:1px solid var(--border);color:var(--text-secondary);}
+.turnos-dia-th{padding:5px 1px;text-align:center;min-width:32px;cursor:pointer;user-select:none;}
+.turnos-dia-th:hover{background:var(--cobalt-soft) !important;}
+.turnos-dia-th .ds{font-size:9.5px;color:var(--text-tertiary);font-weight:700;}
+.turnos-dia-th .dn{font-size:12.5px;font-weight:700;}
+.turnos-dia-th.finde{background:var(--bg-light);}
+.turnos-dia-th.hoy .dn{color:var(--cobalt);font-weight:900;}
+.turnos-dia-th.hoy{box-shadow:inset 0 -3px 0 var(--cobalt);}
+.turnos-rec-top{display:flex;align-items:center;gap:7px;}
+.turnos-swatch{width:9px;height:9px;border-radius:50%;flex:0 0 9px;}
+.turnos-rec-tipo{font-weight:800;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.turnos-rec-nombre{font-size:10.5px;color:var(--text-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:1px 0 4px 16px;}
+.turnos-rec-bottom{display:flex;align-items:center;gap:5px;margin-left:16px;flex-wrap:wrap;}
+.turnos-chip-inicio{border:1px solid var(--border);background:var(--bg-light);color:var(--text-secondary);border-radius:20px;padding:2px 9px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;}
+.turnos-chip-inicio:hover{border-color:var(--cobalt);color:var(--cobalt);}
+.turnos-chip-inicio.sin{background:#FFFBEB;border-color:#FCD34D;color:#B45309;}
+.turnos-chip-inicio.futura{background:var(--cobalt-soft);border-color:#BFDBFE;color:var(--cobalt-dark);}
+.turnos-fila-acc{display:inline-flex;gap:3px;margin-left:auto;}
+.turnos-fila-acc button{width:24px;height:22px;border:1px solid var(--border);background:var(--white);border-radius:6px;font-size:11px;cursor:pointer;color:var(--text-secondary);padding:0;}
+.turnos-fila-acc button:hover{border-color:var(--cobalt);color:var(--cobalt);}
+.turno-celda{padding:0;text-align:center;cursor:pointer;touch-action:none;user-select:none;}
+.turno-celda.finde{background:var(--bg-light);}
+.turno-celda.hoy{box-shadow:inset 2px 0 0 rgba(37,99,235,0.35),inset -2px 0 0 rgba(37,99,235,0.35);}
+.turno-celda .tc{width:26px;height:26px;margin:3px auto;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;background:#EEF2F7;color:transparent;transition:background .08s,transform .08s;}
+.turno-celda:hover .tc{outline:2px solid var(--cobalt);outline-offset:0;}
+.turno-celda.activo .tc{background:#22C55E;color:#fff;}
+.turno-celda.pasado .tc{opacity:.6;}
+.turno-celda.inicio .tc{box-shadow:inset 3px 0 0 var(--cobalt);}
+.turno-celda.bloqueado{cursor:not-allowed;}
+.turno-celda.bloqueado .tc{background:repeating-linear-gradient(135deg,transparent 0 4px,rgba(148,163,184,0.35) 4px 6px);color:transparent;}
+.turno-celda.bloqueado:hover .tc{outline:none;}
+.turnos-leyenda{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:10px;font-size:11.5px;color:var(--text-secondary);}
+.turnos-leyenda .lg{display:inline-flex;align-items:center;gap:6px;}
+.turnos-leyenda .mx{width:15px;height:15px;border-radius:4px;display:inline-block;}
+#turnos-inicio-overlay{position:fixed;z-index:1000;}
+body.tema-oscuro .turno-celda .tc{background:#1E293B;}
+body.tema-oscuro .turno-celda.activo .tc{background:#16A34A;}
+body.tema-oscuro .turnos-estado.guardando{background:#3B2A0A;}
+body.tema-oscuro .turnos-estado.ok{background:#0B2A17;}
+body.tema-oscuro .turnos-estado.error{background:#3A0F12;}
+body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E;color:#FCD34D;}
+@media (max-width:700px){
+  .turnos-wrap{padding:12px 10px 20px;}
+  .turnos-tabla .col-rec{min-width:170px;max-width:190px;}
+  .turnos-nav .lbl{min-width:120px;font-size:12px;}
+  .turnos-grid-wrap{max-height:none;}
+}
 </style>
 </head>
 <body>
@@ -1483,8 +1654,8 @@ body.tema-oscuro .rt-pie{background:#0F172A;border-top-color:#1E293B;}
     </div>
     <!-- BOTONES FLOTANTES: cambiar escenario de alerta -->
     <div id="escenario-switcher">
-      <button class="esc-btn verde" id="esc-btn-verde" title="Escenario Alerta Verde">
-        <span class="esc-dot"></span>Alerta Verde
+      <button class="esc-btn verde" id="esc-btn-verde" title="Escenario Normal">
+        <span class="esc-dot"></span>Normal
       </button>
       <button class="esc-btn amarilla" id="esc-btn-amarilla" title="Escenario Alerta Amarilla">
         <span class="esc-dot"></span>Alerta Amarilla
@@ -1618,6 +1789,72 @@ body.tema-oscuro .rt-pie{background:#0F172A;border-top-color:#1E293B;}
     </div>
   </div>
 
+  <!-- MÓDULO CALENDARIO DE TURNOS v2 (solo Admin) -->
+  <div id="turnos-panel">
+    <div class="turnos-wrap">
+      <div class="turnos-head">
+        <div>
+          <h2>📅 Calendario de Turnos por Recurso</h2>
+          <p>Planifica los días en que cada recurso está en turno. Los días anteriores a la fecha de inicio de operación del recurso quedan bloqueados. El mapa refleja los recursos en turno hoy.</p>
+        </div>
+        <span class="turnos-estado" id="turnos-estado">Sin cambios</span>
+      </div>
+
+      <div class="turnos-toolbar">
+        <select id="turnos-area-select" title="Área de relacionamiento"></select>
+        <select id="turnos-tipo-select" title="Filtrar por tipo de recurso"><option value="">Todos los tipos</option></select>
+        <input type="search" id="turnos-busqueda" placeholder="Buscar recurso o institución…">
+        <div class="sep"></div>
+        <div class="turnos-seg">
+          <button id="turnos-vista-semana" class="active">Semana</button>
+          <button id="turnos-vista-mes">Mes</button>
+        </div>
+        <div class="turnos-nav">
+          <button id="turnos-prev" title="Periodo anterior">‹</button>
+          <span class="lbl" id="turnos-periodo-label"></span>
+          <button id="turnos-next" title="Periodo siguiente">›</button>
+          <button id="turnos-hoy" title="Ir a hoy">Hoy</button>
+        </div>
+        <button class="turnos-btn" id="turnos-repetir-semana" title="Copia el patrón de la semana anterior a la semana visible, respetando las fechas de inicio">↻ Repetir semana anterior</button>
+      </div>
+
+      <div class="turnos-kpis" id="turnos-kpis"></div>
+
+      <div class="turnos-grid-wrap" id="turnos-grid-wrap">
+        <div id="turnos-grid"></div>
+      </div>
+
+      <div class="turnos-leyenda">
+        <span class="lg"><span class="mx" style="background:#22C55E;"></span>En turno</span>
+        <span class="lg"><span class="mx" style="background:#EEF2F7;border:1px solid var(--border);"></span>Sin turno</span>
+        <span class="lg"><span class="mx" style="background:repeating-linear-gradient(135deg,transparent 0 4px,rgba(148,163,184,0.5) 4px 6px);border:1px solid var(--border);"></span>Antes de la fecha de inicio (bloqueado)</span>
+        <span class="lg"><span class="mx" style="background:#EEF2F7;box-shadow:inset 3px 0 0 var(--cobalt);"></span>Día de inicio de operación</span>
+        <span class="lg">💡 Clic o arrastre para marcar · clic en el encabezado de un día para marcarlo en todos los recursos visibles · los cambios se guardan solos</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: FECHA DE INICIO DE OPERACIÓN DEL RECURSO (Calendario de Turnos) -->
+  <div class="modal-overlay" id="turnos-inicio-overlay">
+    <div class="modal-card">
+      <h3>Fecha de inicio de operación</h3>
+      <p class="coords" id="turnos-inicio-sub">—</p>
+      <div class="form-group">
+        <label for="turnos-inicio-fecha">Inicia operación el</label>
+        <input type="date" id="turnos-inicio-fecha">
+      </div>
+      <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--text-secondary);margin:4px 0 12px;cursor:pointer;">
+        <input type="checkbox" id="turnos-inicio-limpiar" checked style="margin-top:2px;">
+        <span id="turnos-inicio-limpiar-lbl">Eliminar los turnos registrados antes de la nueva fecha</span>
+      </label>
+      <p class="form-error" id="turnos-inicio-error"></p>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="turnos-inicio-quitar" title="Deja el recurso sin fecha de inicio (sin bloqueo)">Quitar fecha</button>
+        <button class="btn-secondary" id="turnos-inicio-cancelar">Cancelar</button>
+        <button class="btn-primary" id="turnos-inicio-guardar">Guardar</button>
+      </div>
+    </div>
+  </div>
   <!-- MÓDULO GESTIÓN DE PATRULLAJES (mapa exclusivo, solo Admin) -->
   <div id="patrullajes-panel">
     <div class="pat-toolbar">
@@ -1658,6 +1895,35 @@ body.tema-oscuro .rt-pie{background:#0F172A;border-top-color:#1E293B;}
     </div>
   </div>
 
+  <!-- MÓDULO PLANIFICADOR DE RECURSOS POR ÁREA (mapa exclusivo) -->
+  <div id="planificador-panel">
+    <div class="pat-toolbar">
+      <div class="pat-toolbar-left">
+        <strong>🧭 Planificador por Área</strong>
+        <select id="pl-area" class="admin-search" style="min-width:170px;" title="Área"></select>
+        <select id="pl-sector" class="admin-search" style="min-width:150px;" title="Sector"></select>
+        <select id="pl-tipo" class="admin-search" style="min-width:170px;" title="Tipo de recurso"></select>
+        <input type="search" id="pl-busqueda" class="admin-search" style="min-width:170px;" placeholder="Buscar código, tipo, ruta…">
+      </div>
+      <div class="pat-toolbar-right" style="display:flex;align-items:center;gap:8px;">
+        <span class="turnos-estado" id="pl-estado">—</span>
+        <button class="turnos-btn" id="pl-recargar" title="Volver a leer los datos">↻ Recargar</button>
+      </div>
+    </div>
+    <div class="pl-kpis turnos-kpis" id="pl-kpis"></div>
+    <div class="pl-body">
+      <aside class="pl-col-lista" id="pl-lista"></aside>
+      <div id="pl-map"></div>
+      <aside class="pl-col-ficha">
+        <div class="pat-side-empty" id="pl-ficha-vacia">
+          <div style="font-size:30px;margin-bottom:8px;">📍</div>
+          Elige un recurso en la lista o en el mapa para ver y completar su ficha: tipo, punto de referencia, 1 o 2 rutas y su calendario de turnos.
+        </div>
+        <div id="pl-ficha" style="display:none;"></div>
+      </aside>
+    </div>
+  </div>
+
   <!-- TOPBAR -->
   <button id="btn-capas-movil" title="Capas" style="display:none;">🗺️ Capas</button>
   <!-- Logo municipal grande flotante (Dashboard, esquina; solo si la comuna tiene logo propio) -->
@@ -1688,6 +1954,8 @@ body.tema-oscuro .rt-pie{background:#0F172A;border-top-color:#1E293B;}
         <button class="vista-tab active" data-vista="dashboard">📊 Dashboard</button>
         <button class="vista-tab" data-vista="mapa">🗺️ Mapa</button>
         <button class="vista-tab" data-vista="patrullajes" id="tab-patrullajes" style="display:none;">🚓 Gestión Patrullajes</button>
+        <button class="vista-tab" data-vista="turnos" id="tab-turnos" style="display:none;">📅 Calendario Turnos</button>
+        <button class="vista-tab" data-vista="planificador" id="tab-planificador">🧭 Planificador</button>
         <button class="vista-tab" data-vista="admin" id="tab-admin" style="display:none;">⚙️ Administración</button>
       </nav>
     </div>
@@ -1738,7 +2006,7 @@ body.tema-oscuro .rt-pie{background:#0F172A;border-top-color:#1E293B;}
           </button>
           <button class="planificar-item" id="plan-verde">
             <span class="plan-icon" style="background:#DCFCE7;">🟢</span>
-            <div><div class="plan-label">Escenario Alerta Verde</div><div class="plan-sub">Activa la capa y abre la planificación</div></div>
+            <div><div class="plan-label">Escenario Normal</div><div class="plan-sub">Activa la capa y abre la planificación</div></div>
           </button>
           <button class="planificar-item" id="plan-amarilla">
             <span class="plan-icon" style="background:#FEF3C7;">🟡</span>
@@ -1758,7 +2026,7 @@ body.tema-oscuro .rt-pie{background:#0F172A;border-top-color:#1E293B;}
           </button>
           <button class="planificar-item" id="plan-propagar-copamiento" style="display:none;">
             <span class="plan-icon" style="background:#EDE9FE;">⏫</span>
-            <div><div class="plan-label">Propagar copamiento</div><div class="plan-sub">Verde → Amarilla → Roja, sin duplicar</div></div>
+            <div><div class="plan-label">Propagar copamiento</div><div class="plan-sub">Normal → Amarilla → Roja, sin duplicar</div></div>
           </button>
         </div>
         <div class="dropdown-panel planificar-panel" id="zonas-recursos-panel">
@@ -1871,7 +2139,7 @@ body.tema-oscuro .rt-pie{background:#0F172A;border-top-color:#1E293B;}
           <label class="rt-esc rt-esc-verde">
             <input type="radio" name="exp-esc" value="Verde">
             <span class="rt-esc-punto"></span>
-            <span class="rt-esc-nombre">Alerta Verde</span>
+            <span class="rt-esc-nombre">Normal</span>
             <span class="rt-esc-conteo" id="exp-n-verde"></span>
             <span class="rt-esc-check">✓</span>
           </label>
@@ -1934,7 +2202,7 @@ body.tema-oscuro .rt-pie{background:#0F172A;border-top-color:#1E293B;}
           </div>
         </div>
 
-        <div class="rt-label">¿A qué alertas se suma?</div>
+        <div class="rt-label">¿A qué escenarios se suma?</div>
         <div class="rt-presets">
           <button id="ruta-preset-1">Solo Amarilla</button>
           <button id="ruta-preset-2">Amarilla y Roja</button>
@@ -1945,7 +2213,7 @@ body.tema-oscuro .rt-pie{background:#0F172A;border-top-color:#1E293B;}
           <label class="rt-esc rt-esc-verde">
             <input type="checkbox" id="ruta-esc-verde">
             <span class="rt-esc-punto"></span>
-            <span class="rt-esc-nombre">Alerta Verde</span>
+            <span class="rt-esc-nombre">Normal</span>
             <span class="rt-esc-check">✓</span>
           </label>
           <label class="rt-esc rt-esc-amarilla">
@@ -2471,7 +2739,7 @@ body.tema-oscuro .rt-pie{background:#0F172A;border-top-color:#1E293B;}
         <button class="wx-close" id="btn-close-planificacion-previa" style="color:var(--text-secondary);">✕</button>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:14px;">
-        <button class="popup-btn" id="btn-escenario-verde" style="flex:1;padding:10px;font-size:12.5px;">🟢 Alerta Verde</button>
+        <button class="popup-btn" id="btn-escenario-verde" style="flex:1;padding:10px;font-size:12.5px;">🟢 Normal</button>
         <button class="popup-btn" id="btn-escenario-amarilla" style="flex:1;padding:10px;font-size:12.5px;">🟡 Alerta Amarilla</button>
         <button class="popup-btn" id="btn-escenario-roja" style="flex:1;padding:10px;font-size:12.5px;">🔴 Alerta Roja</button>
       </div>
@@ -3263,12 +3531,13 @@ async function entrarAlSistema() {
   // Modo edición gráfica de recursos del área: EXCLUSIVO del perfil Administrador.
   const itemRecArea = document.getElementById('plan-recursos-area');
   if (itemRecArea) itemRecArea.style.display = state.perfil.perfil === 'Administrador' ? 'flex' : 'none';
-  // Propagación escalonada del copamiento: EXCLUSIVO del perfil Administrador.
+  // Propagación escalonada del copamiento: Administrador, Jefe de Área y GRD.
   const itemProp = document.getElementById('plan-propagar-copamiento');
-  if (itemProp) itemProp.style.display = state.perfil.perfil === 'Administrador' ? 'flex' : 'none';
+  if (itemProp) itemProp.style.display = puedePropagar_() ? 'flex' : 'none';
   // btn-recursos-area-rapido eliminado del DOM
   document.getElementById('tab-admin').style.display = state.perfil.perfil === 'Administrador' ? '' : 'none';
   document.getElementById('tab-patrullajes').style.display = state.perfil.perfil === 'Administrador' ? '' : 'none';
+  { const tt = document.getElementById('tab-turnos'); if (tt) tt.style.display = puedeGestionarTurnos_() ? '' : 'none'; }
   // Los botones de Usuarios, Instituciones, Resumen General, Planificación
   // Previa, Recursos del Área y Catálogo salieron de la barra lateral: se
   // administran desde el panel de Administración.
@@ -4050,7 +4319,9 @@ function badgePerfil_(p) {
 }
 function admKpi_(ico, bg, label, value, opts) {
   opts = opts || {};
-  return '<div class="adm-kpi' + (opts.click ? ' clickable' : '') + (opts.activo ? ' activo' : '') + '"' + (opts.click ? ' data-kpi="' + opts.click + '"' : '') + '>' +
+  // click: '' es un filtro válido (= todos, p.ej. la tarjeta "Total"): no evaluar por truthiness.
+  const clic = typeof opts.click === 'string';
+  return '<div class="adm-kpi' + (clic ? ' clickable' : '') + (opts.activo ? ' activo' : '') + '"' + (clic ? ' data-kpi="' + escapeHtml_(opts.click) + '"' : '') + '>' +
     '<div class="ak-ico" style="background:' + bg + '">' + ico + '</div><div><div class="ak-label">' + label + '</div><div class="ak-value">' + value + '</div></div></div>';
 }
 function densToggle_() {
@@ -4686,6 +4957,524 @@ function diffAuditoria_(antes, despues) {
   return 'MODIFICADO:\n' + cambios.map(k => '  ' + k + ': ' + JSON.stringify(antes[k]) + '  →  ' + JSON.stringify(despues[k])).join('\n');
 }
 
+/* ==================== PLANIFICADOR DE RECURSOS POR ÁREA (mapa exclusivo) ====================
+ * Une en una sola ficha por recurso: punto de referencia (referencia_recursos =
+ * "Recursos disponibles"), tipo (catálogo tipos_recurso), 1 o 2 rutas
+ * (recurso_rutas → rutas_patrullaje) y el Calendario de Turnos (recurso_turnos).
+ * Lee la vista v_planificador_recursos (SQL 65). Escribe solo por RPC:
+ * guardar_ficha_recurso, guardar_rutas_recurso, mover_recurso_referencia y
+ * actualizar_inicio_recurso (51).
+ * Edita: Administrador (todo) y Jefe de Área (sus áreas). Resto: solo lectura.
+ * Ojo: perfil_areas guarda las áreas SIN tilde ('MULCHEN') y los recursos CON
+ * tilde ('MULCHÉN'): toda comparación de área pasa por plNorm_. */
+let plMap = null, plRutasLayer = null, plRecursosLayer = null, plSelLayer = null;
+state.pl = { recursos: [], rutas: [], idArea: null, sector: '', tipo: '', q: '', selId: null,
+             moviendo: false, cargado: false, preview: null, encuadrar: false };
+
+// Ficha mínima (formato del GeoJSON de recursos): lo que falta se marca en la lista.
+const PL_REQUERIDOS = [
+  ['codigo_ref', 'Código'], ['tipo_recurso', 'Tipo de recurso'], ['actividad', 'Actividad'],
+  ['tipo_movil', 'Tipo de móvil'], ['sector', 'Sector'], ['zona_alerta', 'Zona de alerta'],
+  ['fecha_inicio_operacion', 'Fecha de inicio'], ['ruta1_id', 'Ruta 1'],
+];
+
+function plNorm_(s) { return normalizarBusqueda_(s).toUpperCase(); }
+function plFaltantes_(r) {
+  return PL_REQUERIDOS.filter(([k]) => r[k] == null || String(r[k]).trim() === '').map(([, etiqueta]) => etiqueta);
+}
+function plPuedeEditar_(r) {
+  if (!state.perfil || !r) return false;
+  if (state.perfil.perfil === 'Administrador') return true;
+  if (!esJefeAreaPerfil_(state.perfil.perfil)) return false;
+  return (state.misAreasIds || []).map(plNorm_).includes(plNorm_(r.area));
+}
+function plColorTipo_(tipo) {
+  const t = (state.tiposRecursoCatalogo || []).find(x => plNorm_(x.nombre) === plNorm_(tipo));
+  return (t && t.color_hex) || '#64748B';
+}
+function plEstado_(texto, clase) {
+  const el = document.getElementById('pl-estado');
+  if (!el) return;
+  el.textContent = texto;
+  el.className = 'turnos-estado' + (clase ? ' ' + clase : '');
+}
+function plSeleccionado_() {
+  return state.pl.recursos.find(r => r.id === state.pl.selId) || null;
+}
+function plFechaCorta_(iso) {
+  if (!iso) return '—';
+  const p = String(iso).slice(0, 10).split('-');
+  return p.length === 3 ? p[2] + '-' + p[1] + '-' + p[0] : iso;
+}
+
+function initPlMap_() {
+  if (plMap) { setTimeout(() => plMap.invalidateSize(), 60); return; }
+  plMap = L.map('pl-map', { zoomControl: true, attributionControl: false, zoomSnap: 0.25 }).setView([-38.0, -72.4], 8);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Tiles &copy; Esri' }).addTo(plMap);
+  plRutasLayer = L.layerGroup().addTo(plMap);
+  plSelLayer = L.layerGroup().addTo(plMap);
+  plRecursosLayer = L.layerGroup().addTo(plMap);
+}
+
+async function abrirPlanificador_() {
+  initPlMap_();
+  if (!state.pl.listeners) { state.pl.listeners = true; iniciarListenersPlanificador_(); }
+  await cargarTiposRecurso_();
+  if (!state.pl.cargado) await cargarRecursosPlanificador_();
+  poblarAreasPlanificador_();
+  renderPlanificador_();
+}
+
+async function cargarRecursosPlanificador_() {
+  plEstado_('Cargando…', 'guardando');
+  const { data, error } = await supabaseClient.from('v_planificador_recursos').select('*');
+  if (error) { plEstado_('Error: ' + error.message, 'error'); return; }
+  state.pl.recursos = data || [];
+  state.pl.cargado = true;
+  plEstado_('Datos al día', 'ok');
+}
+
+async function refrescarRecursoPlanificador_(id) {
+  const { data, error } = await supabaseClient.from('v_planificador_recursos').select('*').eq('id', id).maybeSingle();
+  if (error || !data) return;
+  const i = state.pl.recursos.findIndex(r => r.id === id);
+  if (i >= 0) state.pl.recursos[i] = data; else state.pl.recursos.push(data);
+}
+
+/** Áreas que ve el usuario: Admin y perfiles de consulta, todas; Jefe de Área, las suyas. */
+function plAreasVisibles_() {
+  const nombres = {};
+  state.pl.recursos.forEach(r => { if (r.id_area != null && !nombres[r.id_area]) nombres[r.id_area] = r.area; });
+  let lista = Object.keys(nombres).map(id => ({ id: Number(id), nombre: nombres[id] }));
+  const p = state.perfil && state.perfil.perfil;
+  if (p !== 'Administrador' && esJefeAreaPerfil_(p)) {
+    const mias = (state.misAreasIds || []).map(plNorm_);
+    lista = lista.filter(a => mias.includes(plNorm_(a.nombre)));
+  }
+  return lista.sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+}
+
+function poblarAreasPlanificador_() {
+  const sel = document.getElementById('pl-area');
+  const areas = plAreasVisibles_();
+  if (state.pl.idArea != null && !areas.some(a => a.id === state.pl.idArea)) state.pl.idArea = null;
+  if (state.pl.idArea == null && areas.length === 1) { state.pl.idArea = areas[0].id; state.pl.encuadrar = true; }
+  sel.innerHTML = '<option value="">— Selecciona un área —</option>' +
+    areas.map(a => '<option value="' + a.id + '">' + escapeHtml_(a.nombre) + '</option>').join('');
+  sel.value = state.pl.idArea != null ? String(state.pl.idArea) : '';
+  if (state.pl.idArea != null && state.pl.rutas.length === 0) cargarRutasPlanificador_();
+}
+
+async function cargarRutasPlanificador_() {
+  const idArea = state.pl.idArea;
+  state.pl.rutas = [];
+  if (idArea == null) return;
+  const { data, error } = await supabaseClient.from('v_rutas_patrullaje')
+    .select('id, nombre_ruta, alias, km, sector, area, id_area, id_ruta, geometry')
+    .eq('id_area', idArea);
+  if (state.pl.idArea !== idArea) return; // cambió el área mientras cargaba
+  if (error) { plEstado_('No se pudieron cargar las rutas: ' + error.message, 'error'); return; }
+  state.pl.rutas = (data || []).sort((a, b) => String(a.nombre_ruta || '').localeCompare(String(b.nombre_ruta || ''), 'es'));
+  renderPlanificador_();
+}
+
+function plRecursosDelArea_() {
+  return state.pl.recursos.filter(r => r.id_area === state.pl.idArea);
+}
+
+function plRecursosFiltrados_() {
+  const q = normalizarBusqueda_(state.pl.q);
+  return plRecursosDelArea_().filter(r =>
+      (!state.pl.sector || r.sector === state.pl.sector)
+      && (!state.pl.tipo || r.tipo_recurso === state.pl.tipo)
+      && (!q || normalizarBusqueda_([r.codigo_ref, r.tipo_recurso, r.sector, r.empresa, r.ruta1_nombre, r.ruta2_nombre].join(' ')).includes(q)))
+    .sort((a, b) => String(a.codigo_ref || '~').localeCompare(String(b.codigo_ref || '~'), 'es')
+                 || String(a.tipo_recurso || '').localeCompare(String(b.tipo_recurso || ''), 'es'));
+}
+
+/** Llena un select de filtro y devuelve el valor vigente (vacío si ya no existe). */
+function plOpcionesFiltro_(id, textoTodos, valores, actual) {
+  const sel = document.getElementById(id);
+  const lista = valores.slice().sort((a, b) => String(a).localeCompare(String(b), 'es'));
+  sel.innerHTML = '<option value="">' + textoTodos + '</option>' +
+    lista.map(v => '<option value="' + escapeHtml_(v) + '">' + escapeHtml_(v) + '</option>').join('');
+  sel.value = lista.includes(actual) ? actual : '';
+  return sel.value;
+}
+
+function renderPlanificador_() {
+  const enArea = plRecursosDelArea_();
+  state.pl.sector = plOpcionesFiltro_('pl-sector', 'Todos los sectores', [...new Set(enArea.map(r => r.sector).filter(Boolean))], state.pl.sector);
+  state.pl.tipo = plOpcionesFiltro_('pl-tipo', 'Todos los tipos', [...new Set(enArea.map(r => r.tipo_recurso).filter(Boolean))], state.pl.tipo);
+  const lista = plRecursosFiltrados_();
+  renderKpisPlanificador_(enArea);
+  renderListaPlanificador_(lista);
+  renderMapaPlanificador_(lista);
+  renderFichaPlanificador_();
+}
+
+function renderKpisPlanificador_(enArea) {
+  const cont = document.getElementById('pl-kpis');
+  if (state.pl.idArea == null) { cont.innerHTML = ''; return; }
+  const completas = enArea.filter(r => plFaltantes_(r).length === 0).length;
+  const conRuta = enArea.filter(r => r.ruta1_id).length;
+  const enTurno = enArea.filter(r => r.en_turno_hoy).length;
+  const sinInicio = enArea.filter(r => !r.fecha_inicio_operacion).length;
+  const k = (v, l, cls) => '<div class="turnos-kpi ' + (cls || '') + '"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>';
+  cont.innerHTML =
+    k(enArea.length, 'Recursos del área', 'azul') +
+    k(completas + ' / ' + enArea.length, 'Fichas completas', completas === enArea.length ? 'verde' : 'ambar') +
+    k(conRuta + ' / ' + enArea.length, 'Con ruta asociada', conRuta === enArea.length ? 'verde' : 'ambar') +
+    k(enTurno, 'En turno hoy', 'verde') +
+    k(sinInicio, 'Sin fecha de inicio', sinInicio ? 'ambar' : '');
+}
+
+function renderListaPlanificador_(lista) {
+  const cont = document.getElementById('pl-lista');
+  if (state.pl.idArea == null) { cont.innerHTML = '<div class="turnos-vacio">Selecciona un área para ver sus recursos.</div>'; return; }
+  if (!lista.length) { cont.innerHTML = '<div class="turnos-vacio">Ningún recurso coincide con los filtros.</div>'; return; }
+  cont.innerHTML = lista.map(r => {
+    const falt = plFaltantes_(r);
+    const rutas = [r.ruta1_nombre, r.ruta2_nombre].filter(Boolean);
+    return '<button class="pl-item' + (r.id === state.pl.selId ? ' sel' : '') + '" data-id="' + r.id + '">' +
+      '<span class="pl-dot" style="background:' + plColorTipo_(r.tipo_recurso) + '"></span>' +
+      '<span class="pl-item-body">' +
+        '<span class="pl-item-top"><b>' + escapeHtml_(r.codigo_ref || 'Sin código') + '</b>' +
+          (r.en_turno_hoy ? '<span class="pl-tag ok">En turno</span>' : '') +
+          (falt.length
+            ? '<span class="pl-tag warn" title="Falta: ' + escapeHtml_(falt.join(', ')) + '">Faltan ' + falt.length + '</span>'
+            : '<span class="pl-tag ok">✓ Completa</span>') +
+        '</span>' +
+        '<span class="pl-item-sub">' + escapeHtml_(aTitulo_(r.tipo_recurso || 'Sin tipo')) + ' · ' + escapeHtml_(r.sector || 'Sin sector') + '</span>' +
+        '<span class="pl-item-sub">🛣️ ' + (rutas.length ? escapeHtml_(rutas.join(' / ')) : 'Sin ruta asociada') + '</span>' +
+      '</span></button>';
+  }).join('');
+}
+
+/** Rutas resaltadas: las del formulario si se están cambiando, si no las guardadas. */
+function plRutasResaltadas_(sel) {
+  if (!sel) return [];
+  if (state.pl.preview && state.pl.preview.id === sel.id) return [state.pl.preview.r1 || null, state.pl.preview.r2 || null];
+  return [sel.ruta1_id || null, sel.ruta2_id || null];
+}
+
+function renderMapaPlanificador_(lista) {
+  if (!plMap) return;
+  plRutasLayer.clearLayers(); plSelLayer.clearLayers(); plRecursosLayer.clearLayers();
+  const sel = plSeleccionado_();
+  const resaltadas = plRutasResaltadas_(sel);
+  const editable = plPuedeEditar_(sel);
+  const limites = [];
+  const limitesSel = [];
+
+  // 1) Rutas del área (grises), 2) las del recurso elegido (azul = 1, naranja = 2), 3) puntos encima.
+  const etiquetaRuta = ru => escapeHtml_(ru.nombre_ruta || ru.alias || 'Ruta') + (ru.km ? ' · ' + Number(ru.km).toFixed(1) + ' km' : '');
+  state.pl.rutas.forEach(ru => {
+    if (!ru.geometry || resaltadas.includes(ru.id)) return;
+    const capa = L.geoJSON(ru.geometry, { style: { color: '#475569', weight: 3, opacity: 0.55, dashArray: '6,5' } });
+    capa.bindTooltip(etiquetaRuta(ru) + (sel && editable ? '<br><i>Clic para asociarla al recurso</i>' : ''), { sticky: true });
+    if (sel && editable) capa.on('click', () => asociarRutaDesdeMapa_(ru.id));
+    plRutasLayer.addLayer(capa);
+    try { limites.push(capa.getBounds()); } catch (e) {}
+  });
+  resaltadas.forEach((idRuta, i) => {
+    const ru = state.pl.rutas.find(x => x.id === idRuta);
+    if (!ru || !ru.geometry) return;
+    const capa = L.geoJSON(ru.geometry, { style: { color: i === 0 ? '#2563EB' : '#EA580C', weight: 6, opacity: 0.95 } });
+    capa.bindTooltip('Ruta ' + (i + 1) + ': ' + etiquetaRuta(ru), { sticky: true });
+    plSelLayer.addLayer(capa);
+    try { limites.push(capa.getBounds()); limitesSel.push(capa.getBounds()); } catch (e) {}
+  });
+
+  lista.forEach(r => {
+    if (r.lat == null || r.lng == null) return;
+    const esSel = sel && r.id === sel.id;
+    if (esSel && state.pl.moviendo) return; // lo reemplaza el marcador arrastrable
+    const m = L.circleMarker([r.lat, r.lng], {
+      radius: esSel ? 10 : 7, color: esSel ? '#0F172A' : '#fff', weight: esSel ? 3 : 2,
+      fillColor: plColorTipo_(r.tipo_recurso), fillOpacity: 1,
+    });
+    m.bindTooltip('<b>' + escapeHtml_(r.codigo_ref || 'Sin código') + '</b><br>' + escapeHtml_(aTitulo_(r.tipo_recurso || '')), { direction: 'top', offset: [0, -6] });
+    m.on('click', () => seleccionarRecursoPlanificador_(r.id));
+    plRecursosLayer.addLayer(m);
+    const b = L.latLngBounds([r.lat, r.lng], [r.lat, r.lng]);
+    limites.push(b);
+    if (esSel) limitesSel.push(b);
+  });
+
+  if (sel && state.pl.moviendo && sel.lat != null) {
+    const mk = L.marker([sel.lat, sel.lng], {
+      draggable: true, zIndexOffset: 1000,
+      icon: L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 28], html: '<div class="pl-pin">📍</div>' }),
+    }).addTo(plRecursosLayer);
+    mk.bindTooltip('Arrastra al nuevo punto de referencia', { permanent: true, direction: 'top', offset: [0, -28] });
+    mk.on('dragend', () => { const ll = mk.getLatLng(); moverPuntoPlanificador_(sel.id, ll.lat, ll.lng); });
+  }
+
+  const unir = arr => arr.reduce((acc, b) => (acc ? acc.extend(b) : L.latLngBounds(b.getSouthWest(), b.getNorthEast())), null);
+  if (state.pl.encuadrar && limites.length) {
+    plMap.fitBounds(unir(limites).pad(0.08));
+    state.pl.encuadrar = false;
+  } else if (state.pl.encuadrarSel && limitesSel.length) {
+    plMap.fitBounds(unir(limitesSel).pad(0.25), { maxZoom: 14 });
+    state.pl.encuadrarSel = false;
+  }
+}
+
+function renderFichaPlanificador_() {
+  const vacio = document.getElementById('pl-ficha-vacia');
+  const cont = document.getElementById('pl-ficha');
+  const r = plSeleccionado_();
+  if (!r) { vacio.style.display = ''; cont.style.display = 'none'; cont.innerHTML = ''; return; }
+  vacio.style.display = 'none';
+  cont.style.display = 'flex';
+
+  const editable = plPuedeEditar_(r);
+  const dis = editable ? '' : ' disabled';
+  const falt = plFaltantes_(r);
+  const esc = v => escapeHtml_(v == null ? '' : String(v));
+  const falta = k => (r[k] == null || String(r[k]).trim() === '') ? ' falta' : '';
+  const enArea = plRecursosDelArea_();
+  const distintos = k => [...new Set(state.pl.recursos.map(x => x[k]).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), 'es'));
+
+  // Tipos del catálogo (+ el actual si no estuviera, para no perderlo al guardar)
+  const tipos = (state.tiposRecursoCatalogo || []).map(t => t.nombre);
+  if (r.tipo_recurso && !tipos.some(t => plNorm_(t) === plNorm_(r.tipo_recurso))) tipos.unshift(r.tipo_recurso);
+  const optTipos = '<option value="">— Selecciona —</option>' + tipos.map(t =>
+    '<option value="' + esc(t) + '"' + (plNorm_(t) === plNorm_(r.tipo_recurso) ? ' selected' : '') + '>' + esc(aTitulo_(t)) + '</option>').join('');
+
+  // Sectores del área (con su id_sector)
+  const sectores = new Map();
+  enArea.forEach(x => { if (x.sector && !sectores.has(x.sector)) sectores.set(x.sector, x.id_sector); });
+  const optSectores = '<option value="">— Selecciona —</option>' + [...sectores.keys()].sort((a, b) => a.localeCompare(b, 'es')).map(s =>
+    '<option value="' + esc(s) + '" data-id="' + esc(sectores.get(s)) + '"' + (s === r.sector ? ' selected' : '') + '>' + esc(s) + '</option>').join('');
+
+  // Rutas del área (+ la asociada si es de otra área)
+  const optRutas = (actualId, actualNombre) => {
+    let html = '<option value="">— Sin ruta —</option>';
+    if (actualId && !state.pl.rutas.some(ru => ru.id === actualId)) {
+      html += '<option value="' + esc(actualId) + '" selected>' + esc(actualNombre || 'Ruta de otra área') + '</option>';
+    }
+    return html + state.pl.rutas.map(ru =>
+      '<option value="' + esc(ru.id) + '"' + (ru.id === actualId ? ' selected' : '') + '>' +
+      esc((ru.nombre_ruta || ru.alias || 'Ruta') + (ru.km ? ' · ' + Number(ru.km).toFixed(1) + ' km' : '')) + '</option>').join('');
+  };
+  const lista = (id, valores) => '<datalist id="' + id + '">' + valores.map(v => '<option value="' + esc(v) + '">').join('') + '</datalist>';
+  const kmTotal = (Number(r.ruta1_km) || 0) + (Number(r.ruta2_km) || 0);
+
+  cont.innerHTML =
+    '<div class="pl-ficha-head"><div style="min-width:0;">' +
+      '<div class="pl-ficha-titulo"><span class="pl-dot" style="display:inline-block;margin-right:7px;background:' + plColorTipo_(r.tipo_recurso) + '"></span>' +
+        esc(r.codigo_ref || 'Sin código') + ' · ' + esc(aTitulo_(r.tipo_recurso || 'Sin tipo')) + '</div>' +
+      '<div class="pl-ficha-meta">' + esc(r.area) + ' · ' + esc(r.comuna || '—') + ' · Subgerencia ' + esc(r.subgerencia || '—') + '</div>' +
+    '</div><button class="wx-close" data-pl="cerrar" title="Cerrar ficha">✕</button></div>' +
+    '<div class="pl-ficha-cuerpo">' +
+      (falt.length
+        ? '<div class="pl-aviso warn">⚠️ Ficha incompleta. Falta: <b>' + esc(falt.join(', ')) + '</b>.</div>'
+        : '<div class="pl-aviso ok">✓ Ficha completa.</div>') +
+      (editable ? '' : '<div class="pl-aviso info">🔒 Solo lectura: no tienes permiso para editar recursos de esta área.</div>') +
+
+      '<div class="pl-seccion">Identificación</div><div class="pl-grid">' +
+        '<div class="pl-campo' + falta('codigo_ref') + '"><label>Código (ID)</label><input id="pl-f-codigo" value="' + esc(r.codigo_ref) + '" placeholder="BMP-0601"' + dis + '></div>' +
+        '<div class="pl-campo"><label>COD recurso</label><input id="pl-f-cod" type="number" step="1" value="' + esc(r.cod_recurso) + '"' + dis + '></div>' +
+        '<div class="pl-campo full' + falta('tipo_recurso') + '"><label>Tipo de recurso</label><select id="pl-f-tipo"' + dis + '>' + optTipos + '</select></div>' +
+        '<div class="pl-campo"><label>Temporada</label><input id="pl-f-temporada" value="' + esc(r.temporada) + '" placeholder="2026-2027"' + dis + '></div>' +
+        '<div class="pl-campo"><label>Actualizado</label><input id="pl-f-actualizado" value="' + esc(r.actualizado) + '" placeholder="OK"' + dis + '></div>' +
+        '<div class="pl-campo full"><label>Empresa</label><input id="pl-f-empresa" list="pl-dl-empresa" value="' + esc(r.empresa) + '"' + dis + '></div>' +
+      '</div>' +
+
+      '<div class="pl-seccion">Operación</div><div class="pl-grid">' +
+        '<div class="pl-campo' + falta('actividad') + '"><label>Actividad</label><input id="pl-f-actividad" list="pl-dl-actividad" value="' + esc(r.actividad) + '" placeholder="DIURNO"' + dis + '></div>' +
+        '<div class="pl-campo' + falta('tipo_movil') + '"><label>Tipo de móvil</label><input id="pl-f-movil" list="pl-dl-movil" value="' + esc(r.tipo_movil) + '" placeholder="CAMIONETA"' + dis + '></div>' +
+        '<div class="pl-campo full' + falta('zona_alerta') + '"><label>Zona de alerta</label><input id="pl-f-zona" list="pl-dl-zona" value="' + esc(r.zona_alerta) + '" placeholder="3-VALLE"' + dis + '></div>' +
+      '</div>' +
+
+      '<div class="pl-seccion">Punto de referencia</div><div class="pl-grid">' +
+        '<div class="pl-campo full' + falta('sector') + '"><label>Sector</label><select id="pl-f-sector"' + dis + '>' + optSectores + '</select></div>' +
+        '<div class="pl-campo"><label>Latitud / Longitud</label><div class="pl-dato">' + (r.lat != null ? Number(r.lat).toFixed(5) + ', ' + Number(r.lng).toFixed(5) : '—') + '</div></div>' +
+        '<div class="pl-campo"><label>UTM 18S (X / Y)</label><div class="pl-dato">' + (r.coord_x != null ? Math.round(r.coord_x) + ' / ' + Math.round(r.coord_y) : '—') + '</div></div>' +
+        (editable ? '<div class="pl-campo full"><button class="turnos-btn" data-pl="mover">' + (state.pl.moviendo ? '✕ Cancelar movimiento' : '📍 Mover punto en el mapa') + '</button></div>' : '') +
+      '</div>' +
+
+      '<div class="pl-seccion">Rutas asociadas (1 o 2)</div><div class="pl-grid">' +
+        '<div class="pl-campo full pl-ruta-1' + falta('ruta1_id') + '"><label>Ruta 1</label><select id="pl-f-ruta1"' + dis + '>' + optRutas(r.ruta1_id, r.ruta1_nombre) + '</select></div>' +
+        '<div class="pl-campo full pl-ruta-2"><label>Ruta 2 (opcional)</label><select id="pl-f-ruta2"' + dis + '>' + optRutas(r.ruta2_id, r.ruta2_nombre) + '</select></div>' +
+        '<div class="pl-campo full"><label>Longitud total guardada</label><div class="pl-dato">' + (kmTotal ? kmTotal.toFixed(1) + ' km' : '—') + '</div></div>' +
+      '</div>' +
+
+      '<div class="pl-seccion">Calendario de turnos</div><div class="pl-grid">' +
+        '<div class="pl-campo full' + falta('fecha_inicio_operacion') + '"><label>Fecha de inicio de operación</label><input id="pl-f-inicio" type="date" value="' + esc(r.fecha_inicio_operacion ? String(r.fecha_inicio_operacion).slice(0, 10) : '') + '"' + dis + '></div>' +
+        '<div class="pl-campo"><label>Hoy</label><div class="pl-dato">' + (r.en_turno_hoy ? '🟢 En turno' : '⚪ Sin turno') + '</div></div>' +
+        '<div class="pl-campo"><label>Próximos 7 días</label><div class="pl-dato">' + (r.turnos_proximos_7d || 0) + ' día(s)</div></div>' +
+        '<div class="pl-campo"><label>Próximo turno</label><div class="pl-dato">' + plFechaCorta_(r.proximo_turno) + '</div></div>' +
+        (puedeGestionarTurnos_() ? '<div class="pl-campo"><label>&nbsp;</label><button class="turnos-btn" data-pl="calendario">📅 Abrir calendario</button></div>' : '') +
+      '</div>' +
+      lista('pl-dl-empresa', distintos('empresa')) +
+      lista('pl-dl-actividad', distintos('actividad')) +
+      lista('pl-dl-movil', distintos('tipo_movil')) +
+      lista('pl-dl-zona', distintos('zona_alerta')) +
+    '</div>' +
+    (editable ? '<div class="pl-ficha-pie"><button class="btn-primary" data-pl="guardar" style="flex:1;padding:9px;">Guardar ficha</button></div>' : '');
+}
+
+function seleccionarRecursoPlanificador_(id) {
+  state.pl.selId = id;
+  state.pl.moviendo = false;
+  state.pl.preview = null;
+  state.pl.encuadrarSel = true;
+  renderPlanificador_();
+}
+
+/** Lleva al formulario la ruta clickeada en el mapa (Ruta 1 si está libre, si no Ruta 2). */
+function asociarRutaDesdeMapa_(idRuta) {
+  const s1 = document.getElementById('pl-f-ruta1'), s2 = document.getElementById('pl-f-ruta2');
+  if (!s1 || !s2 || s1.disabled) return;
+  if (!s1.value) s1.value = idRuta;
+  else if (!s2.value && s1.value !== idRuta) s2.value = idRuta;
+  else { mostrarToast_('Este recurso ya tiene 2 rutas en el formulario. Quita una para cambiarla.'); return; }
+  actualizarPreviewRutasPlanificador_();
+  mostrarToast_('Ruta agregada al formulario. Pulsa "Guardar ficha" para confirmarla.');
+}
+
+function actualizarPreviewRutasPlanificador_() {
+  const sel = plSeleccionado_();
+  if (!sel) return;
+  const s1 = document.getElementById('pl-f-ruta1'), s2 = document.getElementById('pl-f-ruta2');
+  state.pl.preview = { id: sel.id, r1: s1 ? s1.value : null, r2: s2 ? s2.value : null };
+  renderMapaPlanificador_(plRecursosFiltrados_());
+}
+
+async function guardarFichaPlanificador_() {
+  const r = plSeleccionado_();
+  if (!r || !plPuedeEditar_(r)) return;
+  const val = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+
+  const tipo = val('pl-f-tipo');
+  if (!tipo) { mostrarToast_('⚠️ Elige el tipo de recurso.'); return; }
+  const cod = val('pl-f-cod');
+  if (cod && !/^-?\d+$/.test(cod)) { mostrarToast_('⚠️ COD recurso debe ser un número entero.'); return; }
+  const r1 = val('pl-f-ruta1') || null, r2 = val('pl-f-ruta2') || null;
+  if (r1 && r1 === r2) { mostrarToast_('⚠️ La Ruta 1 y la Ruta 2 no pueden ser la misma.'); return; }
+
+  const selSector = document.getElementById('pl-f-sector');
+  const optSector = selSector ? selSector.selectedOptions[0] : null;
+  const datos = {
+    codigo_ref: val('pl-f-codigo'), cod_recurso: cod, tipo_recurso: tipo,
+    temporada: val('pl-f-temporada'), actualizado: val('pl-f-actualizado'), empresa: val('pl-f-empresa'),
+    actividad: val('pl-f-actividad').toUpperCase(), tipo_movil: val('pl-f-movil').toUpperCase(), zona_alerta: val('pl-f-zona').toUpperCase(),
+    sector: selSector ? selSector.value : '',
+  };
+  if (optSector && optSector.dataset.id) datos.id_sector = optSector.dataset.id;
+  const fecha = val('pl-f-inicio') || null;
+  const fechaActual = r.fecha_inicio_operacion ? String(r.fecha_inicio_operacion).slice(0, 10) : null;
+
+  const btn = document.querySelector('#pl-ficha [data-pl="guardar"]');
+  if (btn) btn.disabled = true;
+  plEstado_('Guardando…', 'guardando');
+  try {
+    let res = await supabaseClient.rpc('guardar_ficha_recurso', { p_recurso_id: r.id, p_datos: datos });
+    if (res.error) throw res.error;
+
+    if ((r1 || null) !== (r.ruta1_id || null) || (r2 || null) !== (r.ruta2_id || null)) {
+      res = await supabaseClient.rpc('guardar_rutas_recurso', { p_recurso_id: r.id, p_ruta1: r1, p_ruta2: r2 });
+      if (res.error) throw res.error;
+    }
+
+    if (fecha !== fechaActual) {
+      // Primero sin borrar: si hay turnos antes de la nueva fecha, se pregunta.
+      res = await supabaseClient.rpc('actualizar_inicio_recurso', { p_recurso_id: r.id, p_fecha: fecha, p_borrar_previos: false });
+      if (res.error && /turno\(s\) antes/i.test(res.error.message || '')) {
+        if (!confirm(res.error.message.replace('Marca la opción de eliminarlos para continuar.', '') + '\n\n¿Eliminar esos turnos y guardar la nueva fecha de inicio?')) {
+          throw new Error('Fecha de inicio no guardada (el resto de la ficha sí).');
+        }
+        res = await supabaseClient.rpc('actualizar_inicio_recurso', { p_recurso_id: r.id, p_fecha: fecha, p_borrar_previos: true });
+      }
+      if (res.error) throw res.error;
+    }
+
+    state.pl.preview = null;
+    await refrescarRecursoPlanificador_(r.id);
+    plEstado_('Ficha guardada', 'ok');
+    mostrarToast_('✅ Ficha de ' + (datos.codigo_ref || 'recurso') + ' guardada.');
+  } catch (e) {
+    plEstado_('Error al guardar', 'error');
+    mostrarToast_('No se pudo guardar: ' + (e.message || e));
+    await refrescarRecursoPlanificador_(r.id);
+  }
+  renderPlanificador_();
+}
+
+async function moverPuntoPlanificador_(id, lat, lng) {
+  if (!confirm('¿Guardar el nuevo punto de referencia de este recurso?\n\nTambién cambia su ubicación en la capa "Recursos disponibles" del mapa.')) {
+    state.pl.moviendo = false; renderPlanificador_(); return;
+  }
+  plEstado_('Guardando punto…', 'guardando');
+  const { error } = await supabaseClient.rpc('mover_recurso_referencia', { p_recurso_id: id, p_lat: lat, p_lng: lng });
+  state.pl.moviendo = false;
+  if (error) { plEstado_('Error al mover', 'error'); mostrarToast_('No se pudo mover: ' + error.message); renderPlanificador_(); return; }
+  await refrescarRecursoPlanificador_(id);
+  plEstado_('Punto actualizado', 'ok');
+  renderPlanificador_();
+}
+
+function abrirCalendarioDesdePlanificador_() {
+  const r = plSeleccionado_();
+  if (!r) return;
+  // El selector del calendario usa los nombres de su catálogo / perfil_areas (pueden venir sin tilde).
+  const areas = state.perfil.perfil === 'Administrador' ? (state.areasCatalogo || []) : (state.misAreasIds || []);
+  const igual = areas.find(a => plNorm_(a) === plNorm_(r.area));
+  if (igual) state.turnosArea = igual;
+  mostrarVista_('turnos');
+}
+
+function iniciarListenersPlanificador_() {
+  document.getElementById('pl-area').addEventListener('change', (e) => {
+    state.pl.idArea = e.target.value ? Number(e.target.value) : null;
+    state.pl.sector = ''; state.pl.tipo = ''; state.pl.selId = null; state.pl.preview = null;
+    state.pl.moviendo = false; state.pl.rutas = []; state.pl.encuadrar = true;
+    renderPlanificador_();
+    cargarRutasPlanificador_();
+  });
+  document.getElementById('pl-sector').addEventListener('change', (e) => { state.pl.sector = e.target.value; state.pl.encuadrar = true; renderPlanificador_(); });
+  document.getElementById('pl-tipo').addEventListener('change', (e) => { state.pl.tipo = e.target.value; renderPlanificador_(); });
+  let tBusq = null;
+  document.getElementById('pl-busqueda').addEventListener('input', (e) => {
+    clearTimeout(tBusq);
+    tBusq = setTimeout(() => { state.pl.q = e.target.value; renderPlanificador_(); }, 180);
+  });
+  document.getElementById('pl-recargar').addEventListener('click', async () => {
+    state.pl.cargado = false;
+    await cargarRecursosPlanificador_();
+    poblarAreasPlanificador_();
+    state.pl.rutas = [];
+    await cargarRutasPlanificador_();
+    renderPlanificador_();
+  });
+  document.getElementById('pl-lista').addEventListener('click', (e) => {
+    const b = e.target.closest('.pl-item');
+    if (b) seleccionarRecursoPlanificador_(b.dataset.id);
+  });
+  const ficha = document.getElementById('pl-ficha');
+  ficha.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-pl]');
+    if (!b) return;
+    const accion = b.dataset.pl;
+    if (accion === 'cerrar') { state.pl.selId = null; state.pl.moviendo = false; state.pl.preview = null; renderPlanificador_(); }
+    else if (accion === 'guardar') guardarFichaPlanificador_();
+    else if (accion === 'mover') {
+      // Solo se redibuja el mapa: re-renderizar la ficha borraría lo que aún no se guardó.
+      state.pl.moviendo = !state.pl.moviendo;
+      b.textContent = state.pl.moviendo ? '✕ Cancelar movimiento' : '📍 Mover punto en el mapa';
+      renderMapaPlanificador_(plRecursosFiltrados_());
+      if (state.pl.moviendo) mostrarToast_('📍 Arrastra el marcador al nuevo punto de referencia.');
+    }
+    else if (accion === 'calendario') abrirCalendarioDesdePlanificador_();
+  });
+  ficha.addEventListener('change', (e) => {
+    if (e.target && (e.target.id === 'pl-f-ruta1' || e.target.id === 'pl-f-ruta2')) actualizarPreviewRutasPlanificador_();
+  });
+}
+
 /* ==================== MÓDULO GESTIÓN DE PATRULLAJES (mapa exclusivo) ==================== */
 let patMap = null, patRutasLayer = null;
 state.patRutas = [];
@@ -4863,22 +5652,640 @@ function cerrarAsigPat_() {
 
 /* ============ NAVEGACIÓN DE VISTAS: Dashboard | Mapa ============ */
 state.vistaActual = 'dashboard';
+// ════════════════════════════════════════════════════════════════
+// CALENDARIO DE TURNOS POR RECURSO — v2
+// Fuente de recursos: recursos_disponibles_area_geojson (la MISMA que usa
+// la capa "Recursos Disponibles" del mapa), así los IDs de recurso_turnos
+// coinciden con los markers y el filtro "Solo recursos en turno hoy" funciona.
+// Regla de negocio: no se puede asignar turno antes de fecha_inicio_operacion
+// (validado en UI y en BD con trigger trg_validar_turno_inicio).
+// ════════════════════════════════════════════════════════════════
+state.turnosVista = state.turnosVista || 'semana';
+state.turnosFechaBase = state.turnosFechaBase || new Date();
+state.turnosArea = state.turnosArea || null;
+state.turnosRecursos = state.turnosRecursos || [];
+state.turnosData = state.turnosData || {};   // { 'recursoId|YYYY-MM-DD': true }
+state.turnosFiltroTipo = state.turnosFiltroTipo || '';
+state.turnosBusqueda = state.turnosBusqueda || '';
+
+const TURNOS_MESES_CORTOS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const TURNOS_MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const TURNOS_DIAS = ['D','L','M','M','J','V','S'];
+const turnosPendientes_ = [];
+let turnosGuardando_ = null;
+let turnosArrastre_ = null;          // { valor, vistos:Set } mientras se arrastra
+let turnosInicioEditando_ = null;    // recurso que se edita en el modal de fecha de inicio
+
+function fechaISO_(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function parseISOLocal_(iso) {
+  if (!iso) return null;
+  const partes = String(iso).slice(0, 10).split('-').map(Number);
+  if (partes.length !== 3 || !partes[0]) return null;
+  return new Date(partes[0], partes[1] - 1, partes[2]);
+}
+function formatoFechaCorta_(iso) {
+  const d = parseISOLocal_(iso);
+  if (!d) return '—';
+  return String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + d.getFullYear();
+}
+function inicioRecursoISO_(r) {
+  return (r && r.fecha_inicio_operacion) ? String(r.fecha_inicio_operacion).slice(0, 10) : null;
+}
+/** true si el recurso puede tener turno ese día (no hay fecha de inicio, o el día es >= inicio). */
+function turnoPermitido_(r, iso) {
+  const ini = inicioRecursoISO_(r);
+  return !ini || iso >= ini;
+}
+function recursoTurnoPorId_(id) {
+  return state.turnosRecursos.find(r => String(r.id) === String(id)) || null;
+}
+
+function fechasDelPeriodo_() {
+  const base = new Date(state.turnosFechaBase);
+  const fechas = [];
+  if (state.turnosVista === 'semana') {
+    const dia = base.getDay(); const offset = dia === 0 ? -6 : 1 - dia;
+    const lunes = new Date(base); lunes.setDate(base.getDate() + offset);
+    for (let i = 0; i < 7; i++) { const d = new Date(lunes); d.setDate(lunes.getDate() + i); fechas.push(d); }
+  } else {
+    const y = base.getFullYear(), m = base.getMonth();
+    const dias = new Date(y, m + 1, 0).getDate();
+    for (let i = 1; i <= dias; i++) fechas.push(new Date(y, m, i));
+  }
+  return fechas;
+}
+function etiquetaPeriodo_() {
+  const fechas = fechasDelPeriodo_();
+  if (state.turnosVista === 'semana') {
+    const a = fechas[0], b = fechas[6];
+    return a.getDate() + ' ' + TURNOS_MESES_CORTOS[a.getMonth()] + ' – ' + b.getDate() + ' ' + TURNOS_MESES_CORTOS[b.getMonth()] + ' ' + b.getFullYear();
+  }
+  return TURNOS_MESES[fechas[0].getMonth()] + ' ' + fechas[0].getFullYear();
+}
+
+function setEstadoTurnos_(tipo, texto) {
+  const el = document.getElementById('turnos-estado');
+  if (!el) return;
+  el.className = 'turnos-estado' + (tipo ? ' ' + tipo : '');
+  el.textContent = texto;
+}
+
+function recursosTurnosVisibles_() {
+  const tipo = state.turnosFiltroTipo;
+  const q = normalizarTextoTurnos_(state.turnosBusqueda);
+  return state.turnosRecursos.filter(r => {
+    if (tipo && (r.tipo_recurso || 'Sin tipo') !== tipo) return false;
+    if (!q) return true;
+    const inst = (r.instituciones && r.instituciones.nombre) || '';
+    const texto = normalizarTextoTurnos_([r.tipo_recurso, r.nombre_recurso, inst, r.descripcion_funcion].join(' '));
+    return texto.includes(q);
+  });
+}
+function normalizarTextoTurnos_(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
+async function abrirCalendarioTurnos_() {
+  const sel = document.getElementById('turnos-area-select');
+  // Administrador: todas las áreas. Jefe de Área Relacionamiento: solo las suyas
+  // (misAreasIds), viendo todos los recursos de cada una.
+  const esAdmin = state.perfil && state.perfil.perfil === 'Administrador';
+  const areas = (esAdmin ? (state.areasCatalogo || []) : (state.misAreasIds || []))
+    .slice().sort((a, b) => String(a).localeCompare(String(b), 'es'));
+  // Si el área guardada ya no está permitida para este usuario, se descarta
+  if (state.turnosArea && !areas.includes(state.turnosArea)) state.turnosArea = null;
+  // Jefe de Área con una sola área: se selecciona sola (no se oculta el selector por si tuviera más)
+  if (!state.turnosArea && !esAdmin && areas.length === 1) state.turnosArea = areas[0];
+  sel.innerHTML = '<option value="">— Selecciona un área —</option>' +
+    areas.map(a => '<option value="' + escapeHtml_(a) + '">' + escapeHtml_(a) + '</option>').join('');
+  if (state.turnosArea) sel.value = state.turnosArea;
+  document.getElementById('turnos-busqueda').value = state.turnosBusqueda || '';
+
+  if (!state._turnosInit) {
+    state._turnosInit = true;
+    iniciarListenersTurnos_();
+  }
+  actualizarControlesTurnos_();
+  if (state.turnosArea) await cargarRecursosTurnos_();
+  else {
+    document.getElementById('turnos-grid').innerHTML = '<div class="turnos-vacio">Selecciona un área para ver y planificar sus recursos.</div>';
+    renderKpisTurnos_();
+  }
+}
+
+function iniciarListenersTurnos_() {
+  const sel = document.getElementById('turnos-area-select');
+  sel.addEventListener('change', () => {
+    state.turnosArea = sel.value || null;
+    state.turnosFiltroTipo = '';
+    if (state.turnosArea) cargarRecursosTurnos_();
+    else {
+      state.turnosRecursos = []; state.turnosData = {};
+      document.getElementById('turnos-grid').innerHTML = '<div class="turnos-vacio">Selecciona un área para ver y planificar sus recursos.</div>';
+      renderKpisTurnos_();
+    }
+  });
+  document.getElementById('turnos-tipo-select').addEventListener('change', (e) => {
+    state.turnosFiltroTipo = e.target.value; renderGridTurnos_();
+  });
+  let tBusq = null;
+  document.getElementById('turnos-busqueda').addEventListener('input', (e) => {
+    clearTimeout(tBusq);
+    tBusq = setTimeout(() => { state.turnosBusqueda = e.target.value; renderGridTurnos_(); }, 180);
+  });
+  document.getElementById('turnos-vista-semana').addEventListener('click', () => cambiarVistaTurnos_('semana'));
+  document.getElementById('turnos-vista-mes').addEventListener('click', () => cambiarVistaTurnos_('mes'));
+  document.getElementById('turnos-prev').addEventListener('click', () => navegarTurnos_(-1));
+  document.getElementById('turnos-next').addEventListener('click', () => navegarTurnos_(1));
+  document.getElementById('turnos-hoy').addEventListener('click', () => {
+    state.turnosFechaBase = new Date(); actualizarControlesTurnos_(); cargarRecursosTurnos_();
+  });
+  document.getElementById('turnos-repetir-semana').addEventListener('click', repetirSemanaAnteriorTurnos_);
+
+  // Grilla: delegación de eventos (se registra UNA sola vez; soporta mouse, lápiz y touch)
+  const grid = document.getElementById('turnos-grid');
+  grid.addEventListener('pointerdown', (e) => {
+    const celda = e.target.closest('.turno-celda');
+    if (!celda || e.button > 0) return;
+    e.preventDefault();
+    if (celda.classList.contains('bloqueado')) {
+      const r = recursoTurnoPorId_(celda.dataset.rec);
+      mostrarToast_('🔒 ' + ((r && r.tipo_recurso) || 'El recurso') + ' inicia operación el ' + formatoFechaCorta_(inicioRecursoISO_(r)) + '. No se puede asignar turno antes.');
+      return;
+    }
+    const clave = celda.dataset.rec + '|' + celda.dataset.fecha;
+    turnosArrastre_ = { valor: !state.turnosData[clave], vistos: new Set([clave]) };
+    aplicarTurnoCelda_(celda, turnosArrastre_.valor);
+  });
+  window.addEventListener('pointermove', (e) => {
+    if (!turnosArrastre_) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const celda = el && el.closest ? el.closest('.turno-celda') : null;
+    if (!celda || celda.classList.contains('bloqueado')) return;
+    const clave = celda.dataset.rec + '|' + celda.dataset.fecha;
+    if (turnosArrastre_.vistos.has(clave)) return;
+    turnosArrastre_.vistos.add(clave);
+    aplicarTurnoCelda_(celda, turnosArrastre_.valor);
+  });
+  const terminarArrastre = () => {
+    if (!turnosArrastre_) return;
+    turnosArrastre_ = null;
+    actualizarTotalesTurnos_();
+    guardarTurnosPendientes_();
+  };
+  window.addEventListener('pointerup', terminarArrastre);
+  window.addEventListener('pointercancel', terminarArrastre);
+
+  grid.addEventListener('click', (e) => {
+    const th = e.target.closest('.turnos-dia-th');
+    if (th) { alternarDiaCompletoTurnos_(th.dataset.fecha); return; }
+    const btn = e.target.closest('[data-turno-accion]');
+    if (!btn) return;
+    const rec = btn.dataset.rec;
+    const accion = btn.dataset.turnoAccion;
+    if (accion === 'inicio') abrirModalInicioTurnos_(rec);
+    else if (accion === 'fila-todo') aplicarFilaTurnos_(rec, 'todo');
+    else if (accion === 'fila-habiles') aplicarFilaTurnos_(rec, 'habiles');
+    else if (accion === 'fila-limpiar') aplicarFilaTurnos_(rec, 'limpiar');
+  });
+
+  // Modal fecha de inicio
+  document.getElementById('turnos-inicio-cancelar').addEventListener('click', cerrarModalInicioTurnos_);
+  document.getElementById('turnos-inicio-guardar').addEventListener('click', () => guardarInicioTurnos_(false));
+  document.getElementById('turnos-inicio-quitar').addEventListener('click', () => guardarInicioTurnos_(true));
+  document.getElementById('turnos-inicio-fecha').addEventListener('change', actualizarAvisoInicioTurnos_);
+  document.getElementById('turnos-inicio-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'turnos-inicio-overlay') cerrarModalInicioTurnos_();
+  });
+
+  // Aviso si hay cambios sin guardar al cerrar la pestaña
+  window.addEventListener('beforeunload', (e) => {
+    if (turnosPendientes_.length || turnosGuardando_) { e.preventDefault(); e.returnValue = ''; }
+  });
+}
+
+function actualizarControlesTurnos_() {
+  const vista = state.turnosVista;
+  document.getElementById('turnos-vista-semana').classList.toggle('active', vista === 'semana');
+  document.getElementById('turnos-vista-mes').classList.toggle('active', vista === 'mes');
+  document.getElementById('turnos-periodo-label').textContent = etiquetaPeriodo_();
+  const rep = document.getElementById('turnos-repetir-semana');
+  rep.style.display = vista === 'semana' ? '' : 'none';
+  rep.disabled = !state.turnosRecursos.length;
+}
+
+function cambiarVistaTurnos_(vista) {
+  state.turnosVista = vista;
+  actualizarControlesTurnos_();
+  cargarRecursosTurnos_();
+}
+function navegarTurnos_(dir) {
+  const base = new Date(state.turnosFechaBase);
+  if (state.turnosVista === 'semana') base.setDate(base.getDate() + dir * 7);
+  else { base.setDate(1); base.setMonth(base.getMonth() + dir); }
+  state.turnosFechaBase = base;
+  actualizarControlesTurnos_();
+  cargarRecursosTurnos_();
+}
+
+async function cargarRecursosTurnos_() {
+  if (!state.turnosArea) return;
+  const grid = document.getElementById('turnos-grid');
+  // Guardar cualquier cambio pendiente antes de recargar
+  await guardarTurnosPendientes_();
+  grid.innerHTML = '<div class="turnos-vacio">Cargando recursos…</div>';
+
+  const { data: recursos, error } = await supabaseClient
+    .from('recursos_disponibles_area_geojson')
+    .select('*')
+    .eq('area', state.turnosArea)
+    .order('tipo_recurso', { ascending: true });
+  if (error) {
+    grid.innerHTML = '<div class="turnos-vacio">No se pudieron cargar los recursos: ' + escapeHtml_(error.message) + '</div>';
+    return;
+  }
+  state.turnosRecursos = (recursos || []).slice().sort((a, b) =>
+    String(a.tipo_recurso || '').localeCompare(String(b.tipo_recurso || ''), 'es') ||
+    String(a.nombre_recurso || '').localeCompare(String(b.nombre_recurso || ''), 'es'));
+
+  // Tipos para el filtro
+  const tipos = [...new Set(state.turnosRecursos.map(r => r.tipo_recurso || 'Sin tipo'))].sort((a, b) => a.localeCompare(b, 'es'));
+  if (state.turnosFiltroTipo && !tipos.includes(state.turnosFiltroTipo)) state.turnosFiltroTipo = '';
+  document.getElementById('turnos-tipo-select').innerHTML = '<option value="">Todos los tipos (' + state.turnosRecursos.length + ')</option>' +
+    tipos.map(t => '<option value="' + escapeHtml_(t) + '"' + (t === state.turnosFiltroTipo ? ' selected' : '') + '>' + escapeHtml_(t) + '</option>').join('');
+
+  // Turnos del periodo visible + hoy (para el KPI "en turno hoy" aunque hoy no esté en la vista)
+  const fechas = fechasDelPeriodo_();
+  const desde = fechaISO_(fechas[0]), hasta = fechaISO_(fechas[fechas.length - 1]);
+  const ids = state.turnosRecursos.map(r => r.id);
+  state.turnosData = {};
+  state.turnosHoy = new Set();
+  if (ids.length) {
+    const hoyISO = fechaISO_(new Date());
+    const [{ data: turnos, error: e1 }, { data: turnosHoy }] = await Promise.all([
+      supabaseClient.from('recurso_turnos').select('recurso_id, fecha, activo').in('recurso_id', ids).gte('fecha', desde).lte('fecha', hasta),
+      supabaseClient.from('recurso_turnos').select('recurso_id').in('recurso_id', ids).eq('fecha', hoyISO).eq('activo', true),
+    ]);
+    if (e1) {
+      grid.innerHTML = '<div class="turnos-vacio">No se pudieron cargar los turnos: ' + escapeHtml_(e1.message) + '<br><small>¿Ejecutaste 51_calendario_turnos_v2.sql en Supabase?</small></div>';
+      return;
+    }
+    (turnos || []).forEach(t => { if (t.activo) state.turnosData[t.recurso_id + '|' + String(t.fecha).slice(0, 10)] = true; });
+    (turnosHoy || []).forEach(t => state.turnosHoy.add(String(t.recurso_id)));
+  }
+  actualizarControlesTurnos_();
+  renderGridTurnos_();
+}
+
+function renderKpisTurnos_() {
+  const cont = document.getElementById('turnos-kpis');
+  if (!cont) return;
+  const recs = recursosTurnosVisibles_();
+  const fechas = fechasDelPeriodo_();
+  const desde = fechaISO_(fechas[0]), hasta = fechaISO_(fechas[fechas.length - 1]);
+  const hoy = state.turnosHoy || new Set();
+  const enTurnoHoy = recs.filter(r => hoy.has(String(r.id))).length;
+  const sinInicio = recs.filter(r => !inicioRecursoISO_(r)).length;
+  const inicianPeriodo = recs.filter(r => { const i = inicioRecursoISO_(r); return i && i >= desde && i <= hasta; }).length;
+  const porIniciar = recs.filter(r => { const i = inicioRecursoISO_(r); return i && i > hasta; }).length;
+  let diasTurno = 0;
+  recs.forEach(r => fechas.forEach(d => { if (state.turnosData[r.id + '|' + fechaISO_(d)]) diasTurno++; }));
+  const kpi = (v, l, cls) => '<div class="turnos-kpi ' + (cls || '') + '"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>';
+  cont.innerHTML =
+    kpi(recs.length, 'Recursos visibles') +
+    kpi(enTurnoHoy, 'En turno hoy', 'verde') +
+    kpi(diasTurno, 'Días-turno en el periodo', 'azul') +
+    kpi(inicianPeriodo, 'Inician operación en el periodo', 'azul') +
+    kpi(porIniciar, 'Aún no inician (después del periodo)') +
+    kpi(sinInicio, 'Sin fecha de inicio', sinInicio ? 'ambar' : '');
+}
+
+function renderGridTurnos_() {
+  const grid = document.getElementById('turnos-grid');
+  const fechas = fechasDelPeriodo_();
+  const isos = fechas.map(fechaISO_);
+  const hoyISO = fechaISO_(new Date());
+  const recs = recursosTurnosVisibles_();
+  renderKpisTurnos_();
+
+  if (!state.turnosRecursos.length) {
+    grid.innerHTML = '<div class="turnos-vacio">Esta área no tiene recursos asignados. Asígnalos desde Administración → Recursos por Área.</div>';
+    return;
+  }
+  if (!recs.length) {
+    grid.innerHTML = '<div class="turnos-vacio">Ningún recurso coincide con el filtro.</div>';
+    return;
+  }
+
+  let html = '<table class="turnos-tabla"><thead><tr><th class="col-rec">Recurso</th>';
+  fechas.forEach((d, i) => {
+    const iso = isos[i];
+    const cls = ['turnos-dia-th'];
+    if (iso === hoyISO) cls.push('hoy');
+    if (d.getDay() === 0 || d.getDay() === 6) cls.push('finde');
+    html += '<th class="' + cls.join(' ') + '" data-fecha="' + iso + '" title="' + formatoFechaCorta_(iso) + ' — clic para marcar/desmarcar en todos los recursos visibles">' +
+      '<div class="ds">' + TURNOS_DIAS[d.getDay()] + '</div><div class="dn">' + d.getDate() + '</div></th>';
+  });
+  html += '<th class="col-total" title="Días en turno en el periodo">Días</th></tr></thead><tbody>';
+
+  recs.forEach(r => {
+    const rid = escapeHtml_(String(r.id));
+    const inst = r.instituciones || { nombre: '', color_hex: '#64748B' };
+    const ini = inicioRecursoISO_(r);
+    let chipCls = '', chipTxt;
+    if (!ini) { chipCls = 'sin'; chipTxt = '⚠ Sin fecha de inicio'; }
+    else if (ini > hoyISO) { chipCls = 'futura'; chipTxt = '▶ Inicia ' + formatoFechaCorta_(ini); }
+    else chipTxt = '✓ Desde ' + formatoFechaCorta_(ini);
+    html += '<tr><td class="col-rec">' +
+      '<div class="turnos-rec-top"><span class="turnos-swatch" style="background:' + escapeHtml_(inst.color_hex || '#64748B') + ';" title="' + escapeHtml_(inst.nombre || '') + '"></span>' +
+      '<span class="turnos-rec-tipo" title="' + escapeHtml_(r.tipo_recurso || '') + '">' + escapeHtml_(r.tipo_recurso || '—') + '</span></div>' +
+      '<div class="turnos-rec-nombre" title="' + escapeHtml_((r.nombre_recurso || '') + (inst.nombre ? ' · ' + inst.nombre : '')) + '">' +
+        escapeHtml_(r.nombre_recurso || '') + (inst.nombre ? ' · ' + escapeHtml_(inst.nombre) : '') + '</div>' +
+      '<div class="turnos-rec-bottom">' +
+        '<button class="turnos-chip-inicio ' + chipCls + '" data-turno-accion="inicio" data-rec="' + rid + '" title="Editar fecha de inicio de operación">' + chipTxt + '</button>' +
+        '<span class="turnos-fila-acc">' +
+          '<button data-turno-accion="fila-todo" data-rec="' + rid + '" title="Activar todos los días permitidos del periodo">✓</button>' +
+          '<button data-turno-accion="fila-habiles" data-rec="' + rid + '" title="Activar solo lunes a viernes (permitidos)">L–V</button>' +
+          '<button data-turno-accion="fila-limpiar" data-rec="' + rid + '" title="Quitar todos los turnos del periodo">✕</button>' +
+        '</span></div></td>';
+    let total = 0;
+    fechas.forEach((d, i) => {
+      const iso = isos[i];
+      const activo = !!state.turnosData[r.id + '|' + iso];
+      if (activo) total++;
+      const cls = ['turno-celda'];
+      if (activo) cls.push('activo');
+      if (!turnoPermitido_(r, iso)) cls.push('bloqueado');
+      if (ini && iso === ini) cls.push('inicio');
+      if (iso === hoyISO) cls.push('hoy');
+      if (iso < hoyISO) cls.push('pasado');
+      if (d.getDay() === 0 || d.getDay() === 6) cls.push('finde');
+      const titulo = !turnoPermitido_(r, iso) ? 'Bloqueado: inicia operación el ' + formatoFechaCorta_(ini)
+        : (ini && iso === ini ? 'Día de inicio de operación · ' : '') + formatoFechaCorta_(iso) + (activo ? ' · en turno' : ' · sin turno');
+      html += '<td class="' + cls.join(' ') + '" data-rec="' + rid + '" data-fecha="' + iso + '" title="' + titulo + '"><div class="tc">' + (activo ? '✓' : '') + '</div></td>';
+    });
+    html += '<td class="col-total" data-total-rec="' + rid + '">' + total + '</td></tr>';
+  });
+  html += '</tbody><tfoot><tr><td class="col-rec">En turno</td>';
+  isos.forEach(iso => {
+    const n = recs.filter(r => state.turnosData[r.id + '|' + iso]).length;
+    html += '<td data-total-fecha="' + iso + '">' + n + '</td>';
+  });
+  const suma = recs.reduce((acc, r) => acc + isos.filter(iso => state.turnosData[r.id + '|' + iso]).length, 0);
+  html += '<td class="col-total" id="turnos-total-general">' + suma + '</td></tr></tfoot></table>';
+  grid.innerHTML = html;
+}
+
+/** Recalcula totales por fila, por día y KPIs sin re-dibujar la grilla (usado durante el arrastre). */
+function actualizarTotalesTurnos_() {
+  const grid = document.getElementById('turnos-grid');
+  if (!grid) return;
+  const recs = recursosTurnosVisibles_();
+  const isos = fechasDelPeriodo_().map(fechaISO_);
+  let suma = 0;
+  recs.forEach(r => {
+    const n = isos.filter(iso => state.turnosData[r.id + '|' + iso]).length;
+    suma += n;
+    const celda = grid.querySelector('[data-total-rec="' + CSS.escape(String(r.id)) + '"]');
+    if (celda) celda.textContent = n;
+  });
+  isos.forEach(iso => {
+    const celda = grid.querySelector('[data-total-fecha="' + iso + '"]');
+    if (celda) celda.textContent = recs.filter(r => state.turnosData[r.id + '|' + iso]).length;
+  });
+  const tg = document.getElementById('turnos-total-general');
+  if (tg) tg.textContent = suma;
+  renderKpisTurnos_();
+}
+
+/** Cambia el estado local de un turno y lo encola para guardar. No toca el DOM. */
+function cambiarTurnoLocal_(rec, fecha, activo) {
+  const r = recursoTurnoPorId_(rec);
+  if (activo && r && !turnoPermitido_(r, fecha)) return false;
+  const clave = rec + '|' + fecha;
+  const actual = !!state.turnosData[clave];
+  if (actual === activo) return false;
+  if (activo) state.turnosData[clave] = true; else delete state.turnosData[clave];
+  if (fecha === fechaISO_(new Date())) {
+    state.turnosHoy = state.turnosHoy || new Set();
+    if (activo) state.turnosHoy.add(String(rec)); else state.turnosHoy.delete(String(rec));
+  }
+  const idx = turnosPendientes_.findIndex(p => p.recurso_id === String(rec) && p.fecha === fecha);
+  if (idx >= 0) turnosPendientes_[idx].activo = activo;
+  else turnosPendientes_.push({ recurso_id: String(rec), fecha, activo });
+  setEstadoTurnos_('guardando', 'Cambios sin guardar…');
+  return true;
+}
+
+function aplicarTurnoCelda_(celda, activo) {
+  if (!cambiarTurnoLocal_(celda.dataset.rec, celda.dataset.fecha, activo)) return;
+  celda.classList.toggle('activo', activo);
+  const div = celda.querySelector('.tc');
+  if (div) div.textContent = activo ? '✓' : '';
+}
+
+function alternarDiaCompletoTurnos_(iso) {
+  const recs = recursosTurnosVisibles_().filter(r => turnoPermitido_(r, iso));
+  if (!recs.length) { mostrarToast_('Ningún recurso visible opera el ' + formatoFechaCorta_(iso) + '.'); return; }
+  const todosActivos = recs.every(r => state.turnosData[r.id + '|' + iso]);
+  let n = 0;
+  recs.forEach(r => { if (cambiarTurnoLocal_(String(r.id), iso, !todosActivos)) n++; });
+  renderGridTurnos_();
+  if (n) guardarTurnosPendientes_();
+  const bloqueados = recursosTurnosVisibles_().length - recs.length;
+  if (bloqueados > 0 && !todosActivos) mostrarToast_(bloqueados + ' recurso(s) no se marcaron porque aún no inician operación ese día.');
+}
+
+function aplicarFilaTurnos_(rec, modo) {
+  const r = recursoTurnoPorId_(rec);
+  if (!r) return;
+  const fechas = fechasDelPeriodo_();
+  let n = 0;
+  fechas.forEach(d => {
+    const iso = fechaISO_(d);
+    let valor;
+    if (modo === 'limpiar') valor = false;
+    else if (modo === 'habiles') valor = d.getDay() >= 1 && d.getDay() <= 5;
+    else valor = true;
+    if (valor && !turnoPermitido_(r, iso)) return;
+    if (cambiarTurnoLocal_(String(r.id), iso, valor)) n++;
+  });
+  renderGridTurnos_();
+  if (n) guardarTurnosPendientes_();
+  else mostrarToast_('Sin cambios para este recurso en el periodo visible.');
+}
+
+async function repetirSemanaAnteriorTurnos_() {
+  if (state.turnosVista !== 'semana') return;
+  const recs = recursosTurnosVisibles_();
+  if (!recs.length) return;
+  const fechas = fechasDelPeriodo_();
+  const prev = fechas.map(d => { const x = new Date(d); x.setDate(x.getDate() - 7); return fechaISO_(x); });
+  if (!confirm('Se reemplazarán los turnos de esta semana (' + etiquetaPeriodo_() + ') para ' + recs.length +
+    ' recurso(s) visibles con el patrón de la semana anterior. Los días antes de la fecha de inicio de cada recurso se respetan. ¿Continuar?')) return;
+  await guardarTurnosPendientes_();
+  const { data, error } = await supabaseClient.from('recurso_turnos')
+    .select('recurso_id, fecha, activo')
+    .in('recurso_id', recs.map(r => r.id))
+    .gte('fecha', prev[0]).lte('fecha', prev[6]);
+  if (error) { mostrarToast_('No se pudo leer la semana anterior: ' + error.message); return; }
+  const previo = new Set((data || []).filter(t => t.activo).map(t => t.recurso_id + '|' + String(t.fecha).slice(0, 10)));
+  if (!previo.size) { mostrarToast_('La semana anterior no tiene turnos para estos recursos.'); return; }
+  let n = 0, omitidos = 0;
+  recs.forEach(r => {
+    fechas.forEach((d, i) => {
+      const iso = fechaISO_(d);
+      const valor = previo.has(r.id + '|' + prev[i]);
+      if (valor && !turnoPermitido_(r, iso)) { omitidos++; return; }
+      if (cambiarTurnoLocal_(String(r.id), iso, valor)) n++;
+    });
+  });
+  renderGridTurnos_();
+  if (n) await guardarTurnosPendientes_();
+  mostrarToast_('Semana replicada: ' + n + ' cambio(s)' + (omitidos ? ', ' + omitidos + ' día(s) omitidos por fecha de inicio.' : '.'));
+}
+
+async function guardarTurnosPendientes_() {
+  if (turnosGuardando_) { await turnosGuardando_; }
+  if (!turnosPendientes_.length) return;
+  const pend = turnosPendientes_.splice(0);
+  turnosGuardando_ = (async () => {
+    setEstadoTurnos_('guardando', 'Guardando ' + pend.length + ' cambio(s)…');
+    const altas = pend.filter(p => p.activo).map(p => ({ recurso_id: p.recurso_id, fecha: p.fecha, activo: true }));
+    const bajasPorRec = {};
+    pend.filter(p => !p.activo).forEach(p => { (bajasPorRec[p.recurso_id] = bajasPorRec[p.recurso_id] || []).push(p.fecha); });
+    const fallidos = [];
+    let ultimoError = '';
+    if (altas.length) {
+      const { error } = await supabaseClient.from('recurso_turnos').upsert(altas, { onConflict: 'recurso_id,fecha' });
+      if (error) { ultimoError = error.message; fallidos.push(...altas); }
+    }
+    for (const rec of Object.keys(bajasPorRec)) {
+      const { error } = await supabaseClient.from('recurso_turnos').delete().eq('recurso_id', rec).in('fecha', bajasPorRec[rec]);
+      if (error) { ultimoError = error.message; bajasPorRec[rec].forEach(f => fallidos.push({ recurso_id: rec, fecha: f, activo: false })); }
+    }
+    if (fallidos.length) {
+      // Revertir en pantalla lo que no se pudo guardar
+      fallidos.forEach(p => {
+        const clave = p.recurso_id + '|' + p.fecha;
+        if (p.activo) delete state.turnosData[clave]; else state.turnosData[clave] = true;
+      });
+      renderGridTurnos_();
+      setEstadoTurnos_('error', 'Error al guardar (' + fallidos.length + ')');
+      mostrarToast_('⚠️ No se guardaron ' + fallidos.length + ' cambio(s): ' + ultimoError);
+    } else {
+      const ahora = new Date();
+      setEstadoTurnos_('ok', '✓ Guardado ' + String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0'));
+    }
+    // Reflejar en el mapa si está activo el filtro "Solo recursos en turno hoy"
+    if (state.soloTurnoHoy && typeof cargarRecursosActivosHoy_ === 'function') {
+      try {
+        await cargarRecursosActivosHoy_();
+        if (typeof recursosDisponiblesAreaLayer !== 'undefined') aplicarVisibilidadTiposRecurso_(recursosDisponiblesAreaLayer);
+      } catch (e) { /* no bloquear el calendario */ }
+    }
+  })();
+  try { await turnosGuardando_; } finally { turnosGuardando_ = null; }
+  if (turnosPendientes_.length) await guardarTurnosPendientes_();
+}
+
+/* ── Modal: fecha de inicio de operación ── */
+async function abrirModalInicioTurnos_(rec) {
+  const r = recursoTurnoPorId_(rec);
+  if (!r) return;
+  turnosInicioEditando_ = r;
+  const inst = r.instituciones || {};
+  document.getElementById('turnos-inicio-sub').textContent =
+    (r.tipo_recurso || 'Recurso') + (r.nombre_recurso ? ' · ' + r.nombre_recurso : '') + (inst.nombre ? ' · ' + inst.nombre : '');
+  document.getElementById('turnos-inicio-fecha').value = inicioRecursoISO_(r) || '';
+  document.getElementById('turnos-inicio-limpiar').checked = true;
+  document.getElementById('turnos-inicio-error').classList.remove('show');
+  document.getElementById('turnos-inicio-quitar').style.display = inicioRecursoISO_(r) ? '' : 'none';
+  document.getElementById('turnos-inicio-overlay').classList.add('show');
+  actualizarAvisoInicioTurnos_();
+}
+function cerrarModalInicioTurnos_() {
+  document.getElementById('turnos-inicio-overlay').classList.remove('show');
+  turnosInicioEditando_ = null;
+}
+async function actualizarAvisoInicioTurnos_() {
+  const r = turnosInicioEditando_;
+  const lbl = document.getElementById('turnos-inicio-limpiar-lbl');
+  const nueva = document.getElementById('turnos-inicio-fecha').value;
+  if (!r || !nueva) { lbl.textContent = 'Eliminar los turnos registrados antes de la nueva fecha'; return; }
+  const { count, error } = await supabaseClient.from('recurso_turnos')
+    .select('id', { count: 'exact', head: true })
+    .eq('recurso_id', r.id).lt('fecha', nueva);
+  if (turnosInicioEditando_ !== r) return;
+  if (error || !count) lbl.textContent = 'Eliminar los turnos registrados antes de la nueva fecha (no hay ninguno)';
+  else lbl.textContent = 'Eliminar los ' + count + ' turno(s) registrados antes del ' + formatoFechaCorta_(nueva) + ' (obligatorio para guardar)';
+}
+async function guardarInicioTurnos_(quitar) {
+  const r = turnosInicioEditando_;
+  if (!r) return;
+  const errEl = document.getElementById('turnos-inicio-error');
+  errEl.classList.remove('show');
+  const nueva = quitar ? null : (document.getElementById('turnos-inicio-fecha').value || null);
+  if (!quitar && !nueva) { errEl.textContent = 'Elige una fecha, o usa "Quitar fecha".'; errEl.classList.add('show'); return; }
+  const limpiar = document.getElementById('turnos-inicio-limpiar').checked;
+  await guardarTurnosPendientes_();
+  const btn = document.getElementById('turnos-inicio-guardar');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  const { data: borrados, error } = await supabaseClient.rpc('actualizar_inicio_recurso', {
+    p_recurso_id: String(r.id), p_fecha: nueva, p_borrar_previos: limpiar,
+  });
+  btn.disabled = false; btn.textContent = 'Guardar';
+  if (error) {
+    errEl.textContent = 'No se pudo guardar: ' + error.message;
+    errEl.classList.add('show');
+    return;
+  }
+  // Actualizar estado local
+  r.fecha_inicio_operacion = nueva;
+  if (nueva) {
+    Object.keys(state.turnosData).forEach(k => {
+      const [rid, f] = k.split('|');
+      if (rid === String(r.id) && f < nueva) delete state.turnosData[k];
+    });
+    if (fechaISO_(new Date()) < nueva && state.turnosHoy) state.turnosHoy.delete(String(r.id));
+  }
+  cerrarModalInicioTurnos_();
+  renderGridTurnos_();
+  mostrarToast_(nueva
+    ? '✅ Inicio de operación: ' + formatoFechaCorta_(nueva) + (borrados ? ' · ' + borrados + ' turno(s) anteriores eliminados' : '')
+    : '✅ Fecha de inicio quitada.');
+  // Refrescar la capa del mapa en segundo plano (el popup muestra la fecha de inicio)
+  if (typeof loadRecursosDisponiblesAreaLayer_ === 'function') {
+    loadRecursosDisponiblesAreaLayer_().catch(() => {});
+  }
+}
+
 function mostrarVista_(vista) {
   if ((vista === 'admin' || vista === 'patrullajes') && state.perfil.perfil !== 'Administrador') vista = 'dashboard';
+  // El calendario es de Admin + Jefe de Área (antes se bloqueaba al Jefe de Área aquí).
+  if (vista === 'turnos' && !puedeGestionarTurnos_()) vista = 'dashboard';
   state.vistaActual = vista;
   const dash = document.getElementById('dashboard');
   const adminP = document.getElementById('admin-panel');
   const patP = document.getElementById('patrullajes-panel');
+  const turnosP = document.getElementById('turnos-panel');
+  const planP = document.getElementById('planificador-panel');
   const sidebar = document.getElementById('sidebar');
   const collapse = document.getElementById('collapse-toggle');
   const sinComuna = document.getElementById('sin-comuna-overlay');
   const esDash = vista === 'dashboard';
   const esAdmin = vista === 'admin';
   const esPat = vista === 'patrullajes';
+  const esTurnos = vista === 'turnos';
+  const esPlan = vista === 'planificador';
   const esMapa = vista === 'mapa';
   dash.classList.toggle('show', esDash);
   adminP.classList.toggle('show', esAdmin);
   patP.classList.toggle('show', esPat);
+  if (turnosP) turnosP.style.display = esTurnos ? 'block' : 'none';
+  if (planP) planP.classList.toggle('show', esPlan);
   document.body.classList.toggle('modo-dashboard', !esMapa);
   actualizarBotonLogoMunicipal_();
   sidebar.style.display = esMapa ? 'flex' : 'none';
@@ -4895,6 +6302,8 @@ function mostrarVista_(vista) {
   if (esDash) cargarDashboard_();
   else if (esAdmin) cargarSeccionAdmin_(state.adminSeccion || 'resumen');
   else if (esPat) abrirGestionPatrullajes_();
+  else if (esTurnos) abrirCalendarioTurnos_();
+  else if (esPlan) abrirPlanificador_();
   else setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 60);
 
   // Mostrar/ocultar controles del mapa según la vista activa
@@ -5464,6 +6873,24 @@ async function loadFundosAraucoLayer_() {
  * (todo el área, varias comunas); si es null, filtran por comuna. */
 state.areaActiva = null;
 
+// Perfiles que pueden usar el Calendario de Turnos y la Propagación de copamiento:
+// Administrador (todo) y Jefe de Área Relacionamiento (sus áreas).
+// Se normaliza el texto del perfil (tildes/mayúsculas/sufijo) para tolerar
+// pequeñas variaciones del valor guardado en la BD.
+function esJefeAreaPerfil_(p) {
+  const t = String(p || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  return t.startsWith('jefe de area');
+}
+function puedeGestionarTurnos_() {
+  return !!state.perfil && (state.perfil.perfil === 'Administrador' || esJefeAreaPerfil_(state.perfil.perfil));
+}
+
+// Perfiles que pueden PROPAGAR copamiento (escalonado y por entidad):
+// Administrador, Jefe de Área Relacionamiento y GRD.
+function puedePropagar_() {
+  return !!state.perfil && ['Administrador', 'Jefe de Área Relacionamiento', 'GRD'].includes(state.perfil.perfil);
+}
+
 // Áreas disponibles para el usuario (Admin: las 14; Jefe de Área: las suyas)
 function areasDisponibles_() {
   if (state.perfil.perfil === 'Administrador') return (state.areasCatalogo || []).slice().sort();
@@ -5900,7 +7327,7 @@ function desgloseInstitucionAlerta_(idInstitucion) {
 /** Tres cifras por escenario, con el color de cada alerta. */
 function cifrasPorEscenario_(c, tamano) {
   const t = tamano || 10;
-  return '<span title="Verde · Amarilla · Roja" style="font-size:' + t + 'px;' +
+  return '<span title="Normal · Amarilla · Roja" style="font-size:' + t + 'px;' +
     'font-variant-numeric:tabular-nums;flex-shrink:0;">' +
     '<span style="color:#16A34A;">' + c.Verde + '</span>' +
     '<span style="opacity:.35;">·</span>' +
@@ -6465,7 +7892,7 @@ async function cargarAmeba_(nivel) {
       try { geo = JSON.parse(fila.geojson); } catch (e) { geo = null; }
       if (geo) {
         L.geoJSON(geo, {
-          style: { color: cfg.color, weight: 2, opacity: 0.9, fillColor: cfg.color, fillOpacity: 0.14, dashArray: '2,5' },
+          style: { color: cfg.color, weight: 2, opacity: 0.9, fillColor: cfg.color, fillOpacity: 0.14, dashArray: '2,5', className: 'ameba-latido ameba-' + (cfg.temporadas === 1 ? 'n1' : cfg.temporadas === 3 ? 'n3' : 'n5') },
           interactive: false,
         }).addTo(capa);
       }
@@ -6517,7 +7944,7 @@ async function toggleAmeba_(nivel) {
 
   const d = state.amebaDatos[nivel];
   if (d && d.focos > 0) {
-    const kpi = (state.amebaKpi[nivel] || []).map(k => k.escenario + ' ' + k.pct_ameba + '%').join(' · ');
+    const kpi = (state.amebaKpi[nivel] || []).map(k => etiquetaEscenario_(k.escenario) + ' ' + k.pct_ameba + '%').join(' · ');
     mostrarToast_('🔥 ' + d.focos + ' focos · ' + d.area_km2 + ' km²' +
       (d.pct_comuna != null ? ' (' + d.pct_comuna + '% de la comuna)' : '') +
       (kpi ? '  |  Copado: ' + kpi : '') +
@@ -6680,7 +8107,7 @@ function renderKpiIncendios_() {
       const fila = (state.amebaKpi[cfg.id] || []).find(k => k.escenario === e.esc);
       const v = fila && fila.pct_ameba != null ? Number(fila.pct_ameba) : null;
       const titulo = fila
-        ? e.esc + ' · ' + cfg.temporadas + ' temporada(s): ' + fila.copado_km2 +
+        ? etiquetaEscenario_(e.esc) + ' · ' + cfg.temporadas + ' temporada(s): ' + fila.copado_km2 +
           ' de ' + fila.ameba_km2 + ' km² cubiertos, ' + fila.sin_cubrir_km2 + ' km² sin cubrir'
         : '';
       return '<span title="' + titulo + '" style="flex:1;text-align:center;padding:3px 0;border-radius:4px;' +
@@ -6690,7 +8117,7 @@ function renderKpiIncendios_() {
 
     return '<div style="display:flex;align-items:center;gap:4px;margin-top:3px;">' +
       '<span style="width:52px;flex-shrink:0;font-size:10px;display:flex;align-items:center;gap:5px;color:' + e.color + ';">' +
-        '<span class="res-punto"></span><span style="color:#fff;opacity:.85;">' + e.esc + '</span></span>' +
+        '<span class="res-punto"></span><span style="color:#fff;opacity:.85;">' + etiquetaEscenario_(e.esc) + '</span></span>' +
       celdas +
     '</div>';
   }).join('');
@@ -6708,6 +8135,22 @@ async function toggleKpiIncendios_() {
 
   if (state.kpiIncendiosVisible) await cargarKpiIncendios_();
   else renderKpiIncendios_();
+}
+
+/* ============ NOMBRE VISIBLE DE LOS ESCENARIOS ============
+ * El valor interno sigue siendo 'Verde' | 'Amarilla' | 'Roja' (BD, RPC, capas).
+ * Solo cambia lo que se MUESTRA: el escenario Verde no es una alerta, es "Normal".
+ *   etiquetaEscenario_ -> 'Normal' | 'Amarilla' | 'Roja'              (corto)
+ *   nombreEscenario_   -> 'Normal' | 'Alerta Amarilla' | 'Alerta Roja' (largo) */
+function etiquetaEscenario_(esc) {
+  return esc === 'Verde' ? 'Normal' : (esc || '');
+}
+function nombreEscenario_(esc) {
+  return esc === 'Verde' ? 'Normal' : 'Alerta ' + (esc || '');
+}
+/** Los mensajes de las RPC de propagación traen 'Verde' en el texto: se traducen al mostrarlos. */
+function textoEscenariosServidor_(s) {
+  return String(s == null ? '' : s).replace(/Alerta Verde/g, 'Normal').replace(/\bVerde\b/g, 'Normal');
 }
 
 /* ============ EXPORTAR UN PLAN DE ALERTA ============
@@ -6755,7 +8198,7 @@ async function datosPlanParaExportar_(escenario) {
   if (errPlanes) throw new Error(errPlanes.message);
 
   const plan = (planes || []).find(p => p.escenario === escenario);
-  if (!plan) throw new Error('No existe un plan de Alerta ' + escenario + ' en esta comuna.');
+  if (!plan) throw new Error('No existe un plan ' + nombreEscenario_(escenario) + ' en esta comuna.');
 
   const { data, error } = await supabaseClient
     .from('planificacion_recursos_geojson')
@@ -6774,7 +8217,7 @@ function nombreArchivoPlan_(escenario, ext) {
   const comuna = String(nombreComuna_(state.activeComunaId) || 'comuna')
     .replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ0-9]+/g, '_');
   const fecha = new Date().toISOString().slice(0, 10);
-  return 'plan_' + escenario.toLowerCase() + '_' + comuna + '_' + fecha + '.' + ext;
+  return 'plan_' + etiquetaEscenario_(escenario).toLowerCase() + '_' + comuna + '_' + fecha + '.' + ext;
 }
 
 async function exportarPlanGeoJSON_() {
@@ -6798,7 +8241,7 @@ async function exportarPlanGeoJSON_() {
           tipo_recurso: r.tipo_recurso || '',
           tipo_geometria: r.tipo_geometria || '',
           descripcion: r.descripcion || '',
-          escenario: esc,
+          escenario: etiquetaEscenario_(esc),
           comuna: comuna,
         },
       };
@@ -6806,7 +8249,7 @@ async function exportarPlanGeoJSON_() {
 
     const fc = {
       type: 'FeatureCollection',
-      name: 'Plan Alerta ' + esc + ' — ' + comuna,
+      name: 'Plan ' + nombreEscenario_(esc) + ' — ' + comuna,
       crs: { type: 'name', properties: { name: 'urn:ogc:def:crs:OGC:1.3:CRS84' } },
       features,
     };
@@ -6846,7 +8289,7 @@ async function exportarPlanKML_() {
 
     let kml = '<?xml version="1.0" encoding="UTF-8"?>\\n' +
       '<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\\n' +
-      '<name>' + escapeHtml_('Plan Alerta ' + esc + ' — ' + comuna) + '</name>\\n' +
+      '<name>' + escapeHtml_('Plan ' + nombreEscenario_(esc) + ' — ' + comuna) + '</name>\\n' +
       '<description>' + escapeHtml_('SIG Copamiento Territorial · ' +
         new Date().toLocaleDateString('es-CL')) + '</description>\\n';
 
@@ -6877,7 +8320,7 @@ async function exportarPlanKML_() {
           '<description><![CDATA[' +
             '<b>Institución:</b> ' + escapeHtml_(nom) + '<br>' +
             '<b>Tipo:</b> ' + escapeHtml_(r.tipo_recurso || '—') + '<br>' +
-            '<b>Escenario:</b> Alerta ' + esc + '<br>' +
+            '<b>Escenario:</b> ' + nombreEscenario_(esc) + '<br>' +
             (r.descripcion ? '<b>Descripción:</b> ' + escapeHtml_(r.descripcion) : '') +
           ']]></description>' +
           geometriaKml_(geom) +
@@ -7004,7 +8447,7 @@ function renderResumenAlertas_() {
 
     return '<div title="' + titulo + '" style="display:flex;align-items:center;gap:7px;margin-top:6px;white-space:nowrap;color:' + f.color + ';">' +
       '<span class="' + (activo(f.clave) ? 'res-radar' : 'res-punto') + '"></span>' +
-      '<span style="width:52px;flex-shrink:0;font-size:10.5px;color:#fff;opacity:.85;">' + f.esc + '</span>' +
+      '<span style="width:52px;flex-shrink:0;font-size:10.5px;color:#fff;opacity:.85;">' + etiquetaEscenario_(f.esc) + '</span>' +
       '<span style="flex:1;min-width:34px;height:8px;border-radius:4px;background:rgba(255,255,255,0.14);overflow:hidden;">' +
         '<span style="display:block;height:100%;width:' + ancho + '%;background:' + f.color + ';border-radius:4px;"></span>' +
       '</span>' +
@@ -7220,6 +8663,30 @@ async function cargarPertenenciaRecursos_() {
   }
 }
 
+// ════════════════════════════════════════════════════════════════
+// TURNO DE HOY: filtrar recursos activos según el calendario
+// ════════════════════════════════════════════════════════════════
+state.soloTurnoHoy = state.soloTurnoHoy || false;
+state.recursosActivosHoy = state.recursosActivosHoy || null;  // Set de recurso_ids activos hoy
+
+async function cargarRecursosActivosHoy_() {
+  const hoy = new Date();
+  const iso = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0') + '-' + String(hoy.getDate()).padStart(2,'0');
+  try {
+    const { data } = await supabaseClient
+      .from('recurso_turnos')
+      .select('recurso_id')
+      .eq('fecha', iso).eq('activo', true);
+    state.recursosActivosHoy = new Set((data || []).map(t => t.recurso_id));
+  } catch (e) { state.recursosActivosHoy = new Set(); }
+}
+
+function recursoActivoHoy_(recursoId) {
+  if (!state.soloTurnoHoy) return true;              // filtro apagado: todos visibles
+  if (!state.recursosActivosHoy) return true;         // aún no cargado: no ocultar
+  return state.recursosActivosHoy.has(recursoId);
+}
+
 /** Determina la pertenencia de un registro de recurso. */
 function pertenenciaDeRecurso_(r) {
   if (!r) return 'Sin clasificar';
@@ -7254,7 +8721,7 @@ function aplicarVisibilidadTiposRecurso_(layerGroup) {
     if (!tipo) return;
     // Una figura se oculta si su tipo está apagado O si lo está su pertenencia.
     const pert = m._pertenencia || 'Sin clasificar';
-    const oculto = tipoRecursoOculto_(tipo) || pertenenciaOculta_(pert);
+    const oculto = tipoRecursoOculto_(tipo) || pertenenciaOculta_(pert) || !recursoActivoHoy_(m._recursoId);
     const el = m.getElement && m.getElement();
     if (el) el.style.display = oculto ? 'none' : '';
     // También el tooltip
@@ -7544,7 +9011,7 @@ async function loadRecursosDisponiblesAreaLayer_() {
     if (enEdicionEstaZona) {
       m.on('dragend', () => reubicarRecursoArea_(r.id, m));
     }
-    m._tipoRecurso = r.tipo_recurso || 'Sin tipo'; m._pertenencia = pertenenciaDeRecurso_(r);
+    m._tipoRecurso = r.tipo_recurso || 'Sin tipo'; m._pertenencia = pertenenciaDeRecurso_(r); m._recursoId = r.id;
     recursosDisponiblesFeatureLayers.push({ layer: m, nombre: etiqueta });
     if (state.mostrarEtiquetasRecursosArea && !tipoRecursoOculto_(m._tipoRecurso)) {
       m.bindTooltip(etiqueta, { permanent: true, interactive: true, direction: 'top', offset: [0, -16], className: 'map-label' });
@@ -7552,7 +9019,7 @@ async function loadRecursosDisponiblesAreaLayer_() {
     habilitarHoverEtiqueta_(m, { institucion: inst.nombre, nombre: r.nombre_recurso, tipo: r.tipo_recurso, descripcion: r.descripcion_funcion }, { direction: 'top', offset: [0, -18] });
     activarNeonHover_(m, inst.color_hex);
     recursosDisponiblesAreaLayer.addLayer(m);
-    if (tipoRecursoOculto_(m._tipoRecurso)) { const el = m.getElement && m.getElement(); if (el) el.style.display = 'none'; }
+    if (tipoRecursoOculto_(m._tipoRecurso) || !recursoActivoHoy_(m._recursoId)) { const el = m.getElement && m.getElement(); if (el) el.style.display = 'none'; }
   });
   // Aplicar visibilidad por tipo tras cargar
   setTimeout(() => aplicarVisibilidadTiposRecurso_(recursosDisponiblesAreaLayer), 50);
@@ -7785,7 +9252,7 @@ async function confirmarTraspasoRuta_() {
     const plan = (planes || []).find(p => p.escenario === esc);
     if (!plan) { faltan.push(esc); continue; }
 
-    btn.textContent = 'Enviando a ' + esc + '…';
+    btn.textContent = 'Enviando a ' + etiquetaEscenario_(esc) + '…';
 
     // UNA sola entidad por ruta, aunque el trazado venga en varios tramos.
     // Antes se creaba una entidad por tramo y una ruta partida en cinco
@@ -8284,10 +9751,15 @@ function iniciarEdicionForma_(tabla, id) {
   let gj;
   try { gj = JSON.parse(r.geom_geojson); } catch (e) { mostrarToast_('Geometría inválida.'); return; }
   // Una ruta unida por un vértice intermedio se guarda como MultiLineString.
-  // El editor de vértices trabaja sobre un solo trazado, así que aplanarla
-  // destruiría la estructura de tramos: se bloquea con un aviso claro.
+  // En planificación se edita por tramos sin separarla (ver
+  // iniciarEdicionFormaMulti_). Las demás geometrías múltiples no tienen RPC
+  // de guardado multiparte, así que aplanarlas destruiría su estructura.
+  if (gj.type === 'MultiLineString' && tabla === 'planificacion') {
+    iniciarEdicionFormaMulti_(tabla, id, gj, capa);
+    return;
+  }
   if (gj.type === 'MultiLineString' || gj.type === 'MultiPolygon') {
-    mostrarToast_('⚠️ Esta ruta tiene varios tramos unidos. Usa ✂️ Separar en su popup, edita el tramo que necesites y vuelve a unirlos.');
+    mostrarToast_('⚠️ Esta figura tiene varias partes y aquí no se puede editar sin separarla.');
     return;
   }
   let coords = r.tipo_geometria === 'area' ? gj.coordinates[0].slice(0, -1) : gj.coordinates; // área: quitar el punto de cierre
@@ -8309,9 +9781,122 @@ function iniciarEdicionForma_(tabla, id) {
   document.getElementById('editar-forma-banner').style.display = 'flex';
 }
 
+/* Edición de una ruta unida (MultiLineString) SIN separarla.
+ * Se edita un tramo a la vez con el editor de vértices normal: tempDibujoVertices
+ * apunta al MISMO arreglo que partes[activa], así redibujarVerticesEdicion_ lo
+ * modifica en sitio. Los demás tramos se ven en una capa aparte; clic en uno lo
+ * activa. Al mover un vértice de empalme se arrastra también el vértice
+ * coincidente de los otros tramos, para que la ruta no se desconecte. */
+const TEXTO_EDITAR_FORMA_SIMPLE = 'Editando forma — arrastra vértices para mover · arrastra un punto intermedio para AGREGAR · clic derecho para borrar';
+
+function iniciarEdicionFormaMulti_(tabla, id, gj, capa) {
+  const partes = (gj.coordinates || [])
+    .map(parte => (parte || []).map(c => L.latLng(c[1], c[0])))
+    .filter(parte => parte.length >= 2);
+  if (partes.length === 0) { mostrarToast_('Geometría inválida.'); return; }
+
+  if (capa) map.removeLayer(capa);
+  if (tempDibujoLayer) { map.removeLayer(tempDibujoLayer); tempDibujoLayer = null; }
+  state.dibujoModo = 'linea';
+  tempDibujoLayer = L.polyline([], { color: '#7C3AED', weight: 4, dashArray: '8,6' }).addTo(map);
+
+  state.editandoForma = {
+    tabla, id, tipo: 'linea', capaOriginal: capa,
+    partes, activa: 0, previo: null,
+    otrosLayer: L.layerGroup().addTo(map),
+  };
+  map.closePopup();
+  document.getElementById('editar-forma-banner').style.display = 'flex';
+  activarTramoEdicion_(0);
+}
+
+function activarTramoEdicion_(k) {
+  const ef = state.editandoForma;
+  if (!ef || !ef.partes || !ef.partes[k]) return;
+  sincronizarEmpalmesEdicion_();
+  ef.activa = k;
+  tempDibujoVertices = ef.partes[k];
+  ef.previo = tempDibujoVertices.map(ll => L.latLng(ll.lat, ll.lng));
+  tempDibujoLayer.setLatLngs(tempDibujoVertices);
+  redibujarOtrosTramosEdicion_();
+  redibujarVerticesEdicion_();
+  document.getElementById('editar-forma-texto').textContent =
+    'Editando ruta unida — tramo ' + (k + 1) + ' de ' + ef.partes.length +
+    ' · clic en otro tramo (lila claro) para editarlo · arrastra vértices · arrastra un punto intermedio para AGREGAR · clic derecho para borrar';
+}
+
+function redibujarOtrosTramosEdicion_() {
+  const ef = state.editandoForma;
+  if (!ef || !ef.otrosLayer) return;
+  ef.otrosLayer.clearLayers();
+  ef.partes.forEach((parte, k) => {
+    if (k === ef.activa) return;
+    const linea = L.polyline(parte, { color: '#A78BFA', weight: 6, opacity: 0.6 });
+    linea.bindTooltip('Tramo ' + (k + 1) + ' — clic para editarlo', { sticky: true });
+    linea.on('click', (ev) => {
+      if (ev && ev.originalEvent) L.DomEvent.stopPropagation(ev.originalEvent);
+      activarTramoEdicion_(k);
+    });
+    ef.otrosLayer.addLayer(linea);
+  });
+}
+
+/** Compara el tramo activo con su estado previo: si un vértice se movió, mueve
+ *  también los vértices de otros tramos que estaban en su misma posición. */
+function sincronizarEmpalmesEdicion_() {
+  const ef = state.editandoForma;
+  if (!ef || !ef.partes || !ef.previo) return;
+  const actual = ef.partes[ef.activa];
+  const mismo = (a, b) => Math.abs(a.lat - b.lat) < 1e-9 && Math.abs(a.lng - b.lng) < 1e-9;
+  let huboArrastre = false;
+
+  // Solo un movimiento conserva la cantidad de vértices; insertar o borrar no
+  // desplaza empalmes.
+  if (actual.length === ef.previo.length) {
+    actual.forEach((ll, i) => {
+      const antes = ef.previo[i];
+      if (mismo(ll, antes)) return;
+      ef.partes.forEach((parte, k) => {
+        if (k === ef.activa) return;
+        parte.forEach((v, j) => {
+          if (mismo(v, antes)) { parte[j] = L.latLng(ll.lat, ll.lng); huboArrastre = true; }
+        });
+      });
+    });
+  }
+  ef.previo = actual.map(ll => L.latLng(ll.lat, ll.lng));
+  if (huboArrastre) redibujarOtrosTramosEdicion_();
+}
+
+async function guardarEdicionFormaMulti_() {
+  const ef = state.editandoForma;
+  sincronizarEmpalmesEdicion_();
+  if (ef.partes.some(parte => parte.length < 2)) { mostrarToast_('Cada tramo necesita al menos 2 vértices.'); return; }
+
+  const todos = ef.partes.reduce((acc, parte) => acc.concat(parte), []);
+  if (!confirmarSiFueraDeComuna_(todos)) return;
+
+  const partesGeo = ef.partes.map(parte => parte.map(ll => [ll.lng, ll.lat]));
+  const nuevasPartes = ef.partes.map(parte => parte.slice()); // copia antes de limpiar
+  const { error } = await supabaseClient.rpc('actualizar_geometria_multilinea_planificacion', {
+    p_id: ef.id,
+    p_partes: partesGeo,
+  });
+  if (error) { mostrarToast_('Error: ' + error.message); return; }
+
+  if (ef.capaOriginal && ef.capaOriginal.setLatLngs) {
+    try { ef.capaOriginal.setLatLngs(nuevasPartes); } catch (e) {}
+    ef.capaOriginal.addTo(map);
+  }
+  mostrarToast_('Forma actualizada (' + nuevasPartes.length + ' tramos).');
+  finalizarEdicionForma_();
+  if (state.activeComunaId) loadPlanificacionRecursos_(state.activeComunaId);
+}
+
 async function guardarEdicionForma_() {
   const ef = state.editandoForma;
   if (!ef) return;
+  if (ef.partes) { await guardarEdicionFormaMulti_(); return; }
   const minimo = ef.tipo === 'area' ? 3 : 2;
   if (tempDibujoVertices.length < minimo) { mostrarToast_('Faltan vértices (mínimo ' + minimo + ').'); return; }
 
@@ -8349,11 +9934,14 @@ function cancelarEdicionForma_() {
 }
 
 function finalizarEdicionForma_() {
+  const ef = state.editandoForma;
+  if (ef && ef.otrosLayer) map.removeLayer(ef.otrosLayer);
   tempDibujoVertices = [];
   if (tempDibujoLayer) { map.removeLayer(tempDibujoLayer); tempDibujoLayer = null; }
   tempVerticeMarkers.clearLayers();
   state.editandoForma = null;
   state.dibujoModo = null;
+  document.getElementById('editar-forma-texto').textContent = TEXTO_EDITAR_FORMA_SIMPLE;
   document.getElementById('editar-forma-banner').style.display = 'none';
 }
 
@@ -8527,7 +10115,10 @@ function mostrarToast_(mensaje) {
 function flameDivIcon_(color) {
   return L.divIcon({
     className: '', iconSize: [22, 28], iconAnchor: [11, 27], popupAnchor: [0, -24],
-    html: '<svg class="flame-marker" width="22" height="28" viewBox="0 0 24 30"><path fill="' + color + '" stroke="white" stroke-width="1.3" d="M12 1C9 6 5 9 5 15a7 7 0 0 0 14 0c0-2.5-1.2-4.3-2.3-5.7.2 2-1 3.2-2.2 3.2-1.8 0-2.5-1.7-1.8-3.3C13.8 6.6 14.5 3.8 12 1Z"/><ellipse cx="12" cy="24" rx="3.2" ry="2" fill="' + color + '" opacity="0.35"/></svg>'
+    html: '<div class="flama-wrap" style="--fire-c:' + color + ';">' +
+      '<div class="flama-pulso"></div>' +
+      '<svg class="flame-marker flama-svg" width="22" height="28" viewBox="0 0 24 30"><path fill="' + color + '" stroke="white" stroke-width="1.3" d="M12 1C9 6 5 9 5 15a7 7 0 0 0 14 0c0-2.5-1.2-4.3-2.3-5.7.2 2-1 3.2-2.2 3.2-1.8 0-2.5-1.7-1.8-3.3C13.8 6.6 14.5 3.8 12 1Z"/><ellipse cx="12" cy="24" rx="3.2" ry="2" fill="' + color + '" opacity="0.35"/></svg>' +
+      '</div>'
   });
 }
 
@@ -8871,6 +10462,8 @@ let tempVerticeMarkers = L.layerGroup();
 // Redibuja los marcadores arrastrables de cada vértice durante el dibujo.
 // Arrastrar = mover el vértice; clic derecho = eliminarlo.
 function redibujarVerticesEdicion_() {
+  // Ruta unida en edición: propagar a los otros tramos el empalme movido.
+  if (state.editandoForma && state.editandoForma.partes) sincronizarEmpalmesEdicion_();
   tempVerticeMarkers.clearLayers();
   if (!map.hasLayer(tempVerticeMarkers)) tempVerticeMarkers.addTo(map);
   const esArea = state.dibujoModo === 'area';
@@ -9546,7 +11139,7 @@ function siguienteRutaKml_() {
   const restantes = cola.pendientes.length;
 
   document.getElementById('modal-title').textContent =
-    'Línea importada — ' + ico + ' Alerta ' + esc;
+    'Línea importada — ' + ico + ' ' + nombreEscenario_(esc);
   document.getElementById('modal-coords').textContent =
     escapeHtml_(ruta.nombre) + ' · ' + ruta.simplificados.length + ' vértices · ' +
     formatearDistancia_(ruta.largo) +
@@ -9783,7 +11376,7 @@ function finalizarDibujo_() {
 
   if (state.modoPlanificacion) {
     const icoEscModal = state.modoPlanificacion.escenario === 'Verde' ? '🟢' : state.modoPlanificacion.escenario === 'Amarilla' ? '🟡' : '🔴';
-    document.getElementById('modal-title').textContent = (state.dibujoModo === 'area' ? 'Área planificada — ' : 'Línea planificada — ') + icoEscModal + ' Alerta ' + state.modoPlanificacion.escenario;
+    document.getElementById('modal-title').textContent = (state.dibujoModo === 'area' ? 'Área planificada — ' : 'Línea planificada — ') + icoEscModal + ' ' + nombreEscenario_(state.modoPlanificacion.escenario);
     document.getElementById('modal-coords').textContent = tempDibujoVertices.length + ' vértices trazados';
     document.getElementById('f-institucion').selectedIndex = 0;
     actualizarTipoRecursoPorInstitucion_();
@@ -9852,7 +11445,7 @@ map.on('click', (e) => {
     state.pendingLatLng = e.latlng;
     state.pendingLineaPuntos = null;
     state.pendingAreaPuntos = null;
-    document.getElementById('modal-title').textContent = 'Recurso planificado — ' + (state.modoPlanificacion.escenario === 'Verde' ? '🟢' : state.modoPlanificacion.escenario === 'Amarilla' ? '🟡' : '🔴') + ' Alerta ' + state.modoPlanificacion.escenario;
+    document.getElementById('modal-title').textContent = 'Recurso planificado — ' + (state.modoPlanificacion.escenario === 'Verde' ? '🟢' : state.modoPlanificacion.escenario === 'Amarilla' ? '🟡' : '🔴') + ' ' + nombreEscenario_(state.modoPlanificacion.escenario);
     document.getElementById('modal-coords').textContent = 'Lat ' + e.latlng.lat.toFixed(4) + ', Lng ' + e.latlng.lng.toFixed(4);
     document.getElementById('f-institucion').selectedIndex = 0;
     actualizarTipoRecursoPorInstitucion_();
@@ -10224,7 +11817,7 @@ async function ofrecerCopiaPlanificacionPrevia_(comunaId) {
     const btn = document.createElement('button');
     btn.className = 'btn-primary';
     btn.style.cssText = 'width:100%;background:' + (p.escenario === 'Verde' ? '#16A34A' : p.escenario === 'Amarilla' ? '#F59E0B' : '#EF4444') + ';';
-    btn.textContent = (p.escenario === 'Verde' ? '🟢 Copiar Alerta Verde' : p.escenario === 'Amarilla' ? '🟡 Copiar Alerta Amarilla' : '🔴 Copiar Alerta Roja') + ' (' + p.count + ' recurso(s))';
+    btn.textContent = (p.escenario === 'Verde' ? '🟢 Copiar Normal' : p.escenario === 'Amarilla' ? '🟡 Copiar Alerta Amarilla' : '🔴 Copiar Alerta Roja') + ' (' + p.count + ' recurso(s))';
     btn.addEventListener('click', () => copiarPlanificacionAPeriodo_(p.id, p.escenario));
     cont.appendChild(btn);
   });
@@ -10234,7 +11827,7 @@ async function ofrecerCopiaPlanificacionPrevia_(comunaId) {
 
 async function copiarPlanificacionAPeriodo_(planId, escenario) {
   document.getElementById('copiar-planificacion-overlay').classList.remove('show');
-  mostrarToast_('Copiando recursos de la planificación ' + escenario + '…');
+  mostrarToast_('Copiando recursos de la planificación ' + etiquetaEscenario_(escenario) + '…');
 
   const { data: recursos, error } = await supabaseClient
     .from('planificacion_recursos_geojson')
@@ -10554,13 +12147,13 @@ async function generarPDFPlan_(planId, escenario, comunaNombre) {
     agrup[k].cantidad++;
   });
   await construirPDF_({
-    titulo: 'Plan de Alerta ' + (escenario === 'Verde' ? 'Verde 🟢' : escenario === 'Amarilla' ? 'Amarilla 🟡' : 'Roja 🔴'),
+    titulo: 'Plan ' + nombreEscenario_(escenario) + (escenario === 'Verde' ? ' 🟢' : escenario === 'Amarilla' ? ' 🟡' : ' 🔴'),
     subtitulo: 'Planificación Previa · ' + (comunaNombre || ''),
-    fechas: 'Plan de contingencia (' + escenario + ')',
+    fechas: 'Plan de contingencia (' + etiquetaEscenario_(escenario) + ')',
     estado: 'activo',
     conclusion: '',
     filas: Object.values(agrup),
-    nombreArchivo: 'plan_' + escenario.toLowerCase() + '_' + (comunaNombre || 'comuna').toLowerCase().replace(/\s+/g, '_'),
+    nombreArchivo: 'plan_' + etiquetaEscenario_(escenario).toLowerCase() + '_' + (comunaNombre || 'comuna').toLowerCase().replace(/\s+/g, '_'),
   });
 }
 
@@ -10788,7 +12381,7 @@ function renderPlanificacionPreviaList_() {
   const claseEsc = state.escenarioActivo === 'Verde' ? 'activo-verde' : state.escenarioActivo === 'Amarilla' ? 'activo-amarilla' : 'activo-roja';
 
   if (state.planificacionEntidades.length === 0) {
-    cont.innerHTML = '<div class="layer-empty-msg">Todavía no hay ninguna planificación ' + icoEsc + ' ' + state.escenarioActivo + ' creada. Usa el ícono de alerta ⚠️ en la barra superior, sobre la comuna que quieras planificar.</div>';
+    cont.innerHTML = '<div class="layer-empty-msg">Todavía no hay ninguna planificación ' + icoEsc + ' ' + etiquetaEscenario_(state.escenarioActivo) + ' creada. Usa el ícono de alerta ⚠️ en la barra superior, sobre la comuna que quieras planificar.</div>';
     return;
   }
 
@@ -10944,7 +12537,7 @@ function iniciarModoPlanificacion_(e) {
   document.getElementById('btn-salir-planificacion').style.display = 'inline-block';
   document.getElementById('btn-salir-edicion').style.display = 'none';
   const icoEsc = state.escenarioActivo === 'Verde' ? '🟢' : state.escenarioActivo === 'Amarilla' ? '🟡' : '🔴';
-  document.getElementById('editor-banner-texto').textContent = 'Planificando ' + icoEsc + ' Alerta ' + state.escenarioActivo + ' — ' + e.nombre;
+  document.getElementById('editor-banner-texto').textContent = 'Planificando ' + icoEsc + ' ' + nombreEscenario_(state.escenarioActivo) + ' — ' + e.nombre;
   // Ocultar switcher al entrar en modo planificación
   ocultarSwitcherEscenarios_();
   // Indicador en la barra superior (mismo que modo edición periodo crítico)
@@ -10953,7 +12546,7 @@ function iniciarModoPlanificacion_(e) {
     indEdit.style.background = color;
     indEdit.style.color = colorTexto;
     const pulsCol = state.escenarioActivo === 'Verde' ? '#86EFAC' : state.escenarioActivo === 'Amarilla' ? '#FCD34D' : '#FCA5A5';
-    const textoInd = state.escenarioActivo === 'Verde' ? '🟢 Planif. Verde · Salir' : state.escenarioActivo === 'Amarilla' ? '🟡 Planif. Amarilla · Salir' : '🔴 Planif. Roja · Salir';
+    const textoInd = state.escenarioActivo === 'Verde' ? '🟢 Planif. Normal · Salir' : state.escenarioActivo === 'Amarilla' ? '🟡 Planif. Amarilla · Salir' : '🔴 Planif. Roja · Salir';
     indEdit.innerHTML = '<span class="edit-pulse" style="background:' + pulsCol + '"></span>' + textoInd;
     indEdit.classList.add('show');
   }
@@ -10990,14 +12583,14 @@ function salirModoPlanificacion_() {
 }
 
 /* ============ COPAMIENTO ESCALONADO ENTRE ESCENARIOS (solo Administrador) ============
- * Copia las entidades de Alerta Verde a Amarilla y luego de Amarilla a Roja.
+ * Copia las entidades del escenario Normal (valor interno 'Verde') a Amarilla y luego de Amarilla a Roja.
  * Toda la lógica vive en la función SQL propagar_copamiento_comuna, que copia
  * la geometría directamente y registra el origen de cada copia para que la
  * operación se pueda repetir sin duplicar nada.
  */
 async function propagarCopamientoComuna_() {
-  if (!state.perfil || state.perfil.perfil !== 'Administrador') {
-    mostrarToast_('🔒 Solo un Administrador puede propagar el copamiento.');
+  if (!puedePropagar_()) {
+    mostrarToast_('🔒 No tienes permiso para propagar el copamiento.');
     return;
   }
   if (!state.activeComunaId) {
@@ -11008,7 +12601,7 @@ async function propagarCopamientoComuna_() {
   const nombre = nombreComuna_(state.activeComunaId);
   const aviso =
     'Copamiento escalonado en ' + nombre + '\n\n' +
-    '1) Todo lo de Alerta Verde pasa a Alerta Amarilla.\n' +
+    '1) Todo lo de Normal pasa a Alerta Amarilla.\n' +
     '2) Todo lo de Alerta Amarilla (incluido lo recién heredado) pasa a Alerta Roja.\n\n' +
     'Lo que ya se copió antes no se duplica. ¿Continuar?';
   if (!confirm(aviso)) return;
@@ -11027,7 +12620,7 @@ async function propagarCopamientoComuna_() {
 
   const filas = data || [];
   const total = filas.reduce((s, f) => s + (Number(f.copiados) || 0), 0);
-  const detalle = filas.map(f => f.paso + ': ' + f.copiados).join('  ·  ');
+  const detalle = textoEscenariosServidor_(filas.map(f => f.paso + ': ' + f.copiados).join('  ·  '));
 
   if (total > 0) {
     mostrarToast_('✅ ' + total + ' entidad(es) copiada(s).  ' + detalle);
@@ -11362,7 +12955,7 @@ function renderSimbologiaInstituciones_() {
         'background:' + (visible ? colorDe(ins.nombre) : 'transparent') + ';"></span>' +
       '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:600;">' +
         escapeHtml_(aTitulo_(ins.nombre)) + '</span>' +
-      '<span title="Verde · Amarilla · Roja" style="font-size:10px;font-variant-numeric:tabular-nums;flex-shrink:0;">' +
+      '<span title="Normal · Amarilla · Roja" style="font-size:10px;font-variant-numeric:tabular-nums;flex-shrink:0;">' +
         '<span style="color:#16A34A;">' + ins.verde + '</span>' +
         '<span style="opacity:.4;">·</span>' +
         '<span style="color:#F59E0B;">' + ins.amarilla + '</span>' +
@@ -11656,7 +13249,7 @@ async function activarEscenarioDesdeBoton_(escenario) {
     reaplicarFiltrosAlerta_();
     // Actualizar simbología
     mostrarSimbologiaEscenario_(escenario);
-    mostrarToast_('🗺️ Escenario ' + escenario + ' activo');
+    mostrarToast_('🗺️ Escenario ' + etiquetaEscenario_(escenario) + ' activo');
   } else {
     // Se apagó — ocultar simbología y, con ella, la estadística
     const panel = document.getElementById('simbologia-flotante');
@@ -11703,7 +13296,7 @@ function landingAvanzarPaso_(paso, subtexto) {
 function mostrarLandingPlanificacion_(escenario) {
   const ico = escenario === 'Verde' ? '🟢' : escenario === 'Amarilla' ? '🟡' : '🔴';
   document.getElementById('landing-ico').textContent    = ico;
-  document.getElementById('landing-titulo').textContent = 'Preparando Alerta ' + escenario;
+  document.getElementById('landing-titulo').textContent = 'Preparando ' + nombreEscenario_(escenario);
   document.getElementById('landing-sub').textContent    = 'Activando la capa y cargando datos del escenario…';
   ['lstep-1','lstep-2','lstep-3'].forEach((id,i) => {
     const el = document.getElementById(id);
@@ -11819,7 +13412,7 @@ async function cargarCapasAlertaGlobales_() {
     const textoEtiqueta = ico + ' ' + c.comuna_nombre;
     capa._etiquetaTexto = textoEtiqueta;
     capa.eachLayer(poly => { poly._etiquetaTexto = textoEtiqueta; });
-    const tituloPopup = ico + ' Plan Alerta ' + c.escenario;
+    const tituloPopup = ico + ' Plan ' + nombreEscenario_(c.escenario);
     capa.bindPopup('<div class="popup-title">' + tituloPopup + '</div><div class="popup-row">' + c.comuna_nombre + ' · ' + c.region + '</div><div class="popup-row" style="margin-top:6px;"><em>Cargando comparativo…</em></div>');
     capa.on('popupopen', async (ev) => {
       const { data: comparativo } = await supabaseClient.from('planes_contingencia_comparativo').select('*').eq('plan_id', c.plan_id);
@@ -11978,7 +13571,7 @@ async function loadPlanificacionRecursos_(comunaId) {
         ((r.tipo_geometria === 'linea' && String(r.geom_geojson || '').indexOf('MultiLineString') !== -1)
           ? '<button class="popup-btn" data-action="separar-ruta" data-id="' + r.id + '" style="color:#B45309;">✂️ Separar</button>'
           : '') +
-        ((state.perfil.perfil === 'Administrador' && escenario !== 'Roja')
+        ((puedePropagar_() && escenario !== 'Roja')
           ? '<button class="popup-btn" data-action="propagar-entidad" data-id="' + r.id + '" data-esc="' + escenario + '" style="color:#7C3AED;">⏫ Propagar</button>'
           : '') +
         '<button class="popup-btn" data-action="eliminar-planificacion" data-id="' + r.id + '" style="color:#DC2626;">Eliminar</button></div>' : '');
@@ -12350,9 +13943,9 @@ async function elegirVerticeUnion_(idRec, capa, refVertice, partes) {
     };
     try { capa.setStyle({ dashArray: '8,6', weight: 6 }); } catch (e) {}
     const esc = capa._escenario || state.unionEscenario || null;
-    avisoUnionLinea_('<b>Paso 2 de 2</b>' + (esc ? ' · Alerta ' + esc : '') + '<br>' +
+    avisoUnionLinea_('<b>Paso 2 de 2</b>' + (esc ? ' · ' + nombreEscenario_(esc) : '') + '<br>' +
                      'Punto de enganche marcado. Ahora haz clic en el punto azul de la <b>otra línea</b> que debe quedar unido a ese.<br><br>' +
-                     '<span style="opacity:.7;">Solo se muestran líneas de Alerta ' + (esc || 'la misma') + '.<br>Escape para cancelar.</span>');
+                     '<span style="opacity:.7;">Solo se muestran líneas de ' + (esc ? nombreEscenario_(esc) : 'el mismo escenario') + '.<br>Escape para cancelar.</span>');
     // Solo las demás líneas del MISMO escenario.
     mostrarVerticesUnion_(idRec, null, esc);
     return;
@@ -12365,7 +13958,7 @@ async function elegirVerticeUnion_(idRec, capa, refVertice, partes) {
   }
   // Blindaje: nunca unir entre escenarios distintos.
   if (primera.escenario && capa._escenario && primera.escenario !== capa._escenario) {
-    mostrarToast_('🔒 Solo se pueden unir líneas del mismo escenario (Alerta ' + primera.escenario + ').');
+    mostrarToast_('🔒 Solo se pueden unir líneas del mismo escenario (' + nombreEscenario_(primera.escenario) + ').');
     return;
   }
 
@@ -12435,8 +14028,8 @@ function verticesDeLinea_(capa) {
  * Operación inversa de la unión por vértice. Cada tramo vuelve a ser una
  * entidad independiente, heredando institución, tipo, descripción y plan.
  *
- * Es el camino para corregir la forma de una ruta ya unida: separar,
- * editar el tramo que corresponda con ✏️ Editar forma, y volver a unir.
+ * Para corregir la forma ya NO hace falta separar: ✏️ Editar forma edita la
+ * ruta unida por tramos (iniciarEdicionFormaMulti_).
  */
 async function separarRutaPlanificacion_(id) {
   if (!state.modoPlanificacion && !state.editorMode) {
@@ -12500,7 +14093,7 @@ function unirLineaPaso_(id) {
   // Paso 1: solo los vértices de ESTA línea, para no confundir con el resto.
   mostrarVerticesUnion_(null, id, escenarioBase);
   avisoUnionLinea_('<b>Paso 1 de 2</b>' +
-                   (escenarioBase ? ' · Alerta ' + escenarioBase : '') + '<br>' +
+                   (escenarioBase ? ' · ' + nombreEscenario_(escenarioBase) : '') + '<br>' +
                    'Haz clic en el punto azul de <b>esta</b> línea donde quieres que se enganche la otra.<br><br>' +
                    '<span style="opacity:.7;">Solo se podrá unir con líneas del mismo escenario.<br>Escape para cancelar.</span>');
   mostrarToast_('🔗 Paso 1: elige el punto de enganche en esta línea.');
@@ -12508,12 +14101,12 @@ function unirLineaPaso_(id) {
 
 /* ============ PROPAGACIÓN INDIVIDUAL DE UNA ENTIDAD ============
  * Escala una figura concreta al o a los escenarios superiores, sin tocar
- * el resto del plan. Desde Verde ofrece tres caminos; desde Amarilla solo
+ * el resto del plan. Desde Normal ('Verde') ofrece tres caminos; desde Amarilla solo
  * queda Roja, así que se ejecuta directo.
  */
 async function propagarEntidadIndividual_(id, escenarioActual) {
-  if (!state.perfil || state.perfil.perfil !== 'Administrador') {
-    mostrarToast_('🔒 Solo un Administrador puede propagar entidades.');
+  if (!puedePropagar_()) {
+    mostrarToast_('🔒 No tienes permiso para propagar entidades.');
     return;
   }
   if (!id) return;
@@ -12522,7 +14115,7 @@ async function propagarEntidadIndividual_(id, escenarioActual) {
 
   if (escenarioActual === 'Verde') {
     const opcion = prompt(
-      'Propagar esta entidad desde Alerta Verde.\n\n' +
+      'Propagar esta entidad desde Normal.\n\n' +
       'Escribe el número de la opción:\n' +
       '  1 = Solo a Amarilla\n' +
       '  2 = Solo a Roja\n' +
@@ -12560,7 +14153,7 @@ async function propagarEntidadIndividual_(id, escenarioActual) {
 
   const filas = respuesta.data || [];
   const copiadas = filas.filter(f => f.copiada).length;
-  const mensajes = filas.map(f => (f.paso ? f.paso + ': ' : '') + f.mensaje).join('  ·  ');
+  const mensajes = textoEscenariosServidor_(filas.map(f => (f.paso ? f.paso + ': ' : '') + f.mensaje).join('  ·  '));
 
   if (copiadas > 0) {
     mostrarToast_('✅ ' + mensajes);
@@ -14382,7 +15975,7 @@ function graficosInforme_() {
     const km = filas.reduce((n, f) => n + (Number(f.area_km2) || 0), 0);
     const pct = filas.reduce((n, f) => n + (Number(f.pct_comuna) || 0), 0);
     const rec = filas.reduce((n, f) => n + (Number(f.entidades) || 0), 0);
-    return { etiqueta: 'Alerta ' + esc, valor: pct, color: COLOR_ESC[esc],
+    return { etiqueta: nombreEscenario_(esc), valor: pct, color: COLOR_ESC[esc],
              detalle: rec + ' rec · ' + km.toFixed(1) + ' km²' };
   });
 
@@ -14439,7 +16032,7 @@ function graficosInforme_() {
       const anillos = escenarios.map(esc => {
         const f = filas.find(x => x.escenario === esc);
         return {
-          etiqueta: 'Alerta ' + esc,
+          etiqueta: nombreEscenario_(esc),
           valor: f && f.pct_ameba != null ? Number(f.pct_ameba) : 0,
           color: COLOR_ESC[esc],
           detalle: f ? f.copado_km2 + ' de ' + f.ameba_km2 + ' km²' : '—',
@@ -14553,7 +16146,7 @@ function tablasInforme_() {
     const totRec = filas.reduce((n, f) => n + (Number(f.entidades) || 0), 0);
     const totKm = filas.reduce((n, f) => n + (Number(f.area_km2) || 0), 0);
 
-    html += '<h4 style="color:' + colorEsc[esc] + ';">Alerta ' + esc + '</h4>';
+    html += '<h4 style="color:' + colorEsc[esc] + ';">' + nombreEscenario_(esc) + '</h4>';
     html += '<table><thead><tr>' +
       '<th>Institución</th><th class="n">Recursos</th>' +
       '<th class="n">Recursos fijos / Punto de control</th>' +
@@ -14589,7 +16182,7 @@ function tablasInforme_() {
       const filas = inf.porTipo.filter(f => f.escenario === esc);
       if (filas.length === 0) return;
 
-      html += '<h4 style="color:' + colorEsc[esc] + ';">Alerta ' + esc + '</h4>';
+      html += '<h4 style="color:' + colorEsc[esc] + ';">' + nombreEscenario_(esc) + '</h4>';
       html += '<table><thead><tr>' +
         '<th>Tipo de recurso</th><th>Pertenencia</th><th>Institución</th>' +
         '<th class="n">Recursos</th><th class="n">Rutas de patrullaje</th>' +
@@ -14915,7 +16508,7 @@ function descargarInformePdf_() {
     doc.roundedRect(x, y, 1.6, 20, 0.8, 0.8, 'F');
 
     doc.setTextColor(100, 116, 139); doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
-    doc.text('ALERTA ' + esc.toUpperCase(), x + 5, y + 6);
+    doc.text(nombreEscenario_(esc).toUpperCase(), x + 5, y + 6);
     doc.setTextColor(15, 23, 42); doc.setFontSize(15);
     doc.text(pct.toFixed(1) + ' %', x + 5, y + 14);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
@@ -14975,7 +16568,7 @@ function descargarInformePdf_() {
         }
 
         doc.setTextColor(100, 116, 139); doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5);
-        doc.text('ALERTA ' + esc.toUpperCase(), bx, y + 5);
+        doc.text(nombreEscenario_(esc).toUpperCase(), bx, y + 5);
         doc.setTextColor(15, 23, 42); doc.setFontSize(11);
         doc.text(pct.toFixed(1) + ' %', bx + bw, y + 5.5, { align: 'right' });
         doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
@@ -14994,7 +16587,7 @@ function descargarInformePdf_() {
     espacio(12);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5);
     doc.setTextColor(COL[esc][0], COL[esc][1], COL[esc][2]);
-    doc.text('Alerta ' + esc, M, y); y += 5;
+    doc.text(nombreEscenario_(esc), M, y); y += 5;
 
     tabla(
       ['Institución', 'Recursos', 'Recursos fijos / Punto de control', 'Rutas de patrullaje',
@@ -15015,7 +16608,7 @@ function descargarInformePdf_() {
       espacio(12);
       doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5);
       doc.setTextColor(COL[esc][0], COL[esc][1], COL[esc][2]);
-      doc.text('Alerta ' + esc, M, y); y += 5;
+      doc.text(nombreEscenario_(esc), M, y); y += 5;
 
       tabla(
         ['Tipo de recurso', 'Pertenencia', 'Institución', 'Recursos',
@@ -15046,7 +16639,7 @@ function descargarInformePdf_() {
     });
     filasInc.push(fila);
   });
-  tabla(['Ventana histórica', 'Zona km²', 'Verde km²', 'Verde %', 'Amarilla km²', 'Amarilla %',
+  tabla(['Ventana histórica', 'Zona km²', 'Normal km²', 'Normal %', 'Amarilla km²', 'Amarilla %',
          'Roja km²', 'Roja %'], filasInc, [28, 16, 16, 12, 18, 14, 16, 12], [1, 2, 3, 4, 5, 6, 7]);
 
   // ---- Pie en todas las páginas ----
@@ -15662,6 +17255,21 @@ function renderTabInterno_(tab) {
             }
           }
         });
+        // Toggle "Solo turno de hoy" (si la capa está activa)
+        if (map.hasLayer(recursosDisponiblesAreaLayer)) {
+          const rowTurno = document.createElement('div');
+          rowTurno.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 8px 6px 24px;font-size:11.5px;';
+          rowTurno.innerHTML =
+            '<div class="toggle ' + (state.soloTurnoHoy ? 'on' : '') + '" id="toggle-turno-hoy" style="transform:scale(0.85);"></div>' +
+            '<span style="color:var(--text-secondary);">📅 Solo recursos en turno hoy</span>';
+          c.appendChild(rowTurno);
+          rowTurno.querySelector('#toggle-turno-hoy').addEventListener('click', async () => {
+            state.soloTurnoHoy = !state.soloTurnoHoy;
+            if (state.soloTurnoHoy) await cargarRecursosActivosHoy_();
+            aplicarVisibilidadTiposRecurso_(recursosDisponiblesAreaLayer);
+            renderTab(state.activeTab || 'capas');
+          });
+        }
       }
 
       // ── CAPA ADMIN: Recursos filtrados por comuna (solo Administrador) ──
@@ -15836,7 +17444,7 @@ function renderTabInterno_(tab) {
       // Antes la opacidad iba en un bloque aparte y no se veía a qué capa
       // correspondía cada deslizador.
       [
-        { k: 'verde',    nombre: 'Alerta Verde',    color: '#16A34A', capa: capaAlertaVerdeLayer },
+        { k: 'verde',    nombre: 'Normal',          color: '#16A34A', capa: capaAlertaVerdeLayer },
         { k: 'amarilla', nombre: 'Alerta Amarilla', color: '#F59E0B', capa: capaAlertaAmarillaLayer },
         { k: 'roja',     nombre: 'Alerta Roja',     color: '#EF4444', capa: capaAlertaRojaLayer },
       ].forEach(a => {
