@@ -166,10 +166,7 @@ body.tema-oscuro .dropdown-item.danger{ color:#F87171; }
 body.tema-oscuro .up-header{ border-bottom-color:#334155; }
 body.tema-oscuro .up-divider{ background:#334155; }
 body.tema-oscuro .theme-btn{ color:#94A3B8; }
-body.tema-oscuro #btn-pantalla-completa,
-body.tema-oscuro #btn-tema{ color:#94A3B8; }
-body.tema-oscuro #btn-pantalla-completa:hover,
-body.tema-oscuro #btn-tema:hover{ background:#1E293B; color:#F1F5F9; }
+body.tema-oscuro .vista-tabs{ background:#0F172A; border-color:#1E293B; }
 body.tema-oscuro .basemap-panel{ background:#1E293B; }
 *{box-sizing:border-box;}
 html,body{height:100%;margin:0;}
@@ -560,6 +557,57 @@ body{
   border-top-color:var(--cobalt);margin:0 auto 16px;animation:spin 0.8s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg);}}
+#map.pan-boton-medio, #map.pan-boton-medio *{cursor:grabbing !important;}
+#btn-actualizar-datos.girando svg{animation:spin 0.9s linear infinite;}
+#btn-actualizar-datos:disabled{opacity:.6;cursor:wait;}
+/* Red Vial: etiquetas tipo Google (escudo = ruta nacional, placa = rol regional) */
+.rv-etiqueta{background:none;border:none;}
+.rv-etiqueta span{
+  position:absolute;left:0;top:0;transform:translate(-50%,-50%);white-space:nowrap;pointer-events:none;
+  font:700 10.5px/1 Roboto,'Segoe UI',Arial,sans-serif;letter-spacing:.2px;
+}
+/* Rol regional como en Google Maps (Chile): placa verde, texto blanco y filete blanco interior */
+.rv-placa{
+  background:#3E8E3B;color:#fff;border-radius:3px;padding:2px 4px;font-size:10px !important;
+  box-shadow:inset 0 0 0 1px #fff, 0 0 0 1px #2E6B2B, 0 1px 2px rgba(0,0,0,.3);
+}
+/* Escudo SVG de ruta nacional (svgEscudoRuta_): sin caja, solo la silueta con sombra */
+.rv-escudo{line-height:0;filter:drop-shadow(0 0 1px rgba(0,0,0,.35));}
+.rv-escudo svg{display:block;}
+/* Indicador de escala + zoom: al pie de la columna derecha, DEBAJO de la
+   simbología y con su mismo ancho (alinearResumenConSimbologia_ apila
+   escala → simbología → nivel de copamiento). */
+#escala-zoom{
+  position:absolute;right:16px;bottom:16px;z-index:450;box-sizing:border-box;
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:3px 8px;white-space:nowrap;
+  background:rgba(255,255,255,0.94);border:1px solid var(--border);border-radius:10px;
+  padding:4px 9px;box-shadow:var(--shadow-lift);backdrop-filter:blur(3px);
+  font-size:10.5px;font-weight:600;color:var(--text-primary);font-variant-numeric:tabular-nums;
+}
+#escala-zoom .ez-fila{display:flex;align-items:center;gap:7px;}
+#escala-zoom .leaflet-control-scale{margin:0 !important;float:none;}
+#escala-zoom .leaflet-control-scale-line{
+  background:transparent;border-color:#334155;color:#334155;font-size:10px;line-height:1.3;padding:0 4px;
+}
+#escala-zoom .ez-sep{width:1px;height:14px;background:var(--border);display:inline-block;}
+#escala-zoom .ez-ratio{color:var(--text-secondary);font-weight:500;}
+#escala-zoom .ez-rv{display:inline-flex;align-items:center;gap:6px;width:100%;justify-content:space-between;
+  border-top:1px solid var(--border);padding-top:3px;}
+#escala-zoom select{
+  font:inherit;font-size:11px;padding:1px 3px;border:1px solid var(--border);border-radius:5px;
+  background:var(--white);color:var(--text-primary);cursor:pointer;
+}
+#escala-zoom .ez-estado{font-size:10px;font-weight:600;color:#94A3B8;}
+#escala-zoom .ez-estado.on{color:#16A34A;}
+body.tema-oscuro #escala-zoom{background:rgba(30,41,59,0.92);border-color:#334155;color:#F1F5F9;}
+body.tema-oscuro #escala-zoom .leaflet-control-scale-line{border-color:#CBD5E1;color:#CBD5E1;}
+body.tema-oscuro #escala-zoom select{background:#0F172A;color:#F1F5F9;border-color:#334155;}
+@media (max-width:600px){
+  #escala-zoom{right:8px;bottom:80px;font-size:10px;}
+  #escala-zoom .ez-ratio{display:none;}
+}
+.rv-leyenda{display:flex;flex-wrap:wrap;gap:4px 10px;padding:2px 0 6px 34px;font-size:10px;color:var(--text-secondary);}
+.rv-leyenda i{display:inline-block;width:18px;height:5px;border-radius:3px;vertical-align:middle;margin-right:4px;}
 .loading-box p{font-size:12.5px;color:#94A3B8;margin:0;}
 
 /* ---- login / force-password ---- */
@@ -863,6 +911,42 @@ body.modo-dashboard #editar-forma-banner{display:none !important;}
 .vista-tab:hover{background:#F1F5F9;color:var(--text-primary);}
 .vista-tab.active{background:var(--navy-deep);color:#fff;}
 
+/* ===== MENÚ SUPERIOR COMPACTO (05-10-2026) =====
+ * Las pestañas van en un control segmentado. Al achicarse la pantalla se
+ * compactan por etapas en vez de desbordar:
+ *   ≤1700px  pestañas no activas solo ícono (nombre en el tooltip)
+ *   ≤1400px  el bloque de marca muestra solo el logo
+ *   ≤1150px  también la pestaña activa queda solo ícono
+ *   ≤600px   menú hamburguesa (bloque móvil más abajo)
+ * Tema y pantalla completa se movieron al menú del usuario. */
+.navbar__left{flex:1 1 auto;}
+.navbar__right{flex-shrink:0;}
+.vista-tabs{
+  background:#F1F5F9;border:1px solid var(--border);border-radius:12px;padding:3px;gap:2px;
+  min-width:0;overflow-x:auto;scrollbar-width:none;
+}
+.vista-tabs::-webkit-scrollbar{display:none;}
+.vista-tab{padding:7px 12px;flex-shrink:0;}
+.vista-tab:hover{background:#fff;}
+.vista-tab.active{box-shadow:0 1px 3px rgba(15,23,42,0.25);}
+.vista-tab .vt-ico{font-size:14px;line-height:1;}
+.comuna-select{max-width:240px;text-overflow:ellipsis;}
+.dropdown-item .di-ico{width:18px;text-align:center;}
+@media (max-width:1700px){
+  .vista-tab:not(.active) .vt-txt{display:none;}
+  .vista-tab:not(.active){padding:7px 10px;}
+}
+@media (max-width:1400px){
+  .brand-pill .brand-text{display:none;}
+  .brand-pill{padding:8px;}
+  .comuna-select{max-width:200px;}
+}
+@media (max-width:1150px){
+  .vista-tab .vt-txt{display:none;}
+  .vista-tab{padding:7px 10px;}
+  .comuna-select{max-width:170px;}
+}
+
 /* ===== Dashboard ===== */
 #dashboard{position:absolute;top:60px;left:0;right:0;bottom:0;z-index:350;background:var(--bg-light);overflow-y:auto;display:none;}
 #dashboard.show{display:block;}
@@ -987,6 +1071,43 @@ body.modo-dashboard #editar-forma-banner{display:none !important;}
 .pl-dato{font-size:12.5px;font-weight:700;}
 .pl-ficha-pie{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px;}
 .pl-pin{font-size:28px;line-height:28px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45));}
+/* Ruta Normal del recurso en el Calendario y ayuda del campo "Recurso asociado" */
+.turnos-rec-ruta{font-size:10px;color:#2563EB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;margin-top:1px;}
+.turnos-rec-ruta.sin{color:var(--text-tertiary);font-style:italic;}
+.recurso-ref-ayuda{font-size:10.5px;color:var(--text-secondary);margin-top:4px;line-height:1.35;}
+select option:disabled{color:#94A3B8;}
+/* Planificador: panel de capas y simbología (06-10-2026) */
+.pl-capas{background:var(--white);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lift);
+  width:220px;font-size:11px;color:var(--text-primary);overflow:hidden;}
+.pl-capas-tit{padding:7px 10px;font-weight:700;cursor:pointer;display:flex;align-items:center;user-select:none;}
+.pl-capas-caret{margin-left:auto;font-size:10px;opacity:.6;transition:transform .15s;}
+.pl-capas.plegado .pl-capas-caret{transform:rotate(-90deg);}
+.pl-capas.plegado .pl-capas-cuerpo{display:none;}
+.pl-capas-cuerpo{padding:2px 10px 8px;max-height:52vh;overflow-y:auto;border-top:1px solid var(--border);}
+.pl-capa-fila{display:flex;align-items:center;gap:7px;padding:4px 0;cursor:pointer;}
+.pl-capa-fila input{margin:0;accent-color:var(--cobalt);}
+.pl-capa-muestra{width:16px;height:10px;border-radius:2px;flex-shrink:0;box-sizing:border-box;}
+.pl-capa-n{margin-left:auto;font-size:9.5px;color:var(--text-tertiary);font-variant-numeric:tabular-nums;}
+.pl-capas-sub{margin:7px 0 3px;padding-top:6px;border-top:1px solid var(--border);font-size:9.5px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.4px;color:var(--text-tertiary);}
+.pl-tipo-fila{display:flex;align-items:center;gap:7px;padding:2px 4px;margin:0 -4px;border-radius:6px;cursor:pointer;}
+.pl-tipo-fila:hover{background:#F1F5F9;}
+.pl-tipo-fila.activo{background:#EFF4FF;box-shadow:inset 2px 0 0 var(--cobalt);font-weight:700;}
+.pl-tipo-ico{width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;}
+.pl-tipo-ico img{width:22px;height:22px;object-fit:contain;}
+.pl-tipo-nom{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+body.tema-oscuro .pl-capas{background:#1E293B;border-color:#334155;}
+body.tema-oscuro .pl-tipo-fila:hover{background:#0F172A;}
+body.tema-oscuro .pl-tipo-fila.activo{background:#172554;}
+/* Nombre de comuna del área: tenue, al centro */
+.pl-comuna-label{background:none;border:none;}
+.pl-comuna-label span{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;pointer-events:none;
+  font:700 11px/1 Inter,'Segoe UI',Arial,sans-serif;letter-spacing:1.5px;text-transform:uppercase;
+  color:rgba(51,65,85,.38);text-shadow:0 0 3px rgba(255,255,255,.8);}
+/* Recurso elegido: anillo con pulso; ubicando un recurso nuevo: cursor de mira */
+.pl-sel-anillo{animation:plAnillo 1.6s ease-in-out infinite;}
+@keyframes plAnillo{0%,100%{stroke-opacity:1;}50%{stroke-opacity:.35;}}
+#pl-map.pl-ubicando, #pl-map.pl-ubicando .leaflet-interactive{cursor:crosshair !important;}
 body.tema-oscuro .pl-tag.ok,body.tema-oscuro .pl-aviso.ok{background:#0B2A17;}
 body.tema-oscuro .pl-tag.warn,body.tema-oscuro .pl-aviso.warn{background:#3B2A0A;color:#FCD34D;}
 
@@ -1187,21 +1308,21 @@ body.tema-oscuro .pl-tag.warn,body.tema-oscuro .pl-aviso.warn{background:#3B2A0A
   .brand-pill{ padding:8px 10px; }
   .brand-pill .brand-text b{ font-size:12px; }
   .brand-pill .brand-text span{ font-size:9px; }
-  /* La zona izquierda (brand+tabs) y la derecha se ocultan tras el hamburguesa */
-  .topbar-left, .topbar-right{ display:none; }
-  body.menu-movil-abierto .topbar-left,
-  body.menu-movil-abierto .topbar-right{
-    display:flex; flex-direction:column; align-items:stretch; gap:8px;
-    position:absolute; top:56px; left:0; right:0; background:var(--white); padding:12px;
-    border-radius:14px; box-shadow:var(--shadow-lift); border:1px solid var(--border); z-index:60; max-height:78vh; overflow-y:auto;
+  /* Las pestañas se ocultan tras el hamburguesa y se despliegan como panel;
+     a la derecha quedan solo comuna, actualizar y usuario. */
+  .navbar__left{ flex:0 0 auto; }
+  .brand-pill .brand-text{ display:none; }
+  .vista-tabs{ display:none; }
+  body.menu-movil-abierto .vista-tabs{
+    display:flex; flex-direction:column; align-items:stretch; gap:4px;
+    position:absolute; top:56px; left:8px; right:8px; padding:8px; overflow:visible;
+    background:var(--white); border-radius:14px; box-shadow:var(--shadow-lift); border:1px solid var(--border); z-index:600;
   }
-  body.menu-movil-abierto .topbar-right{ top:auto; margin-top:4px; position:static; box-shadow:none; border:none; padding:0; }
-  body.menu-movil-abierto .topbar-left{ padding-bottom:0; }
-  .vista-tabs{ width:100%; }
-  .vista-tab{ flex:1; text-align:center; }
-  .comuna-select, #area-select{ width:100%; }
-  .topbar-right > *{ width:100%; }
-  .topbar-right .icon-btn, .topbar-right button.icon-btn{ width:auto; }
+  body.menu-movil-abierto .vista-tab{ justify-content:flex-start; padding:11px 12px; font-size:13px; }
+  .vista-tabs .vista-tab .vt-txt{ display:inline !important; }
+  .navbar__right{ gap:4px; min-width:0; }
+  #btn-meteo-horaria, #btn-windy-toolbar, #btn-logo-municipal, #btn-fav-comuna{ display:none !important; }
+  .comuna-select{ max-width:46vw; }
   .brand-col{ flex-direction:column; align-items:stretch; gap:8px; width:100%; }
   #logo-municipal-grande{ display:none !important; } /* el logo grande no en móvil */
 
@@ -1398,6 +1519,17 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
   animation:radarPing 1.8s cubic-bezier(0,0,0.2,1) infinite;
 }
 .res-radar::after{ animation-delay:.9s; }
+/* Botones de cálculo bajo el título del "Nivel de copamiento" */
+#resumen-alertas .ra-botones{ display:flex;gap:6px;padding:0 10px 7px; }
+#resumen-alertas .ra-botones button{
+  flex:1;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);color:#fff;
+  cursor:pointer;font-size:10px;font-weight:600;padding:4px 6px;border-radius:6px;white-space:nowrap;
+}
+#resumen-alertas .ra-botones button:hover{ background:rgba(255,255,255,0.18); }
+/* Fila del escenario encendido en la tabla de incendios: resaltada */
+.kpi-inc-fila{ border-radius:6px;padding:2px 3px;margin:2px -3px 0; }
+.kpi-inc-fila.activa{ background:rgba(255,255,255,0.10);box-shadow:inset 3px 0 0 var(--fila-color); }
+.kpi-inc-fila.activa .kpi-inc-nombre{ font-weight:800;opacity:1 !important; }
 #btn-influencia.active{ background:rgba(56,189,248,0.28) !important; border-color:#38BDF8 !important; }
 /* Botones de la cabecera del informe: sobre fondo oscuro, no sirven los
    estilos claros del resto de modales. */
@@ -1418,6 +1550,36 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
 .ao-valor{font-size:10px;opacity:.6;width:32px;text-align:right;flex-shrink:0;
   font-variant-numeric:tabular-nums;}
 .alerta-opacidad input[type=range]{height:3px;}
+
+/* ===== PANEL DE CAPAS COMPACTO (06-10-2026) =====
+ * Solo CSS (pisa las reglas anteriores; no cambia la lógica):
+ *   · nombre y detalle de cada capa en UNA línea (el detalle a la derecha, recortado)
+ *   · filas, márgenes y botones 🏷️ más bajos
+ *   · títulos de sección fijos arriba al hacer scroll (se sabe en qué grupo se está)
+ *   · el deslizador de opacidad de una alerta solo aparece si la alerta está encendida */
+.sidebar-header{padding:11px 16px 8px;}
+.sidebar-header h2{font-size:14px;}
+.sidebar-header p{font-size:10.5px;margin-top:1px;}
+.sidebar-content{padding:4px 12px 14px;}
+.sidebar-content .section-label{
+  margin:8px 0 2px !important;padding:6px 2px 3px;font-size:9.5px;letter-spacing:.5px;
+  position:sticky;top:-4px;z-index:3;background:var(--white);border-bottom:1px solid var(--border);
+}
+body.tema-oscuro .sidebar-content .section-label{background:#0F172A;border-bottom-color:#1E293B;}
+.layer-row, .tree-row{padding:3px 2px;gap:5px;min-height:24px;}
+.layer-left{gap:6px;}
+.layer-left > div{display:flex;align-items:baseline;gap:6px;min-width:0;flex:1;}
+.layer-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:1;min-width:0;}
+.layer-count{margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:2;min-width:0;text-align:right;}
+.layer-row .icon-btn, .tree-row .icon-btn{width:22px !important;height:22px !important;font-size:11px !important;border-radius:6px;}
+.tree-children{padding-left:15px;}
+.tree-node.sector .tree-row{min-height:21px;padding:2px 2px;}
+.alerta-bloque{padding-bottom:3px;margin-bottom:0;}
+.alerta-bloque .layer-row{padding-bottom:1px !important;}
+.alerta-opacidad{padding:0 6px 2px 40px;margin-top:-1px;}
+.alerta-bloque:has(.toggle:not(.on)) .alerta-opacidad{display:none;}
+.layer-empty-msg{padding:7px 8px;margin-top:4px;font-size:10.5px;border-radius:8px;}
+.rv-leyenda{padding:0 0 4px 30px;gap:2px 8px;font-size:9.5px;}
 .rt-cabecera{display:flex;align-items:center;gap:13px;padding:18px 22px;
   background:linear-gradient(135deg,#312E81 0%,#4338CA 55%,#6D28D9 130%);color:#fff;}
 .rt-icono{width:40px;height:40px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;
@@ -1626,16 +1788,15 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
 
     <!-- RESUMEN DINÁMICO DE RECURSOS POR ALERTA -->
     <div id="resumen-alertas" style="display:none;position:absolute;right:16px;bottom:16px;z-index:460;background:rgba(15,23,42,0.92);color:#fff;border-radius:11px;box-shadow:0 4px 16px rgba(0,0,0,0.35);backdrop-filter:blur(4px);font-size:11px;overflow:hidden;">
-      <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;">
-        <span style="font-weight:600;font-size:11px;">Nivel de copamiento</span>
-        <button id="btn-kpi-incendios" title="Copamiento sobre la zona de ocurrencia de incendios"
-          style="margin-left:auto;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);color:#fff;
-                 cursor:pointer;font-size:9.5px;padding:2px 7px;border-radius:5px;white-space:nowrap;">🔥 Incendios</button>
-        <button id="btn-influencia" title="Mostrar las áreas de influencia de 500 m y el % de comuna copada"
-          style="margin-left:4px;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);color:#fff;
-                 cursor:pointer;font-size:9.5px;padding:2px 7px;border-radius:5px;white-space:nowrap;">🎯 Influencia</button>
+      <!-- Título a todo el ancho; los botones de cálculo van debajo (06-10-2026) -->
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px 4px;">
+        <span style="font-weight:700;font-size:11.5px;flex:1;white-space:nowrap;">Nivel de copamiento</span>
         <button id="btn-resumen-alertas-toggle" title="Mostrar u ocultar el detalle"
-          style="margin-left:4px;background:transparent;border:none;color:#fff;cursor:pointer;font-size:10px;opacity:.7;padding:0 2px;">▾</button>
+          style="background:transparent;border:none;color:#fff;cursor:pointer;font-size:10px;opacity:.7;padding:0 2px;">▾</button>
+      </div>
+      <div class="ra-botones">
+        <button id="btn-kpi-incendios" title="Copamiento sobre la zona de ocurrencia de incendios">🔥 Incendios</button>
+        <button id="btn-influencia" title="Mostrar las áreas de influencia de 500 m y el % de comuna copada">🎯 Influencia</button>
       </div>
       <div id="resumen-alertas-cuerpo" style="padding:0 10px 9px;"></div>
       <div id="kpi-incendios-cuerpo" style="display:none;padding:0 10px 9px;border-top:1px solid rgba(255,255,255,0.12);"></div>
@@ -1907,6 +2068,7 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
       </div>
       <div class="pat-toolbar-right" style="display:flex;align-items:center;gap:8px;">
         <span class="turnos-estado" id="pl-estado">—</span>
+        <button class="turnos-btn" id="pl-nuevo" title="Crear un recurso: clic en el mapa para ubicarlo" style="display:none;">➕ Nuevo recurso</button>
         <button class="turnos-btn" id="pl-recargar" title="Volver a leer los datos">↻ Recargar</button>
       </div>
     </div>
@@ -1951,12 +2113,12 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
       </div>
 
       <nav class="vista-tabs" id="vista-tabs">
-        <button class="vista-tab active" data-vista="dashboard">📊 Dashboard</button>
-        <button class="vista-tab" data-vista="mapa">🗺️ Mapa</button>
-        <button class="vista-tab" data-vista="patrullajes" id="tab-patrullajes" style="display:none;">🚓 Gestión Patrullajes</button>
-        <button class="vista-tab" data-vista="turnos" id="tab-turnos" style="display:none;">📅 Calendario Turnos</button>
-        <button class="vista-tab" data-vista="planificador" id="tab-planificador">🧭 Planificador</button>
-        <button class="vista-tab" data-vista="admin" id="tab-admin" style="display:none;">⚙️ Administración</button>
+        <button class="vista-tab active" data-vista="dashboard" title="Dashboard"><span class="vt-ico">📊</span><span class="vt-txt">Dashboard</span></button>
+        <button class="vista-tab" data-vista="mapa" title="Mapa"><span class="vt-ico">🗺️</span><span class="vt-txt">Mapa</span></button>
+        <button class="vista-tab" data-vista="patrullajes" id="tab-patrullajes" style="display:none;" title="Gestión de Patrullajes"><span class="vt-ico">🚓</span><span class="vt-txt">Patrullajes</span></button>
+        <button class="vista-tab" data-vista="turnos" id="tab-turnos" style="display:none;" title="Calendario de Turnos"><span class="vt-ico">📅</span><span class="vt-txt">Turnos</span></button>
+        <button class="vista-tab" data-vista="planificador" id="tab-planificador" title="Planificador por Área"><span class="vt-ico">🧭</span><span class="vt-txt">Planificador</span></button>
+        <button class="vista-tab" data-vista="admin" id="tab-admin" style="display:none;" title="Administración"><span class="vt-ico">⚙️</span><span class="vt-txt">Administración</span></button>
       </nav>
     </div>
 
@@ -1971,6 +2133,10 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
       </button>
       <input type="file" id="input-logo-municipal" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none;">
       <div class="comuna-badge controles-mapa" id="comuna-badge" style="display:none;"><span class="dot"></span><span id="comuna-label">—</span></div>
+
+      <button class="icon-btn" id="btn-actualizar-datos" title="Actualizar datos desde la base de datos">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </button>
 
       <div class="dropdown-wrap controles-mapa">
         <button class="icon-btn" id="btn-basemap" title="Mapa base">
@@ -2039,8 +2205,6 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
       <div id="recursos-area-rapido-panel" style="display:none;"><div id="recursos-area-rapido-lista"></div></div>
 
       <button id="indicador-edicion" title="Modo edición activo — clic para salir"><span class="edit-pulse"></span>✏️ Editando · Salir</button>
-      <button id="btn-pantalla-completa" class="icon-btn" title="Pantalla completa" style="font-size:16px;">⛶</button>
-      <button id="btn-tema" class="icon-btn" title="Cambiar modo oscuro/claro" style="font-size:18px;">🌙</button>
       <div class="dropdown-wrap" id="user-wrap">
         <button class="user-avatar-btn" id="user-chip" title="Mi cuenta">
           <span class="user-avatar" id="user-avatar">—</span>
@@ -2052,6 +2216,10 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
             <div class="up-correo" id="up-correo">—</div>
             <span class="up-rol" id="up-rol">—</span>
           </div>
+          <div class="up-divider"></div>
+          <!-- Preferencias de pantalla (antes eran 2 íconos sueltos en la barra) -->
+          <button class="dropdown-item" id="btn-tema"><span class="di-ico">🌙</span><span class="di-txt">Modo oscuro</span></button>
+          <button class="dropdown-item" id="btn-pantalla-completa"><span class="di-ico">⛶</span><span class="di-txt">Pantalla completa</span></button>
           <div class="up-divider"></div>
           <button class="dropdown-item" id="btn-mi-perfil">👤 Mi perfil</button>
           <button class="dropdown-item" id="btn-open-change-password">🔑 Cambiar contraseña</button>
@@ -2097,7 +2265,8 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
     <button class="popup-btn" id="btn-modo-punto" style="margin-left:8px;">📍 Punto</button>
     <button class="popup-btn" id="btn-modo-linea">📏 Línea</button>
     <button class="popup-btn" id="btn-modo-area">📐 Área</button>
-    <button class="popup-btn" id="btn-dibujo-libre" style="display:none;" title="Mantén pulsado y arrastra para trazar de corrido">✍️ Trazo libre</button>
+    <button class="popup-btn" id="btn-dibujo-libre" style="display:none;" title="Mantén pulsado y arrastra para trazar de corrido · botón del medio = mover el mapa">✍️ Trazo libre</button>
+    <button class="popup-btn" id="btn-iman-red-vial" style="display:none;" title="Pega los vértices a la Red Vial y sigue la curva del camino entre dos clics (Shift = sin imán)">🧲 Imán Red Vial</button>
     <button class="popup-btn" id="btn-importar-kml" title="Importar rutas desde un archivo KML o KMZ">📥 Importar KML/KMZ</button>
     <input type="file" id="input-kml" accept=".kml,.kmz,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz" style="display:none;">
     <button class="popup-btn" id="btn-finalizar-dibujo" style="display:none;color:#16A34A;">✓ Finalizar</button>
@@ -2523,6 +2692,12 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
           <option value="Punto de Control">Punto de Control</option>
         </select>
       </div>
+      <!-- Recurso de referencia asociado a la ruta (solo rutas del escenario Normal; SQL 79) -->
+      <div class="form-group" id="f-recurso-ref-wrap" style="display:none;">
+        <label>Recurso asociado (ID)</label>
+        <select id="f-recurso-ref"></select>
+        <div class="recurso-ref-ayuda" id="f-recurso-ref-ayuda"></div>
+      </div>
       <div class="form-row" id="modal-fechas-wrap">
         <div class="form-group">
           <label>Fecha inicio</label>
@@ -2805,6 +2980,12 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
           <option value="Vehículo">Vehículo</option>
           <option value="Punto de Control">Punto de Control</option>
         </select>
+      </div>
+      <!-- Recurso de referencia asociado a la ruta (solo rutas del escenario Normal; SQL 79) -->
+      <div class="form-group" id="erp-recurso-ref-wrap" style="display:none;">
+        <label>Recurso asociado (ID)</label>
+        <select id="erp-recurso-ref"></select>
+        <div class="recurso-ref-ayuda" id="erp-recurso-ref-ayuda"></div>
       </div>
       <div class="form-group">
         <label>Descripción</label>
@@ -3276,7 +3457,10 @@ function setBasemap(basemapId) {
   renderBasemapPanel();
 }
 
-const limiteLayer = L.geoJSON(null, { style:{ color:'#0F172A', weight:2, fillOpacity:0.02 } }).addTo(map);
+// Pane propio para los límites comunales: SIEMPRE al fondo de todas las capas
+// del sistema (overlayPane = 400, Red Vial = 380/381) y sobre el mapa base (200).
+map.createPane('limitesPane').style.zIndex = 350;
+const limiteLayer = L.geoJSON(null, { pane: 'limitesPane', style:{ color:'#0F172A', weight:2, fillOpacity:0.02 } }).addTo(map);
 // Límites de TODAS las comunas del usuario (cuando tiene varias). El activo va resaltado.
 const limitesMultiLayer = L.layerGroup();
 window.limitesPorComuna = {}; // comuna_id -> capa
@@ -3529,8 +3713,10 @@ async function entrarAlSistema() {
   const btnPlan = document.getElementById('btn-planificar');
   if (btnPlan) btnPlan.style.display = puedeEditar ? 'flex' : 'none';
   // Modo edición gráfica de recursos del área: EXCLUSIVO del perfil Administrador.
+  // "Recursos del Área" se quitó del menú Planificar (06-10-2026): crear, editar,
+  // mover y eliminar recursos se hace ahora en la pestaña 🧭 Planificador.
   const itemRecArea = document.getElementById('plan-recursos-area');
-  if (itemRecArea) itemRecArea.style.display = state.perfil.perfil === 'Administrador' ? 'flex' : 'none';
+  if (itemRecArea) itemRecArea.style.display = 'none';
   // Propagación escalonada del copamiento: Administrador, Jefe de Área y GRD.
   const itemProp = document.getElementById('plan-propagar-copamiento');
   if (itemProp) itemProp.style.display = puedePropagar_() ? 'flex' : 'none';
@@ -3636,6 +3822,7 @@ async function entrarAlSistema() {
   cargarLimitesMultiComuna_(); // varias comunas: límites de todas, activa resaltada
   // Vista inicial: Dashboard (el mapa queda listo pero oculto hasta ir a su pestaña)
   mostrarVista_('dashboard');
+  iniciarSincronizacionDiaria_();
 }
 
 /* ============ DASHBOARD: datos, gráficos y meteorología ============ */
@@ -4968,19 +5155,28 @@ function diffAuditoria_(antes, despues) {
  * Ojo: perfil_areas guarda las áreas SIN tilde ('MULCHEN') y los recursos CON
  * tilde ('MULCHÉN'): toda comparación de área pasa por plNorm_. */
 let plMap = null, plRutasLayer = null, plRecursosLayer = null, plSelLayer = null;
+// Capas de contexto del Planificador (06-10-2026), cada una en su pane para un orden fijo:
+// comunas del área (fondo, tenue) < áreas de relacionamiento < fundos CMPC < rutas < recursos.
+let plComunasLayer = null, plAreaRelLayer = null, plFundosLayer = null, plAsignadasLayer = null;
 state.pl = { recursos: [], rutas: [], idArea: null, sector: '', tipo: '', q: '', selId: null,
-             moviendo: false, cargado: false, preview: null, encuadrar: false };
+             moviendo: false, cargado: false, preview: null, encuadrar: false,
+             capas: { comunas: true, areaRel: true, fundos: false, rutas: false, asignadas: true },
+             capasData: { idArea: null, comunas: [], areaRel: [], fundos: [] },
+             nuevo: null };   // { latlng } mientras se crea un recurso
 
 // Ficha mínima (formato del GeoJSON de recursos): lo que falta se marca en la lista.
 const PL_REQUERIDOS = [
   ['codigo_ref', 'Código'], ['tipo_recurso', 'Tipo de recurso'], ['actividad', 'Actividad'],
   ['tipo_movil', 'Tipo de móvil'], ['sector', 'Sector'], ['zona_alerta', 'Zona de alerta'],
-  ['fecha_inicio_operacion', 'Fecha de inicio'], ['ruta1_id', 'Ruta 1'],
+  ['fecha_inicio_operacion', 'Fecha de inicio'], ['_ruta_normal', 'Ruta (escenario Normal)'],
 ];
+/** Ruta del escenario Normal enlazada al recurso (SQL 79), o null. */
+function plRutaNormal_(r) { return (r && state.pl.rutaNormal && state.pl.rutaNormal[r.id]) || null; }
 
 function plNorm_(s) { return normalizarBusqueda_(s).toUpperCase(); }
 function plFaltantes_(r) {
-  return PL_REQUERIDOS.filter(([k]) => r[k] == null || String(r[k]).trim() === '').map(([, etiqueta]) => etiqueta);
+  return PL_REQUERIDOS.filter(([k]) => k === '_ruta_normal' ? !plRutaNormal_(r) : (r[k] == null || String(r[k]).trim() === ''))
+    .map(([, etiqueta]) => etiqueta);
 }
 function plPuedeEditar_(r) {
   if (!state.perfil || !r) return false;
@@ -5011,14 +5207,24 @@ function initPlMap_() {
   if (plMap) { setTimeout(() => plMap.invalidateSize(), 60); return; }
   plMap = L.map('pl-map', { zoomControl: true, attributionControl: false, zoomSnap: 0.25 }).setView([-38.0, -72.4], 8);
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Tiles &copy; Esri' }).addTo(plMap);
+  [['plComunas', 360], ['plAreaRel', 370], ['plFundos', 380], ['plAsignadas', 405]].forEach(([n, z]) => {
+    plMap.createPane(n).style.zIndex = z;
+  });
+  plComunasLayer = L.layerGroup().addTo(plMap);
+  plAreaRelLayer = L.layerGroup().addTo(plMap);
+  plFundosLayer = L.layerGroup().addTo(plMap);
   plRutasLayer = L.layerGroup().addTo(plMap);
+  plAsignadasLayer = L.layerGroup().addTo(plMap);
   plSelLayer = L.layerGroup().addTo(plMap);
   plRecursosLayer = L.layerGroup().addTo(plMap);
+  crearControlCapasPlanificador_();
 }
 
 async function abrirPlanificador_() {
   initPlMap_();
   if (!state.pl.listeners) { state.pl.listeners = true; iniciarListenersPlanificador_(); }
+  // Íconos por tipo (los mismos de "Recursos disponibles" y "Recursos de la comuna")
+  if (!Object.keys(state.iconosPorTipoRecurso || {}).length) await cargarIconosRecursos_();
   await cargarTiposRecurso_();
   if (!state.pl.cargado) await cargarRecursosPlanificador_();
   poblarAreasPlanificador_();
@@ -5027,9 +5233,16 @@ async function abrirPlanificador_() {
 
 async function cargarRecursosPlanificador_() {
   plEstado_('Cargando…', 'guardando');
-  const { data, error } = await supabaseClient.from('v_planificador_recursos').select('*');
+  const [{ data, error }, rn] = await Promise.all([
+    supabaseClient.from('v_planificador_recursos').select('*'),
+    // Ruta del recurso = su ruta del escenario Normal (SQL 79), no las rutas SIGEI
+    supabaseClient.from('v_recurso_ruta_normal').select('recurso_id, ruta_id, descripcion, tipo_recurso, km, geom_geojson'),
+  ]);
   if (error) { plEstado_('Error: ' + error.message, 'error'); return; }
   state.pl.recursos = data || [];
+  state.pl.rutaNormal = {};
+  (rn.data || []).forEach(x => { state.pl.rutaNormal[x.recurso_id] = x; });
+  if (rn.error) console.warn('v_recurso_ruta_normal (¿falta el SQL 79?):', rn.error.message);
   state.pl.cargado = true;
   plEstado_('Datos al día', 'ok');
 }
@@ -5111,13 +5324,18 @@ function renderPlanificador_() {
   renderListaPlanificador_(lista);
   renderMapaPlanificador_(lista);
   renderFichaPlanificador_();
+  // Capas de contexto: se cargan una vez por área (cargarCapasAreaPlanificador_ fija capasData.idArea al empezar)
+  if (state.pl.capasData.idArea !== state.pl.idArea) cargarCapasAreaPlanificador_();
+  else renderControlCapasPlanificador_();
+  const btnNuevo = document.getElementById('pl-nuevo');
+  if (btnNuevo) btnNuevo.style.display = plPuedeEditarArea_() ? '' : 'none';
 }
 
 function renderKpisPlanificador_(enArea) {
   const cont = document.getElementById('pl-kpis');
   if (state.pl.idArea == null) { cont.innerHTML = ''; return; }
   const completas = enArea.filter(r => plFaltantes_(r).length === 0).length;
-  const conRuta = enArea.filter(r => r.ruta1_id).length;
+  const conRuta = enArea.filter(r => plRutaNormal_(r)).length;
   const enTurno = enArea.filter(r => r.en_turno_hoy).length;
   const sinInicio = enArea.filter(r => !r.fecha_inicio_operacion).length;
   const k = (v, l, cls) => '<div class="turnos-kpi ' + (cls || '') + '"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>';
@@ -5135,7 +5353,8 @@ function renderListaPlanificador_(lista) {
   if (!lista.length) { cont.innerHTML = '<div class="turnos-vacio">Ningún recurso coincide con los filtros.</div>'; return; }
   cont.innerHTML = lista.map(r => {
     const falt = plFaltantes_(r);
-    const rutas = [r.ruta1_nombre, r.ruta2_nombre].filter(Boolean);
+    const rn = plRutaNormal_(r);
+    const rutas = rn ? [(rn.descripcion || 'Ruta Normal') + (rn.km ? ' · ' + rn.km + ' km' : '')] : [];
     return '<button class="pl-item' + (r.id === state.pl.selId ? ' sel' : '') + '" data-id="' + r.id + '">' +
       '<span class="pl-dot" style="background:' + plColorTipo_(r.tipo_recurso) + '"></span>' +
       '<span class="pl-item-body">' +
@@ -5151,64 +5370,83 @@ function renderListaPlanificador_(lista) {
   }).join('');
 }
 
-/** Rutas resaltadas: las del formulario si se están cambiando, si no las guardadas. */
-function plRutasResaltadas_(sel) {
-  if (!sel) return [];
-  if (state.pl.preview && state.pl.preview.id === sel.id) return [state.pl.preview.r1 || null, state.pl.preview.r2 || null];
-  return [sel.ruta1_id || null, sel.ruta2_id || null];
-}
 
 function renderMapaPlanificador_(lista) {
   if (!plMap) return;
   plRutasLayer.clearLayers(); plSelLayer.clearLayers(); plRecursosLayer.clearLayers();
   const sel = plSeleccionado_();
-  const resaltadas = plRutasResaltadas_(sel);
   const editable = plPuedeEditar_(sel);
   const limites = [];
   const limitesSel = [];
+  const geo = (txt) => { try { return typeof txt === 'string' ? JSON.parse(txt) : txt; } catch (e) { return null; } };
 
-  // 1) Rutas del área (grises), 2) las del recurso elegido (azul = 1, naranja = 2), 3) puntos encima.
+  // 1) Rutas SIGEI del área (contexto, gris punteado), 2) rutas Normal de los recursos,
+  // 3) la ruta Normal del recurso elegido (azul gruesa), 4) puntos encima.
   const etiquetaRuta = ru => escapeHtml_(ru.nombre_ruta || ru.alias || 'Ruta') + (ru.km ? ' · ' + Number(ru.km).toFixed(1) + ' km' : '');
+  const etiquetaNormal = rn => escapeHtml_(rn.descripcion || 'Ruta Normal') + (rn.km != null ? ' · ' + rn.km + ' km' : '');
+  plAsignadasLayer.clearLayers();
+  // Ruta del escenario Normal de CADA recurso de la lista (SQL 79). Clic = elegir el recurso.
+  if (state.pl.capas.asignadas) {
+    lista.forEach(r => {
+      if (sel && r.id === sel.id) return;
+      const rn = plRutaNormal_(r);
+      const g = rn && geo(rn.geom_geojson);
+      if (!g) return;
+      const capa = L.geoJSON(g, { pane: 'plAsignadas', style: { color: '#2563EB', weight: 3.5, opacity: 0.7 } });
+      capa.bindTooltip('<b>' + escapeHtml_(r.codigo_ref || aTitulo_(r.tipo_recurso || 'Recurso')) + '</b><br>' + etiquetaNormal(rn), { sticky: true });
+      capa.on('click', () => seleccionarRecursoPlanificador_(r.id));
+      plAsignadasLayer.addLayer(capa);
+    });
+  }
+  // Rutas SIGEI: solo contexto (ya no se asocian desde aquí)
   state.pl.rutas.forEach(ru => {
-    if (!ru.geometry || resaltadas.includes(ru.id)) return;
+    if (!state.pl.capas.rutas || !ru.geometry) return;
     const capa = L.geoJSON(ru.geometry, { style: { color: '#475569', weight: 3, opacity: 0.55, dashArray: '6,5' } });
-    capa.bindTooltip(etiquetaRuta(ru) + (sel && editable ? '<br><i>Clic para asociarla al recurso</i>' : ''), { sticky: true });
-    if (sel && editable) capa.on('click', () => asociarRutaDesdeMapa_(ru.id));
+    capa.bindTooltip('SIGEI · ' + etiquetaRuta(ru), { sticky: true });
     plRutasLayer.addLayer(capa);
     try { limites.push(capa.getBounds()); } catch (e) {}
   });
-  resaltadas.forEach((idRuta, i) => {
-    const ru = state.pl.rutas.find(x => x.id === idRuta);
-    if (!ru || !ru.geometry) return;
-    const capa = L.geoJSON(ru.geometry, { style: { color: i === 0 ? '#2563EB' : '#EA580C', weight: 6, opacity: 0.95 } });
-    capa.bindTooltip('Ruta ' + (i + 1) + ': ' + etiquetaRuta(ru), { sticky: true });
+  // Ruta Normal del recurso elegido
+  const rnSel = sel && plRutaNormal_(sel);
+  const gSel = rnSel && geo(rnSel.geom_geojson);
+  if (gSel) {
+    const capa = L.geoJSON(gSel, { style: { color: '#2563EB', weight: 6, opacity: 0.95 } });
+    capa.bindTooltip('Ruta (Normal): ' + etiquetaNormal(rnSel), { sticky: true });
     plSelLayer.addLayer(capa);
     try { limites.push(capa.getBounds()); limitesSel.push(capa.getBounds()); } catch (e) {}
-  });
+  }
 
+  // Recursos con la MISMA simbología que "Recursos disponibles" / "Recursos de la comuna"
+  // del mapa principal (ícono del catálogo por tipo; si no hay, emoji con borde del color del tipo).
+  // El elegido lleva un anillo y, si se puede editar, se arrastra para moverlo.
   lista.forEach(r => {
     if (r.lat == null || r.lng == null) return;
     const esSel = sel && r.id === sel.id;
-    if (esSel && state.pl.moviendo) return; // lo reemplaza el marcador arrastrable
-    const m = L.circleMarker([r.lat, r.lng], {
-      radius: esSel ? 10 : 7, color: esSel ? '#0F172A' : '#fff', weight: esSel ? 3 : 2,
-      fillColor: plColorTipo_(r.tipo_recurso), fillOpacity: 1,
+    const arrastrable = !!(esSel && editable);
+    if (esSel) {
+      L.circleMarker([r.lat, r.lng], { radius: 27, color: '#2563EB', weight: 3, fill: true, fillColor: '#2563EB',
+        fillOpacity: 0.12, interactive: false, className: 'pl-sel-anillo' }).addTo(plRecursosLayer);
+    }
+    const m = L.marker([r.lat, r.lng], {
+      icon: construirIconoRecursoMaestro_(r, plColorTipo_(r.tipo_recurso)),
+      draggable: arrastrable, zIndexOffset: esSel ? 1000 : 0,
     });
-    m.bindTooltip('<b>' + escapeHtml_(r.codigo_ref || 'Sin código') + '</b><br>' + escapeHtml_(aTitulo_(r.tipo_recurso || '')), { direction: 'top', offset: [0, -6] });
-    m.on('click', () => seleccionarRecursoPlanificador_(r.id));
+    m.bindTooltip('<b>' + escapeHtml_(r.codigo_ref || 'Sin código') + '</b><br>' + escapeHtml_(aTitulo_(r.tipo_recurso || '')) +
+      (arrastrable ? '<br><i>Arrastra para moverlo</i>' : ''), { direction: 'top', offset: [0, -20] });
+    m.on('click', () => { if (!esSel) seleccionarRecursoPlanificador_(r.id); });
+    if (arrastrable) m.on('dragend', () => { const ll = m.getLatLng(); moverPuntoPlanificador_(r.id, ll.lat, ll.lng); });
     plRecursosLayer.addLayer(m);
     const b = L.latLngBounds([r.lat, r.lng], [r.lat, r.lng]);
     limites.push(b);
     if (esSel) limitesSel.push(b);
   });
 
-  if (sel && state.pl.moviendo && sel.lat != null) {
-    const mk = L.marker([sel.lat, sel.lng], {
-      draggable: true, zIndexOffset: 1000,
-      icon: L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 28], html: '<div class="pl-pin">📍</div>' }),
-    }).addTo(plRecursosLayer);
-    mk.bindTooltip('Arrastra al nuevo punto de referencia', { permanent: true, direction: 'top', offset: [0, -28] });
-    mk.on('dragend', () => { const ll = mk.getLatLng(); moverPuntoPlanificador_(sel.id, ll.lat, ll.lng); });
+  // Recurso nuevo en preparación: marcador provisional donde se hizo clic
+  if (state.pl.nuevo && state.pl.nuevo.latlng) {
+    L.marker(state.pl.nuevo.latlng, { zIndexOffset: 1200,
+      icon: L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 28], html: '<div class="pl-pin">📍</div>' }) })
+      .bindTooltip('Nuevo recurso', { permanent: true, direction: 'top', offset: [0, -28] })
+      .addTo(plRecursosLayer);
   }
 
   const unir = arr => arr.reduce((acc, b) => (acc ? acc.extend(b) : L.latLngBounds(b.getSouthWest(), b.getNorthEast())), null);
@@ -5224,6 +5462,32 @@ function renderMapaPlanificador_(lista) {
 function renderFichaPlanificador_() {
   const vacio = document.getElementById('pl-ficha-vacia');
   const cont = document.getElementById('pl-ficha');
+
+  // Nuevo recurso: primero se ubica en el mapa; luego tipo + código y se crea.
+  if (state.pl.nuevo) {
+    vacio.style.display = 'none';
+    cont.style.display = 'flex';
+    const ll = state.pl.nuevo.latlng;
+    const tiposN = (state.tiposRecursoCatalogo || []).map(t => t.nombre);
+    cont.innerHTML =
+      '<div class="pl-ficha-head"><div style="min-width:0;"><div class="pl-ficha-titulo">➕ Nuevo recurso</div>' +
+        '<div class="pl-ficha-meta">' + escapeHtml_(plNombreArea_() || '') + '</div></div>' +
+        '<button class="wx-close" data-pl="cancelar-nuevo" title="Cancelar">✕</button></div>' +
+      '<div class="pl-ficha-cuerpo">' +
+        (ll
+          ? '<div class="pl-aviso ok">📍 Ubicación: ' + ll.lat.toFixed(5) + ', ' + ll.lng.toFixed(5) + '</div>' +
+            '<div class="pl-grid">' +
+              '<div class="pl-campo full"><label>Tipo de recurso</label><select id="pl-n-tipo"><option value="">— Selecciona —</option>' +
+                tiposN.map(t => '<option value="' + escapeHtml_(t) + '">' + escapeHtml_(aTitulo_(t)) + '</option>').join('') + '</select></div>' +
+              '<div class="pl-campo full"><label>Código (ID, opcional)</label><input id="pl-n-codigo" placeholder="BMP-0601"></div>' +
+            '</div>' +
+            '<div class="pl-aviso info">La comuna, subgerencia y región se completan solas según el área y el punto. El resto de la ficha se completa después de crearlo.</div>'
+          : '<div class="pl-aviso info">📍 Haz clic en el mapa donde quedará el nuevo recurso.</div>') +
+      '</div>' +
+      (ll ? '<div class="pl-ficha-pie"><button class="btn-primary" data-pl="crear" style="flex:1;padding:9px;">Crear recurso</button></div>' : '');
+    return;
+  }
+
   const r = plSeleccionado_();
   if (!r) { vacio.style.display = ''; cont.style.display = 'none'; cont.innerHTML = ''; return; }
   vacio.style.display = 'none';
@@ -5260,7 +5524,7 @@ function renderFichaPlanificador_() {
       esc((ru.nombre_ruta || ru.alias || 'Ruta') + (ru.km ? ' · ' + Number(ru.km).toFixed(1) + ' km' : '')) + '</option>').join('');
   };
   const lista = (id, valores) => '<datalist id="' + id + '">' + valores.map(v => '<option value="' + esc(v) + '">').join('') + '</datalist>';
-  const kmTotal = (Number(r.ruta1_km) || 0) + (Number(r.ruta2_km) || 0);
+  const rutaN = plRutaNormal_(r);
 
   cont.innerHTML =
     '<div class="pl-ficha-head"><div style="min-width:0;">' +
@@ -5293,13 +5557,18 @@ function renderFichaPlanificador_() {
         '<div class="pl-campo full' + falta('sector') + '"><label>Sector</label><select id="pl-f-sector"' + dis + '>' + optSectores + '</select></div>' +
         '<div class="pl-campo"><label>Latitud / Longitud</label><div class="pl-dato">' + (r.lat != null ? Number(r.lat).toFixed(5) + ', ' + Number(r.lng).toFixed(5) : '—') + '</div></div>' +
         '<div class="pl-campo"><label>UTM 18S (X / Y)</label><div class="pl-dato">' + (r.coord_x != null ? Math.round(r.coord_x) + ' / ' + Math.round(r.coord_y) : '—') + '</div></div>' +
-        (editable ? '<div class="pl-campo full"><button class="turnos-btn" data-pl="mover">' + (state.pl.moviendo ? '✕ Cancelar movimiento' : '📍 Mover punto en el mapa') + '</button></div>' : '') +
+        (editable ? '<div class="pl-campo full"><div class="pl-aviso info" style="margin:0;">✋ Para moverlo, arrastra su ícono en el mapa (tiene un anillo azul).</div></div>' : '') +
       '</div>' +
 
-      '<div class="pl-seccion">Rutas asociadas (1 o 2)</div><div class="pl-grid">' +
-        '<div class="pl-campo full pl-ruta-1' + falta('ruta1_id') + '"><label>Ruta 1</label><select id="pl-f-ruta1"' + dis + '>' + optRutas(r.ruta1_id, r.ruta1_nombre) + '</select></div>' +
-        '<div class="pl-campo full pl-ruta-2"><label>Ruta 2 (opcional)</label><select id="pl-f-ruta2"' + dis + '>' + optRutas(r.ruta2_id, r.ruta2_nombre) + '</select></div>' +
-        '<div class="pl-campo full"><label>Longitud total guardada</label><div class="pl-dato">' + (kmTotal ? kmTotal.toFixed(1) + ' km' : '—') + '</div></div>' +
+      // Ruta del recurso = su ruta del escenario Normal (SQL 79). Se asigna en Planificar →
+      // Escenario Normal (campo "Recurso asociado" al crear/editar la ruta); aquí solo se muestra.
+      '<div class="pl-seccion">Ruta (escenario Normal)</div><div class="pl-grid">' +
+        (rutaN
+          ? '<div class="pl-campo full"><label>Ruta asignada</label><div class="pl-dato">🛣️ ' + esc(rutaN.descripcion || 'Ruta sin descripción') +
+              '</div></div>' +
+            '<div class="pl-campo"><label>Longitud</label><div class="pl-dato">' + (rutaN.km != null ? rutaN.km + ' km' : '—') + '</div></div>' +
+            '<div class="pl-campo"><label>Tipo en la ruta</label><div class="pl-dato">' + esc(aTitulo_(rutaN.tipo_recurso || '—')) + '</div></div>'
+          : '<div class="pl-campo full falta"><div class="pl-aviso warn" style="margin:0;">Sin ruta. Se asigna en <b>Mapa → Planificar → Escenario Normal</b>: al crear o editar la ruta, elige este recurso en "Recurso asociado".</div></div>') +
       '</div>' +
 
       '<div class="pl-seccion">Calendario de turnos</div><div class="pl-grid">' +
@@ -5314,7 +5583,9 @@ function renderFichaPlanificador_() {
       lista('pl-dl-movil', distintos('tipo_movil')) +
       lista('pl-dl-zona', distintos('zona_alerta')) +
     '</div>' +
-    (editable ? '<div class="pl-ficha-pie"><button class="btn-primary" data-pl="guardar" style="flex:1;padding:9px;">Guardar ficha</button></div>' : '');
+    (editable ? '<div class="pl-ficha-pie">' +
+      '<button class="turnos-btn" data-pl="eliminar" title="Eliminar este recurso (y sus turnos y rutas asociadas)" style="color:#DC2626;border-color:#FCA5A5;">🗑️ Eliminar</button>' +
+      '<button class="btn-primary" data-pl="guardar" style="flex:1;padding:9px;">Guardar ficha</button></div>' : '');
 }
 
 function seleccionarRecursoPlanificador_(id) {
@@ -5323,25 +5594,6 @@ function seleccionarRecursoPlanificador_(id) {
   state.pl.preview = null;
   state.pl.encuadrarSel = true;
   renderPlanificador_();
-}
-
-/** Lleva al formulario la ruta clickeada en el mapa (Ruta 1 si está libre, si no Ruta 2). */
-function asociarRutaDesdeMapa_(idRuta) {
-  const s1 = document.getElementById('pl-f-ruta1'), s2 = document.getElementById('pl-f-ruta2');
-  if (!s1 || !s2 || s1.disabled) return;
-  if (!s1.value) s1.value = idRuta;
-  else if (!s2.value && s1.value !== idRuta) s2.value = idRuta;
-  else { mostrarToast_('Este recurso ya tiene 2 rutas en el formulario. Quita una para cambiarla.'); return; }
-  actualizarPreviewRutasPlanificador_();
-  mostrarToast_('Ruta agregada al formulario. Pulsa "Guardar ficha" para confirmarla.');
-}
-
-function actualizarPreviewRutasPlanificador_() {
-  const sel = plSeleccionado_();
-  if (!sel) return;
-  const s1 = document.getElementById('pl-f-ruta1'), s2 = document.getElementById('pl-f-ruta2');
-  state.pl.preview = { id: sel.id, r1: s1 ? s1.value : null, r2: s2 ? s2.value : null };
-  renderMapaPlanificador_(plRecursosFiltrados_());
 }
 
 async function guardarFichaPlanificador_() {
@@ -5353,8 +5605,6 @@ async function guardarFichaPlanificador_() {
   if (!tipo) { mostrarToast_('⚠️ Elige el tipo de recurso.'); return; }
   const cod = val('pl-f-cod');
   if (cod && !/^-?\d+$/.test(cod)) { mostrarToast_('⚠️ COD recurso debe ser un número entero.'); return; }
-  const r1 = val('pl-f-ruta1') || null, r2 = val('pl-f-ruta2') || null;
-  if (r1 && r1 === r2) { mostrarToast_('⚠️ La Ruta 1 y la Ruta 2 no pueden ser la misma.'); return; }
 
   const selSector = document.getElementById('pl-f-sector');
   const optSector = selSector ? selSector.selectedOptions[0] : null;
@@ -5374,11 +5624,7 @@ async function guardarFichaPlanificador_() {
   try {
     let res = await supabaseClient.rpc('guardar_ficha_recurso', { p_recurso_id: r.id, p_datos: datos });
     if (res.error) throw res.error;
-
-    if ((r1 || null) !== (r.ruta1_id || null) || (r2 || null) !== (r.ruta2_id || null)) {
-      res = await supabaseClient.rpc('guardar_rutas_recurso', { p_recurso_id: r.id, p_ruta1: r1, p_ruta2: r2 });
-      if (res.error) throw res.error;
-    }
+    // (La ruta ya no se guarda aquí: es la ruta del escenario Normal, enlazada en Planificar.)
 
     if (fecha !== fechaActual) {
       // Primero sin borrar: si hay turnos antes de la nueva fecha, se pregunta.
@@ -5427,8 +5673,247 @@ function abrirCalendarioDesdePlanificador_() {
   mostrarVista_('turnos');
 }
 
+/* ============ PLANIFICADOR: capas de contexto, simbología, crear y eliminar (06-10-2026) ============ */
+
+/** Nombre del área elegida (como viene en los recursos, con tilde). */
+function plNombreArea_() {
+  const a = plAreasVisibles_().find(x => x.id === state.pl.idArea);
+  return a ? a.nombre : null;
+}
+
+/** Variantes del nombre del área (con y sin tilde) para filtrar tablas que lo guardan de una u otra forma. */
+function plVariantesArea_(nombre) {
+  const n = plNorm_(nombre);
+  const fuentes = [nombre, ...(state.areasCatalogo || []), ...(state.misAreasIds || []),
+                   ...state.pl.recursos.map(r => r.area)];
+  return [...new Set(fuentes.filter(v => v && plNorm_(v) === n))];
+}
+
+/** Panel flotante del mapa del Planificador: capas + simbología de tipos de recurso. */
+function crearControlCapasPlanificador_() {
+  const Control = L.Control.extend({
+    options: { position: 'topright' },
+    onAdd() {
+      const div = L.DomUtil.create('div', 'pl-capas');
+      div.id = 'pl-capas';
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.disableScrollPropagation(div);
+      div.addEventListener('change', (e) => {
+        const k = e.target && e.target.dataset.plcapa;
+        if (!k) return;
+        state.pl.capas[k] = e.target.checked;
+        if (k === 'rutas' || k === 'asignadas') renderMapaPlanificador_(plRecursosFiltrados_());
+        else renderCapasPlanificador_();
+      });
+      div.addEventListener('click', (e) => {
+        if (e.target.closest('.pl-capas-tit')) { div.classList.toggle('plegado'); return; }
+        const t = e.target.closest('[data-pltipo]');
+        if (t) {   // clic en un tipo de la simbología = filtrar por ese tipo (otro clic lo quita)
+          state.pl.tipo = state.pl.tipo === t.dataset.pltipo ? '' : t.dataset.pltipo;
+          renderPlanificador_();
+        }
+      });
+      return div;
+    },
+  });
+  new Control().addTo(plMap);
+  renderControlCapasPlanificador_();
+}
+
+function renderControlCapasPlanificador_() {
+  const div = document.getElementById('pl-capas');
+  if (!div) return;
+  const c = state.pl.capas, d = state.pl.capasData;
+  const fila = (k, color, texto, n, estilo) =>
+    '<label class="pl-capa-fila"><input type="checkbox" data-plcapa="' + k + '"' + (c[k] ? ' checked' : '') + '>' +
+    '<span class="pl-capa-muestra" style="' + estilo.replace('$c', color) + '"></span>' + texto +
+    (n != null ? '<span class="pl-capa-n">' + n + '</span>' : '') + '</label>';
+  const asignadas = plRecursosDelArea_().filter(r => plRutaNormal_(r)).length;
+
+  // Simbología de tipos (mismos íconos que "Recursos disponibles" / "Recursos de la comuna")
+  const porTipo = {};
+  plRecursosDelArea_().forEach(r => { const t = r.tipo_recurso || 'Sin tipo'; porTipo[t] = (porTipo[t] || 0) + 1; });
+  const tipos = Object.keys(porTipo).sort((a, b) => a.localeCompare(b, 'es'));
+  const iconoTipo = (t) => {
+    const url = iconoPersonalizadoPorTipo_(t);
+    return url ? '<img src="' + escapeHtml_(url) + '" alt="">'
+               : '<span>' + emojiParaRecursoMaestro_({ tipo_recurso: t }).emoji + '</span>';
+  };
+
+  div.innerHTML =
+    '<div class="pl-capas-tit">🗂️ Capas y simbología <span class="pl-capas-caret">▾</span></div>' +
+    '<div class="pl-capas-cuerpo">' +
+      fila('comunas', '#94A3B8', 'Comunas del área', d.comunas.length || null, 'border:1px dashed $c;background:rgba(148,163,184,.12)') +
+      fila('areaRel', '#7C3AED', 'Áreas de Relacionamiento', d.areaRel.length || null, 'border:1.5px solid $c;background:rgba(196,181,253,.35)') +
+      fila('fundos', '#059669', 'Fundos CMPC', d.fundos.length || null, 'border:1.5px solid $c;background:rgba(52,211,153,.3)') +
+      fila('asignadas', '#2563EB', 'Rutas de los recursos (Normal)', asignadas || null, 'border-top:3px solid $c;height:0;margin-top:6px') +
+      fila('rutas', '#475569', 'Rutas SIGEI (patrullaje)', state.pl.rutas.length || null, 'border-top:2px dashed $c;height:0;margin-top:6px') +
+      (tipos.length
+        ? '<div class="pl-capas-sub">Recursos disponibles</div>' +
+          tipos.map(t => '<div class="pl-tipo-fila' + (state.pl.tipo === t ? ' activo' : '') + '" data-pltipo="' + escapeHtml_(t) + '" title="Clic para filtrar por este tipo">' +
+            '<span class="pl-tipo-ico">' + iconoTipo(t) + '</span><span class="pl-tipo-nom">' + escapeHtml_(aTitulo_(t)) + '</span>' +
+            '<span class="pl-capa-n">' + porTipo[t] + '</span></div>').join('')
+        : '') +
+    '</div>';
+}
+
+/** Carga las capas de contexto del área elegida (una vez por área). */
+async function cargarCapasAreaPlanificador_() {
+  const idArea = state.pl.idArea;
+  const nombre = plNombreArea_();
+  state.pl.capasData = { idArea, comunas: [], areaRel: [], fundos: [] };
+  if (idArea == null || !nombre) { renderCapasPlanificador_(); return; }
+  const variantes = plVariantesArea_(nombre);
+  const clave = plNorm_(nombre).replace(/[^A-Z0-9]/g, '');   // = clave_area_red_vial_ (SQL 71)
+
+  // 1) Comunas del área (v_area_comunas → límites)
+  const tareaComunas = (async () => {
+    const { data: ac } = await supabaseClient.from('v_area_comunas').select('id_comuna').eq('area_norm', clave);
+    const ids = new Set((ac || []).map(x => x.id_comuna));
+    state.pl.recursos.filter(r => r.id_area === idArea && r.id_comuna != null).forEach(r => ids.add(r.id_comuna));
+    const slugs = (state.comunas || []).filter(cm => ids.has(cm.id_comuna)).map(cm => cm.id);
+    if (!slugs.length) return [];
+    const { data } = await supabaseClient.from('v_comunas_limite').select('id, comuna, geometry').in('id', slugs);
+    return data || [];
+  })();
+
+  // 2) Fundos CMPC del área (el nombre puede venir con o sin tilde)
+  const tareaFundos = (async () => {
+    const { data } = await supabaseClient.from('v_fundos_cmpc')
+      .select('id, nombre_fundo, sup_ha, area, sector, propietario, geometry').in('area', variantes);
+    return data || [];
+  })();
+
+  // 3) Áreas de Relacionamiento (sectores) del área: se reutiliza lo que cargó el mapa principal
+  const tareaAreaRel = (async () => {
+    if (!state.areaRelGeojson) {
+      const { data: res } = await supabaseClient.functions.invoke('get-area-layers', { body: {} });
+      if (res && res.areaRelacionamiento && res.areaRelacionamiento.ok) state.areaRelGeojson = res.areaRelacionamiento.data;
+    }
+    const feats = (state.areaRelGeojson && state.areaRelGeojson.features) || [];
+    return feats.filter(f => plNorm_((f.properties || {}).AREA) === plNorm_(nombre));
+  })();
+
+  const [comunas, fundos, areaRel] = await Promise.all([
+    tareaComunas.catch(() => []), tareaFundos.catch(() => []), tareaAreaRel.catch(() => []),
+  ]);
+  if (state.pl.idArea !== idArea) return;   // cambió el área mientras cargaba
+  state.pl.capasData = { idArea, comunas, fundos, areaRel };
+  renderCapasPlanificador_();
+}
+
+/** Dibuja las capas de contexto (no se redibujan en cada clic de la lista). */
+function renderCapasPlanificador_() {
+  if (!plMap) return;
+  plComunasLayer.clearLayers(); plAreaRelLayer.clearLayers(); plFundosLayer.clearLayers();
+  const c = state.pl.capas, d = state.pl.capasData;
+
+  if (c.comunas) d.comunas.forEach(cm => {
+    if (!cm.geometry) return;
+    const capa = L.geoJSON(cm.geometry, { pane: 'plComunas', interactive: false,
+      style: { color: '#64748B', weight: 1.2, opacity: 0.55, dashArray: '4,4', fillColor: '#94A3B8', fillOpacity: 0.04 } });
+    plComunasLayer.addLayer(capa);
+    try {
+      L.marker(capa.getBounds().getCenter(), { pane: 'plComunas', interactive: false,
+        icon: L.divIcon({ className: 'pl-comuna-label', iconSize: null, html: '<span>' + escapeHtml_(cm.comuna) + '</span>' }) })
+        .addTo(plComunasLayer);
+    } catch (e) {}
+  });
+
+  if (c.areaRel) d.areaRel.forEach(f => {
+    const p = f.properties || {};
+    const capa = L.geoJSON(f, { pane: 'plAreaRel',
+      style: { color: '#7C3AED', weight: 1.5, fillColor: '#C4B5FD', fillOpacity: 0.14 } });
+    capa.bindTooltip('Sector ' + escapeHtml_(p.SECTOR || '—'), { sticky: true });
+    plAreaRelLayer.addLayer(capa);
+  });
+
+  if (c.fundos) d.fundos.forEach(f => {
+    if (!f.geometry) return;
+    const capa = L.geoJSON(f.geometry, { pane: 'plFundos',
+      style: { color: '#059669', weight: 1.2, fillColor: '#34D399', fillOpacity: 0.16 } });
+    capa.bindTooltip('<b>' + escapeHtml_(f.nombre_fundo || 'Fundo') + '</b>' +
+      (f.sup_ha ? '<br>' + Number(f.sup_ha).toFixed(1) + ' ha' : '') + (f.sector ? '<br>' + escapeHtml_(f.sector) : ''), { sticky: true });
+    plFundosLayer.addLayer(capa);
+  });
+
+  renderControlCapasPlanificador_();
+}
+
+/* ── Crear un recurso: botón "➕ Nuevo recurso" → clic en el mapa → tipo y código → crear_recurso_referencia */
+function plPuedeEditarArea_() {
+  const nombre = plNombreArea_();
+  return !!nombre && plPuedeEditar_({ area: nombre });
+}
+
+function iniciarNuevoRecursoPlanificador_() {
+  if (!plPuedeEditarArea_()) { mostrarToast_('🔒 No tienes permiso para crear recursos en esta área.'); return; }
+  if (state.pl.nuevo) { cancelarNuevoRecursoPlanificador_(); return; }
+  state.pl.nuevo = { latlng: null };
+  state.pl.selId = null;
+  renderPlanificador_();
+  document.getElementById('pl-map').classList.add('pl-ubicando');
+  document.getElementById('pl-nuevo').textContent = '✕ Cancelar nuevo';
+  mostrarToast_('📍 Haz clic en el mapa donde quedará el nuevo recurso.');
+  state.pl.clicUbicar = (e) => {
+    if (!state.pl.nuevo) return;
+    state.pl.nuevo.latlng = e.latlng;
+    document.getElementById('pl-map').classList.remove('pl-ubicando');
+    renderPlanificador_();
+  };
+  plMap.once('click', state.pl.clicUbicar);
+}
+
+function cancelarNuevoRecursoPlanificador_() {
+  state.pl.nuevo = null;
+  if (plMap && state.pl.clicUbicar) plMap.off('click', state.pl.clicUbicar);
+  state.pl.clicUbicar = null;
+  const mapa = document.getElementById('pl-map'); if (mapa) mapa.classList.remove('pl-ubicando');
+  const btn = document.getElementById('pl-nuevo'); if (btn) btn.textContent = '➕ Nuevo recurso';
+  renderPlanificador_();
+}
+
+async function crearRecursoPlanificador_() {
+  const n = state.pl.nuevo;
+  if (!n || !n.latlng) return;
+  const tipo = (document.getElementById('pl-n-tipo') || {}).value || '';
+  const codigo = ((document.getElementById('pl-n-codigo') || {}).value || '').trim();
+  if (!tipo) { mostrarToast_('⚠️ Elige el tipo de recurso.'); return; }
+  const datos = { tipo_recurso: tipo };
+  if (codigo) datos.codigo_ref = codigo;
+  plEstado_('Creando recurso…', 'guardando');
+  const { data: id, error } = await supabaseClient.rpc('crear_recurso_referencia', {
+    p_id_area: state.pl.idArea, p_lat: n.latlng.lat, p_lng: n.latlng.lng, p_datos: datos,
+  });
+  if (error) { plEstado_('Error al crear', 'error'); mostrarToast_('No se pudo crear: ' + error.message); return; }
+  await refrescarRecursoPlanificador_(id);
+  state.pl.nuevo = null;
+  const btn = document.getElementById('pl-nuevo'); if (btn) btn.textContent = '➕ Nuevo recurso';
+  plEstado_('Recurso creado', 'ok');
+  mostrarToast_('✅ Recurso creado. Completa su ficha (actividad, móvil, sector, rutas, fecha de inicio).');
+  seleccionarRecursoPlanificador_(id);
+  if (typeof loadRecursosDisponiblesAreaLayer_ === 'function') loadRecursosDisponiblesAreaLayer_().catch(() => {});
+}
+
+async function eliminarRecursoPlanificador_() {
+  const r = plSeleccionado_();
+  if (!r || !plPuedeEditar_(r)) return;
+  if (!confirm('¿Eliminar el recurso ' + (r.codigo_ref || aTitulo_(r.tipo_recurso || '')) + '?\n\n' +
+               'También se borran sus turnos y sus rutas asociadas. No se puede deshacer.')) return;
+  plEstado_('Eliminando…', 'guardando');
+  const { error } = await supabaseClient.rpc('eliminar_recurso_referencia', { p_recurso_id: r.id });
+  if (error) { plEstado_('Error al eliminar', 'error'); mostrarToast_('No se pudo eliminar: ' + error.message); return; }
+  state.pl.recursos = state.pl.recursos.filter(x => x.id !== r.id);
+  state.pl.selId = null; state.pl.preview = null; state.pl.moviendo = false;
+  plEstado_('Recurso eliminado', 'ok');
+  mostrarToast_('🗑️ Recurso eliminado.');
+  renderPlanificador_();
+  if (typeof loadRecursosDisponiblesAreaLayer_ === 'function') loadRecursosDisponiblesAreaLayer_().catch(() => {});
+}
+
 function iniciarListenersPlanificador_() {
   document.getElementById('pl-area').addEventListener('change', (e) => {
+    if (state.pl.nuevo) cancelarNuevoRecursoPlanificador_();
     state.pl.idArea = e.target.value ? Number(e.target.value) : null;
     state.pl.sector = ''; state.pl.tipo = ''; state.pl.selId = null; state.pl.preview = null;
     state.pl.moviendo = false; state.pl.rutas = []; state.pl.encuadrar = true;
@@ -5444,6 +5929,7 @@ function iniciarListenersPlanificador_() {
   });
   document.getElementById('pl-recargar').addEventListener('click', async () => {
     state.pl.cargado = false;
+    state.pl.capasData.idArea = undefined;   // también se releen las capas de contexto
     await cargarRecursosPlanificador_();
     poblarAreasPlanificador_();
     state.pl.rutas = [];
@@ -5469,10 +5955,11 @@ function iniciarListenersPlanificador_() {
       if (state.pl.moviendo) mostrarToast_('📍 Arrastra el marcador al nuevo punto de referencia.');
     }
     else if (accion === 'calendario') abrirCalendarioDesdePlanificador_();
+    else if (accion === 'eliminar') eliminarRecursoPlanificador_();
+    else if (accion === 'crear') crearRecursoPlanificador_();
+    else if (accion === 'cancelar-nuevo') cancelarNuevoRecursoPlanificador_();
   });
-  ficha.addEventListener('change', (e) => {
-    if (e.target && (e.target.id === 'pl-f-ruta1' || e.target.id === 'pl-f-ruta2')) actualizarPreviewRutasPlanificador_();
-  });
+  document.getElementById('pl-nuevo').addEventListener('click', iniciarNuevoRecursoPlanificador_);
 }
 
 /* ==================== MÓDULO GESTIÓN DE PATRULLAJES (mapa exclusivo) ==================== */
@@ -5897,11 +6384,8 @@ async function cargarRecursosTurnos_() {
   await guardarTurnosPendientes_();
   grid.innerHTML = '<div class="turnos-vacio">Cargando recursos…</div>';
 
-  const { data: recursos, error } = await supabaseClient
-    .from('recursos_disponibles_area_geojson')
-    .select('*')
-    .eq('area', state.turnosArea)
-    .order('tipo_recurso', { ascending: true });
+  // El área elegida viene sin tilde (perfil_areas / catálogo) y los recursos con tilde.
+  const { data: recursos, error } = await recursosDeAreas_(state.turnosArea, 'tipo_recurso');
   if (error) {
     grid.innerHTML = '<div class="turnos-vacio">No se pudieron cargar los recursos: ' + escapeHtml_(error.message) + '</div>';
     return;
@@ -5909,6 +6393,13 @@ async function cargarRecursosTurnos_() {
   state.turnosRecursos = (recursos || []).slice().sort((a, b) =>
     String(a.tipo_recurso || '').localeCompare(String(b.tipo_recurso || ''), 'es') ||
     String(a.nombre_recurso || '').localeCompare(String(b.nombre_recurso || ''), 'es'));
+  // Ruta del escenario Normal de cada recurso (mismo enlace por id que en Planificar; SQL 79)
+  state.turnosRutaNormal = {};
+  const idsT = state.turnosRecursos.map(r => r.id);
+  if (idsT.length) {
+    const { data: rn } = await supabaseClient.from('v_recurso_ruta_normal').select('recurso_id, descripcion, km').in('recurso_id', idsT);
+    (rn || []).forEach(x => { state.turnosRutaNormal[x.recurso_id] = x; });
+  }
 
   // Tipos para el filtro
   const tipos = [...new Set(state.turnosRecursos.map(r => r.tipo_recurso || 'Sin tipo'))].sort((a, b) => a.localeCompare(b, 'es'));
@@ -6001,8 +6492,15 @@ function renderGridTurnos_() {
     html += '<tr><td class="col-rec">' +
       '<div class="turnos-rec-top"><span class="turnos-swatch" style="background:' + escapeHtml_(inst.color_hex || '#64748B') + ';" title="' + escapeHtml_(inst.nombre || '') + '"></span>' +
       '<span class="turnos-rec-tipo" title="' + escapeHtml_(r.tipo_recurso || '') + '">' + escapeHtml_(r.tipo_recurso || '—') + '</span></div>' +
-      '<div class="turnos-rec-nombre" title="' + escapeHtml_((r.nombre_recurso || '') + (inst.nombre ? ' · ' + inst.nombre : '')) + '">' +
+      '<div class="turnos-rec-nombre" title="' + escapeHtml_((r.codigo_ref ? r.codigo_ref + ' · ' : '') + (r.nombre_recurso || '') + (inst.nombre ? ' · ' + inst.nombre : '')) + '">' +
+        (r.codigo_ref ? '<b>' + escapeHtml_(r.codigo_ref) + '</b> ' : '') +
         escapeHtml_(r.nombre_recurso || '') + (inst.nombre ? ' · ' + escapeHtml_(inst.nombre) : '') + '</div>' +
+      (function () {   // ruta del escenario Normal enlazada al recurso
+        const rn = (state.turnosRutaNormal || {})[r.id];
+        return rn
+          ? '<div class="turnos-rec-ruta" title="Ruta del escenario Normal">🛣️ ' + escapeHtml_(rn.descripcion || 'Ruta Normal') + (rn.km != null ? ' · ' + rn.km + ' km' : '') + '</div>'
+          : '<div class="turnos-rec-ruta sin" title="Se asigna en Mapa → Planificar → Escenario Normal">🛣️ Sin ruta asignada</div>';
+      })() +
       '<div class="turnos-rec-bottom">' +
         '<button class="turnos-chip-inicio ' + chipCls + '" data-turno-accion="inicio" data-rec="' + rid + '" title="Editar fecha de inicio de operación">' + chipTxt + '</button>' +
         '<span class="turnos-fila-acc">' +
@@ -6262,6 +6760,134 @@ async function guardarInicioTurnos_(quitar) {
   }
 }
 
+/* ============ ACTUALIZAR DATOS: botón manual + sincronización diaria ============
+ * Vuelve a leer desde la BD todo lo que pudo cambiar (recursos, planificación,
+ * rutas, alertas, catálogo de tipos) y la vista abierta, SIN recargar la página
+ * ni las capas geográficas de la comuna (el mapa no se mueve).
+ * Sincronización diaria: una vez al día a SYNC_DIARIA_HORA (hora local). Si el
+ * equipo estuvo suspendido o la pestaña oculta, se hace al volver a ella. Si hay
+ * un modo de trabajo activo o turnos sin guardar, se reintenta más tarde. */
+const SYNC_DIARIA_HORA = 6;
+const SYNC_REINTENTO_MS = 10 * 60 * 1000;
+let actualizandoDatos_ = false;
+let ultimaSyncMs_ = 0;
+let timerSyncDiaria_ = null;
+
+/** Momento de la sincronización diaria más reciente que ya debió ocurrir. */
+function ultimoCorteSync_() {
+  const d = new Date();
+  d.setHours(SYNC_DIARIA_HORA, 0, 0, 0);
+  if (d.getTime() > Date.now()) d.setDate(d.getDate() - 1);
+  return d.getTime();
+}
+
+function programarSyncDiaria_(ms) {
+  clearTimeout(timerSyncDiaria_);
+  if (ms == null) {
+    const prox = new Date();
+    prox.setHours(SYNC_DIARIA_HORA, 0, 0, 0);
+    if (prox.getTime() <= Date.now()) prox.setDate(prox.getDate() + 1);
+    ms = Math.max(1000, prox.getTime() - Date.now());
+  }
+  timerSyncDiaria_ = setTimeout(syncDiariaPendiente_, ms);
+}
+
+async function syncDiariaPendiente_() {
+  if (!state.perfil) return;
+  if (ultimaSyncMs_ >= ultimoCorteSync_()) { programarSyncDiaria_(); return; }
+  const ok = await actualizarDatos_('auto');
+  programarSyncDiaria_(ok ? null : SYNC_REINTENTO_MS);
+}
+
+function iniciarSincronizacionDiaria_() {
+  ultimaSyncMs_ = Date.now(); // recién entró: los datos están al día
+  actualizarTituloBotonSync_();
+  programarSyncDiaria_();
+  if (!state._syncVisibilidad) {
+    state._syncVisibilidad = true;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') syncDiariaPendiente_();
+    });
+  }
+}
+
+function actualizarTituloBotonSync_() {
+  const btn = document.getElementById('btn-actualizar-datos');
+  if (!btn) return;
+  const hh = String(SYNC_DIARIA_HORA).padStart(2, '0') + ':00';
+  btn.title = 'Actualizar datos desde la base de datos' +
+    (ultimaSyncMs_ ? '\nÚltima actualización: ' + new Date(ultimaSyncMs_).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '') +
+    '\nSincronización automática diaria a las ' + hh;
+}
+
+/** origen: 'manual' (botón) | 'auto' (diaria). Devuelve true si actualizó. */
+async function actualizarDatos_(origen) {
+  const auto = origen === 'auto';
+  if (actualizandoDatos_ || !state.perfil) return false;
+  if (hayModoTrabajoActivo_()) {
+    if (!auto) mostrarToast_('🔒 Termina o cancela ' + nombreModoTrabajo_() + ' antes de actualizar.');
+    return false;
+  }
+  if (turnosPendientes_.length || turnosGuardando_) {
+    if (!auto) mostrarToast_('📅 Hay turnos sin guardar: guárdalos antes de actualizar.');
+    return false;
+  }
+
+  actualizandoDatos_ = true;
+  const btn = document.getElementById('btn-actualizar-datos');
+  if (btn) { btn.classList.add('girando'); btn.disabled = true; }
+  const esAdmin = state.perfil.perfil === 'Administrador';
+  const comunaId = state.activeComunaId;
+  const vista = state.vistaActual;
+  let fallos = 0;
+  const correr = (fn) => Promise.resolve().then(fn).catch((e) => { fallos++; console.error('actualizarDatos_:', e); });
+
+  try {
+    await correr(() => cargarTiposRecurso_(true));
+    state.pl.cargado = false; // el Planificador relee al abrirse
+
+    const tareas = [
+      correr(() => loadRecursosDisponiblesAreaLayer_()),
+      correr(() => loadPatrullajeLayer_()),
+      correr(() => cargarCapasAlertaGlobales_()),
+    ];
+    if (comunaId) {
+      tareas.push(correr(() => loadRecursos(comunaId, comunaRequestToken, null, true)));
+      tareas.push(correr(() => loadPlanificacionRecursos_(comunaId)));
+    }
+    if (state.soloTurnoHoy) tareas.push(correr(() => cargarRecursosActivosHoy_()));
+    if (esAdmin && state.recursosComunaAdminOn) tareas.push(correr(() => loadRecursosComunaAdmin_()));
+    if (esAdmin && state.rutasComunaAdminOn) tareas.push(correr(() => loadRutasComunaAdmin_()));
+
+    // La vista abierta
+    if (vista === 'dashboard') tareas.push(correr(() => cargarDashboard_()));
+    else if (vista === 'admin') tareas.push(correr(() => cargarSeccionAdmin_(state.adminSeccion || 'resumen')));
+    else if (vista === 'patrullajes') tareas.push(correr(() => abrirGestionPatrullajes_()));
+    else if (vista === 'turnos' && state.turnosArea) tareas.push(correr(() => cargarRecursosTurnos_()));
+    else if (vista === 'planificador') {
+      tareas.push(correr(async () => {
+        await cargarRecursosPlanificador_();
+        poblarAreasPlanificador_();
+        state.pl.rutas = [];
+        await cargarRutasPlanificador_();
+        renderPlanificador_();
+      }));
+    }
+    await Promise.all(tareas);
+    if (vista === 'mapa' && comunaId) renderTab(state.activeTab || 'capas');
+  } finally {
+    actualizandoDatos_ = false;
+    if (btn) { btn.classList.remove('girando'); btn.disabled = false; }
+  }
+
+  ultimaSyncMs_ = Date.now();
+  actualizarTituloBotonSync_();
+  const hora = new Date(ultimaSyncMs_).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  if (fallos) mostrarToast_('⚠️ Actualización con ' + fallos + ' error(es) (ver consola). ' + hora);
+  else mostrarToast_((auto ? '🔄 Sincronización diaria: datos al día · ' : '✅ Datos actualizados · ') + hora);
+  return true;
+}
+
 function mostrarVista_(vista) {
   if ((vista === 'admin' || vista === 'patrullajes') && state.perfil.perfil !== 'Administrador') vista = 'dashboard';
   // El calendario es de Admin + Jefe de Área (antes se bloqueaba al Jefe de Área aquí).
@@ -6504,7 +7130,7 @@ async function cargarLimitesMultiComuna_() {
   if (error || !data) return;
   data.forEach(c => {
     if (!c.geometry) return;
-    const capa = L.geoJSON(c.geometry, { style: estiloLimite_(c.id) });
+    const capa = L.geoJSON(c.geometry, { pane: 'limitesPane', style: estiloLimite_(c.id) });
     capa.on('click', (ev) => {
       if (hayModoTrabajoActivo_()) {
         // En modo de trabajo, el clic debe llegar al mapa (agregar vértice, etc.),
@@ -6923,7 +7549,7 @@ function activarModoArea_(area) {
 
 // Recarga las 5 capas según el filtro vigente (comuna o área)
 function recargarCapasPorFiltro_() {
-  Promise.all([loadFundosAraucoLayer_(), loadComiteLayer_(), loadFundosCmpcPostgis_()]).then(() => {
+  Promise.all([loadFundosAraucoLayer_(), loadComiteLayer_(), loadFundosCmpcPostgis_(), loadRedVialLayer_(), loadRedVialCmpc_(true)]).then(() => {
     if (document.querySelector('.rail-btn.active') && document.querySelector('.rail-btn.active').dataset.tab === 'capas') renderTab('capas');
   });
   // Patrullaje y recursos por área
@@ -7003,6 +7629,677 @@ async function loadComiteLayer_() {
   });
   state.comiteInfo = { ok: true, count: (data || []).length };
 }
+
+/* ============ RED VIAL DE CHILE (MOP) — estilo Google ============
+ * Fuente: v_red_vial_recorte (SQL 69 + 70): tramos YA recortados en la BD a la
+ * comuna + 10 km (SQL 72; ambito 'comuna', clave = id_comuna) o al área de
+ * relacionamiento (ambito 'area', clave = área normalizada sin tildes).
+ * Se pide solo al encender la capa y solo lo de la comuna/área activa.
+ *
+ * Simbología tipo Google Maps / Earth:
+ *   · línea con borde (casing) + relleno, en 2 panes canvas (rápido con miles de tramos)
+ *   · color por jerarquía: autopista (naranjo) > nacional (amarillo) >
+ *     regional principal/provincial (amarillo claro) > comunal/acceso (blanco);
+ *     ripio y tierra más delgados y con trazo discontinuo
+ *   · grosor según zoom; las vías menores aparecen al acercarse
+ *   · etiquetas con rol_label: escudo para rutas nacionales ("5", "181-CH"),
+ *     placa para roles regionales ("R-86", "Q-45"); sin repetirse ni encimarse */
+const redVialLayer = L.layerGroup();        // contenedor que se enciende/apaga
+const redVialEtiquetasLayer = L.layerGroup();
+state.redVialOn = false;
+state.mostrarEtiquetasRedVial = true;
+state.redVialInfo = { ok: true, count: 0, cargado: false };
+let redVialClaveCargada_ = null;             // 'comuna:123' | 'area:MULCHEN'
+let redVialTramos_ = [];                     // [{cat, casing, fill}]
+let redVialCandidatosEtiqueta_ = [];         // [{latlng, texto, cat, escudo}]
+let redVialRenderers_ = null;
+
+const RED_VIAL_CATEGORIAS = {
+  //            relleno     borde       ancho z13  zoom mín  etiqueta desde  orden
+  // labelZ = minZ: el rol_label aparece junto con su camino (pedido 06-10-2026).
+  // El declutter evita que se amontonen cuando hay muchas.
+  autopista: { fill: '#F29E4C', casing: '#C26A1E', w: 6.5, minZ: 0,  labelZ: 0,  rank: 1, nombre: 'Autopista / doble calzada' },
+  nacional:  { fill: '#FCD34D', casing: '#C9A227', w: 5.5, minZ: 0,  labelZ: 0,  rank: 2, nombre: 'Ruta nacional' },
+  principal: { fill: '#FEF3B5', casing: '#C9B458', w: 4.5, minZ: 9,  labelZ: 9,  rank: 3, nombre: 'Regional principal / provincial' },
+  comunal:   { fill: '#FFFFFF', casing: '#9AA3AD', w: 3.5, minZ: 11, labelZ: 11, rank: 4, nombre: 'Regional comunal / acceso' },
+  ripio:     { fill: '#FFFFFF', casing: '#B8A88A', w: 2.8, minZ: 11, labelZ: 11, rank: 5, nombre: 'Ripio / grava', dash: '6,4' },
+  tierra:    { fill: '#F5EFE3', casing: '#B8A88A', w: 2.2, minZ: 12, labelZ: 12, rank: 6, nombre: 'Tierra (suelo natural)', dash: '3,4' },
+};
+
+function categoriaRedVial_(r) {
+  const cl = normalizarBusqueda_(r.clasificacion || '');
+  const ca = normalizarBusqueda_(r.carpeta || '');
+  if (ca.indexOf('doble calzada') >= 0 || normalizarBusqueda_(r.concesionado || '') === 'si') return 'autopista';
+  if (cl.indexOf('camino nacional') === 0) return 'nacional';
+  if (cl.indexOf('regional principal') >= 0 || cl.indexOf('regional provincial') >= 0) return 'principal';
+  if (ca.indexOf('suelo natural') >= 0) return 'tierra';
+  if (ca.indexOf('ripio') >= 0 || ca.indexOf('grava') >= 0) return 'ripio';
+  return 'comunal';
+}
+
+/** Factor de grosor según zoom (z13 = 1), como Google: delgadas de lejos, anchas de cerca. */
+function factorZoomRedVial_(z) { return Math.max(0.35, Math.min(2.4, Math.pow(2, (z - 13) * 0.4))); }
+
+function estiloRedVial_(cat, z) {
+  const c = RED_VIAL_CATEGORIAS[cat];
+  const w = c.w * factorZoomRedVial_(z);
+  // De lejos (z < 10) Google dibuja solo el color de la vía, sin borde.
+  const conBorde = z >= 10;
+  return {
+    casing: { color: c.casing, weight: w + 2, opacity: conBorde ? 1 : 0, lineCap: 'round', lineJoin: 'round' },
+    fill:   { color: conBorde ? c.fill : c.casing, weight: w, opacity: 1, lineCap: c.dash ? 'butt' : 'round', lineJoin: 'round',
+              dashArray: conBorde ? (c.dash || null) : null },
+  };
+}
+
+function asegurarPanesRedVial_() {
+  if (redVialRenderers_) return redVialRenderers_;
+  // Bajo las capas del sistema (overlayPane = 400) y sobre el mapa base.
+  if (!map.getPane('redVialBorde')) { map.createPane('redVialBorde').style.zIndex = 380; }
+  if (!map.getPane('redVialRelleno')) { map.createPane('redVialRelleno').style.zIndex = 381; }
+  if (!map.getPane('redVialEtiquetas')) { const p = map.createPane('redVialEtiquetas'); p.style.zIndex = 590; p.style.pointerEvents = 'none'; }
+  redVialRenderers_ = {
+    borde: L.canvas({ pane: 'redVialBorde', padding: 0.3 }),
+    relleno: L.canvas({ pane: 'redVialRelleno', padding: 0.3 }),
+  };
+  map.on('zoomend', () => { if (state.redVialOn) { aplicarZoomRedVial_(); declutterEtiquetasRedVial_(); } });
+  return redVialRenderers_;
+}
+
+function claveRedVial_() {
+  // Misma regla que clave_area_red_vial_ (SQL 71): sin tildes, mayúsculas y sin
+  // espacios ni guiones ('Los Ríos - Los Lagos' → 'LOSRIOSLOSLAGOS').
+  if (state.areaActiva) return { ambito: 'area', clave: plNorm_(state.areaActiva).replace(/[^A-Z0-9]/g, '') };
+  const idc = idComunaActiva_();
+  return idc != null ? { ambito: 'comuna', clave: String(idc) } : null;
+}
+
+/** Punto medio A LO LARGO de la línea (no el centro del rectángulo): ahí va la etiqueta. */
+function puntoMedioLinea_(latlngs) {
+  let total = 0; const tramos = [];
+  for (let i = 1; i < latlngs.length; i++) { const d = latlngs[i - 1].distanceTo(latlngs[i]); tramos.push(d); total += d; }
+  let mitad = total / 2;
+  for (let i = 0; i < tramos.length; i++) {
+    if (mitad <= tramos[i]) {
+      const t = tramos[i] ? mitad / tramos[i] : 0, a = latlngs[i], b = latlngs[i + 1];
+      return L.latLng(a.lat + (b.lat - a.lat) * t, a.lng + (b.lng - a.lng) * t);
+    }
+    mitad -= tramos[i];
+  }
+  return latlngs[Math.floor(latlngs.length / 2)];
+}
+
+/** Carga (o recarga) la red vial de la comuna/área activa. forzar = ignorar caché. */
+async function loadRedVialLayer_(forzar) {
+  const k = claveRedVial_();
+  const clave = k ? k.ambito + ':' + k.clave : null;
+  if (!state.redVialOn) { if (clave !== redVialClaveCargada_) { redVialClaveCargada_ = null; } return; }
+  if (!forzar && clave && clave === redVialClaveCargada_) return;
+
+  const rnd = asegurarPanesRedVial_();
+  redVialLayer.clearLayers(); redVialEtiquetasLayer.clearLayers();
+  redVialTramos_ = []; redVialCandidatosEtiqueta_ = [];
+  ultimoSnapIman_ = null; // los índices del imán apuntan a los tramos anteriores
+  redVialClaveCargada_ = clave;
+  if (!k) { state.redVialInfo = { ok: true, count: 0, cargado: true }; return; }
+  state.redVialInfo = { ok: true, count: 0, cargado: false };
+
+  // Paginado: un área completa puede superar el límite de 1.000 filas por consulta.
+  const filas = [];
+  for (let desde = 0; ; desde += 1000) {
+    const { data, error } = await supabaseClient.from('v_red_vial_recorte')
+      .select('objectid, rol, rol_label, nombre_camino, clasificacion, carpeta, calzada, concesionado, km_i, km_f, geometry')
+      .eq('ambito', k.ambito).eq('clave', k.clave)
+      .order('objectid').range(desde, desde + 999);
+    if (error) { state.redVialInfo = { ok: false, count: 0, cargado: true, error: 'Red vial: ' + error.message }; return; }
+    filas.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  if (redVialClaveCargada_ !== clave) return; // cambió la comuna mientras cargaba
+
+  const z = map.getZoom();
+  filas.forEach(r => {
+    const g = typeof r.geometry === 'string' ? JSON.parse(r.geometry) : r.geometry;
+    if (!g || !g.coordinates) return;
+    const partes = (g.type === 'LineString' ? [g.coordinates] : g.type === 'MultiLineString' ? g.coordinates : [])
+      .map(p => p.map(c => L.latLng(c[1], c[0]))).filter(p => p.length >= 2);
+    if (!partes.length) return;
+    const cat = categoriaRedVial_(r);
+    const est = estiloRedVial_(cat, z);
+    const casing = L.polyline(partes, Object.assign({ renderer: rnd.borde, interactive: false }, est.casing));
+    const fill = L.polyline(partes, Object.assign({ renderer: rnd.relleno }, est.fill));
+    // Popup manual: mientras se dibuja, el clic sobre un camino es un vértice
+    // (con imán), no una ficha.
+    const fichaCamino =
+      '<div class="popup-title">🛣️ ' + escapeHtml_(r.rol || r.rol_label || 'Camino') + '</div>' +
+      (r.nombre_camino ? '<div class="popup-row">' + escapeHtml_(r.nombre_camino) + '</div>' : '') +
+      '<div class="popup-row">🏷️ ' + escapeHtml_(r.clasificacion || '—') + '</div>' +
+      '<div class="popup-row">🧱 ' + escapeHtml_(r.carpeta || '—') +
+        (r.concesionado === 'Sí' ? ' · Concesionado' : '') + '</div>' +
+      (r.km_i != null && r.km_f != null
+        ? '<div class="popup-row">📏 km ' + (Number(r.km_i) / 1000).toFixed(1) + ' – ' + (Number(r.km_f) / 1000).toFixed(1) + '</div>' : '') +
+      '<div class="popup-row" style="opacity:.6;font-size:10.5px;">Red Vial MOP</div>';
+    fill.on('click', (ev) => {
+      const dibujando = state.editandoForma || state.modoRegla ||
+        ((state.editorMode || state.modoPlanificacion) && (state.dibujoModo === 'linea' || state.dibujoModo === 'area'));
+      if (dibujando) return;
+      L.popup().setLatLng(ev.latlng).setContent(fichaCamino).openOn(map);
+    });
+    redVialTramos_.push({ cat, casing, fill, partes, bounds: fill.getBounds() });
+
+    if (r.rol_label) {
+      const mas = partes.reduce((a, b) => (b.length > a.length ? b : a));
+      redVialCandidatosEtiqueta_.push({
+        latlng: puntoMedioLinea_(mas), texto: String(r.rol_label).trim(), cat,
+        escudo: /^ruta\s/i.test(r.rol || '') || cat === 'nacional' || cat === 'autopista',
+      });
+    }
+  });
+  state.redVialInfo = { ok: true, count: redVialTramos_.length, cargado: true };
+  aplicarZoomRedVial_();
+  declutterEtiquetasRedVial_();
+  if (state.redVialOn && !map.hasLayer(redVialLayer)) redVialLayer.addTo(map);
+}
+
+/** Grosor y visibilidad por jerarquía según el zoom actual. */
+function aplicarZoomRedVial_() {
+  const z = map.getZoom();
+  redVialTramos_.forEach(t => {
+    const visible = z >= RED_VIAL_CATEGORIAS[t.cat].minZ;
+    if (!visible) { redVialLayer.removeLayer(t.casing); redVialLayer.removeLayer(t.fill); return; }
+    const est = estiloRedVial_(t.cat, z);
+    t.casing.setStyle(est.casing); t.fill.setStyle(est.fill);
+    if (!redVialLayer.hasLayer(t.casing)) redVialLayer.addLayer(t.casing);
+    if (!redVialLayer.hasLayer(t.fill)) redVialLayer.addLayer(t.fill);
+  });
+}
+
+/** Escudo de ruta nacional (como la señalética chilena): blanco, borde oscuro,
+ *  número al centro. "181-CH" → "181" con "CH" pequeño debajo. El ancho crece
+ *  con el texto para que "5" y "160" se vean proporcionados. */
+function svgEscudoRuta_(texto, cat) {
+  const t = String(texto || '').trim();
+  const m = t.match(/^(.+?)[-\s]?CH$/i);
+  const numero = m ? m[1] : t;
+  const sufijo = m ? 'CH' : '';
+  // Medidas y trazo como el escudo de Google Maps: pequeño, blanco, borde y número negros.
+  const largo = numero.length;
+  const W = Math.max(18, Math.round(7 + largo * 6.6));
+  const H = sufijo ? 25 : 21;
+  const borde = '#202124';
+  const fs = largo <= 2 ? 10.5 : largo <= 3 ? 9.5 : 8.5;
+  // Contorno de escudo: arriba recto con hombros, costados que bajan a una punta.
+  const escudo = (i) =>
+    'M' + i + ' ' + (i + 2) + ' Q' + i + ' ' + i + ' ' + (i + 2) + ' ' + i +
+    ' H' + (W - i - 2) + ' Q' + (W - i) + ' ' + i + ' ' + (W - i) + ' ' + (i + 2) +
+    ' V' + (H * 0.46) +
+    ' C' + (W - i) + ' ' + (H * 0.72) + ' ' + (W * 0.74) + ' ' + (H * 0.86) + ' ' + (W / 2) + ' ' + (H - i) +
+    ' C' + (W * 0.26) + ' ' + (H * 0.86) + ' ' + i + ' ' + (H * 0.72) + ' ' + i + ' ' + (H * 0.46) + ' Z';
+  return '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" aria-label="Ruta ' + escapeHtml_(t) + '">' +
+    '<path d="' + escudo(0.75) + '" fill="#FFFFFF" stroke="' + borde + '" stroke-width="1.5"/>' +
+    '<text x="' + (W / 2) + '" y="' + (sufijo ? H * 0.40 : H * 0.45) + '" text-anchor="middle" dominant-baseline="middle" ' +
+      'font-family="Roboto,Arial,sans-serif" font-weight="700" font-size="' + fs + '" fill="' + borde + '">' + escapeHtml_(numero) + '</text>' +
+    (sufijo ? '<text x="' + (W / 2) + '" y="' + (H * 0.68) + '" text-anchor="middle" dominant-baseline="middle" ' +
+      'font-family="Roboto,Arial,sans-serif" font-weight="700" font-size="5.5" fill="' + borde + '">CH</text>' : '') +
+    '</svg>';
+}
+
+/** Etiquetas como Google: primero las de mayor jerarquía; una misma ruta no se
+ *  repite a menos de ~260 px y ninguna se encima con otra (~46 px). */
+function declutterEtiquetasRedVial_() {
+  redVialEtiquetasLayer.clearLayers();
+  if (!state.redVialOn || !state.mostrarEtiquetasRedVial) { map.removeLayer(redVialEtiquetasLayer); return; }
+  const z = map.getZoom();
+  const puestas = [];
+  // Zoom mínimo de las etiquetas: el elegido en el indicador de escala, o por jerarquía (Auto).
+  const fijo = state.redVialEtiquetaZoom;
+  redVialCandidatosEtiqueta_
+    .filter(c => z >= (fijo != null ? fijo : RED_VIAL_CATEGORIAS[c.cat].labelZ))
+    .sort((a, b) => RED_VIAL_CATEGORIAS[a.cat].rank - RED_VIAL_CATEGORIAS[b.cat].rank)
+    .forEach(c => {
+      const p = map.project(c.latlng, z);
+      const choca = puestas.some(o => {
+        const d = o.p.distanceTo(p);
+        return d < 46 || (o.texto === c.texto && d < 260);
+      });
+      if (choca) return;
+      puestas.push({ p, texto: c.texto });
+      const html = c.escudo
+        ? '<span class="rv-escudo rv-' + c.cat + '">' + svgEscudoRuta_(c.texto, c.cat) + '</span>'
+        : '<span class="rv-placa rv-' + c.cat + '">' + escapeHtml_(c.texto) + '</span>';
+      L.marker(c.latlng, {
+        pane: 'redVialEtiquetas', interactive: false, keyboard: false,
+        icon: L.divIcon({ className: 'rv-etiqueta', iconSize: null, html }),
+      }).addTo(redVialEtiquetasLayer);
+    });
+  if (!map.hasLayer(redVialEtiquetasLayer)) redVialEtiquetasLayer.addTo(map);
+}
+
+async function toggleRedVial_() {
+  state.redVialOn = !state.redVialOn;
+  if (state.redVialOn) {
+    redVialLayer.addTo(map);
+    await loadRedVialLayer_();
+    declutterEtiquetasRedVial_();
+  } else {
+    map.removeLayer(redVialLayer); map.removeLayer(redVialEtiquetasLayer);
+  }
+  // La CMPC cambia: con la Red Vial Chile oculta sus tramos traslapados; sin ella, los muestra.
+  if (state.redVialCmpcOn) loadRedVialCmpc_(true);
+  actualizarEscalaZoom_();
+  if (document.querySelector('.rail-btn.active') && document.querySelector('.rail-btn.active').dataset.tab === 'capas') renderTab('capas');
+}
+
+function toggleEtiquetasRedVial_() {
+  state.mostrarEtiquetasRedVial = !state.mostrarEtiquetasRedVial;
+  declutterEtiquetasRedVial_();
+  actualizarEscalaZoom_();
+  if (document.querySelector('.rail-btn.active') && document.querySelector('.rail-btn.active').dataset.tab === 'capas') renderTab('capas');
+}
+
+/* ============ RED VIAL CMPC (solo Administrador y Jefe de Área) ============
+ * Fuente: RPC red_vial_cmpc_en_vista (SQL 73 + 74). La red CMPC es ~10 veces más
+ * densa que la del MOP (150 mil tramos), así que NO se baja la comuna entera:
+ * se piden solo los tramos de lo que se ve en pantalla (+30 % de margen) que
+ * están DENTRO de la comuna/área activa (sin margen, recortados en el límite;
+ * SQL 77), y se vuelve a pedir al salir de esa caja. Bajo zoom 11 no se dibuja.
+ * Se dibuja DEBAJO de la Red Vial Chile y el imán prioriza la chilena.
+ * Categorías por N_ID_TIPO_CARPETA: Pavimento (2 y 5) rojo, Ripio (3) rojo
+ * suave, Tierra (1 y sin dato) rojo segmentado. Sin etiquetas. */
+const redVialCmpcLayer = L.layerGroup();
+state.redVialCmpcOn = false;
+state.redVialCmpcCatOculta = { pavimento: false, ripio: false, tierra: false };
+state.redVialCmpcInfo = { ok: true, count: 0, cargado: false };
+let redVialCmpcTramos_ = [];      // [{cat, linea, partes, bounds}]
+let redVialCmpcCaja_ = null;      // { clave, bounds, truncado } de lo último cargado
+let redVialCmpcRenderer_ = null;
+let redVialCmpcPedido_ = 0;
+const RED_VIAL_CMPC_MIN_Z = 11;       // antes 10: a ese zoom la pantalla pedía >20 mil tramos
+const RED_VIAL_CMPC_LIMITE = 15000;
+/** Simplificación (m) que se pide a la BD según el zoom: de lejos no se ve el detalle (SQL 75). */
+function simplificacionCmpc_(z) { return z < 12 ? 15 : z < 13 ? 6 : z < 14 ? 2 : 0; }
+const RED_VIAL_CMPC_CATEGORIAS = {
+  // Más delgadas que la Red Vial Chile (pedido 06-10-2026): es una capa de apoyo.
+  pavimento: { color: '#D32F2F', w: 2.0, nombre: 'Pavimento', codigos: '2 y 5' },
+  ripio:     { color: '#F28B82', w: 1.6, nombre: 'Ripio', codigos: '3' },
+  tierra:    { color: '#C62828', w: 1.2, nombre: 'Tierra', codigos: '1', dash: '4,4' },
+};
+
+function puedeVerRedVialCmpc_() {
+  const p = state.perfil && state.perfil.perfil;
+  return p === 'Administrador' || esJefeAreaPerfil_(p);
+}
+
+/** ¿Se está dibujando o editando? Entonces el clic en un camino es un vértice, no una ficha. */
+function dibujandoEnMapa_() {
+  return !!(state.editandoForma || state.modoRegla ||
+    ((state.editorMode || state.modoPlanificacion) && (state.dibujoModo === 'linea' || state.dibujoModo === 'area')));
+}
+
+function estiloRedVialCmpc_(cat, z) {
+  const c = RED_VIAL_CMPC_CATEGORIAS[cat];
+  const f = Math.max(0.7, Math.min(1.7, Math.pow(2, (z - 13) * 0.3)));
+  return { color: c.color, weight: c.w * f, opacity: 0.95, dashArray: c.dash || null,
+           lineCap: c.dash ? 'butt' : 'round', lineJoin: 'round' };
+}
+
+function refrescarPanelCapasSiVisible_() {
+  const activo = document.querySelector('.rail-btn.active');
+  if (activo && activo.dataset.tab === 'capas') renderTab('capas');
+}
+
+function textoDetalleRedVialCmpc_() {
+  const inf = state.redVialCmpcInfo || { ok: true, count: 0 };
+  if (!state.redVialCmpcOn) return state.areaActiva ? 'Solo el área' : 'Solo la comuna';
+  if (!inf.cargado) return 'Cargando…';
+  if (!inf.ok) return 'Error';
+  if (inf.lejos) return 'Acércate (zoom ≥ ' + RED_VIAL_CMPC_MIN_Z + ')';
+  return inf.count.toLocaleString('es-CL') + ' en pantalla' + (inf.truncado ? ' (máx.)' : '');
+}
+
+/** Al moverse el mapa solo cambian los contadores: se actualizan en sitio, sin
+ *  redibujar el panel (que perdería su posición de scroll). */
+function actualizarFilaRedVialCmpc_() {
+  const det = document.getElementById('rv-cmpc-detalle');
+  if (!det) return;
+  if (state.redVialCmpcInfo && state.redVialCmpcInfo.ok === false) { refrescarPanelCapasSiVisible_(); return; }
+  det.textContent = textoDetalleRedVialCmpc_();
+  document.querySelectorAll('[data-cmpc-n]').forEach(el => {
+    el.textContent = redVialCmpcTramos_.filter(t => t.cat === el.dataset.cmpcN).length.toLocaleString('es-CL');
+  });
+}
+
+function limpiarRedVialCmpc_() {
+  redVialCmpcLayer.clearLayers();
+  redVialCmpcTramos_ = [];
+  redVialCmpcCaja_ = null;
+}
+
+/** Pide los tramos CMPC de la vista actual. forzar = ignorar lo ya cargado. */
+async function loadRedVialCmpc_(forzar) {
+  if (!state.redVialCmpcOn || !puedeVerRedVialCmpc_()) return;
+  const k = claveRedVial_();
+  if (!k) { limpiarRedVialCmpc_(); state.redVialCmpcInfo = { ok: true, count: 0, cargado: true }; actualizarFilaRedVialCmpc_(); return; }
+  if (map.getZoom() < RED_VIAL_CMPC_MIN_Z) {
+    limpiarRedVialCmpc_();
+    state.redVialCmpcInfo = { ok: true, count: 0, cargado: true, lejos: true };
+    actualizarFilaRedVialCmpc_();
+    return;
+  }
+  const clave = k.ambito + ':' + k.clave;
+  const vista = map.getBounds();
+  const simplificar = simplificacionCmpc_(map.getZoom());
+  // Con la Red Vial Chile encendida se piden los tramos CMPC SIN las partes que
+  // van sobre una ruta MOP (SQL 78): no se dibuja dos veces el mismo camino.
+  const sinTraslape = !!state.redVialOn;
+  if (!forzar && redVialCmpcCaja_ && redVialCmpcCaja_.clave === clave && redVialCmpcCaja_.simplificar === simplificar &&
+      redVialCmpcCaja_.sinTraslape === sinTraslape &&
+      !redVialCmpcCaja_.truncado && redVialCmpcCaja_.bounds.contains(vista)) return;
+
+  const caja = vista.pad(0.3);
+  const pedido = ++redVialCmpcPedido_;
+  state.redVialCmpcInfo = Object.assign({}, state.redVialCmpcInfo, { cargado: false, lejos: false });
+  actualizarFilaRedVialCmpc_();
+  // Versión JSON (SQL 76): una sola respuesta con todos los tramos. La versión
+  // en tabla quedaba cortada en 1.000 filas por el máximo de la API de Supabase.
+  const { data, error } = await supabaseClient.rpc('red_vial_cmpc_en_vista_json', {
+    p_ambito: k.ambito, p_clave: k.clave,
+    p_oeste: caja.getWest(), p_sur: caja.getSouth(), p_este: caja.getEast(), p_norte: caja.getNorth(),
+    p_limite: RED_VIAL_CMPC_LIMITE, p_simplificar_m: simplificar, p_sin_traslape: sinTraslape,
+  });
+  if (pedido !== redVialCmpcPedido_ || !state.redVialCmpcOn) return; // llegó una respuesta más nueva o se apagó
+  if (error) {
+    console.error('red_vial_cmpc_en_vista:', error);
+    state.redVialCmpcInfo = { ok: false, count: 0, cargado: true,
+      error: 'Red Vial CMPC: ' + (error.message || error.code || 'error desconocido') + (error.hint ? ' · ' + error.hint : '') };
+    actualizarFilaRedVialCmpc_();
+    return;
+  }
+
+  if (!redVialCmpcRenderer_) {
+    // 378: DEBAJO de la Red Vial Chile (borde 380 / relleno 381) y sobre los límites (350).
+    if (!map.getPane('redVialCmpc')) map.createPane('redVialCmpc').style.zIndex = 378;
+    redVialCmpcRenderer_ = L.canvas({ pane: 'redVialCmpc', padding: 0.3 });
+  }
+  redVialCmpcLayer.clearLayers();
+  redVialCmpcTramos_ = [];
+  const z = map.getZoom();
+  (data || []).forEach(r => {
+    const g = typeof r.geometry === 'string' ? JSON.parse(r.geometry) : r.geometry;
+    if (!g || !g.coordinates) return;
+    const partes = (g.type === 'LineString' ? [g.coordinates] : g.type === 'MultiLineString' ? g.coordinates : [])
+      .map(p => p.map(c => L.latLng(c[1], c[0]))).filter(p => p.length >= 2);
+    if (!partes.length) return;
+    const cat = RED_VIAL_CMPC_CATEGORIAS[r.categoria] ? r.categoria : 'tierra';
+    const linea = L.polyline(partes, Object.assign({ renderer: redVialCmpcRenderer_ }, estiloRedVialCmpc_(cat, z)));
+    const ficha =
+      '<div class="popup-title">🌲 Camino CMPC' + (r.c_codigo ? ' · ' + escapeHtml_(r.c_codigo) : '') + '</div>' +
+      (r.c_nombre ? '<div class="popup-row">' + escapeHtml_(r.c_nombre) + '</div>' : '') +
+      (r.c_nom_tramo ? '<div class="popup-row">Tramo: ' + escapeHtml_(r.c_nom_tramo) + '</div>' : '') +
+      '<div class="popup-row">🧱 ' + RED_VIAL_CMPC_CATEGORIAS[cat].nombre + ' (carpeta ' + (r.n_id_tipo_carpeta != null ? r.n_id_tipo_carpeta : '—') + ')</div>' +
+      (r.largo_km != null ? '<div class="popup-row">📏 ' + Number(r.largo_km).toLocaleString('es-CL', { maximumFractionDigits: 2 }) + ' km</div>' : '') +
+      (r.n_cod_fundo ? '<div class="popup-row">🌳 Fundo ' + r.n_cod_fundo + '</div>' : '') +
+      '<div class="popup-row" style="opacity:.6;font-size:10.5px;">Red Vial CMPC</div>';
+    linea.on('click', (ev) => {
+      if (dibujandoEnMapa_()) return;
+      L.popup().setLatLng(ev.latlng).setContent(ficha).openOn(map);
+    });
+    redVialCmpcTramos_.push({ cat, linea, partes, bounds: linea.getBounds() });
+    if (!state.redVialCmpcCatOculta[cat]) redVialCmpcLayer.addLayer(linea);
+  });
+  const truncado = (data || []).length >= RED_VIAL_CMPC_LIMITE;
+  redVialCmpcCaja_ = { clave, bounds: caja, truncado, simplificar, sinTraslape };
+  state.redVialCmpcInfo = { ok: true, count: redVialCmpcTramos_.length, cargado: true, truncado };
+  if (!map.hasLayer(redVialCmpcLayer)) redVialCmpcLayer.addTo(map);
+  actualizarFilaRedVialCmpc_();
+}
+
+function aplicarZoomRedVialCmpc_() {
+  const z = map.getZoom();
+  redVialCmpcTramos_.forEach(t => t.linea.setStyle(estiloRedVialCmpc_(t.cat, z)));
+}
+
+let redVialCmpcEspera_ = null;
+map.on('moveend', () => {
+  if (!state.redVialCmpcOn) return;
+  aplicarZoomRedVialCmpc_();
+  clearTimeout(redVialCmpcEspera_);
+  redVialCmpcEspera_ = setTimeout(() => loadRedVialCmpc_(), 250);
+});
+
+async function toggleRedVialCmpc_() {
+  if (!puedeVerRedVialCmpc_()) return;
+  state.redVialCmpcOn = !state.redVialCmpcOn;
+  if (state.redVialCmpcOn) {
+    redVialCmpcLayer.addTo(map);
+    state.redVialCmpcInfo = { ok: true, count: 0, cargado: false };
+    refrescarPanelCapasSiVisible_();
+    await loadRedVialCmpc_(true);
+  } else {
+    redVialCmpcPedido_++;           // descarta una respuesta en curso
+    map.removeLayer(redVialCmpcLayer);
+    limpiarRedVialCmpc_();
+    refrescarPanelCapasSiVisible_();
+  }
+  actualizarBotonesModoDibujo_();
+}
+
+function toggleCategoriaRedVialCmpc_(cat) {
+  state.redVialCmpcCatOculta[cat] = !state.redVialCmpcCatOculta[cat];
+  redVialCmpcTramos_.forEach(t => {
+    if (t.cat !== cat) return;
+    if (state.redVialCmpcCatOculta[cat]) redVialCmpcLayer.removeLayer(t.linea);
+    else redVialCmpcLayer.addLayer(t.linea);
+  });
+  refrescarPanelCapasSiVisible_();
+}
+
+/* ============ IMÁN A LA RED VIAL (al crear líneas) ============
+ * Con la Red Vial encendida y el imán activo (🧲 en la barra de dibujo):
+ *   · un clic a menos de IMAN_PX píxeles de un camino visible pone el vértice
+ *     EXACTAMENTE sobre el camino;
+ *   · si el clic anterior también quedó pegado al MISMO tramo, se agregan los
+ *     vértices del camino entre ambos: la línea sigue la curva de la ruta;
+ *   · en trazo libre, cada muestra se pega al camino más cercano;
+ *   · Shift apretado = sin imán (para cortar camino a propósito).
+ * Solo se imantan los caminos que se ven al zoom actual. */
+const IMAN_PX = 30;   // radio de atracción en píxeles de pantalla (antes 14)
+state.imanRedVial = true;
+let ultimoSnapIman_ = null;   // { tramo, pi, si, u, punto } del último vértice puesto por clic
+let marcadorIman_ = null;
+
+/** Caminos imantables: Red Vial MOP y/o CMPC, solo lo encendido y visible al zoom actual. */
+/** Caminos imantables por prioridad: [Red Vial Chile (MOP), Red Vial CMPC]. */
+function tramosImantables_() {
+  const z = map.getZoom(), mop = [], cmpc = [];
+  if (state.redVialOn) redVialTramos_.forEach(t => { if (z >= RED_VIAL_CATEGORIAS[t.cat].minZ) mop.push(t); });
+  if (state.redVialCmpcOn) redVialCmpcTramos_.forEach(t => { if (!state.redVialCmpcCatOculta[t.cat]) cmpc.push(t); });
+  return [mop, cmpc];
+}
+
+function imanActivo_() {
+  return !!state.imanRedVial &&
+    ((state.redVialOn && redVialTramos_.length > 0) || (state.redVialCmpcOn && redVialCmpcTramos_.length > 0)) &&
+    state.dibujoModo === 'linea' && !!(state.editorMode || state.modoPlanificacion) && !state.editandoForma;
+}
+
+/** Punto del camino visible más cercano a latlng (dentro de IMAN_PX), o null.
+ *  Prioridad: si hay un camino de la Red Vial Chile al alcance, gana aunque un
+ *  camino CMPC esté más cerca; la CMPC solo imanta donde no hay ruta chilena. */
+function snapRedVial_(latlng) {
+  const p = map.latLngToLayerPoint(latlng);
+  const esq = map.layerPointToLatLng(p.add([IMAN_PX, IMAN_PX]));
+  const dLat = Math.abs(esq.lat - latlng.lat), dLng = Math.abs(esq.lng - latlng.lng);
+  const zona = L.latLngBounds([latlng.lat - dLat, latlng.lng - dLng], [latlng.lat + dLat, latlng.lng + dLng]);
+  for (const lista of tramosImantables_()) {
+    const s = snapEnTramos_(lista, p, zona);
+    if (s) return s;
+  }
+  return null;
+}
+
+function snapEnTramos_(lista, p, zona) {
+  let mejor = null, mejorD = IMAN_PX;
+  lista.forEach((t) => {
+    if (!t.bounds.intersects(zona)) return;
+    t.partes.forEach((parte, pi) => {
+      let a = map.latLngToLayerPoint(parte[0]);
+      for (let si = 0; si < parte.length - 1; si++) {
+        const b = map.latLngToLayerPoint(parte[si + 1]);
+        const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy;
+        let u = l2 ? ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2 : 0;
+        u = Math.max(0, Math.min(1, u));
+        const d = Math.hypot(p.x - (a.x + u * dx), p.y - (a.y + u * dy));
+        if (d < mejorD) {
+          mejorD = d;
+          const A = parte[si], B = parte[si + 1];
+          mejor = { tramo: t, pi, si, u, punto: L.latLng(A.lat + (B.lat - A.lat) * u, A.lng + (B.lng - A.lng) * u) };
+        }
+        a = b;
+      }
+    });
+  });
+  return mejor;
+}
+
+/** Vértices del camino entre dos puntos imantados al MISMO tramo (sin los extremos). */
+function caminoEntreSnaps_(s1, s2) {
+  if (!s1 || !s2 || s1.tramo !== s2.tramo || s1.pi !== s2.pi) return [];
+  const parte = s1.tramo.partes[s1.pi], out = [];
+  if (s1.si + s1.u <= s2.si + s2.u) { for (let k = s1.si + 1; k <= s2.si; k++) out.push(parte[k]); }
+  else { for (let k = s1.si; k > s2.si; k--) out.push(parte[k]); }
+  // Sin duplicados con los extremos (cuando el clic cae justo sobre un vértice del camino)
+  return out.filter(v => v.distanceTo(s1.punto) > 0.5 && v.distanceTo(s2.punto) > 0.5)
+            .map(v => L.latLng(v.lat, v.lng));
+}
+
+/** Para el clic en modo línea: devuelve los vértices a agregar (camino + punto) o null si no imanta. */
+function verticesConIman_(latlng, ev) {
+  if (!imanActivo_() || (ev && ev.shiftKey)) { ultimoSnapIman_ = null; return null; }
+  const s = snapRedVial_(latlng);
+  if (!s) { ultimoSnapIman_ = null; return null; }
+  const previo = tempDibujoVertices[tempDibujoVertices.length - 1];
+  const sigue = ultimoSnapIman_ && previo && previo.distanceTo(ultimoSnapIman_.punto) < 0.01;
+  const camino = sigue ? caminoEntreSnaps_(ultimoSnapIman_, s) : [];
+  ultimoSnapIman_ = s;
+  return camino.concat([s.punto]);
+}
+
+/** Marcador que anticipa dónde quedará el vértice (anillo naranjo sobre el camino). */
+function mostrarIndicadorIman_(e) {
+  const s = (imanActivo_() && !(e.originalEvent && e.originalEvent.shiftKey)) ? snapRedVial_(e.latlng) : null;
+  if (!s) { if (marcadorIman_) { map.removeLayer(marcadorIman_); marcadorIman_ = null; } return; }
+  if (!marcadorIman_) {
+    marcadorIman_ = L.circleMarker(s.punto, {
+      radius: 7, color: '#EA580C', weight: 2.5, fillColor: '#fff', fillOpacity: 0.9,
+      interactive: false, pane: 'markerPane',
+    }).addTo(map);
+  } else marcadorIman_.setLatLng(s.punto);
+}
+let imanRaf_ = null;
+map.on('mousemove', (e) => {
+  if (imanRaf_) return;
+  imanRaf_ = requestAnimationFrame(() => { imanRaf_ = null; mostrarIndicadorIman_(e); });
+});
+map.on('mouseout', () => { if (marcadorIman_) { map.removeLayer(marcadorIman_); marcadorIman_ = null; } });
+
+async function toggleImanRedVial_() {
+  if (!state.redVialOn && !state.redVialCmpcOn) {
+    state.imanRedVial = true;
+    await toggleRedVial_();   // el imán necesita la Red Vial cargada
+    mostrarToast_('🧲 Imán activo: se encendió la Red Vial. Los clics cerca de un camino se pegan a él (Shift = sin imán).');
+  } else {
+    state.imanRedVial = !state.imanRedVial;
+    mostrarToast_(state.imanRedVial
+      ? '🧲 Imán activo: los vértices se pegan a la Red Vial y siguen su curva (Shift = sin imán).'
+      : 'Imán desactivado.');
+  }
+  if (!state.imanRedVial && marcadorIman_) { map.removeLayer(marcadorIman_); marcadorIman_ = null; }
+  actualizarBotonesModoDibujo_();
+}
+
+/* ============ ESCALA DINÁMICA + ZOOM DEL VISOR ============
+ * Abajo al centro del mapa: barra de escala (Leaflet), nivel de zoom y escala
+ * numérica aproximada (1:N a 96 dpi). Con la Red Vial encendida suma el control
+ * "Rol desde zoom": Auto (por jerarquía, como Google) o un zoom fijo desde el que
+ * se muestran TODAS las etiquetas rol_label. La preferencia se recuerda en este
+ * navegador. */
+state.redVialEtiquetaZoom = (() => {
+  try { const v = localStorage.getItem('sig_rv_etiqueta_zoom_v2'); return v ? Number(v) : null; } catch (e) { return null; }
+})();
+
+function escalaNumerica_() {
+  const c = map.getCenter();
+  const mPorPx = 40075016.686 * Math.cos(c.lat * Math.PI / 180) / Math.pow(2, map.getZoom() + 8);
+  const n = mPorPx / 0.0002645833; // 1 px = 0,2646 mm a 96 dpi
+  const r = n > 10000 ? Math.round(n / 1000) * 1000 : n > 1000 ? Math.round(n / 100) * 100 : Math.round(n);
+  return '1:' + r.toLocaleString('es-CL');
+}
+
+function actualizarEscalaZoom_() {
+  const caja = document.getElementById('escala-zoom');
+  if (!caja) return;
+  const z = map.getZoom();
+  caja.querySelector('.ez-zoom').textContent = 'Zoom ' + (Math.round(z * 100) / 100).toLocaleString('es-CL');
+  caja.querySelector('.ez-ratio').textContent = escalaNumerica_();
+
+  const rv = caja.querySelector('.ez-rv');
+  const mostrar = state.redVialOn ? '' : 'none';
+  if (rv.style.display !== mostrar) {
+    rv.style.display = mostrar;
+    setTimeout(alinearResumenConSimbologia_, 0); // cambió el alto: reapilar la columna derecha
+  }
+  if (!state.redVialOn) return;
+  const fijo = state.redVialEtiquetaZoom;
+  const sel = rv.querySelector('select');
+  if (sel.value !== (fijo == null ? 'auto' : String(fijo))) sel.value = fijo == null ? 'auto' : String(fijo);
+  // Estado: ¿se ven etiquetas a este zoom?
+  const estado = rv.querySelector('.ez-estado');
+  let visible;
+  if (!state.mostrarEtiquetasRedVial) visible = 'apagadas';
+  else if (fijo != null) visible = z >= fijo ? 'visibles' : 'desde ' + fijo;
+  else {
+    const minimo = Math.min(...Object.values(RED_VIAL_CATEGORIAS).map(c => c.labelZ));
+    visible = z >= RED_VIAL_CATEGORIAS.tierra.labelZ ? 'todas' : z >= minimo ? 'principales' : 'desde ' + minimo;
+  }
+  estado.textContent = visible;
+  estado.className = 'ez-estado' + (/^(visibles|todas|principales)$/.test(visible) ? ' on' : '');
+}
+
+(function crearEscalaZoom_() {
+  const caja = document.createElement('div');
+  caja.id = 'escala-zoom';
+  const opciones = ['<option value="auto">Auto</option>']
+    .concat([8, 9, 10, 11, 12, 13, 14, 15, 16, 17].map(z => '<option value="' + z + '">' + z + '</option>')).join('');
+  caja.innerHTML =
+    '<div class="ez-fila"><div class="ez-barra"></div><span class="ez-zoom">Zoom</span></div>' +
+    '<span class="ez-ratio"></span>' +
+    '<span class="ez-rv" style="display:none;">' +
+      '<label title="Zoom desde el que se muestra el rol de los caminos (rol_label). Auto: por jerarquía, como Google.">🏷️ Rol desde ' +
+      '<select>' + opciones + '</select></label><span class="ez-estado"></span></span>';
+  map.getContainer().appendChild(caja);
+  L.DomEvent.disableClickPropagation(caja);
+  L.DomEvent.disableScrollPropagation(caja);
+  // La barra de escala es el control nativo de Leaflet, movido dentro del indicador.
+  const escala = L.control.scale({ metric: true, imperial: false, maxWidth: 80, position: 'bottomleft' }).addTo(map);
+  caja.querySelector('.ez-barra').appendChild(escala.getContainer());
+  caja.querySelector('select').addEventListener('change', (e) => {
+    state.redVialEtiquetaZoom = e.target.value === 'auto' ? null : Number(e.target.value);
+    try {
+      if (state.redVialEtiquetaZoom == null) localStorage.removeItem('sig_rv_etiqueta_zoom_v2');
+      else localStorage.setItem('sig_rv_etiqueta_zoom_v2', String(state.redVialEtiquetaZoom));
+    } catch (err) {}
+    declutterEtiquetasRedVial_();
+    actualizarEscalaZoom_();
+  });
+  map.on('zoomend moveend', actualizarEscalaZoom_);
+  // La simbología cambia de alto/ancho (instituciones, S/M/L, colapso, mostrar/ocultar):
+  // la columna derecha se reapila sola.
+  const simb = document.getElementById('simbologia-flotante');
+  if (simb && window.ResizeObserver) new ResizeObserver(() => alinearResumenConSimbologia_()).observe(simb);
+  actualizarEscalaZoom_();
+  setTimeout(alinearResumenConSimbologia_, 0);
+})();
 
 async function loadAreaLayers_() {
   const rolCalifica = state.perfil.perfil === 'Administrador' || state.perfil.perfil === 'Jefe de Área Relacionamiento';
@@ -7086,6 +8383,7 @@ async function loadAreaLayers_() {
 
   if (res.areaRelacionamiento && res.areaRelacionamiento.ok) {
     const feats = res.areaRelacionamiento.data.features || [];
+    state.areaRelGeojson = res.areaRelacionamiento.data; // lo reutiliza el Planificador
     state.areaRelacionamientoInfo = { ok: true, count: feats.length };
     // Índice para el árbol: { area: { sector: [capas] } }
     window.arbolAreaRel = {};
@@ -7537,17 +8835,28 @@ function contarRecursosPorAlerta_() {
 function alinearResumenConSimbologia_() {
   const resumen = document.getElementById('resumen-alertas');
   const simb = document.getElementById('simbologia-flotante');
+  const escala = document.getElementById('escala-zoom');
+
+  // Columna derecha, de abajo hacia arriba: escala → simbología → nivel de copamiento.
+  // La base sale del CSS de la escala (16 px en escritorio, más alto en móvil).
+  const base = escala ? (parseFloat(getComputedStyle(escala).bottom) || 16) : 16;
+  const simbVisible = !!(simb && simb.style.display !== 'none' && simb.offsetParent);
+  // Primero el ancho (puede hacer que la escala pase a 2 filas) y después se mide el alto.
+  if (escala) escala.style.width = simbVisible ? (simb.offsetWidth || 240) + 'px' : '';
+  const hEscala = (escala && escala.offsetParent) ? escala.offsetHeight + 6 : 0;
+
+  if (simb) simb.style.bottom = (base + hEscala) + 'px';
   if (!resumen) return;
 
-  if (!simb || simb.style.display === 'none' || !simb.offsetParent) {
-    resumen.style.bottom = '16px';
+  if (!simbVisible) {
+    resumen.style.bottom = (base + hEscala) + 'px';
     resumen.style.width = '240px';
     return;
   }
 
   const alto = simb.offsetHeight || 0;
   const ancho = simb.offsetWidth || 240;
-  resumen.style.bottom = (16 + alto + 8) + 'px';
+  resumen.style.bottom = (base + hEscala + alto + 8) + 'px';
   resumen.style.width = ancho + 'px';
 }
 
@@ -7960,6 +9269,8 @@ async function toggleAmeba_(nivel) {
  * Repintar con renderTab reconstruye el árbol completo, pierde el scroll y
  * cierra los nodos desplegados; para un interruptor eso es desproporcionado. */
 function pintarEstadoAmeba_(nivel, activo, cargando) {
+  // El cuadro "Copamiento sobre incendios" destaca la columna de la ameba encendida.
+  if (state.kpiIncendiosVisible && !state.kpiIncendiosCargando) renderKpiIncendios_();
   const chk = document.querySelector('[data-ameba="' + nivel + '"]');
   if (!chk) return;
   chk.classList.toggle('on', !!activo);
@@ -8063,6 +9374,7 @@ function renderKpiIncendios_() {
 
   if (!state.kpiIncendiosVisible) { cont.style.display = 'none'; cont.innerHTML = ''; return; }
   cont.style.display = '';
+  cont.style.borderTop = 'none';   // ahora va solo (los conteos se ocultan en modo Incendios)
 
   if (state.kpiIncendiosCargando) {
     cont.innerHTML = '<div style="padding:7px 0;font-size:10px;opacity:.7;">Calculando copamiento sobre incendios…</div>';
@@ -8093,14 +9405,21 @@ function renderKpiIncendios_() {
     return 'rgba(239,68,68,0.26)';
   };
 
-  let html = '<div style="font-size:9.5px;opacity:.6;margin:7px 0 5px;">Copamiento sobre incendios</div>';
+  let html = '<div style="font-size:10px;font-weight:600;opacity:.75;margin:2px 0 5px;">🔥 Copamiento sobre incendios</div>';
 
-  // Cabecera con las tres ventanas históricas.
-  html += '<div style="display:flex;align-items:center;gap:4px;font-size:9px;opacity:.6;margin-bottom:3px;">' +
-    '<span style="width:52px;flex-shrink:0;"></span>' +
-    NIVELES_AMEBA.map(cfg =>
-      '<span style="flex:1;text-align:center;">' + cfg.temporadas + ' temp.</span>').join('') +
+  // Cabecera con las tres ventanas históricas; la ameba encendida en el mapa, destacada.
+  html += '<div style="display:flex;align-items:center;gap:4px;font-size:9px;margin-bottom:3px;">' +
+    '<span style="width:58px;flex-shrink:0;"></span>' +
+    NIVELES_AMEBA.map(cfg => {
+      const on = state.amebaVisible && state.amebaVisible[cfg.id];
+      return '<span style="flex:1;text-align:center;' + (on ? 'opacity:1;font-weight:800;color:#FDBA74;' : 'opacity:.6;') + '">' +
+        cfg.temporadas + ' temp.</span>';
+    }).join('') +
     '</div>';
+
+  // Escenario encendido en el mapa = fila destacada con efecto onda (como en los conteos).
+  const claveEsc = { Verde: 'verde', Amarilla: 'amarilla', Roja: 'roja' };
+  const escActivo = (esc) => !!(state.alertaLayersOn && state.alertaLayersOn[claveEsc[esc]]);
 
   html += escenarios.map(e => {
     const celdas = NIVELES_AMEBA.map(cfg => {
@@ -8115,9 +9434,11 @@ function renderKpiIncendios_() {
         (v != null ? v.toFixed(0) + '%' : '—') + '</span>';
     }).join('');
 
-    return '<div style="display:flex;align-items:center;gap:4px;margin-top:3px;">' +
-      '<span style="width:52px;flex-shrink:0;font-size:10px;display:flex;align-items:center;gap:5px;color:' + e.color + ';">' +
-        '<span class="res-punto"></span><span style="color:#fff;opacity:.85;">' + etiquetaEscenario_(e.esc) + '</span></span>' +
+    const activa = escActivo(e.esc);
+    return '<div class="kpi-inc-fila' + (activa ? ' activa' : '') + '" style="--fila-color:' + e.color + ';display:flex;align-items:center;gap:4px;">' +
+      '<span style="width:58px;flex-shrink:0;font-size:10px;display:flex;align-items:center;gap:6px;color:' + e.color + ';">' +
+        '<span class="' + (activa ? 'res-radar' : 'res-punto') + '"></span>' +
+        '<span class="kpi-inc-nombre" style="color:#fff;opacity:.85;">' + etiquetaEscenario_(e.esc) + '</span></span>' +
       celdas +
     '</div>';
   }).join('');
@@ -8133,8 +9454,12 @@ async function toggleKpiIncendios_() {
   const btn = document.getElementById('btn-kpi-incendios');
   if (btn) btn.classList.toggle('active', state.kpiIncendiosVisible);
 
+  // Cambia qué muestra el cuadro (conteos ↔ solo incendios): se re-renderiza entero.
+  renderResumenAlertas_();
   if (state.kpiIncendiosVisible) await cargarKpiIncendios_();
   else renderKpiIncendios_();
+  renderResumenAlertas_();
+  setTimeout(alinearResumenConSimbologia_, 0);
 }
 
 /* ============ NOMBRE VISIBLE DE LOS ESCENARIOS ============
@@ -8400,64 +9725,53 @@ function renderResumenAlertas_() {
     { esc: 'Roja',     clave: 'roja',     color: '#EF4444' },
   ];
 
-  // El porcentaje se mide contra Roja, que es el nivel de copamiento máximo.
-  const base = conteo.Roja.total;
-  const pct = (n) => base > 0 ? Math.round((n / base) * 100) + '%' : '—';
-
+  // 06-10-2026: se quitaron los conteos de entidades y su "% respecto a Roja"
+  // (confundían y no aportaban). El cuadro muestra solo los botones de cálculo;
+  // los datos aparecen al activar 🎯 Influencia o 🔥 Incendios.
   const activo = (clave) => !!(state.alertaLayersOn && state.alertaLayersOn[clave]);
-  const maximo = Math.max(1, conteo.Verde.total, conteo.Amarilla.total, conteo.Roja.total);
+  const botones = panel.querySelector('.ra-botones');
 
   setTimeout(alinearResumenConSimbologia_, 0);
 
   if (state.resumenAlertasColapsado) {
     const kpiCont = document.getElementById('kpi-incendios-cuerpo');
     if (kpiCont) kpiCont.style.display = 'none';
-    cuerpo.innerHTML = '<div style="display:flex;gap:13px;padding-top:1px;">' +
-      filas.map(f => '<span style="display:inline-flex;align-items:center;gap:5px;color:' + f.color + ';">' +
-        '<span class="' + (activo(f.clave) ? 'res-radar' : 'res-punto') + '"></span>' +
-        '<b style="color:#fff;">' + conteo[f.esc].total + '</b></span>').join('') +
-      '</div>';
+    if (botones) botones.style.display = 'none';
+    cuerpo.innerHTML = '';
+    cuerpo.style.display = 'none';
     return;
   }
+  if (botones) botones.style.display = '';
 
-  // Con la influencia activa el indicador pasa a medir territorio copado
-  // en lugar de número de recursos: es el dato que importa en reunión.
-  const modoInfluencia = !!state.influenciaVisible;
-  const maxPct = Math.max(1, ...filas.map(f => {
-    const d = state.copamiento[f.esc];
-    return (d && d.pct != null) ? Number(d.pct) : 0;
-  }));
-
-  cuerpo.innerHTML = filas.map(f => {
-    const c = conteo[f.esc];
-    const cop = state.copamiento[f.esc];
-    const tienePct = modoInfluencia && cop && cop.pct != null;
-
-    const ancho = tienePct
-      ? Math.round((Number(cop.pct) / maxPct) * 100)
-      : Math.round((c.total / maximo) * 100);
-
-    const derecha = tienePct
-      ? Number(cop.pct).toFixed(1) + '%'
-      : pct(c.total);
-
-    const titulo = tienePct
-      ? 'Territorio copado: ' + Number(cop.pct).toFixed(1) + '% de la comuna (' + cop.area_km2 + ' km²)'
-      : '';
-
-    return '<div title="' + titulo + '" style="display:flex;align-items:center;gap:7px;margin-top:6px;white-space:nowrap;color:' + f.color + ';">' +
-      '<span class="' + (activo(f.clave) ? 'res-radar' : 'res-punto') + '"></span>' +
-      '<span style="width:52px;flex-shrink:0;font-size:10.5px;color:#fff;opacity:.85;">' + etiquetaEscenario_(f.esc) + '</span>' +
-      '<span style="flex:1;min-width:34px;height:8px;border-radius:4px;background:rgba(255,255,255,0.14);overflow:hidden;">' +
-        '<span style="display:block;height:100%;width:' + ancho + '%;background:' + f.color + ';border-radius:4px;"></span>' +
-      '</span>' +
-      '<span style="width:28px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;color:#fff;">' + c.total + '</span>' +
-      '<span style="width:42px;text-align:right;font-size:10px;opacity:.75;color:#fff;font-variant-numeric:tabular-nums;">' + derecha + '</span>' +
-    '</div>';
-  }).join('') +
-  '<div style="margin-top:6px;font-size:9.5px;opacity:.5;color:#fff;">' +
-    (modoInfluencia ? '% de la comuna copada · influencia 500 m' : '% respecto a Roja') +
-  '</div>';
+  // Con 🔥 Incendios activo se muestra SOLO el copamiento sobre incendios
+  // (los conteos de arriba se ocultan para no mezclar números).
+  if (state.kpiIncendiosVisible) {
+    cuerpo.innerHTML = '';
+    cuerpo.style.display = 'none';
+    renderKpiIncendios_();
+    return;
+  }
+  // 🎯 Influencia: % del territorio comunal copado (áreas de influencia de 500 m).
+  if (state.influenciaVisible) {
+    cuerpo.style.display = '';
+    cuerpo.innerHTML = '<div style="font-size:10px;font-weight:600;opacity:.75;margin:2px 0 2px;">🎯 Territorio comunal copado</div>' +
+      filas.map(f => {
+        const cop = state.copamiento[f.esc];
+        const tiene = cop && cop.pct != null;
+        const titulo = tiene ? 'Territorio copado: ' + Number(cop.pct).toFixed(1) + '% de la comuna (' + cop.area_km2 + ' km²)' : '';
+        return '<div title="' + titulo + '" style="display:flex;align-items:center;gap:7px;margin-top:6px;white-space:nowrap;color:' + f.color + ';">' +
+          '<span class="' + (activo(f.clave) ? 'res-radar' : 'res-punto') + '"></span>' +
+          '<span style="flex:1;min-width:60px;font-size:10.5px;color:#fff;opacity:.85;">' + etiquetaEscenario_(f.esc) + '</span>' +
+          '<span style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;color:#fff;">' +
+            (tiene ? Number(cop.pct).toFixed(1) + '%' : '—') + '</span>' +
+        '</div>';
+      }).join('') +
+      '<div style="margin-top:6px;font-size:9.5px;opacity:.5;color:#fff;">% de la comuna copada · influencia 500 m</div>';
+  } else {
+    // Ningún cálculo activo: solo el título y los botones.
+    cuerpo.innerHTML = '';
+    cuerpo.style.display = 'none';
+  }
 
   renderKpiIncendios_();
 }
@@ -8922,29 +10236,22 @@ async function loadRecursosDisponiblesAreaLayer_() {
   state.recursosDisponiblesInfo = { ok: false, count: 0 };
 
   const perfil = state.perfil.perfil;
-  let query = supabaseClient.from('recursos_disponibles_area_geojson').select('*');
+  let resultado;
 
   if (perfil === 'Administrador') {
     // Administrador: TODOS los recursos (sin filtro)
-    // (query queda sin filtro adicional)
-  } else if (perfil === 'Jefe de Área Relacionamiento') {
-    if (state.areaActiva) {
-      // Modo Área: recursos de su área completa
-      query = query.eq('area', state.areaActiva);
-    } else {
-      // Modo Comuna: solo recursos de la comuna activa
-      const idc = idComunaActiva_();
-      if (!idc) { state.recursosDisponiblesInfo = { ok: true, count: 0 }; return; }
-      query = query.eq('id_comuna', idc);
-    }
+    resultado = await supabaseClient.from('recursos_disponibles_area_geojson').select('*');
+  } else if (perfil === 'Jefe de Área Relacionamiento' && state.areaActiva) {
+    // Modo Área: recursos de su área completa (nombre comparado sin tildes)
+    resultado = await recursosDeAreas_(state.areaActiva);
   } else {
-    // GRD / Visor: solo recursos de la comuna activa
+    // Jefe de Área en modo comuna, GRD y Visor: solo recursos de la comuna activa
     const idc = idComunaActiva_();
     if (!idc) { state.recursosDisponiblesInfo = { ok: true, count: 0 }; return; }
-    query = query.eq('id_comuna', idc);
+    resultado = await supabaseClient.from('recursos_disponibles_area_geojson').select('*').eq('id_comuna', idc);
   }
 
-  const { data, error } = await query;
+  const { data, error } = resultado;
 
   if (error) { state.recursosDisponiblesInfo = { ok: false, count: 0, error: error.message }; return; }
 
@@ -8953,7 +10260,7 @@ async function loadRecursosDisponiblesAreaLayer_() {
     // La etiqueta muestra el TIPO de recurso (VIGÍA INFANTERÍA, CAMIONETA, etc.)
     const etiqueta = escapeHtml_(r.tipo_recurso || r.nombre_recurso || inst.nombre);
     const puedeEditar = puedeGestionarRecursoArea_(r.area);
-    const enEdicionEstaZona = !!(state.modoRecursosArea && state.modoRecursosArea.area === r.area);
+    const enEdicionEstaZona = !!(state.modoRecursosArea && plNorm_(state.modoRecursosArea.area) === plNorm_(r.area));
     const popupHtml =
       '<div class="popup-title">' + escapeHtml_(r.nombre_recurso || inst.nombre) + '</div>' +
       '<div class="popup-row">🏢 ' + inst.nombre + '</div>' +
@@ -9028,10 +10335,10 @@ async function loadRecursosDisponiblesAreaLayer_() {
 
 async function reubicarRecursoArea_(id, marker) {
   const nuevaPos = marker.getLatLng();
-  const { error } = await supabaseClient
-    .from('recursos_disponibles_area')
-    .update({ geom: 'SRID=4326;POINT(' + Number(nuevaPos.lng) + ' ' + Number(nuevaPos.lat) + ')' })
-    .eq('id', id);
+  // Base única = referencia_recursos (SQL 67): se mueve por RPC (recalcula coord. UTM y valida permisos).
+  const { error } = await supabaseClient.rpc('mover_recurso_referencia', {
+    p_recurso_id: id, p_lat: Number(nuevaPos.lat), p_lng: Number(nuevaPos.lng),
+  });
   if (error) {
     mostrarToast_('No se pudo reubicar: ' + error.message);
     loadRecursosDisponiblesAreaLayer_(); // revierte visualmente al recargar la posición real
@@ -9042,8 +10349,27 @@ async function reubicarRecursoArea_(id, marker) {
 
 function puedeGestionarRecursoArea_(area) {
   if (state.perfil.perfil === 'Administrador') return true;
-  if (state.perfil.perfil === 'Jefe de Área Relacionamiento') return (state.misAreasIds || []).includes(area);
+  // perfil_areas viene sin tilde (MULCHEN) y los recursos con tilde (MULCHÉN): comparar normalizado.
+  if (state.perfil.perfil === 'Jefe de Área Relacionamiento') return (state.misAreasIds || []).map(plNorm_).includes(plNorm_(area));
   return false;
+}
+
+/** Recursos de recursos_disponibles_area_geojson de una o varias áreas, comparando
+ *  el nombre SIN tildes: el catálogo y perfil_areas dicen 'MULCHEN' y los recursos
+ *  'MULCHÉN', así que un .eq('area', …) en la API no los encontraba. La vista es
+ *  chica (cientos de filas): se trae paginada y se filtra aquí. */
+async function recursosDeAreas_(areas, orden) {
+  const buscadas = (Array.isArray(areas) ? areas : [areas]).filter(Boolean).map(plNorm_);
+  const filas = [];
+  for (let desde = 0; ; desde += 1000) {
+    let q = supabaseClient.from('recursos_disponibles_area_geojson').select('*');
+    q = orden ? q.order(orden, { ascending: true }).order('id') : q.order('id');
+    const { data, error } = await q.range(desde, desde + 999);
+    if (error) return { data: null, error };
+    filas.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  return { data: filas.filter(r => buscadas.includes(plNorm_(r.area))), error: null };
 }
 
 /* ============ CAPA DE PATRULLAJE (enfoque numérico: id_comuna / id_area) ============
@@ -9247,6 +10573,7 @@ async function confirmarTraspasoRuta_() {
   let creadas = 0;
   const faltan = [];
   const fallos = [];
+  const idsCreados = []; // en orden Normal → Amarilla → Roja: el primero es la raíz
 
   for (const esc of escenarios) {
     const plan = (planes || []).find(p => p.escenario === esc);
@@ -9281,6 +10608,14 @@ async function confirmarTraspasoRuta_() {
     }
 
     creadas++;
+    idsCreados.push(fila.id);
+  }
+
+  // Enlazar las copias entre escenarios (68): así, al editar la forma en uno,
+  // la misma ruta se actualiza en los demás.
+  if (idsCreados.length > 1) {
+    const vin = await supabaseClient.rpc('vincular_ruta_escenarios', { p_ids: idsCreados });
+    if (vin.error) console.error('vincular_ruta_escenarios:', vin.error);
   }
 
   btn.disabled = false;
@@ -9526,8 +10861,8 @@ function bindPopupActionsRecursoArea_(r) {
   });
   document.querySelectorAll('.popup-btn[data-action="eliminar-recurso-area"]').forEach(btn => {
     btn.onclick = async () => {
-      if (!confirm('¿Eliminar este recurso disponible?')) return;
-      const { error } = await supabaseClient.from('recursos_disponibles_area').delete().eq('id', btn.dataset.id);
+      if (!confirm('¿Eliminar este recurso disponible? También se borran sus turnos y rutas asociadas.')) return;
+      const { error } = await supabaseClient.rpc('eliminar_recurso_referencia', { p_recurso_id: btn.dataset.id });
       if (error) { mostrarToast_('Error: ' + error.message); return; }
       map.closePopup();
       mostrarToast_('Eliminado.');
@@ -9667,7 +11002,7 @@ function onGeoData(comunaId, geo) {
 
   // Capas nuevas por comuna (Fundos Arauco, Comité): se cargan aquí para que
   // se refresquen cada vez que cambia la comuna activa.
-  Promise.all([loadFundosAraucoLayer_(), loadComiteLayer_(), loadAreaLayers_()]).then(() => {
+  Promise.all([loadFundosAraucoLayer_(), loadComiteLayer_(), loadAreaLayers_(), loadRedVialLayer_(), loadRedVialCmpc_(true)]).then(() => {
     return loadFundosCmpcPostgis_();
   }).then(() => {
     if (document.querySelector('.rail-btn.active').dataset.tab === 'capas') renderTab('capas');
@@ -9782,11 +11117,11 @@ function iniciarEdicionForma_(tabla, id) {
 }
 
 /* Edición de una ruta unida (MultiLineString) SIN separarla.
- * Se edita un tramo a la vez con el editor de vértices normal: tempDibujoVertices
- * apunta al MISMO arreglo que partes[activa], así redibujarVerticesEdicion_ lo
- * modifica en sitio. Los demás tramos se ven en una capa aparte; clic en uno lo
- * activa. Al mover un vértice de empalme se arrastra también el vértice
- * coincidente de los otros tramos, para que la ruta no se desconecte. */
+ * Todos los tramos se editan a la vez: cada tramo muestra sus vértices y sus
+ * puntos intermedios. Los vértices que coinciden en varios tramos (empalmes) se
+ * dibujan como UN solo marcador (naranjo) que mueve todos los coincidentes, para
+ * que la ruta no se desconecte. tempDibujoVertices guarda la lista aplanada
+ * (la usan la regla de medición y el bloqueo de la herramienta regla). */
 const TEXTO_EDITAR_FORMA_SIMPLE = 'Editando forma — arrastra vértices para mover · arrastra un punto intermedio para AGREGAR · clic derecho para borrar';
 
 function iniciarEdicionFormaMulti_(tabla, id, gj, capa) {
@@ -9798,79 +11133,91 @@ function iniciarEdicionFormaMulti_(tabla, id, gj, capa) {
   if (capa) map.removeLayer(capa);
   if (tempDibujoLayer) { map.removeLayer(tempDibujoLayer); tempDibujoLayer = null; }
   state.dibujoModo = 'linea';
-  tempDibujoLayer = L.polyline([], { color: '#7C3AED', weight: 4, dashArray: '8,6' }).addTo(map);
+  tempDibujoLayer = L.polyline(partes, { color: '#7C3AED', weight: 4, dashArray: '8,6' }).addTo(map);
 
-  state.editandoForma = {
-    tabla, id, tipo: 'linea', capaOriginal: capa,
-    partes, activa: 0, previo: null,
-    otrosLayer: L.layerGroup().addTo(map),
-  };
+  state.editandoForma = { tabla, id, tipo: 'linea', capaOriginal: capa, partes };
+  tempDibujoVertices = partes.reduce((acc, parte) => acc.concat(parte), []);
   map.closePopup();
   document.getElementById('editar-forma-banner').style.display = 'flex';
-  activarTramoEdicion_(0);
-}
-
-function activarTramoEdicion_(k) {
-  const ef = state.editandoForma;
-  if (!ef || !ef.partes || !ef.partes[k]) return;
-  sincronizarEmpalmesEdicion_();
-  ef.activa = k;
-  tempDibujoVertices = ef.partes[k];
-  ef.previo = tempDibujoVertices.map(ll => L.latLng(ll.lat, ll.lng));
-  tempDibujoLayer.setLatLngs(tempDibujoVertices);
-  redibujarOtrosTramosEdicion_();
-  redibujarVerticesEdicion_();
   document.getElementById('editar-forma-texto').textContent =
-    'Editando ruta unida — tramo ' + (k + 1) + ' de ' + ef.partes.length +
-    ' · clic en otro tramo (lila claro) para editarlo · arrastra vértices · arrastra un punto intermedio para AGREGAR · clic derecho para borrar';
+    'Editando ruta unida (' + partes.length + ' tramos) — arrastra vértices · los empalmes (naranjo) mueven todos los tramos unidos · arrastra un punto intermedio para AGREGAR · clic derecho para borrar';
+  redibujarVerticesEdicion_();
+  actualizarReglaMedicion_();
 }
 
-function redibujarOtrosTramosEdicion_() {
+/** Vértices y puntos intermedios de TODOS los tramos de la ruta unida en edición. */
+function redibujarVerticesMulti_() {
   const ef = state.editandoForma;
-  if (!ef || !ef.otrosLayer) return;
-  ef.otrosLayer.clearLayers();
-  ef.partes.forEach((parte, k) => {
-    if (k === ef.activa) return;
-    const linea = L.polyline(parte, { color: '#A78BFA', weight: 6, opacity: 0.6 });
-    linea.bindTooltip('Tramo ' + (k + 1) + ' — clic para editarlo', { sticky: true });
-    linea.on('click', (ev) => {
-      if (ev && ev.originalEvent) L.DomEvent.stopPropagation(ev.originalEvent);
-      activarTramoEdicion_(k);
-    });
-    ef.otrosLayer.addLayer(linea);
-  });
-}
+  tempVerticeMarkers.clearLayers();
+  if (!map.hasLayer(tempVerticeMarkers)) tempVerticeMarkers.addTo(map);
+  const refrescar = () => {
+    tempDibujoVertices = ef.partes.reduce((acc, parte) => acc.concat(parte), []);
+    if (tempDibujoLayer) tempDibujoLayer.setLatLngs(ef.partes);
+    actualizarReglaMedicion_();
+  };
+  const alSoltar = () => { refrescar(); redibujarVerticesMulti_(); actualizarBotonesModoDibujo_(); };
 
-/** Compara el tramo activo con su estado previo: si un vértice se movió, mueve
- *  también los vértices de otros tramos que estaban en su misma posición. */
-function sincronizarEmpalmesEdicion_() {
-  const ef = state.editandoForma;
-  if (!ef || !ef.partes || !ef.previo) return;
-  const actual = ef.partes[ef.activa];
-  const mismo = (a, b) => Math.abs(a.lat - b.lat) < 1e-9 && Math.abs(a.lng - b.lng) < 1e-9;
-  let huboArrastre = false;
-
-  // Solo un movimiento conserva la cantidad de vértices; insertar o borrar no
-  // desplaza empalmes.
-  if (actual.length === ef.previo.length) {
-    actual.forEach((ll, i) => {
-      const antes = ef.previo[i];
-      if (mismo(ll, antes)) return;
-      ef.partes.forEach((parte, k) => {
-        if (k === ef.activa) return;
-        parte.forEach((v, j) => {
-          if (mismo(v, antes)) { parte[j] = L.latLng(ll.lat, ll.lng); huboArrastre = true; }
-        });
+  // 1) Puntos intermedios de cada tramo: al arrastrarlos se inserta un vértice nuevo.
+  ef.partes.forEach((parte) => {
+    for (let i = 0; i < parte.length - 1; i++) {
+      const a = parte[i], b = parte[i + 1];
+      const medio = L.latLng((a.lat + b.lat) / 2, (a.lng + b.lng) / 2);
+      const mid = L.marker(medio, {
+        draggable: true,
+        icon: L.divIcon({ className: '', iconSize: [10, 10], iconAnchor: [5, 5],
+          html: '<div title="Arrastra para agregar un vértice" style="width:10px;height:10px;border-radius:50%;background:rgba(37,99,235,0.35);border:1.5px solid #2563EB;cursor:copy;"></div>' }),
       });
+      const insertarEn = i + 1;
+      let insertado = false;
+      mid.on('dragstart', () => { parte.splice(insertarEn, 0, medio); insertado = true; });
+      mid.on('drag', (ev) => {
+        if (!insertado) return;
+        parte[insertarEn] = ev.target.getLatLng();
+        refrescar();
+      });
+      mid.on('dragend', alSoltar);
+      tempVerticeMarkers.addLayer(mid);
+    }
+  });
+
+  // 2) Vértices reales, agrupados por posición: un empalme es un solo marcador.
+  const grupos = new Map();
+  ef.partes.forEach((parte, k) => parte.forEach((v, j) => {
+    const clave = v.lat.toFixed(9) + ',' + v.lng.toFixed(9);
+    if (!grupos.has(clave)) grupos.set(clave, { ll: v, refs: [] });
+    grupos.get(clave).refs.push({ k, j });
+  }));
+
+  grupos.forEach((g) => {
+    const empalme = new Set(g.refs.map(r => r.k)).size > 1;
+    const m = L.marker(g.ll, {
+      draggable: true,
+      zIndexOffset: empalme ? 1000 : 0,
+      icon: empalme
+        ? L.divIcon({ className: '', iconSize: [18, 18], iconAnchor: [9, 9],
+            html: '<div title="Empalme: mueve todos los tramos unidos" style="width:13px;height:13px;border-radius:50%;background:#fff;border:3px solid #EA580C;box-shadow:0 1px 3px rgba(0,0,0,0.4);cursor:move;"></div>' })
+        : L.divIcon({ className: '', iconSize: [14, 14], iconAnchor: [7, 7],
+            html: '<div style="width:10px;height:10px;border-radius:50%;background:#fff;border:2.5px solid #2563EB;box-shadow:0 1px 3px rgba(0,0,0,0.4);cursor:move;"></div>' }),
     });
-  }
-  ef.previo = actual.map(ll => L.latLng(ll.lat, ll.lng));
-  if (huboArrastre) redibujarOtrosTramosEdicion_();
+    m.on('drag', (ev) => {
+      const ll = ev.target.getLatLng();
+      g.refs.forEach(r => { ef.partes[r.k][r.j] = L.latLng(ll.lat, ll.lng); });
+      refrescar();
+    });
+    m.on('dragend', alSoltar);
+    m.on('contextmenu', () => {
+      if (empalme) { mostrarToast_('No se puede borrar un empalme: separaría la ruta.'); return; }
+      const parte = ef.partes[g.refs[0].k];
+      if (parte.length - g.refs.length < 2) { mostrarToast_('No puedes eliminar más vértices (mínimo 2 por tramo).'); return; }
+      g.refs.map(r => r.j).sort((a, b) => b - a).forEach(j => parte.splice(j, 1));
+      alSoltar();
+    });
+    tempVerticeMarkers.addLayer(m);
+  });
 }
 
 async function guardarEdicionFormaMulti_() {
   const ef = state.editandoForma;
-  sincronizarEmpalmesEdicion_();
   if (ef.partes.some(parte => parte.length < 2)) { mostrarToast_('Cada tramo necesita al menos 2 vértices.'); return; }
 
   const todos = ef.partes.reduce((acc, parte) => acc.concat(parte), []);
@@ -9889,8 +11236,21 @@ async function guardarEdicionFormaMulti_() {
     ef.capaOriginal.addTo(map);
   }
   mostrarToast_('Forma actualizada (' + nuevasPartes.length + ' tramos).');
+  avisarRutaEnOtrosEscenarios_(ef.id, 'Forma actualizada (' + nuevasPartes.length + ' tramos).');
   finalizarEdicionForma_();
   if (state.activeComunaId) loadPlanificacionRecursos_(state.activeComunaId);
+}
+
+/** El trigger de la BD (68) ya copió la nueva forma a la misma ruta en los otros
+ *  escenarios; aquí solo se informa dónde. Sin el 68 ejecutado, no avisa nada. */
+async function avisarRutaEnOtrosEscenarios_(id, mensajeBase) {
+  try {
+    const { data, error } = await supabaseClient.rpc('escenarios_misma_ruta', { p_id: id });
+    if (error || !data || !data.length) return;
+    const orden = { Verde: 1, Amarilla: 2, Roja: 3 };
+    const escs = [...new Set(data.map(d => d.escenario))].sort((a, b) => (orden[a] || 9) - (orden[b] || 9));
+    mostrarToast_(mensajeBase + ' También se actualizó en: ' + escs.map(nombreEscenario_).join(', ') + '.');
+  } catch (e) { /* solo informativo */ }
 }
 
 async function guardarEdicionForma_() {
@@ -9916,6 +11276,7 @@ async function guardarEdicionForma_() {
     ef.capaOriginal.addTo(map);
   }
   mostrarToast_('Forma actualizada.');
+  if (ef.tabla === 'planificacion' && ef.tipo === 'linea') avisarRutaEnOtrosEscenarios_(ef.id, 'Forma actualizada.');
   finalizarEdicionForma_();
 
   // Recarga en segundo plano para sincronizar (la figura ya se ve actualizada)
@@ -9934,8 +11295,6 @@ function cancelarEdicionForma_() {
 }
 
 function finalizarEdicionForma_() {
-  const ef = state.editandoForma;
-  if (ef && ef.otrosLayer) map.removeLayer(ef.otrosLayer);
   tempDibujoVertices = [];
   if (tempDibujoLayer) { map.removeLayer(tempDibujoLayer); tempDibujoLayer = null; }
   tempVerticeMarkers.clearLayers();
@@ -10462,8 +11821,8 @@ let tempVerticeMarkers = L.layerGroup();
 // Redibuja los marcadores arrastrables de cada vértice durante el dibujo.
 // Arrastrar = mover el vértice; clic derecho = eliminarlo.
 function redibujarVerticesEdicion_() {
-  // Ruta unida en edición: propagar a los otros tramos el empalme movido.
-  if (state.editandoForma && state.editandoForma.partes) sincronizarEmpalmesEdicion_();
+  // Ruta unida en edición: todos los tramos a la vez, con empalmes compartidos.
+  if (state.editandoForma && state.editandoForma.partes) { redibujarVerticesMulti_(); return; }
   tempVerticeMarkers.clearLayers();
   if (!map.hasLayer(tempVerticeMarkers)) tempVerticeMarkers.addTo(map);
   const esArea = state.dibujoModo === 'area';
@@ -10723,7 +12082,10 @@ function actualizarReglaMedicion_() {
 
   let html = '';
   if (modo === 'linea') {
-    const largo = longitudTotal_(pts, false);
+    const ef = state.editandoForma;
+    const largo = (ef && ef.partes)  // ruta unida: suma de tramos, sin el salto entre ellos
+      ? ef.partes.reduce((s, parte) => s + longitudTotal_(parte, false), 0)
+      : longitudTotal_(pts, false);
     const ultimo = distanciaHaversine_(pts[pts.length - 2], pts[pts.length - 1]);
     html = '<div style="font-weight:600;margin-bottom:4px;">📏 Medición</div>' +
            '<div><b>Longitud</b><br>' + formatearDistancia_(largo) + '</div>' +
@@ -11220,14 +12582,24 @@ function toleranciaSegunZoom_() {
   return 0.00004 * Math.pow(2, Math.max(0, 15 - z));
 }
 
+/** Muestra del trazo libre: pegada al camino más cercano si el imán está activo (Shift = sin imán). */
+function puntoTrazoConIman_(e) {
+  if (!imanActivo_() || (e.originalEvent && e.originalEvent.shiftKey)) return e.latlng;
+  const s = snapRedVial_(e.latlng);
+  return s ? s.punto : e.latlng;
+}
+
 function iniciarTrazoLibre_(e) {
   if (!state.dibujoLibre) return;
+  // Solo el botón izquierdo dibuja. El del medio desplaza el mapa (panConBotonMedio_)
+  // y el derecho queda para borrar vértices.
+  if (e.originalEvent && e.originalEvent.button !== 0) return;
   if (state.dibujoModo !== 'linea' && state.dibujoModo !== 'area') return;
   if (!state.editorMode && !state.modoPlanificacion) return;
   if (state.modoRegla || state.unionLinea) return;
 
   trazoLibreActivo = true;
-  trazoLibrePuntos = [e.latlng];
+  trazoLibrePuntos = [puntoTrazoConIman_(e)];
   map.dragging.disable();            // el arrastre movería el mapa en vez de dibujar
   if (map.boxZoom) map.boxZoom.disable();
 
@@ -11239,10 +12611,13 @@ function iniciarTrazoLibre_(e) {
 
 function continuarTrazoLibre_(e) {
   if (!trazoLibreActivo) return;
+  // Botón del medio apretado (bit 4): se está desplazando el mapa, no dibujando.
+  if (e.originalEvent && (e.originalEvent.buttons & 4)) return;
   const ultimo = trazoLibrePuntos[trazoLibrePuntos.length - 1];
+  const punto = puntoTrazoConIman_(e);
   // Umbral mínimo entre muestras: evita acumular cientos de puntos pegados.
-  if (ultimo && distanciaHaversine_(ultimo, e.latlng) < 3) return;
-  trazoLibrePuntos.push(e.latlng);
+  if (ultimo && distanciaHaversine_(ultimo, punto) < 3) return;
+  trazoLibrePuntos.push(punto);
   if (tempDibujoLayer) tempDibujoLayer.setLatLngs(trazoLibrePuntos);
 
   const caja = document.getElementById('regla-medicion');
@@ -11254,8 +12629,11 @@ function continuarTrazoLibre_(e) {
   }
 }
 
-function terminarTrazoLibre_() {
+function terminarTrazoLibre_(e) {
   if (!trazoLibreActivo) return;
+  // Soltar el botón del medio (fin de un desplazamiento) no corta el trazo.
+  const ev = e && (e.originalEvent || e);
+  if (ev && ev.type === 'mouseup' && ev.button !== 0) return;
   trazoLibreActivo = false;
   map.dragging.enable();
   if (map.boxZoom) map.boxZoom.enable();
@@ -11289,6 +12667,34 @@ function terminarTrazoLibre_() {
   mostrarToast_('✍️ Trazo capturado: ' + puntos.length + ' vértices (' + ahorro + '% menos que las ' + crudos.length + ' muestras).');
 }
 
+/* Botón del medio (rueda apretada) + arrastre = desplazar el mapa, en cualquier
+ * modo. Clave en el trazo libre, donde el arrastre con el botón izquierdo dibuja:
+ * así se puede mover el mapa a mitad de una ruta sin cortar el trazo ni crear
+ * puntos. Leaflet no desplaza con el botón del medio, por eso va aparte. */
+(function panConBotonMedio_() {
+  const cont = map.getContainer();
+  let ultimo = null;
+  cont.addEventListener('mousedown', (e) => {
+    if (e.button !== 1) return;
+    e.preventDefault();                 // evita el autodesplazamiento del navegador
+    ultimo = { x: e.clientX, y: e.clientY };
+    cont.classList.add('pan-boton-medio');
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!ultimo) return;
+    const dx = e.clientX - ultimo.x, dy = e.clientY - ultimo.y;
+    ultimo = { x: e.clientX, y: e.clientY };
+    if (dx || dy) map.panBy([-dx, -dy], { animate: false });
+  });
+  window.addEventListener('mouseup', (e) => {
+    if (e.button !== 1 || !ultimo) return;
+    ultimo = null;
+    cont.classList.remove('pan-boton-medio');
+  });
+  // Sin esto, soltar el botón del medio sobre un enlace o popup abre otra pestaña.
+  cont.addEventListener('auxclick', (e) => { if (e.button === 1) e.preventDefault(); });
+})();
+
 function actualizarBotonesModoDibujo_() {
   document.getElementById('btn-modo-punto').classList.toggle('active', state.dibujoModo === 'punto');
   document.getElementById('btn-modo-linea').classList.toggle('active', state.dibujoModo === 'linea');
@@ -11304,6 +12710,12 @@ function actualizarBotonesModoDibujo_() {
     btnLibre.classList.toggle('active', enDibujo && !!state.dibujoLibre);
     if (!enDibujo) state.dibujoLibre = false;
   }
+  // Imán a la Red Vial: solo al crear líneas.
+  const btnIman = document.getElementById('btn-iman-red-vial');
+  if (btnIman) {
+    btnIman.style.display = state.dibujoModo === 'linea' ? 'inline-block' : 'none';
+    btnIman.classList.toggle('active', state.dibujoModo === 'linea' && !!state.imanRedVial && !!(state.redVialOn || state.redVialCmpcOn));
+  }
   document.getElementById('btn-finalizar-dibujo').style.display = (enDibujo && tempDibujoVertices.length >= minimo) ? 'inline-block' : 'none';
   document.getElementById('btn-cancelar-dibujo').style.display = (enDibujo && tempDibujoVertices.length > 0) ? 'inline-block' : 'none';
 
@@ -11313,7 +12725,9 @@ function actualizarBotonesModoDibujo_() {
       ' · ✍️ TRAZO LIBRE — mantén pulsado y arrastra sobre el mapa para trazar de corrido (' +
       tempDibujoVertices.length + ' vértice(s))';
   } else if (state.dibujoModo === 'linea') {
-    document.getElementById('editor-banner-texto').textContent = 'Modo línea — clic para agregar puntos · arrastra un vértice para moverlo · arrastra un punto intermedio para insertar · clic derecho borra (' + tempDibujoVertices.length + ' agregado(s), mín. 2)';
+    document.getElementById('editor-banner-texto').textContent = 'Modo línea — clic para agregar puntos' +
+      (imanActivo_() ? ' · 🧲 imán: cerca de un camino se pega y sigue su curva (Shift = sin imán)' : '') +
+      ' · arrastra un vértice para moverlo · arrastra un punto intermedio para insertar · clic derecho borra (' + tempDibujoVertices.length + ' agregado(s), mín. 2)';
   } else if (state.dibujoModo === 'area') {
     document.getElementById('editor-banner-texto').textContent = 'Modo área — clic para agregar vértices · arrastra para mover · arrastra un punto intermedio para insertar · clic derecho borra (' + tempDibujoVertices.length + ' agregado(s), mín. 3)';
   } else {
@@ -11355,6 +12769,7 @@ function cancelarDibujo_() {
     try { map.dragging.enable(); if (map.boxZoom) map.boxZoom.enable(); } catch (e) {}
   }
   tempDibujoVertices = [];
+  ultimoSnapIman_ = null;
   if (tempDibujoLayer) { map.removeLayer(tempDibujoLayer); tempDibujoLayer = null; }
   tempVerticeMarkers.clearLayers();
   actualizarBotonesModoDibujo_();
@@ -11418,7 +12833,11 @@ map.on('click', (e) => {
   if (!state.editorMode) return;
 
   if (state.dibujoModo === 'linea' || state.dibujoModo === 'area') {
-    tempDibujoVertices.push(e.latlng);
+    // Imán a la Red Vial (solo líneas): el vértice se pega al camino y, si el
+    // anterior también estaba en ese tramo, se agregan los vértices de la curva.
+    const conIman = verticesConIman_(e.latlng, e.originalEvent);
+    if (conIman) conIman.forEach(v => tempDibujoVertices.push(v));
+    else tempDibujoVertices.push(e.latlng);
     if (!tempDibujoLayer) {
       tempDibujoLayer = state.dibujoModo === 'area'
         ? L.polygon(tempDibujoVertices, { color: '#2563EB', weight: 3, dashArray: '8,6', fillOpacity: 0.12 }).addTo(map)
@@ -11533,6 +12952,146 @@ function bindPopupActions_() {
   });
 }
 
+/* ============ RECURSO ↔ RUTA DEL ESCENARIO NORMAL (SQL 79) ============
+ * La ruta de un recurso (referencia_recursos) es una LÍNEA del escenario Normal,
+ * enlazada por planificacion_recursos.recurso_ref_id (no las rutas SIGEI).
+ * En el formulario de crear/editar una ruta Normal aparece "Recurso asociado":
+ * recursos de Relacionamiento de la comuna/área, del tipo elegido; los que ya
+ * tienen ruta salen BLOQUEADOS (🔒) para no perder su enlace. Alerta Amarilla y
+ * Roja heredan el recurso al propagar. El mismo id une la ruta con el Calendario. */
+
+/** Llena el select "Recurso asociado" de un formulario (prefijo 'f' = crear, 'erp' = editar). */
+async function cargarOpcionesRecursoRef_(prefijo, ctx) {
+  const wrap = document.getElementById(prefijo + '-recurso-ref-wrap');
+  const sel = document.getElementById(prefijo + '-recurso-ref');
+  const ayuda = document.getElementById(prefijo + '-recurso-ref-ayuda');
+  if (!wrap || !sel) return;
+  wrap.style.display = '';
+  sel.disabled = true;
+  sel.innerHTML = '<option value="">Cargando recursos…</option>';
+  ayuda.textContent = '';
+  const pedido = (wrap._pedido = (wrap._pedido || 0) + 1);
+
+  // Recursos de la comuna (o del área, si el plan es de área)
+  let res;
+  if (ctx.area) res = await recursosDeAreas_(ctx.area, 'codigo_ref');
+  else res = await supabaseClient.from('recursos_disponibles_area_geojson').select('*').eq('id_comuna', ctx.idComuna);
+  if (pedido !== wrap._pedido) return;
+  if (res.error) { sel.innerHTML = '<option value="">No se pudieron cargar los recursos</option>'; ayuda.textContent = res.error.message; return; }
+
+  const deRel = (res.data || []).filter(r => pertenenciaDeRecurso_(r) === 'Relacionamiento');
+  const candidatos = deRel.filter(r => !ctx.tipo || plNorm_(r.tipo_recurso) === plNorm_(ctx.tipo))
+    .sort((a, b) => String(a.codigo_ref || '~').localeCompare(String(b.codigo_ref || '~'), 'es'));
+
+  // ¿Cuáles ya tienen ruta en el escenario Normal?
+  const ids = candidatos.map(r => r.id);
+  let asignadas = {};
+  if (ids.length) {
+    const { data: rn } = await supabaseClient.from('v_recurso_ruta_normal').select('recurso_id, ruta_id, descripcion').in('recurso_id', ids);
+    (rn || []).forEach(x => { asignadas[x.recurso_id] = x; });
+  }
+  if (pedido !== wrap._pedido) return;
+
+  let libres = 0, bloqueados = 0;
+  sel.innerHTML = '<option value="">— Sin recurso asociado —</option>' + candidatos.map(r => {
+    const a = asignadas[r.id];
+    const esEsta = a && ctx.rutaId && a.ruta_id === ctx.rutaId;
+    const ocupado = a && !esEsta;
+    if (ocupado) bloqueados++; else libres++;
+    const texto = (r.codigo_ref || 'Sin código') + ' · ' + aTitulo_(r.tipo_recurso || '') + (r.sector ? ' · ' + r.sector : '') +
+      (ocupado ? ' — 🔒 ya tiene ruta' : '');
+    return '<option value="' + escapeHtml_(r.id) + '"' + (ocupado ? ' disabled' : '') +
+      ((esEsta || r.id === ctx.recursoActual) ? ' selected' : '') +
+      (ocupado && a.descripcion ? ' title="Ruta: ' + escapeHtml_(a.descripcion) + '"' : '') + '>' + escapeHtml_(texto) + '</option>';
+  }).join('');
+  sel.disabled = false;
+  wrap.dataset.original = ctx.recursoActual || '';
+  ayuda.textContent = !candidatos.length
+    ? (ctx.tipo ? 'No hay recursos de Relacionamiento del tipo "' + aTitulo_(ctx.tipo) + '" en esta ' + (ctx.area ? 'área' : 'comuna') + '.'
+                : 'No hay recursos de Relacionamiento en esta ' + (ctx.area ? 'área' : 'comuna') + '.')
+    : libres + ' disponible(s)' + (bloqueados ? ' · ' + bloqueados + ' bloqueado(s) porque ya tienen ruta' : '') +
+      '. El enlace también une la ruta con el Calendario de Turnos del recurso.';
+}
+
+function ocultarRecursoRef_(prefijo) {
+  const wrap = document.getElementById(prefijo + '-recurso-ref-wrap');
+  if (wrap) { wrap.style.display = 'none'; wrap._pedido = (wrap._pedido || 0) + 1; }
+  const sel = document.getElementById(prefijo + '-recurso-ref');
+  if (sel) sel.innerHTML = '';
+}
+
+/** Formulario de CREAR: solo para una ruta (línea) del escenario Normal. */
+function prepararRecursoRefCrear_() {
+  const mp = state.modoPlanificacion;
+  const esRutaNormal = !!(mp && mp.escenario === 'Verde' && state.pendingLineaPuntos && !state.editingIdPlan);
+  if (!esRutaNormal) { ocultarRecursoRef_('f'); return; }
+  const cm = (state.comunas || []).find(c => c.id === mp.comunaId);
+  cargarOpcionesRecursoRef_('f', {
+    tipo: document.getElementById('f-tipo-recurso').value,
+    area: mp.ambito === 'area' ? mp.nombre : null,
+    idComuna: cm ? cm.id_comuna : idComunaActiva_(),
+    rutaId: null, recursoActual: null,
+  });
+}
+
+/** Formulario de EDITAR una entidad planificada. */
+async function prepararRecursoRefEditar_(r) {
+  ocultarRecursoRef_('erp');
+  if (!r || r.tipo_geometria !== 'linea') return;
+  const { data: plan } = await supabaseClient.from('planes_contingencia')
+    .select('id, escenario, ambito, comuna_id, area').eq('id', r.plan_id).maybeSingle();
+  if (!plan) return;
+  const wrap = document.getElementById('erp-recurso-ref-wrap');
+  const sel = document.getElementById('erp-recurso-ref');
+  if (plan.escenario !== 'Verde') {
+    // Alerta Amarilla / Roja: el recurso se hereda de la ruta Normal (solo se muestra)
+    if (!r.recurso_ref_id) return;
+    const { data: rr } = await supabaseClient.from('recursos_disponibles_area_geojson')
+      .select('codigo_ref, tipo_recurso').eq('id', r.recurso_ref_id).maybeSingle();
+    wrap.style.display = '';
+    sel.innerHTML = '<option>' + escapeHtml_((rr && rr.codigo_ref) || 'Recurso') + (rr ? ' · ' + escapeHtml_(aTitulo_(rr.tipo_recurso || '')) : '') + '</option>';
+    sel.disabled = true;
+    wrap.dataset.original = r.recurso_ref_id;
+    document.getElementById('erp-recurso-ref-ayuda').textContent = 'Heredado de la ruta del escenario Normal: se cambia allí.';
+    return;
+  }
+  const cm = (state.comunas || []).find(c => c.id === plan.comuna_id);
+  wrap._ctx = { tipo: r.tipo_recurso, area: plan.ambito === 'area' ? plan.area : null,
+                idComuna: cm ? cm.id_comuna : idComunaActiva_(), rutaId: r.id, recursoActual: r.recurso_ref_id };
+  await cargarOpcionesRecursoRef_('erp', wrap._ctx);
+}
+
+/** Guarda el enlace si cambió. Devuelve el mensaje de error o null. */
+async function guardarRecursoRef_(prefijo, rutaId) {
+  const wrap = document.getElementById(prefijo + '-recurso-ref-wrap');
+  const sel = document.getElementById(prefijo + '-recurso-ref');
+  if (!wrap || wrap.style.display === 'none' || !sel || sel.disabled) return null;
+  const nuevo = sel.value || null;
+  if ((nuevo || '') === (wrap.dataset.original || '')) return null;
+  const { error } = await supabaseClient.rpc('asociar_recurso_planificacion', { p_id: rutaId, p_recurso_ref_id: nuevo });
+  return error ? error.message : null;
+}
+
+(function iniciarRecursoRef_() {
+  // Crear: se recalcula al abrir el formulario y al cambiar el tipo de recurso.
+  const overlay = document.getElementById('modal-overlay');
+  if (overlay) new MutationObserver(() => { if (overlay.classList.contains('show')) prepararRecursoRefCrear_(); })
+    .observe(overlay, { attributes: true, attributeFilter: ['class'] });
+  const fTipo = document.getElementById('f-tipo-recurso');
+  if (fTipo) fTipo.addEventListener('change', prepararRecursoRefCrear_);
+  // Cambiar la institución repuebla los tipos: se recalcula después de ese cambio.
+  const fInst = document.getElementById('f-institucion');
+  if (fInst) fInst.addEventListener('change', () => setTimeout(prepararRecursoRefCrear_, 0));
+  // Editar: al cambiar el tipo, la lista se filtra por el nuevo tipo.
+  const erpTipo = document.getElementById('erp-tipo');
+  if (erpTipo) erpTipo.addEventListener('change', () => {
+    const wrap = document.getElementById('erp-recurso-ref-wrap');
+    if (wrap && wrap._ctx && wrap.style.display !== 'none' && !document.getElementById('erp-recurso-ref').disabled) {
+      cargarOpcionesRecursoRef_('erp', Object.assign({}, wrap._ctx, { tipo: erpTipo.value }));
+    }
+  });
+})();
+
 async function guardarRecursoDesdeModal_() {
   const btn = document.getElementById('btn-save-modal');
   const errEl = document.getElementById('modal-error');
@@ -11565,9 +13124,16 @@ async function guardarRecursoDesdeModal_() {
     const planId = state.modoPlanificacion.planId;
     if (state.pendingLineaPuntos) {
       const puntosGeoJSON = state.pendingLineaPuntos.map(p => [p.lng, p.lat]);
-      ({ error } = await supabaseClient.rpc('crear_recurso_planificacion_linea', {
+      let creada;
+      ({ data: creada, error } = await supabaseClient.rpc('crear_recurso_planificacion_linea', {
         p_plan_id: planId, p_institucion_id: institucionId, p_tipo_recurso: tipoRecurso, p_puntos: puntosGeoJSON, p_descripcion: descripcion,
       }));
+      // Ruta Normal: enlazar el recurso elegido (SQL 79). Si falla, la ruta igual queda guardada.
+      const idCreada = creada && (creada.id || (Array.isArray(creada) && creada[0] && creada[0].id));
+      if (!error && idCreada) {
+        const errRef = await guardarRecursoRef_('f', idCreada);
+        if (errRef) mostrarToast_('⚠️ La ruta se guardó, pero no se pudo asociar el recurso: ' + errRef);
+      }
     } else if (state.pendingAreaPuntos) {
       const puntosGeoJSON = state.pendingAreaPuntos.map(p => [p.lng, p.lat]);
       ({ error } = await supabaseClient.rpc('crear_recurso_planificacion_area', {
@@ -13542,6 +15108,16 @@ async function loadPlanificacionRecursos_(comunaId) {
 
   state.planificacionRecursos = recursos || [];
   window.planRecursosMarkersById = window.planRecursosMarkersById || {};
+  // Recursos enlazados a rutas (SQL 79): código, tipo y estado de turno para la ventana de la ruta.
+  state.recursoRefInfo = {};
+  const refIds = [...new Set(state.planificacionRecursos.map(r => r.recurso_ref_id).filter(Boolean))];
+  if (refIds.length) {
+    try {
+      const { data: rinf } = await supabaseClient.from('v_planificador_recursos')
+        .select('id, codigo_ref, tipo_recurso, area, sector, en_turno_hoy, proximo_turno, fecha_inicio_operacion').in('id', refIds);
+      (rinf || []).forEach(x => { state.recursoRefInfo[x.id] = x; });
+    } catch (e) { /* solo informativo */ }
+  }
   // Trazabilidad de los recursos planificados (quién creó / modificó)
   state.trazaPlanif = {};
   if (state.planificacionRecursos.length) {
@@ -13563,6 +15139,7 @@ async function loadPlanificacionRecursos_(comunaId) {
       '<div class="popup-title"><span class="pr-sw" style="background:' + colorInstitucion + ';display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;"></span>' + inst.nombre + ' <span style="font-size:10px;">(' + (escenario === 'Verde' ? '🟢 Planificado' : escenario === 'Amarilla' ? '🟡 Planificado' : '🔴 Planificado') + ')</span></div>' +
       '<div class="popup-row">🏷️ ' + iconoTipoGeometria_(r.tipo_geometria) + ' · ' + r.tipo_recurso + '</div>' +
       '<div class="popup-row" style="margin-top:4px;">' + escapeHtml_(r.descripcion || 'Sin descripción') + '</div>' +
+      bloqueRecursoRuta_(r, escenario) +
       bloqueTrazabilidad_(state.trazaPlanif && state.trazaPlanif[r.id]) +
       (puedeEditar ? '<div class="popup-actions">' +
         '<button class="popup-btn" data-action="editar-planificacion" data-id="' + r.id + '">Editar</button>' +
@@ -13803,6 +15380,41 @@ function bindPopupActionsPlanificacion_() {
   document.querySelectorAll('.popup-btn[data-action="separar-ruta"]').forEach(btn => {
     btn.onclick = () => separarRutaPlanificacion_(btn.dataset.id);
   });
+  document.querySelectorAll('.popup-btn[data-action="calendario-recurso"]').forEach(btn => {
+    btn.onclick = () => abrirCalendarioDeArea_(btn.dataset.area);
+  });
+}
+
+/** Bloque de la ventana de una ruta planificada: recurso enlazado + su turno (Calendario). */
+function bloqueRecursoRuta_(r, escenario) {
+  if (r.tipo_geometria !== 'linea') return '';
+  if (!r.recurso_ref_id) {
+    return escenario === 'Verde'
+      ? '<div class="popup-row" style="opacity:.65;font-size:11px;">🔗 Sin recurso asociado · se asigna en <b>Editar</b></div>'
+      : '';
+  }
+  const i = (state.recursoRefInfo || {})[r.recurso_ref_id] || {};
+  const codigo = i.codigo_ref || r.recurso_ref_codigo || 'Recurso';
+  const tipo = i.tipo_recurso || r.recurso_ref_tipo || '';
+  const turno = i.en_turno_hoy
+    ? '<span style="color:#16A34A;font-weight:700;">🟢 En turno hoy</span>'
+    : '<span style="opacity:.75;">⚪ Sin turno hoy' + (i.proximo_turno ? ' · próximo ' + plFechaCorta_(i.proximo_turno) : '') + '</span>';
+  return '<div class="popup-row" style="margin-top:4px;padding:5px 7px;border-radius:7px;background:rgba(37,99,235,.08);">' +
+    '🔗 <b>' + escapeHtml_(codigo) + '</b> · ' + escapeHtml_(aTitulo_(tipo)) +
+    (escenario !== 'Verde' ? ' <span style="opacity:.6;font-size:10px;">(heredado de Normal)</span>' : '') + '<br>' + turno +
+    (puedeGestionarTurnos_() && i.area
+      ? ' <button class="popup-btn" data-action="calendario-recurso" data-area="' + escapeHtml_(i.area) + '" style="padding:1px 6px;font-size:10px;">📅 Calendario</button>'
+      : '') +
+    '</div>';
+}
+
+/** Abre el Calendario de Turnos en el área indicada (nombres con o sin tilde). */
+function abrirCalendarioDeArea_(area) {
+  const areas = state.perfil.perfil === 'Administrador' ? (state.areasCatalogo || []) : (state.misAreasIds || []);
+  const igual = areas.find(a => plNorm_(a) === plNorm_(area));
+  if (igual) state.turnosArea = igual;
+  map.closePopup();
+  mostrarVista_('turnos');
 }
 
 /* ============ UNIR DOS LÍNEAS POR EL VÉRTICE ELEGIDO ============
@@ -14029,7 +15641,7 @@ function verticesDeLinea_(capa) {
  * entidad independiente, heredando institución, tipo, descripción y plan.
  *
  * Para corregir la forma ya NO hace falta separar: ✏️ Editar forma edita la
- * ruta unida por tramos (iniciarEdicionFormaMulti_).
+ * ruta unida con todos sus tramos a la vez (iniciarEdicionFormaMulti_).
  */
 async function separarRutaPlanificacion_(id) {
   if (!state.modoPlanificacion && !state.editorMode) {
@@ -14213,6 +15825,7 @@ async function abrirEditarRecursoPlanificado_(id) {
   document.getElementById('editar-recurso-plan-error').classList.remove('show');
   map.closePopup();
   document.getElementById('editar-recurso-plan-overlay').classList.add('show');
+  prepararRecursoRefEditar_(r);   // "Recurso asociado" (solo rutas; editable en Normal)
 }
 
 async function guardarEdicionRecursoPlanificado_() {
@@ -14231,6 +15844,10 @@ async function guardarEdicionRecursoPlanificado_() {
   btn.textContent = 'Guardar'; btn.disabled = false;
 
   if (error) { errEl.textContent = 'No se pudo guardar: ' + error.message; errEl.classList.add('show'); return; }
+
+  // Enlace ruta Normal ↔ recurso (SQL 79): si cambió, se guarda (y pasa a sus copias Amarilla/Roja).
+  const errRef = await guardarRecursoRef_('erp', editandoRecursoPlanId);
+  if (errRef) { errEl.textContent = 'Datos guardados, pero no se pudo asociar el recurso: ' + errRef; errEl.classList.add('show'); return; }
 
   document.getElementById('editar-recurso-plan-overlay').classList.remove('show');
   mostrarToast_('Recurso actualizado.');
@@ -14614,10 +16231,7 @@ async function cargarResumenRecursosArea_() {
   const totalEl = document.getElementById('ra-resumen-total');
   totalEl.textContent = 'Cargando…';
 
-  const { data, error } = await supabaseClient
-    .from('recursos_disponibles_area_geojson')
-    .select('*')
-    .in('area', zonas);
+  const { data, error } = await recursosDeAreas_(zonas);
 
   if (error) { totalEl.textContent = 'Error: ' + error.message; return; }
 
@@ -14688,9 +16302,7 @@ async function cargarTablaRecursosArea_(zonaOZonas) {
   const esVarias = Array.isArray(zonaOZonas);
   thZona.style.display = esVarias ? '' : 'none';
 
-  let query = supabaseClient.from('recursos_disponibles_area_geojson').select('*').order('nombre_recurso', { ascending: true });
-  query = esVarias ? query.in('area', zonaOZonas) : query.eq('area', zonaOZonas);
-  const { data, error } = await query;
+  const { data, error } = await recursosDeAreas_(zonaOZonas, 'nombre_recurso');
 
   if (error) {
     vacio.style.display = 'block';
@@ -14801,6 +16413,46 @@ function zonaObjetivoParaRecarga_() {
   return state.raZonaActiva === 'zonas' ? Array.from(raZonasSeleccionadas) : state.raZonaActiva;
 }
 
+/* Guarda un recurso disponible en la base única referencia_recursos (SQL 67).
+ * Crear: crear_recurso_referencia(id_area, lat, lng, datos) — hereda subgerencia,
+ *   región y comuna del área; el tipo sale del catálogo (recursos_maestro).
+ * Editar: guardar_ficha_recurso (catálogo + tipo) + mover_recurso_referencia (si se
+ *   reubicó) + actualizar_inicio_recurso (si cambió la fecha de inicio; borra los
+ *   turnos anteriores a la nueva fecha, igual que el Calendario).
+ * Devuelve el mensaje de error o null. */
+async function guardarRecursoReferencia_(id, zona, recursoMaestroId, fechaInicio, latlng) {
+  const { data: rm, error: errRm } = await supabaseClient.from('recursos_maestro')
+    .select('tipo_recurso').eq('id', recursoMaestroId).maybeSingle();
+  if (errRm || !rm) return 'No se encontró el recurso en el catálogo.';
+  const datos = { recurso_maestro_id: recursoMaestroId, tipo_recurso: rm.tipo_recurso };
+
+  if (!id) {
+    const { data: cat } = await supabaseClient.from('areas_relacionamiento_catalogo')
+      .select('id_area, area').order('area');
+    const fila = (cat || []).find(a => plNorm_(a.area) === plNorm_(zona));
+    if (!fila || fila.id_area == null) return 'El área "' + zona + '" no tiene código (id_area) en el catálogo.';
+    if (fechaInicio) datos.fecha_inicio_operacion = fechaInicio;
+    const { error } = await supabaseClient.rpc('crear_recurso_referencia', {
+      p_id_area: fila.id_area, p_lat: Number(latlng.lat), p_lng: Number(latlng.lng), p_datos: datos,
+    });
+    return error ? error.message : null;
+  }
+
+  const { data: actual } = await supabaseClient.from('recursos_disponibles_area_geojson')
+    .select('fecha_inicio_operacion').eq('id', id).maybeSingle();
+  const r1 = await supabaseClient.rpc('guardar_ficha_recurso', { p_recurso_id: id, p_datos: datos });
+  if (r1.error) return r1.error.message;
+  if (latlng) {
+    const r2 = await supabaseClient.rpc('mover_recurso_referencia', { p_recurso_id: id, p_lat: Number(latlng.lat), p_lng: Number(latlng.lng) });
+    if (r2.error) return r2.error.message;
+  }
+  if ((actual && actual.fecha_inicio_operacion || null) !== (fechaInicio || null)) {
+    const r3 = await supabaseClient.rpc('actualizar_inicio_recurso', { p_recurso_id: String(id), p_fecha: fechaInicio || null, p_borrar_previos: true });
+    if (r3.error) return r3.error.message;
+  }
+  return null;
+}
+
 async function guardarRecursoArea_() {
   const btn = document.getElementById('btn-save-recurso-area');
   const errEl = document.getElementById('recurso-area-modal-error');
@@ -14816,19 +16468,11 @@ async function guardarRecursoArea_() {
   if (!editandoNoPunto && !recursoAreaPendingLatLng) { errEl.textContent = 'Ubica el recurso en el mapa antes de guardar.'; errEl.classList.add('show'); return; }
 
   btn.textContent = 'Guardando…'; btn.disabled = true;
-
-  const payload = { recurso_maestro_id: recursoMaestroId, fecha_inicio_operacion: fechaInicio };
-  if (!editandoNoPunto) {
-    payload.geom = 'SRID=4326;POINT(' + Number(recursoAreaPendingLatLng.lng) + ' ' + Number(recursoAreaPendingLatLng.lat) + ')';
-  }
-
-  const { error } = editingRecursoAreaId
-    ? await supabaseClient.from('recursos_disponibles_area').update(payload).eq('id', editingRecursoAreaId)
-    : await supabaseClient.from('recursos_disponibles_area').insert({ ...payload, area: zona, tipo_geometria: 'punto' });
-
+  const error = await guardarRecursoReferencia_(editingRecursoAreaId, zona, recursoMaestroId, fechaInicio,
+    editandoNoPunto ? null : recursoAreaPendingLatLng);
   btn.textContent = 'Guardar'; btn.disabled = false;
 
-  if (error) { errEl.textContent = 'No se pudo guardar: ' + error.message; errEl.classList.add('show'); return; }
+  if (error) { errEl.textContent = 'No se pudo guardar: ' + error; errEl.classList.add('show'); return; }
 
   document.getElementById('recurso-area-modal-overlay').classList.remove('show');
   mostrarToast_(editingRecursoAreaId ? 'Asignación actualizada.' : 'Recurso asignado a la zona.');
@@ -14839,8 +16483,8 @@ async function guardarRecursoArea_() {
 }
 
 async function eliminarRecursoArea_(id) {
-  if (!confirm('¿Quitar esta asignación de la zona?')) return;
-  const { error } = await supabaseClient.from('recursos_disponibles_area').delete().eq('id', id);
+  if (!confirm('¿Quitar este recurso de la zona? También se borran sus turnos y rutas asociadas.')) return;
+  const { error } = await supabaseClient.rpc('eliminar_recurso_referencia', { p_recurso_id: id });
   if (error) { mostrarToast_('Error: ' + error.message); return; }
   mostrarToast_('Asignación eliminada.');
   cargarTablaRecursosArea_(zonaObjetivoParaRecarga_());
@@ -17183,6 +18827,36 @@ function renderTabInterno_(tab) {
       c.appendChild(msg);
     }
 
+    // Red Vial de Chile (MOP): misma lógica de encendido que las demás; se
+    // carga recién al encenderla y solo para la comuna/área activa (+10 km).
+    {
+      const info = state.redVialInfo || { ok: true, count: 0 };
+      const conteo = !state.redVialOn ? (state.areaActiva ? 'Área activa + 10 km' : 'Comuna + 10 km')
+        : (!info.cargado ? 'Cargando…' : info.ok ? info.count + ' tramo(s)' : 'Error');
+      const rowRV = document.createElement('div'); rowRV.className = 'layer-row';
+      rowRV.innerHTML =
+        '<div class="toggle ' + (state.redVialOn ? 'on' : '') + '" id="toggle-red-vial"></div>' +
+        '<div class="layer-left"><span class="flame-dot" style="background:#F29E4C"></span>' +
+        '<div><div class="layer-name">Red Vial (MOP)</div><div class="layer-count">' + conteo + '</div></div></div>' +
+        '<button id="btn-etiq-red-vial" class="icon-btn' + (state.mostrarEtiquetasRedVial ? ' active' : '') + '" title="Mostrar/ocultar rol de los caminos" style="width:26px;height:26px;font-size:12px;flex-shrink:0;">🏷️</button>';
+      c.appendChild(rowRV);
+      c.querySelector('#toggle-red-vial').addEventListener('click', toggleRedVial_);
+      c.querySelector('#btn-etiq-red-vial').addEventListener('click', toggleEtiquetasRedVial_);
+      if (state.redVialOn) {
+        const ley = document.createElement('div'); ley.className = 'rv-leyenda';
+        ley.innerHTML = Object.keys(RED_VIAL_CATEGORIAS).map(k => {
+          const cfg = RED_VIAL_CATEGORIAS[k];
+          return '<span><i style="background:' + cfg.fill + ';border:1.5px ' + (cfg.dash ? 'dashed' : 'solid') + ' ' + cfg.casing + ';"></i>' + cfg.nombre + '</span>';
+        }).join('');
+        c.appendChild(ley);
+      }
+      if (info.ok === false && info.error) {
+        const msg = document.createElement('div'); msg.className = 'layer-empty-msg';
+        msg.textContent = info.error;
+        c.appendChild(msg);
+      }
+    }
+
     const rolCalificaZonas = state.perfil.perfil === 'Administrador' || state.perfil.perfil === 'Jefe de Área Relacionamiento';
     if (rolCalificaZonas) {
       const labelZonas = document.createElement('p'); labelZonas.className = 'section-label'; labelZonas.style.marginTop = '14px';
@@ -17222,6 +18896,43 @@ function renderTabInterno_(tab) {
         state.mostrarEtiquetasFundosArauco = !state.mostrarEtiquetasFundosArauco;
         loadFundosAraucoLayer_().then(() => { if (map.hasLayer(fundosAraucoLayer)) { map.removeLayer(fundosAraucoLayer); fundosAraucoLayer.addTo(map); } renderTab('capas'); });
       });
+
+      // Red Vial CMPC (solo Admin y Jefe de Área): 3 categorías por tipo de carpeta, sin etiquetas.
+      if (puedeVerRedVialCmpc_()) {
+        const inf = state.redVialCmpcInfo || { ok: true, count: 0 };
+        const detalle = textoDetalleRedVialCmpc_();
+        const nodo = document.createElement('div'); nodo.className = 'tree-node';
+        nodo.innerHTML =
+          '<div class="layer-row" style="border-bottom:none;">' +
+            '<div class="toggle ' + (state.redVialCmpcOn ? 'on' : '') + '" id="toggle-red-vial-cmpc"></div>' +
+            '<div class="layer-left"><span class="flame-dot" style="background:#D32F2F"></span>' +
+            '<div><div class="layer-name">Red Vial CMPC</div><div class="layer-count" id="rv-cmpc-detalle">' + detalle + '</div></div></div>' +
+          '</div>' +
+          (state.redVialCmpcOn
+            ? '<div class="tree-children">' + Object.keys(RED_VIAL_CMPC_CATEGORIAS).map(k => {
+                const cfg = RED_VIAL_CMPC_CATEGORIAS[k];
+                const n = redVialCmpcTramos_.filter(t => t.cat === k).length;
+                const muestra = '<svg width="22" height="8" style="flex-shrink:0;"><line x1="1" y1="4" x2="21" y2="4" stroke="' + cfg.color +
+                  '" stroke-width="' + Math.min(4, cfg.w) + '"' + (cfg.dash ? ' stroke-dasharray="4,3"' : ' stroke-linecap="round"') + '/></svg>';
+                return '<div class="tree-node sector"><div class="tree-row">' +
+                  '<span class="tree-caret leaf">▼</span>' +
+                  '<span class="tree-check ' + (state.redVialCmpcCatOculta[k] ? '' : 'on') + '" data-cmpc-cat="' + k + '"></span>' +
+                  muestra +
+                  '<span class="tree-label" title="N_ID_TIPO_CARPETA ' + cfg.codigos + '">' + cfg.nombre + '</span>' +
+                  '<span class="tree-count" data-cmpc-n="' + k + '">' + n.toLocaleString('es-CL') + '</span>' +
+                '</div></div>';
+              }).join('') + '</div>'
+            : '');
+        c.appendChild(nodo);
+        nodo.querySelector('#toggle-red-vial-cmpc').addEventListener('click', toggleRedVialCmpc_);
+        nodo.querySelectorAll('[data-cmpc-cat]').forEach(chk =>
+          chk.addEventListener('click', () => toggleCategoriaRedVialCmpc_(chk.dataset.cmpcCat)));
+        if (state.redVialCmpcOn && inf.ok === false && inf.error) {
+          const msg = document.createElement('div'); msg.className = 'layer-empty-msg';
+          msg.textContent = inf.error;
+          c.appendChild(msg);
+        }
+      }
 
 
       // Áreas de Relacionamiento: ÁRBOL jerárquico (Área → Sector)
@@ -17850,8 +19561,7 @@ function bindEvents() {
   const btnInfl = document.getElementById('btn-influencia');
   if (btnInfl) btnInfl.addEventListener('click', (e) => { e.stopPropagation(); toggleInfluencia_(); });
   const btnKpiInc = document.getElementById('btn-kpi-incendios');
-  if (btnKpiInc) btnKpiInc.addEventListener('click', (e) => { e.stopPropagation(); toggleKpiIncendios_(); });
-  enlazarModalInforme_();
+  if (btnKpiInc) btnKpiInc.addEventListener('click', (e) => { e.stopPropagation(); toggleKpiIncendios_(); });  enlazarModalInforme_();
   // ---- Exportación de planes ----
   const pe = document.getElementById('plan-exportar');
   if (pe) pe.addEventListener('click', (e) => { e.stopPropagation(); abrirExportarPlan_(); });
@@ -17897,6 +19607,7 @@ function bindEvents() {
     }
   });
   document.getElementById('btn-fav-comuna').addEventListener('click', toggleFavoritoComuna_);
+  document.getElementById('btn-actualizar-datos').addEventListener('click', () => actualizarDatos_('manual'));
   // Pestañas de vista Dashboard | Mapa | Administración
   document.querySelectorAll('.vista-tab').forEach(b => b.addEventListener('click', () => { mostrarVista_(b.dataset.vista); document.body.classList.remove('menu-movil-abierto'); }));
   // Menú hamburguesa (móvil): abre/cierra la barra
@@ -17906,8 +19617,8 @@ function bindEvents() {
   const btnTema = document.getElementById('btn-tema');
   if (btnTema) btnTema.addEventListener('click', () => {
     const oscuro = document.body.classList.toggle('tema-oscuro');
-    btnTema.textContent = oscuro ? '☀️' : '🌙';
-    btnTema.title = oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+    btnTema.querySelector('.di-ico').textContent = oscuro ? '☀️' : '🌙';
+    btnTema.querySelector('.di-txt').textContent = oscuro ? 'Modo claro' : 'Modo oscuro';
     // Refrescar mapa para que el basemap se vea bien tras el cambio
     setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 60);
   });
@@ -17922,7 +19633,10 @@ function bindEvents() {
     setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 200);
   });
   document.addEventListener('fullscreenchange', () => {
-    if (btnFS) { btnFS.textContent = document.fullscreenElement ? '🗗' : '⛶'; btnFS.title = document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa'; }
+    if (btnFS) {
+      btnFS.querySelector('.di-ico').textContent = document.fullscreenElement ? '🗗' : '⛶';
+      btnFS.querySelector('.di-txt').textContent = document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa';
+    }
     setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 200);
   });
   // Mi perfil (modal)
@@ -17954,6 +19668,7 @@ function bindEvents() {
   document.getElementById('btn-modo-linea').addEventListener('click', () => setModoDibujo_('linea'));
   document.getElementById('btn-modo-area').addEventListener('click', () => setModoDibujo_('area'));
   document.getElementById('btn-dibujo-libre').addEventListener('click', toggleDibujoLibre_);
+  document.getElementById('btn-iman-red-vial').addEventListener('click', toggleImanRedVial_);
   // ---- Importación de rutas desde KML / KMZ ----
   document.getElementById('btn-importar-kml').addEventListener('click', abrirImportacionKml_);
   document.getElementById('input-kml').addEventListener('change', (ev) => {
