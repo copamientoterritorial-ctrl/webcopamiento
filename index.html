@@ -206,6 +206,12 @@ body{
   font-family:inherit;font-size:12.5px;font-weight:600;color:var(--text-primary);box-shadow:none;cursor:pointer;
 }
 #area-select.modo-area-on{ background:#7C3AED; color:#fff; border-color:#7C3AED; }
+/* Filtro por área: nombre de cada comuna del área (no captura el mouse) */
+.mascara-area-etq{pointer-events:none;}
+.mascara-area-etq span{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font:800 11px 'Inter',sans-serif;color:#6D28D9;letter-spacing:.3px;text-transform:uppercase;
+  text-shadow:0 0 3px #fff,0 0 3px #fff,1px 1px 0 #fff,-1px -1px 0 #fff;opacity:.85;}
+/* Entidades planificadas de OTRAS comunas del área: atenuadas */
+.plan-otra-comuna{opacity:.55;}
 .comuna-badge{
   background:var(--white);border:1px solid var(--border);border-radius:12px;
   padding:9px 14px;box-shadow:var(--shadow-soft);
@@ -4729,7 +4735,9 @@ async function cargarAsignacionSimulada_() {
   if (s.perfil === 'Jefe de Área Relacionamiento') {
     state.misAreasIds = [s.area];
     const clave = plNorm_(s.area).replace(/[^A-Z0-9]/g, '');   // = clave_area_red_vial_ (SQL 71)
-    const { data } = await supabaseClient.from('v_area_comunas').select('id_comuna').eq('area_norm', clave);
+    // Comunas que administra el área (SQL 94); sin el 94, la relación territorial
+    let { data, error } = await supabaseClient.from('v_area_comunas_admin').select('id_comuna').eq('area_norm', clave);
+    if (error) ({ data } = await supabaseClient.from('v_area_comunas').select('id_comuna').eq('area_norm', clave));
     const ids = new Set((data || []).map(x => x.id_comuna));
     state.misComunaIds = (state.comunas || []).filter(c => ids.has(c.id_comuna)).map(c => c.id);
     if (!state.misComunaIds.length) mostrarToast_('⚠️ El área "' + s.area + '" no tiene comunas asociadas.');
@@ -6098,12 +6106,16 @@ async function adminSeccionPatrulleros_(c) {
 }
 
 // ---------- COMUNAS ----------
-/* ---------- COMUNAS POR ÁREA (13-10-2026, SQL 93) ----------
- * Un área de relacionamiento abarca varias comunas. La asociación sale de:
- *   · Fundos CMPC del área · Recursos ubicados en la comuna · Manual (area_comunas_manual)
- * Aquí se ven las tres fuentes y el Administrador agrega/quita las MANUALES.
- * La usan: «Recurso asociado» de las rutas (recursos de las áreas de la comuna),
- * las comunas del Jefe de Área y los recortes de red vial / incendios por área. */
+/* ---------- COMUNAS POR ÁREA (13-10-2026, SQL 93 + 94) ----------
+ * Dos relaciones comuna ↔ área:
+ *   · ADMINISTRATIVA (v_area_comunas_admin, SQL 94): qué comunas revisa cada área / Jefe de Área.
+ *     Automática por los RECURSOS ubicados en la comuna, o la que fije el Administrador
+ *     (reasignar / agregar / quitar; «↺ Automático» vuelve a la regla). Una comuna puede
+ *     quedar en una sola área (reasignar) o en varias (agregar).
+ *   · TERRITORIAL (fundos): los FUNDOS siempre conservan su propia área (fundos_cmpc.area),
+ *     aunque la comuna donde están la administre otra área. No se edita aquí.
+ * La administrativa la usan el filtro 🧭 Área del mapa, «Recurso asociado» de las rutas y
+ * «Ver como…» Jefe de Área. La territorial: capa Fundos, red vial e incendios del área. */
 state.ac = { area: '', datos: null };
 async function leerTodasFilas_(tabla, cols) {
   const filas = [];
@@ -6123,9 +6135,14 @@ async function adminSeccionAreaComunas_(c, recargar) {
         leerTodasFilas_('fundos_cmpc', 'area, id_comuna'),
         leerTodasFilas_('recursos_disponibles_area_geojson', 'id, area, id_comuna'),
       ]);
-      let manual = [], sinSql = false;
-      try { manual = await leerTodasFilas_('area_comunas_manual', 'area_norm, area, id_comuna'); } catch (e) { sinSql = true; }
-      state.ac.datos = { fundos, recursos, manual, sinSql };
+      let admin = [], manual = [], sinSql94 = false;
+      try {
+        [admin, manual] = await Promise.all([
+          leerTodasFilas_('v_area_comunas_admin', 'area_norm, area, id_comuna, origen'),
+          leerTodasFilas_('area_comunas_manual', 'area_norm, area, id_comuna'),
+        ]);
+      } catch (e) { sinSql94 = true; }
+      state.ac.datos = { fundos, recursos, admin, manual, sinSql94 };
     } catch (e) {
       c.innerHTML = adminHead_('🧩 Comunas por área', 'Asociación de comunas a cada área de relacionamiento') +
         '<div class="layer-empty-msg">No se pudieron leer los datos: ' + escapeHtml_(e.message || String(e)) + '</div>';
@@ -6134,74 +6151,110 @@ async function adminSeccionAreaComunas_(c, recargar) {
   }
   const D = state.ac.datos;
   const comunaPorId = {}; (state.comunas || []).forEach(x => { comunaPorId[Number(x.id_comuna)] = x; });
+  const nombreC = id => (comunaPorId[id] && comunaPorId[id].comuna) || ('Comuna ' + id);
   const areas = (state.areasCatalogo || []).slice().sort((a, b) => a.localeCompare(b, 'es'));
   if (!state.ac.area || !areas.includes(state.ac.area)) state.ac.area = areas[0] || '';
-  // Por área: comunas con sus fuentes y cantidad de recursos ubicados en cada una
-  const resumen = {};
-  areas.forEach(a => { resumen[claveA(a)] = { area: a, comunas: {}, sinComuna: 0, recursos: 0 }; });
-  const sumar = (a, id, fuente) => {
-    const r = resumen[claveA(a)]; if (!r || id == null || id === '') return;
-    const k = Number(id); (r.comunas[k] = r.comunas[k] || { fuentes: new Set(), recursos: 0 }).fuentes.add(fuente);
-    return r.comunas[k];
-  };
-  D.fundos.forEach(f => sumar(f.area, f.id_comuna, 'fundos'));
-  D.recursos.forEach(x => {
-    const r = resumen[claveA(x.area)]; if (!r) return;
-    r.recursos++;
-    if (x.id_comuna == null) { r.sinComuna++; return; }
-    const cm = sumar(x.area, x.id_comuna, 'recursos'); if (cm) cm.recursos++;
-  });
-  D.manual.forEach(m => sumar(m.area, m.id_comuna, 'manual'));
-  const sel = resumen[claveA(state.ac.area)] || { comunas: {}, sinComuna: 0, recursos: 0 };
-  const FUENTE = { fundos: ['🌲 Fundos', '#047857', '#D1FAE5'], recursos: ['📻 Recursos', '#1D4ED8', '#DBEAFE'], manual: ['✋ Manual', '#7C3AED', '#EDE9FE'] };
-  const chip = f => '<span style="display:inline-block;padding:1px 7px;border-radius:99px;font-size:10.5px;font-weight:700;margin-right:4px;color:' + FUENTE[f][1] + ';background:' + FUENTE[f][2] + ';">' + FUENTE[f][0] + '</span>';
-  const filas = Object.entries(sel.comunas).map(([id, x]) => ({ id: Number(id), nombre: (comunaPorId[id] && comunaPorId[id].comuna) || ('Comuna ' + id), x }))
-    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-  const asociadas = new Set(filas.map(f => f.id));
-  const opciones = (state.comunas || []).filter(x => !asociadas.has(Number(x.id_comuna)))
+  const kSel = claveA(state.ac.area);
+  const nombreArea = k => { const a = areas.find(x => claveA(x) === k); return aTitulo_(a || k); };
+
+  // Conteos por (área, comuna): fundos y recursos de ESTA área en cada comuna
+  const cuenta = (filas, campoArea) => { const m = {}; filas.forEach(x => {
+    if (x.id_comuna == null || claveA(x[campoArea]) !== kSel) return; const k = Number(x.id_comuna); m[k] = (m[k] || 0) + 1; }); return m; };
+  const fundosAqui = cuenta(D.fundos, 'area'), recursosAqui = cuenta(D.recursos, 'area');
+  const sinUbicar = D.recursos.filter(x => x.id_comuna == null && claveA(x.area) === kSel).length;
+  // Asignación administrativa
+  const adminPorComuna = {};   // id_comuna → [{ area_norm, origen }]
+  D.admin.forEach(a => { (adminPorComuna[Number(a.id_comuna)] = adminPorComuna[Number(a.id_comuna)] || []).push(a); });
+  const manualComunas = new Set(D.manual.map(m => Number(m.id_comuna)));
+  const administradas = Object.entries(adminPorComuna).filter(([, l]) => l.some(a => a.area_norm === kSel)).map(([id]) => Number(id))
+    .sort((a, b) => nombreC(a).localeCompare(nombreC(b), 'es'));
+  const adm = new Set(administradas);
+  // Comunas donde el área tiene fundos o recursos pero que NO administra
+  const vinculadas = [...new Set([...Object.keys(fundosAqui), ...Object.keys(recursosAqui)].map(Number))].filter(id => !adm.has(id))
+    .sort((a, b) => nombreC(a).localeCompare(nombreC(b), 'es'));
+  const otrasDe = id => (adminPorComuna[id] || []).filter(a => a.area_norm !== kSel).map(a => nombreArea(a.area_norm));
+  const optAreas = (excluir) => '<option value="">↪ Reasignar a…</option>' + areas.filter(a => claveA(a) !== excluir)
+    .map(a => '<option value="' + escapeHtml_(a) + '">' + escapeHtml_(aTitulo_(a)) + '</option>').join('');
+  const chip = (txt, col, bg) => '<span style="display:inline-block;padding:1px 7px;border-radius:99px;font-size:10.5px;font-weight:700;margin-right:4px;color:' + col + ';background:' + bg + ';">' + txt + '</span>';
+  const n = v => v ? v : '<span style="color:var(--text-tertiary);">—</span>';
+
+  const filasAdm = administradas.map(id => {
+    const manual = manualComunas.has(id);
+    return '<tr><td><b>' + escapeHtml_(nombreC(id)) + '</b> <small style="color:var(--text-tertiary);">' + id + '</small></td>' +
+      '<td>' + (manual ? chip('✋ Asignada', '#7C3AED', '#EDE9FE') : chip('⚙️ Automática (recursos)', '#1D4ED8', '#DBEAFE')) + '</td>' +
+      '<td style="text-align:right;">' + n(recursosAqui[id]) + '</td><td style="text-align:right;">' + n(fundosAqui[id]) + '</td>' +
+      '<td style="font-size:11.5px;color:var(--text-secondary);">' + escapeHtml_(otrasDe(id).join(', ') || '—') + '</td>' +
+      '<td style="text-align:right;white-space:nowrap;">' + (D.sinSql94 ? '' :
+        '<select class="admin-search" data-ac-reasignar="' + id + '" style="max-width:150px;padding:4px 6px;font-size:11.5px;">' + optAreas(kSel) + '</select> ' +
+        '<button class="popup-btn" data-ac-quitar="' + id + '" title="Esta área deja de administrar la comuna">✕ Quitar</button>' +
+        (manual ? ' <button class="popup-btn" data-ac-auto="' + id + '" title="Volver a la asignación automática (por recursos)">↺ Automática</button>' : '')) + '</td></tr>';
+  }).join('');
+  const filasVinc = vinculadas.map(id => '<tr><td><b>' + escapeHtml_(nombreC(id)) + '</b> <small style="color:var(--text-tertiary);">' + id + '</small></td>' +
+    '<td style="text-align:right;">' + n(recursosAqui[id]) + '</td><td style="text-align:right;">' + n(fundosAqui[id]) + '</td>' +
+    '<td style="font-size:11.5px;">' + escapeHtml_(otrasDe(id).join(', ') || (manualComunas.has(id) ? 'Sin área (quitada)' : 'Ninguna')) + '</td>' +
+    '<td style="text-align:right;white-space:nowrap;">' + (D.sinSql94 ? '' :
+      '<button class="popup-btn" data-ac-agregar="' + id + '" title="Agregar: la comuna queda también en esta área">➕ Agregar</button> ' +
+      '<button class="popup-btn" data-ac-solo="' + id + '" title="Reasignar: la comuna queda SOLO en esta área">↪ Solo esta área</button>') + '</td></tr>').join('');
+  const opcionesTodas = (state.comunas || []).filter(x => !adm.has(Number(x.id_comuna)))
     .sort((a, b) => String(a.comuna).localeCompare(String(b.comuna), 'es'))
     .map(x => '<option value="' + Number(x.id_comuna) + '">' + escapeHtml_(x.comuna) + (x.region ? ' · ' + escapeHtml_(x.region) : '') + '</option>').join('');
-  const otrasAreas = id => Object.values(resumen).filter(r => r.area !== state.ac.area && r.comunas[id]).map(r => aTitulo_(r.area));
+  const fundosFuera = vinculadas.reduce((s, id) => s + (fundosAqui[id] || 0), 0);
+  const tabla = (cab, cuerpo, vacio) => '<div class="admin-table-wrap"><table class="admin-table"><thead><tr>' + cab + '</tr></thead><tbody>' +
+    (cuerpo || '<tr><td colspan="6" style="padding:14px;color:var(--text-tertiary);">' + vacio + '</td></tr>') + '</tbody></table></div>';
 
-  c.innerHTML = adminHead_('🧩 Comunas por área', 'Un área de relacionamiento abarca varias comunas. Las de 🌲 fundos y 📻 recursos se detectan solas; ✋ las manuales las agrega el Administrador.',
-      '<select id="ac-area" class="admin-search" style="min-width:220px;">' + areas.map(a => '<option' + (a === state.ac.area ? ' selected' : '') + '>' + escapeHtml_(a) + '</option>').join('') + '</select>') +
-    (D.sinSql ? '<div class="pl-aviso warn" style="margin-bottom:12px;">⚠️ Falta ejecutar el SQL 93 (<b>sql/pendientes/93_comunas_por_area.sql</b>): por ahora solo se ven las asociaciones automáticas.</div>' : '') +
+  c.innerHTML = adminHead_('🧩 Comunas por área',
+      'Comunas que <b>administra</b> cada área (las ve su Jefe de Área y el filtro 🧭 Área del mapa). Los <b>fundos</b> conservan siempre su propia área.',
+      '<select id="ac-area" class="admin-search" style="min-width:220px;">' + areas.map(a => '<option value="' + escapeHtml_(a) + '"' + (a === state.ac.area ? ' selected' : '') + '>' + escapeHtml_(aTitulo_(a)) + '</option>').join('') + '</select>') +
+    (D.sinSql94 ? '<div class="pl-aviso warn" style="margin-bottom:12px;">⚠️ Falta ejecutar el SQL 94 (<b>sql/pendientes/94_comunas_area_administrativa.sql</b>): por ahora no se puede reasignar.</div>' : '') +
     '<div class="dash-kpis" style="margin-bottom:14px;">' +
-      kpi_('Comunas del área', filas.length, filas.filter(f => f.x.fuentes.has('manual')).length + ' manual(es)') +
-      kpi_('Recursos del área', sel.recursos, 'en Gestión de Recursos') +
-      kpi_('Recursos sin ubicar', sel.sinComuna, sel.sinComuna ? 'sin comuna: ubicarlos en el Planificador gráfico' : 'todos ubicados') +
+      kpi_('Comunas que administra', administradas.length, administradas.filter(id => manualComunas.has(id)).length + ' asignada(s) a mano') +
+      kpi_('Fundos en comunas de otras áreas', fundosFuera, 'siguen siendo de esta área') +
+      kpi_('Recursos sin ubicar', sinUbicar, sinUbicar ? 'ubicarlos en el Planificador gráfico' : 'todos ubicados') +
     '</div>' +
-    '<div class="dash-card"><div class="dash-card-title">Comunas de ' + escapeHtml_(aTitulo_(state.ac.area)) + '</div>' +
-    '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Comuna</th><th>Origen de la asociación</th><th style="text-align:right;">Recursos ubicados</th><th>También en</th><th></th></tr></thead><tbody>' +
-    (filas.map(f => '<tr><td><b>' + escapeHtml_(f.nombre) + '</b> <small style="color:var(--text-tertiary);">' + f.id + '</small></td>' +
-      '<td>' + ['fundos', 'recursos', 'manual'].filter(k => f.x.fuentes.has(k)).map(chip).join('') + '</td>' +
-      '<td style="text-align:right;">' + (f.x.recursos || '—') + '</td>' +
-      '<td style="font-size:11.5px;color:var(--text-secondary);">' + escapeHtml_(otrasAreas(f.id).join(', ') || '—') + '</td>' +
-      '<td style="text-align:right;">' + (f.x.fuentes.has('manual') && !D.sinSql ? '<button class="popup-btn" data-ac-quitar="' + f.id + '" title="Quitar la asociación manual">✕ Quitar manual</button>' : '') + '</td></tr>').join('') ||
-      '<tr><td colspan="5" style="padding:14px;color:var(--text-tertiary);">Esta área aún no tiene comunas asociadas.</td></tr>') +
-    '</tbody></table></div>' +
-    (D.sinSql ? '' : '<div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;">' +
-      '<select id="ac-comuna" class="admin-search" style="min-width:260px;"><option value="">— Agregar una comuna a esta área —</option>' + opciones + '</select>' +
-      '<button class="btn-primary" id="ac-agregar" style="flex:none;padding:8px 16px;">➕ Asociar comuna</button></div>' +
-      '<p style="font-size:11.5px;color:var(--text-tertiary);margin:8px 0 0;">Las asociaciones de fundos y recursos no se quitan aquí: cambian solas con los datos. ' +
-      'Tras agregar comunas, la red vial del área se actualiza al ejecutar <code>SELECT recalcular_red_vial_recorte();</code> y <code>SELECT recalcular_zonas_red_vial();</code>.</p>') +
+    '<div class="dash-card"><div class="dash-card-title">🗂️ Comunas que administra ' + escapeHtml_(aTitulo_(state.ac.area)) + '</div>' +
+      tabla('<th>Comuna</th><th>Asignación</th><th style="text-align:right;">Recursos del área</th><th style="text-align:right;">Fundos del área</th><th>También la administra</th><th></th>',
+        filasAdm, 'Esta área no administra comunas. Agrégalas abajo.') +
+      (D.sinSql94 ? '' : '<div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;">' +
+        '<select id="ac-comuna" class="admin-search" style="min-width:260px;"><option value="">— Elegir otra comuna —</option>' + opcionesTodas + '</select>' +
+        '<button class="btn-primary" id="ac-agregar" style="flex:none;padding:8px 14px;" title="La comuna queda también en esta área">➕ Agregar a esta área</button>' +
+        '<button class="btn-secondary" id="ac-solo" style="flex:none;padding:8px 14px;" title="La comuna queda SOLO en esta área (se quita de las demás)">↪ Reasignar solo a esta área</button></div>') +
+    '</div>' +
+    '<div class="dash-card" style="margin-top:14px;"><div class="dash-card-title">🌲 Comunas con fundos o recursos de ' + escapeHtml_(aTitulo_(state.ac.area)) + ' que administra otra área</div>' +
+      '<p style="font-size:11.5px;color:var(--text-tertiary);margin:0 0 8px;">Los fundos y recursos listados siguen siendo de esta área (capa Fundos, Gestión de Recursos, red vial e incendios del área). Solo cambia quién administra la comuna.</p>' +
+      tabla('<th>Comuna</th><th style="text-align:right;">Recursos del área</th><th style="text-align:right;">Fundos del área</th><th>La administra</th><th></th>',
+        filasVinc, 'No hay fundos ni recursos de esta área en comunas de otras áreas.') +
     '</div>';
 
   document.getElementById('ac-area').addEventListener('change', e => { state.ac.area = e.target.value; adminSeccionAreaComunas_(c); });
-  const accion = async (idComuna, asignar) => {
-    const { error } = await supabaseClient.rpc('asignar_comuna_area', { p_area: state.ac.area, p_id_comuna: idComuna, p_asignar: asignar });
+  const rpc = async (fn, args, msg) => {
+    const { error } = await supabaseClient.rpc(fn, args);
     if (error) { mostrarToast_('No se pudo guardar: ' + error.message); return; }
-    mostrarToast_(asignar ? '✅ Comuna asociada al área.' : 'Asociación manual quitada.');
+    mostrarToast_(msg);
     adminSeccionAreaComunas_(c, true);
   };
-  const btnAg = document.getElementById('ac-agregar');
-  if (btnAg) btnAg.addEventListener('click', () => {
-    const v = document.getElementById('ac-comuna').value;
-    if (!v) { mostrarToast_('Elige una comuna.'); return; }
-    accion(Number(v), true);
-  });
+  const agregar = id => rpc('asignar_comuna_area', { p_area: state.ac.area, p_id_comuna: id, p_asignar: true }, '✅ ' + nombreC(id) + ' agregada a ' + aTitulo_(state.ac.area) + '.');
+  const solo = id => { if (confirm('¿Reasignar ' + nombreC(id) + ' SOLO al área ' + aTitulo_(state.ac.area) + '? Se quita de las demás áreas (sus fundos no cambian).'))
+    rpc('reasignar_comuna_area', { p_id_comuna: id, p_area: state.ac.area }, '↪ ' + nombreC(id) + ' reasignada a ' + aTitulo_(state.ac.area) + '.'); };
+  const bAg = document.getElementById('ac-agregar'), bSo = document.getElementById('ac-solo'), sCo = document.getElementById('ac-comuna');
+  if (bAg) bAg.addEventListener('click', () => { if (!sCo.value) { mostrarToast_('Elige una comuna.'); return; } agregar(Number(sCo.value)); });
+  if (bSo) bSo.addEventListener('click', () => { if (!sCo.value) { mostrarToast_('Elige una comuna.'); return; } solo(Number(sCo.value)); });
+  c.querySelectorAll('[data-ac-agregar]').forEach(b => b.addEventListener('click', () => agregar(Number(b.dataset.acAgregar))));
+  c.querySelectorAll('[data-ac-solo]').forEach(b => b.addEventListener('click', () => solo(Number(b.dataset.acSolo))));
   c.querySelectorAll('[data-ac-quitar]').forEach(b => b.addEventListener('click', () => {
-    if (confirm('¿Quitar la asociación manual de esta comuna con ' + state.ac.area + '?')) accion(Number(b.dataset.acQuitar), false);
+    const id = Number(b.dataset.acQuitar);
+    if (confirm('¿Quitar ' + nombreC(id) + ' del área ' + aTitulo_(state.ac.area) + '? Sus fundos y recursos siguen siendo del área.'))
+      rpc('asignar_comuna_area', { p_area: state.ac.area, p_id_comuna: id, p_asignar: false }, nombreC(id) + ' ya no la administra ' + aTitulo_(state.ac.area) + '.');
+  }));
+  c.querySelectorAll('[data-ac-auto]').forEach(b => b.addEventListener('click', () => {
+    const id = Number(b.dataset.acAuto);
+    if (confirm('¿Volver ' + nombreC(id) + ' a la asignación automática (por sus recursos)?'))
+      rpc('restablecer_comuna_area', { p_id_comuna: id }, '↺ ' + nombreC(id) + ' vuelve a la asignación automática.');
+  }));
+  c.querySelectorAll('[data-ac-reasignar]').forEach(s => s.addEventListener('change', () => {
+    const id = Number(s.dataset.acReasignar), destino = s.value;
+    if (!destino) return;
+    if (!confirm('¿Reasignar ' + nombreC(id) + ' al área ' + aTitulo_(destino) + '? Deja de administrarla ' + aTitulo_(state.ac.area) + ' (sus fundos no cambian).')) { s.value = ''; return; }
+    rpc('reasignar_comuna_area', { p_id_comuna: id, p_area: destino }, '↪ ' + nombreC(id) + ' reasignada a ' + aTitulo_(destino) + '.');
   }));
 }
 
@@ -10276,9 +10329,9 @@ function mostrarVista_(vista, modoMapa) {
     actualizarEstrellaFavorito_();
     poblarSelectorArea_();
     const perfil = state.perfil && state.perfil.perfil;
-    // Administrador: sin badge de comuna, sin favorito, sin área
+    // Administrador: sin badge de comuna ni favorito. El filtro 🧭 Área SÍ se muestra (13-10-2026).
     if (perfil === 'Administrador') {
-      ['comuna-badge','btn-fav-comuna','area-select'].forEach(id => {
+      ['comuna-badge','btn-fav-comuna'].forEach(id => {
         const el = document.getElementById(id); if (el) el.style.display = 'none';
       });
     }
@@ -11483,8 +11536,20 @@ function refrescarSelectorComunas_() {
   const comunaSelect = document.getElementById('comuna-select');
   if (!comunaSelect || comunaSelect.style.display === 'none') return;
   const valorActual = comunaSelect.value;
-  const listaComunas = comunasSeleccionablesUsuario_();
+  // Con un área elegida (filtro 🧭), solo las comunas de esa área
+  const fArea = state.areaFiltro;
+  const listaComunas = comunasSeleccionablesUsuario_().filter(c => !fArea || fArea.ids.has(c.id));
   comunaSelect.innerHTML = '';
+  if (fArea) {
+    const grupoA = document.createElement('optgroup'); grupoA.label = '🧭 Comunas del área ' + aTitulo_(fArea.area) + ' (' + listaComunas.length + ')';
+    listaComunas.slice().sort((a, b) => a.comuna.localeCompare(b.comuna)).forEach(c => {
+      const opt = document.createElement('option'); opt.value = c.id; opt.textContent = c.comuna + ' (' + c.provincia + ')';
+      grupoA.appendChild(opt);
+    });
+    comunaSelect.appendChild(grupoA);
+    comunaSelect.value = valorActual;
+    return;
+  }
   if (state.perfil.perfil === 'Administrador') {
     const optVacia = document.createElement('option');
     optVacia.value = ''; optVacia.textContent = '— Selecciona una comuna —';
@@ -11841,18 +11906,104 @@ function poblarSelectorArea_() {
   }
   sel.style.display = 'inline-block';
   if (sel.options.length === 0) {
-    sel.innerHTML = '<option value="">— Modo comuna —</option>' + areas.map(a => '<option value="' + escapeHtml_(a) + '">📍 Área: ' + escapeHtml_(a) + '</option>').join('');
-    sel.onchange = () => activarModoArea_(sel.value || null);
+    sel.innerHTML = '<option value="">🧭 Área: todas mis comunas</option>' + areas.map(a => '<option value="' + escapeHtml_(a) + '">🧭 Área: ' + escapeHtml_(aTitulo_(a)) + '</option>').join('');
+    sel.onchange = () => {
+      if (hayModoTrabajoActivo_()) {   // no cambiar de área a mitad de una planificación
+        mostrarToast_('🔒 Termina o cancela ' + nombreModoTrabajo_() + ' antes de cambiar de área.');
+        sel.value = state.areaActiva || ''; return;
+      }
+      activarModoArea_(sel.value || null);
+    };
   }
 }
 
-function activarModoArea_(area) {
+/* ── Filtro por ÁREA de relacionamiento (13-10-2026) ──
+ * Primer filtro del mapa: al elegir un área,
+ *   · el selector de comunas muestra solo las comunas del área (v_area_comunas, SQL 71/93);
+ *   · las comunas fuera del área se pintan con un gris muy transparente (máscara) y las
+ *     del área quedan delineadas con su nombre;
+ *   · en el Planificador de Alertas se ven también las entidades/rutas planificadas de las
+ *     OTRAS comunas del área (atenuadas, solo consulta, con «Ir a la comuna»), para manejar
+ *     recursos y rutas que cruzan a una comuna colindante.
+ * La planificación se sigue haciendo sobre la comuna activa. */
+state.areaFiltro = null;   // { area, ids: Set(comunas.id) }
+let mascaraAreaLayer = null;
+
+async function activarModoArea_(area) {
   state.areaActiva = area;
   const sel = document.getElementById('area-select');
-  if (sel) sel.classList.toggle('modo-area-on', !!area);
+  if (sel) { sel.classList.toggle('modo-area-on', !!area); sel.value = area || ''; }
+  state.areaFiltro = null;
+  if (area) {
+    const clave = plNorm_(area).replace(/[^A-Z0-9]/g, '');   // = clave_area_red_vial_
+    // Comunas que ADMINISTRA el área (SQL 94, reasignables en Comunas por área). Sin el 94: la territorial.
+    let { data, error } = await supabaseClient.from('v_area_comunas_admin').select('id_comuna').eq('area_norm', clave);
+    if (error) ({ data, error } = await supabaseClient.from('v_area_comunas').select('id_comuna').eq('area_norm', clave));
+    if (error) mostrarToast_('No se pudieron leer las comunas del área: ' + error.message);
+    const nums = new Set((data || []).map(x => Number(x.id_comuna)));
+    state.areaFiltro = { area, ids: new Set((state.comunas || []).filter(c => nums.has(Number(c.id_comuna))).map(c => c.id)) };
+  }
+  refrescarSelectorComunas_();
+  await dibujarMascaraArea_();
+  // La comuna activa debe ser del área: si no lo es, se pasa a la primera comuna del área que el usuario pueda usar
+  if (state.areaFiltro && !state.areaFiltro.ids.has(state.activeComunaId)) {
+    const primera = comunasSeleccionablesUsuario_().filter(c => state.areaFiltro.ids.has(c.id))
+      .sort((a, b) => a.comuna.localeCompare(b.comuna, 'es'))[0];
+    if (primera) seleccionarComuna_(primera.id);
+  } else if (state.activeComunaId) {
+    loadPlanificacionRecursos_(state.activeComunaId);   // suma / quita las entidades de las otras comunas del área
+  }
   // Recargar todas las capas con el nuevo criterio
   recargarCapasPorFiltro_();
-  mostrarToast_(area ? ('Modo área: mostrando todas las capas de "' + area + '" (área completa).') : 'Modo comuna: filtrando por la comuna activa.');
+  mostrarToast_(area ? ('🧭 Área ' + aTitulo_(area) + ': ' + (state.areaFiltro ? state.areaFiltro.ids.size : 0) + ' comuna(s). El resto se ve en gris.') : 'Sin filtro de área: todas tus comunas.');
+}
+
+/** Máscara gris (todo lo que está FUERA del área) + contorno y nombre de cada comuna del área. */
+async function dibujarMascaraArea_() {
+  if (!map) return;
+  if (!map.getPane('mascaraAreaPane')) {
+    map.createPane('mascaraAreaPane');
+    map.getPane('mascaraAreaPane').style.zIndex = 350;          // bajo rutas y recursos (overlayPane = 400)
+    map.getPane('mascaraAreaPane').style.pointerEvents = 'none';
+  }
+  if (mascaraAreaLayer) { map.removeLayer(mascaraAreaLayer); mascaraAreaLayer = null; }
+  const f = state.areaFiltro;
+  if (!f || !f.ids.size) return;
+  const { data, error } = await supabaseClient.from('v_comunas_limite').select('id, comuna, geometry').in('id', [...f.ids]);
+  if (error || !data || state.areaFiltro !== f) return;
+  const huecos = [];
+  const grupo = L.layerGroup();
+  const aLL = anillo => anillo.map(p => [p[1], p[0]]);
+  data.forEach(c => {
+    let g = c.geometry; if (typeof g === 'string') { try { g = JSON.parse(g); } catch (e) { return; } }
+    if (!g) return;
+    if (g.type === 'Feature') g = g.geometry;
+    const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+    polys.forEach(p => { if (p && p[0]) huecos.push(aLL(p[0])); });
+    const contorno = L.geoJSON(g, { pane: 'mascaraAreaPane', interactive: false, style: { color: '#7C3AED', weight: 2, opacity: 0.85, dashArray: '7,5', fill: false } });
+    contorno.addTo(grupo);
+    try {
+      const centro = contorno.getBounds().getCenter();
+      L.marker(centro, { pane: 'mascaraAreaPane', interactive: false, keyboard: false,
+        icon: L.divIcon({ className: 'mascara-area-etq', html: '<span>' + escapeHtml_(aTitulo_(c.comuna)) + '</span>', iconSize: [0, 0] }) }).addTo(grupo);
+    } catch (e) {}
+  });
+  if (!huecos.length) return;
+  // Polígono del mundo con un hueco por cada comuna del área: solo se agrisa lo de afuera
+  const mundo = [[-89, -179.9], [-89, 179.9], [89, 179.9], [89, -179.9]];
+  L.polygon([mundo, ...huecos], { pane: 'mascaraAreaPane', interactive: false, stroke: false, fillColor: '#475569', fillOpacity: 0.22 }).addTo(grupo);
+  mascaraAreaLayer = grupo.addTo(map);
+  try {
+    const lim = L.featureGroup(grupo.getLayers().filter(l => l instanceof L.GeoJSON)).getBounds();
+    if (lim.isValid()) map.fitBounds(lim, { padding: [30, 30] });
+  } catch (e) {}
+}
+
+/** Desde la ventana de una entidad de otra comuna del área: cambia a esa comuna. */
+function irAComunaArea_(comunaId) {
+  map.closePopup();
+  if (!comunasSeleccionablesUsuario_().some(c => c.id === comunaId)) { mostrarToast_('No tienes asignada esa comuna.'); return; }
+  seleccionarComuna_(comunaId);
 }
 
 // Recarga las 5 capas según el filtro vigente (comuna o área)
@@ -14655,12 +14806,13 @@ async function loadRecursosDisponiblesAreaLayer_() {
   const perfil = state.perfil.perfil;
   let resultado;
 
-  if (perfil === 'Administrador') {
-    // Administrador: TODOS los recursos (sin filtro)
-    resultado = await supabaseClient.from('recursos_disponibles_area_geojson').select('*');
-  } else if (perfil === 'Jefe de Área Relacionamiento' && state.areaActiva) {
-    // Modo Área: recursos de su área completa (nombre comparado sin tildes)
+  if ((perfil === 'Administrador' || esJefeAreaPerfil_(perfil)) && state.areaActiva) {
+    // Filtro 🧭 Área (Admin y Jefe de Área): solo los recursos del área elegida
+    // (nombre comparado sin tildes, espacios ni guiones). 13-10-2026: antes el Admin veía todos.
     resultado = await recursosDeAreas_(state.areaActiva);
+  } else if (perfil === 'Administrador') {
+    // Administrador sin área elegida: TODOS los recursos (sin filtro)
+    resultado = await supabaseClient.from('recursos_disponibles_area_geojson').select('*');
   } else {
     // Jefe de Área en modo comuna, GRD y Visor: solo recursos de la comuna activa
     const idc = idComunaActiva_();
@@ -17725,9 +17877,11 @@ async function cargarOpcionesRecursoRef_(prefijo, ctx) {
       const areas = new Map(), agregar = a => { if (a) { const k = plNorm_(a).replace(/[^A-Z0-9]/g, ''); if (!areas.has(k)) areas.set(k, a); } };
       (res.data || []).forEach(r => agregar(r.area));
       try {
-        const { data: man, error: em } = await supabaseClient.from('area_comunas_manual').select('area').eq('id_comuna', ctx.idComuna);
-        if (!em) (man || []).forEach(m => agregar(m.area));
-      } catch (e) { /* sin el SQL 93: solo las áreas de los recursos de la comuna */ }
+        // Áreas que administran la comuna (SQL 94: asignación administrativa, reasignable)
+        let { data: adm, error: ea } = await supabaseClient.from('v_area_comunas_admin').select('area').eq('id_comuna', ctx.idComuna);
+        if (ea) ({ data: adm, error: ea } = await supabaseClient.from('area_comunas_manual').select('area').eq('id_comuna', ctx.idComuna));
+        if (!ea) (adm || []).forEach(m => { if (m.area && m.area !== '(sin área)') agregar(m.area); });
+      } catch (e) { /* sin el SQL 93/94: solo las áreas de los recursos de la comuna */ }
       areasComuna = [...areas.values()];
       if (areasComuna.length) {
         const resArea = await recursosDeAreas_(areasComuna, 'codigo_ref');
@@ -20109,6 +20263,13 @@ async function loadPlanificacionRecursos_(comunaId) {
     planIds.push(state.modoPlanificacion.planId);
     escenarioPorPlan[state.modoPlanificacion.planId] = state.modoPlanificacion.escenario;
   }
+  // Filtro por área (🧭): también los planes de las OTRAS comunas del área, solo para consulta
+  const otraComunaPorPlan = {};
+  const otrasComunas = (state.areaFiltro && state.modoMapa === 'planificador') ? [...state.areaFiltro.ids].filter(id => id !== comunaId) : [];
+  if (otrasComunas.length) {
+    const { data: po } = await supabaseClient.from('planes_contingencia').select('id, escenario, comuna_id').eq('ambito', 'comuna').in('comuna_id', otrasComunas);
+    (po || []).forEach(p => { planIds.push(p.id); escenarioPorPlan[p.id] = p.escenario; otraComunaPorPlan[p.id] = p.comuna_id; });
+  }
 
   if (planIds.length === 0) return;
 
@@ -20118,11 +20279,12 @@ async function loadPlanificacionRecursos_(comunaId) {
     .in('plan_id', planIds);
   if (window.__DEBUG__) console.log('[DEBUG PLANIF] recursos encontrados:', recursos, 'error:', errRecursos);
 
-  state.planificacionRecursos = recursos || [];
+  // Solo las entidades de la comuna activa cuentan como «su» planificación (KPI, edición, filtros)
+  state.planificacionRecursos = (recursos || []).filter(r => !otraComunaPorPlan[r.plan_id]);
   window.planRecursosMarkersById = window.planRecursosMarkersById || {};
   // Recursos enlazados a rutas (SQL 79): código, tipo y estado de turno para la ventana de la ruta.
   state.recursoRefInfo = {};
-  const refIds = [...new Set(state.planificacionRecursos.map(r => r.recurso_ref_id).filter(Boolean))];
+  const refIds = [...new Set((recursos || []).map(r => r.recurso_ref_id).filter(Boolean))];
   if (refIds.length) {
     try {
       const { data: rinf } = await supabaseClient.from('v_planificador_recursos')
@@ -20149,15 +20311,32 @@ async function loadPlanificacionRecursos_(comunaId) {
   // Orden de capas: se dibuja primero lo de abajo (CMPC) y al final lo de arriba
   // (Municipalidad), así en el mapa queda encima lo que encabeza la simbología.
   const rangoDe_ = r => rangoInstitucionCapa_((r.instituciones || {}).nombre);
+  // Entidades de OTRAS comunas del área (filtro 🧭): subgrupo dentro de cada escenario, así se
+  // encienden/apagan con su escenario pero no cuentan en KPI, simbología ni filtros de la comuna.
+  const subOtras = {};
+  if (Object.keys(otraComunaPorPlan).length) {
+    [['Verde', planificacionRecursosVerdeLayer], ['Amarilla', planificacionRecursosAmarillaLayer], ['Roja', planificacionRecursosRojaLayer]]
+      .forEach(([e, g]) => { subOtras[e] = L.layerGroup(); g.addLayer(subOtras[e]); });
+  }
   (recursos || []).slice().sort((a, b) => rangoDe_(b) - rangoDe_(a)).forEach(r => {
     const inst = r.instituciones || { nombre: 'Institución', color_hex: '#64748B' };
     const escenario = escenarioPorPlan[r.plan_id];
+    const otra = otraComunaPorPlan[r.plan_id] || null;   // id de la otra comuna del área, o null
     const colorEscenario = escenario === 'Verde' ? '#16A34A' : escenario === 'Amarilla' ? '#F59E0B' : '#EF4444';
     const colorInstitucion = inst.color_hex; // simbología: color propio de cada institución
-    const layerDestino = escenario === 'Verde' ? planificacionRecursosVerdeLayer : escenario === 'Amarilla' ? planificacionRecursosAmarillaLayer : planificacionRecursosRojaLayer;
-    const puedeEditar = ['GRD', 'Administrador', 'Jefe de Área Relacionamiento'].includes(state.perfil.perfil) && puedeEditarModulo_('planificador_mapa');
+    const layerDestino = otra ? subOtras[escenario] : escenario === 'Verde' ? planificacionRecursosVerdeLayer : escenario === 'Amarilla' ? planificacionRecursosAmarillaLayer : planificacionRecursosRojaLayer;
+    const puedeEditar = !otra && ['GRD', 'Administrador', 'Jefe de Área Relacionamiento'].includes(state.perfil.perfil) && puedeEditarModulo_('planificador_mapa');
+    const comunaOtra = otra ? ((state.comunas || []).find(c => c.id === otra) || {}).comuna || otra : '';
 
-    const popupHtml =
+    const popupHtml = otra
+      ? '<div class="popup-title"><span class="pr-sw" style="background:' + colorInstitucion + ';display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;"></span>' + escapeHtml_(inst.nombre) +
+          ' <span style="font-size:10px;">(' + (escenario === 'Verde' ? '🟢' : escenario === 'Amarilla' ? '🟡' : '🔴') + ' ' + escapeHtml_(comunaOtra) + ')</span></div>' +
+        '<div class="popup-row">🏷️ ' + iconoTipoGeometria_(r.tipo_geometria) + ' · ' + escapeHtml_(r.tipo_recurso || '') + '</div>' +
+        '<div class="popup-row" style="margin-top:4px;">' + escapeHtml_(r.descripcion || 'Sin descripción') + '</div>' +
+        bloqueRecursoRuta_(r, escenario) +
+        '<div class="popup-row" style="margin-top:6px;color:#6D28D9;font-size:11px;">🧭 Planificada en la comuna <b>' + escapeHtml_(comunaOtra) + '</b> (otra comuna del área). Para editarla, cambia a esa comuna.</div>' +
+        '<div class="popup-actions"><button class="popup-btn" onclick="irAComunaArea_(\'' + escapeHtml_(otra) + '\')">📍 Ir a ' + escapeHtml_(comunaOtra) + '</button></div>'
+      :
       '<div class="popup-title"><span class="pr-sw" style="background:' + colorInstitucion + ';display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;"></span>' + inst.nombre + ' <span style="font-size:10px;">(' + (escenario === 'Verde' ? '🟢 Planificado' : escenario === 'Amarilla' ? '🟡 Planificado' : '🔴 Planificado') + ')</span></div>' +
       '<div class="popup-row">🏷️ ' + iconoTipoGeometria_(r.tipo_geometria) + ' · ' + r.tipo_recurso + '</div>' +
       '<div class="popup-row" style="margin-top:4px;">' + escapeHtml_(r.descripcion || 'Sin descripción') + '</div>' +
@@ -20209,13 +20388,14 @@ async function loadPlanificacionRecursos_(comunaId) {
       }
       habilitarHoverEtiqueta_(figura, { institucion: inst.nombre, tipo: r.tipo_recurso, descripcion: r.descripcion, recursoRuta: infoRuta }, { direction: 'center', offset: [0, 0] });
       figura.on('popupopen', () => {
+        if (otra) return;   // otra comuna del área: ventana de consulta, siempre se abre
         if (!state.modoPlanificacion && !state.editorMode) { figura.closePopup(); mostrarToast_('✏️ Activa el modo planificación para modificar.'); return; }
         bindPopupActionsPlanificacion_();
       });
       // Efecto neón al pasar el mouse (color según escenario Amarilla/Roja)
       const claseNeon = escenario === 'Verde' ? 'neon-hover-verde' : escenario === 'Amarilla' ? 'neon-hover-amarilla' : 'neon-hover-roja';
       figura.on('mouseover', () => { const el = figura.getElement && figura.getElement(); if (el) { el.classList.add(claseNeon); figura.setStyle({ weight: 5, fillOpacity: 0.32 }); } });
-      figura.on('mouseout',  () => { const el = figura.getElement && figura.getElement(); if (el) { el.classList.remove(claseNeon); figura.setStyle({ weight: r.tipo_geometria === 'area' ? 3 : 4, fillOpacity: 0.18 }); } });
+      figura.on('mouseout',  () => { const el = figura.getElement && figura.getElement(); if (el) { el.classList.remove(claseNeon); figura.setStyle({ weight: r.tipo_geometria === 'area' ? 3 : 4, fillOpacity: otra ? 0.08 : 0.18 }); } });
       figura._institucionId = r.institucion_id;
       figura._institucionNombre = inst.nombre;
       figura._esLinea = (r.tipo_geometria === 'linea');
@@ -20223,10 +20403,17 @@ async function loadPlanificacionRecursos_(comunaId) {
       figura._tipoGeometria = r.tipo_geometria;
       figura._tipoRecurso = r.tipo_recurso || 'Sin tipo';
       figura._pertenencia = pertenenciaDeRecurso_(r);
-      figura._recursoId = r.id;
-      layerDestino.addLayer(figura);
-      vigilarFiltroEntidad_(figura);
-      window.planRecursosMarkersById[r.id] = figura;
+      if (otra) {
+        // Otra comuna del área: atenuada, sin edición y fuera de KPI / filtros de la comuna activa
+        figura.setStyle({ opacity: 0.55, fillOpacity: 0.08, dashArray: r.tipo_geometria === 'linea' ? '10,6' : '6,5' });
+        figura._otraComuna = otra;
+        layerDestino.addLayer(figura);
+      } else {
+        figura._recursoId = r.id;
+        layerDestino.addLayer(figura);
+        vigilarFiltroEntidad_(figura);
+        window.planRecursosMarkersById[r.id] = figura;
+      }
 
       // Marcador con el LOGO de la institución
       //   · Líneas: se ancla en el VÉRTICE CENTRAL del trazado. El centroide
@@ -20253,12 +20440,12 @@ async function loadPlanificacionRecursos_(comunaId) {
             html: '<div style="width:24px;height:24px;border-radius:50%;background:#F1F5F9;border:2px solid ' + colorInstitucion + ';box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
               '<img src="' + escapeHtml_(logoFig) + '" alt="" style="width:17px;height:17px;object-fit:contain;transform:scale(' + ZOOM_LOGO_MARCADOR + ');" onerror="this.style.display=\'none\'"></div>',
           });
-          const mLogo = L.marker(centro, { icon: iconoLogo, interactive: false, keyboard: false });
+          const mLogo = L.marker(centro, { icon: iconoLogo, interactive: false, keyboard: false, opacity: otra ? 0.55 : 1 });
           mLogo._institucionId = r.institucion_id;
           mLogo._institucionNombre = inst.nombre;
           mLogo._esLogoDeFigura = true;
           mLogo._tipoGeometria = r.tipo_geometria;   // sigue a su figura
-          vigilarFiltroEntidad_(mLogo);
+          if (!otra) vigilarFiltroEntidad_(mLogo);
           mLogo._tipoRecurso = r.tipo_recurso || 'Sin tipo';
           mLogo._pertenencia = pertenenciaDeRecurso_(r);
           layerDestino.addLayer(mLogo);
@@ -20303,8 +20490,10 @@ async function loadPlanificacionRecursos_(comunaId) {
     const m = L.marker([lat, lng], { icon: icono, draggable: puedeEditar && !!(state.modoPlanificacion || state.editorMode),
       zIndexOffset: (100 - rangoInstitucionCapa_(inst.nombre)) * 10 });   // orden de capas: Municipalidad arriba, CMPC abajo
     m._puedeArrastrar = puedeEditar;
+    if (otra) { m.setOpacity(0.55); m._otraComuna = otra; }
     m.bindPopup(popupHtml);
     m.on('popupopen', () => {
+      if (otra) return;   // otra comuna del área: ventana de consulta
       if (!state.modoPlanificacion && !state.editorMode) {
         m.closePopup();
         mostrarToast_('✏️ Activa el modo planificación para modificar.');
@@ -20336,8 +20525,8 @@ async function loadPlanificacionRecursos_(comunaId) {
         if (rec) { rec.lat = pos.lat; rec.lng = pos.lng; }
       });
     }
-    // Guardar referencia para activar/desactivar dragging
-    window.planRecursosMarkersById[r.id] = m;
+    // Guardar referencia para activar/desactivar dragging (no las de otras comunas del área)
+    if (!otra) window.planRecursosMarkersById[r.id] = m;
     // Registrar en el array de etiquetas del escenario (para toggle 🏷️)
     const claveEsc = escenario === 'Verde' ? 'verde' : escenario === 'Amarilla' ? 'amarilla' : 'roja';
     const arrEtiq = claveEsc === 'verde' ? alertaVerdeFeatureLayers : claveEsc === 'amarilla' ? alertaAmarillaFeatureLayers : alertaRojaFeatureLayers;
@@ -20352,9 +20541,12 @@ async function loadPlanificacionRecursos_(comunaId) {
     m._tipoGeometria = 'punto';
     m._tipoRecurso = r.tipo_recurso || 'Sin tipo';
     m._pertenencia = pertenenciaDeRecurso_(r);
-    m._recursoId = r.id;
-    layerDestino.addLayer(m);
-    vigilarFiltroEntidad_(m);
+    if (otra) layerDestino.addLayer(m);
+    else {
+      m._recursoId = r.id;
+      layerDestino.addLayer(m);
+      vigilarFiltroEntidad_(m);
+    }
   }); // fin forEach recursos
 
   // Reaplicar los filtros visuales tras recargar las capas.
