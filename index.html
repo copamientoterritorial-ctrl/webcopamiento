@@ -449,6 +449,9 @@ body{
 .map-label.label-fundo{color:#047857 !important;font-size:9px !important;}
 .map-label.label-arearel{color:#6D28D9 !important;font-size:9px !important;}
 .map-label.label-recurso{color:#0F172A !important;}
+/* Recursos disponibles: «ID · Clave radial» y debajo la persona a cargo (15-10-2026) */
+.map-label .lbl-persona{display:inline-block;margin-top:1px;font-weight:600;font-size:10px;color:#475569;}
+.map-label:has(.lbl-persona){text-align:center;line-height:1.25;}
 /* Sin marco negro al pasar el cursor o al hacer clic.
    El navegador dibuja un contorno de foco sobre los elementos SVG y los
    marcadores de Leaflet, que en el mapa se ve como un recuadro negro
@@ -1301,6 +1304,13 @@ body.tema-oscuro .btn-panel-mapa:not(.activo){background:#0F172A;color:#E2E8F0;b
 .pk-hito.si{background:#DCFCE7;color:#166534;} .pk-hito.no{background:#FEE2E2;color:#991B1B;}
 .pk-tabla input{width:130px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;font:inherit;font-size:12px;}
 .pk-tabla input.pk-check{width:18px;height:18px;accent-color:#16A34A;cursor:pointer;}
+/* 👥 Asignar responsables (15-10-2026) */
+.pk-tabla input.pa-in{width:170px;}
+.pk-tabla input[type=checkbox]{width:16px;height:16px;accent-color:#2563EB;cursor:pointer;}
+.pa-in.pa-mod{background:#DBEAFE;border-color:#60A5FA;}
+.pa-masivo{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 10px;border:1px dashed #93C5FD;border-radius:10px;background:#EFF6FF;font-size:12px;}
+.pa-masivo .pa-in{width:220px;padding:5px 8px;border:1px solid var(--border);border-radius:7px;font:inherit;font-size:12px;}
+body.tema-oscuro .pa-masivo{background:#172554;border-color:#1E40AF;} body.tema-oscuro .pa-in.pa-mod{background:#1E3A8A;}
 .pk-tabla tr.pk-lista td{background:#F0FDF4;}
 .pk-seg{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 8px;border-radius:12px;background:var(--bg-light);border:1px solid var(--border);}
 .pk-seg-tit{font-size:12px;font-weight:800;color:var(--text-secondary);margin-right:2px;}
@@ -1332,6 +1342,11 @@ body.tema-oscuro .pk-tabla tr.pk-lista td{background:#052E16;}
 .prio-var-nom{font-size:13px;font-weight:800;color:var(--text-primary);line-height:1.2;}
 .prio-var-nom em{display:block;font-style:normal;font-weight:600;font-size:10.5px;color:var(--text-tertiary);}
 .prio-chips{display:flex;flex-wrap:wrap;gap:4px;margin:7px 0 0;}
+.prio-v6-lista{display:flex;flex-wrap:wrap;gap:4px;}
+.prio-metodo{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 8px;font-size:12px;font-weight:600;}
+.prio-metodo label{display:flex;align-items:center;gap:5px;cursor:pointer;}
+.prio-pesos-off{opacity:.45;}
+.prio-v6-lista .prio-chip b{color:#DB2777;margin-left:3px;}
 .prio-chip{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:99px;background:color-mix(in srgb,var(--c) 14%,transparent);
   color:color-mix(in srgb,var(--c) 75%,var(--text-primary));font-variant-numeric:tabular-nums;white-space:nowrap;}
 .prio-var details{margin-top:6px;}
@@ -1748,15 +1763,88 @@ body.tema-oscuro .pl-modal-caja, body.tema-oscuro .pl-chip{background:#1E293B;bo
 /* Planificador: el texto de ejemplo de un campo vacío NO debe parecer un dato guardado */
 .pl-campo input::placeholder{color:#B6BEC9;font-style:italic;opacity:1;}
 .pl-campo.falta input:placeholder-shown, .pl-campo.falta select{background:#FFFBEB;}
+/* ── ❓ Centro de ayuda + recorridos guiados (15-10-2026) ── */
+#btn-ayuda{color:#2563EB;}
+.ay-modal{position:fixed;inset:0;z-index:5500;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;padding:14px;}
+.ay-modal.show{display:flex;}
+.ay-caja{background:var(--white);color:var(--text-primary);border-radius:18px;width:min(1120px,100%);height:min(86vh,820px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.35);}
+.ay-cab{display:flex;align-items:center;gap:10px;padding:14px 18px;background:linear-gradient(120deg,#0F172A,#1E3A8A);color:#fff;}
+.ay-cab h3{margin:0;font-size:16px;flex:1;}
+.ay-cab small{display:block;font-weight:500;opacity:.75;font-size:11.5px;margin-top:2px;}
+.ay-cab button{border:0;background:rgba(255,255,255,.14);color:#fff;border-radius:9px;padding:6px 11px;cursor:pointer;font:inherit;font-weight:700;}
+.ay-cuerpo{flex:1;display:flex;min-height:0;}
+.ay-nav{width:250px;flex-shrink:0;border-right:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:6px;overflow:auto;background:var(--bg-light);}
+.ay-nav button{display:flex;gap:10px;align-items:flex-start;text-align:left;border:1px solid transparent;background:none;border-radius:12px;padding:9px 10px;cursor:pointer;font:inherit;color:var(--text-primary);}
+.ay-nav button:hover{background:var(--white);border-color:var(--border);}
+.ay-nav button.on{background:var(--white);border-color:var(--c,#2563EB);box-shadow:inset 3px 0 0 var(--c,#2563EB);}
+.ay-nav .ico{font-size:20px;line-height:1;}
+.ay-nav b{display:block;font-size:12.5px;}
+.ay-nav small{display:block;font-size:11px;color:var(--text-tertiary);margin-top:2px;}
+.ay-contenido{flex:1;overflow:auto;padding:18px 22px 26px;}
+.ay-hero{display:flex;gap:16px;align-items:center;padding:14px 16px;border-radius:14px;background:color-mix(in srgb,var(--c,#2563EB) 9%,var(--white));border:1px solid color-mix(in srgb,var(--c,#2563EB) 30%,var(--border));margin-bottom:14px;}
+.ay-hero h2{margin:0 0 4px;font-size:18px;}
+.ay-hero p{margin:0;font-size:12.5px;color:var(--text-secondary);line-height:1.5;}
+.ay-hero .ay-tour{margin-left:auto;flex-shrink:0;border:0;border-radius:11px;padding:10px 14px;background:var(--c,#2563EB);color:#fff;font:inherit;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 6px 16px color-mix(in srgb,var(--c,#2563EB) 35%,transparent);}
+.ay-hero .ay-tour:hover{filter:brightness(1.08);}
+.ay-ilus{display:block;width:100%;height:auto;border-radius:12px;border:1px solid var(--border);background:#F8FAFC;margin:0 0 14px;}
+.ay-flujo{display:flex;align-items:stretch;gap:6px;flex-wrap:wrap;margin:0 0 16px;}
+.ay-flujo .p{flex:1;min-width:120px;border:1px solid var(--border);border-radius:11px;padding:8px 10px;background:var(--white);font-size:11.5px;position:relative;}
+.ay-flujo .p b{display:block;font-size:12px;margin-bottom:2px;}
+.ay-flujo .p i{position:absolute;top:-8px;left:-6px;width:20px;height:20px;border-radius:50%;background:var(--c,#2563EB);color:#fff;font-style:normal;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.ay-flujo .f{align-self:center;color:var(--text-tertiary);font-weight:800;}
+.ay-pasos{display:flex;flex-direction:column;gap:10px;}
+.ay-paso{display:grid;grid-template-columns:34px 1fr;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:13px;background:var(--white);}
+.ay-paso .n{width:30px;height:30px;border-radius:50%;background:var(--c,#2563EB);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.ay-paso h4{margin:2px 0 4px;font-size:13.5px;}
+.ay-paso p{margin:0;font-size:12.5px;color:var(--text-secondary);line-height:1.55;}
+.ay-ui{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center;}
+.ay-ui .m{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:9px;border:1px solid var(--border);background:var(--bg-light);font-size:11.5px;font-weight:700;color:var(--text-primary);white-space:nowrap;}
+.ay-ui .m.osc{background:#0F172A;color:#fff;border-color:#0F172A;}
+.ay-ui .m.v{background:#DCFCE7;border-color:#86EFAC;} .ay-ui .m.a{background:#FEF3C7;border-color:#FCD34D;} .ay-ui .m.r{background:#FEE2E2;border-color:#FCA5A5;}
+.ay-ui .m.az{background:#DBEAFE;border-color:#93C5FD;} .ay-ui .m.mo{background:#EDE9FE;border-color:#C4B5FD;}
+.ay-ui .fl{color:var(--text-tertiary);font-weight:800;}
+.ay-cajas{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin-top:14px;}
+.ay-nota{border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.5;border:1px solid;}
+.ay-nota b{display:block;margin-bottom:4px;font-size:12.5px;}
+.ay-nota ul{margin:0;padding-left:18px;} .ay-nota li{margin:2px 0;}
+.ay-nota.ok{background:#F0FDF4;border-color:#BBF7D0;color:#14532D;}
+.ay-nota.no{background:#FEF2F2;border-color:#FECACA;color:#7F1D1D;}
+.ay-nota.tip{background:#EFF6FF;border-color:#BFDBFE;color:#1E3A8A;}
+.ay-nota.rol{background:#FFFBEB;border-color:#FDE68A;color:#78350F;}
+.ay-tabla{width:100%;border-collapse:collapse;font-size:12px;margin-top:14px;}
+.ay-tabla th,.ay-tabla td{border-bottom:1px solid var(--border);padding:7px 8px;text-align:left;vertical-align:top;}
+.ay-tabla th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-tertiary);}
+body.tema-oscuro .ay-ilus{background:#0B1220;}
+@media (max-width: 760px){ .ay-cuerpo{flex-direction:column;} .ay-nav{width:auto;flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--border);} .ay-nav button{min-width:180px;} .ay-hero{flex-direction:column;align-items:flex-start;} .ay-hero .ay-tour{margin-left:0;} }
+/* Recorrido guiado: foco + globo */
+#ay-foco{position:fixed;z-index:6000;border-radius:12px;pointer-events:none;box-shadow:0 0 0 9999px rgba(15,23,42,.58),0 0 0 3px #FBBF24,0 0 24px 6px rgba(251,191,36,.55);transition:all .25s ease;}
+#ay-foco.sin{width:0!important;height:0!important;box-shadow:0 0 0 9999px rgba(15,23,42,.58);}
+#ay-globo{position:fixed;z-index:6001;width:min(360px,calc(100vw - 24px));background:var(--white);color:var(--text-primary);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.38);padding:14px 15px 12px;font-size:12.5px;line-height:1.5;transition:top .25s ease,left .25s ease;}
+#ay-globo .g-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+#ay-globo .g-guia{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--c,#2563EB);flex:1;}
+#ay-globo .g-n{font-size:11px;font-weight:700;color:var(--text-tertiary);}
+#ay-globo h4{margin:0 0 5px;font-size:14.5px;}
+#ay-globo p{margin:0;color:var(--text-secondary);}
+#ay-globo .g-aviso{margin-top:7px;padding:6px 8px;border-radius:8px;background:#FFFBEB;border:1px solid #FDE68A;color:#78350F;font-size:11.5px;}
+#ay-globo .g-barra{height:4px;border-radius:3px;background:var(--bg-light);margin:10px 0 9px;overflow:hidden;}
+#ay-globo .g-barra i{display:block;height:100%;background:var(--c,#2563EB);transition:width .25s;}
+#ay-globo .g-pie{display:flex;gap:6px;align-items:center;}
+#ay-globo .g-pie button{border:1px solid var(--border);background:var(--white);color:var(--text-primary);border-radius:9px;padding:6px 11px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;}
+#ay-globo .g-pie .g-sig{background:var(--c,#2563EB);border-color:var(--c,#2563EB);color:#fff;margin-left:auto;}
+#ay-globo .g-pie .g-salir{border:0;color:var(--text-tertiary);padding-left:2px;}
 /* "Ver como…": franja visible mientras el Administrador simula otro perfil */
+/* 15-10-2026: etiqueta compacta DENTRO de la barra superior (antes flotaba sobre los filtros) */
 #franja-simulacion{
-  position:fixed;top:66px;left:50%;transform:translateX(-50%);z-index:1500;
-  display:flex;align-items:center;gap:8px;padding:5px 6px 5px 14px;border-radius:20px;
-  background:#F59E0B;color:#111827;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.28);white-space:nowrap;
+  display:flex;align-items:center;gap:6px;flex-shrink:1;min-width:0;max-width:280px;height:32px;
+  padding:0 4px 0 10px;border-radius:16px;border:1px solid #F59E0B;
+  background:#FEF3C7;color:#78350F;font-size:11.5px;white-space:nowrap;cursor:help;
 }
-#franja-simulacion .fs-nota{cursor:help;opacity:.75;}
-#franja-simulacion button{border:none;background:#111827;color:#fff;font:inherit;font-weight:700;
-  padding:3px 11px;border-radius:14px;cursor:pointer;}
+#franja-simulacion .fs-txt{overflow:hidden;text-overflow:ellipsis;min-width:0;}
+#franja-simulacion button{border:none;background:#B45309;color:#fff;font:inherit;font-size:11px;font-weight:700;
+  padding:3px 10px;border-radius:12px;cursor:pointer;flex-shrink:0;}
+#franja-simulacion button:hover{background:#92400E;}
+body.tema-oscuro #franja-simulacion{background:#451A03;color:#FDE68A;border-color:#B45309;}
+@media (max-width: 900px){ #franja-simulacion .fs-txt{display:none;} }
 .up-sub{padding:6px 16px 2px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text-tertiary);}
 /* Ruta Normal del recurso en el Calendario y ayuda del campo "Recurso asociado" */
 .turnos-rec-ruta{font-size:10px;color:#2563EB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;margin-top:1px;}
@@ -2842,6 +2930,8 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
       <div class="pat-toolbar-left">
         <strong>🎯 Comunas Prioritarias</strong>
         <select id="prio-region" class="admin-search" style="min-width:150px;max-width:200px;" title="Región"></select>
+        <select id="prio-subg" class="admin-search" style="min-width:140px;max-width:180px;" title="Subgerencia (según el área de relacionamiento de la comuna)"><option value="">Todas las subgerencias</option></select>
+        <select id="prio-area" class="admin-search" style="min-width:140px;max-width:190px;" title="Área de relacionamiento (Administración › Comunas por área)"><option value="">Todas las áreas</option></select>
         <select id="prio-tipo" class="admin-search" style="min-width:150px;max-width:190px;" title="Tipo de comuna (V5)">
           <option value="">Todas las comunas</option>
           <option value="ambas">⭐ Estratégicas y de relevancia política</option>
@@ -2869,6 +2959,7 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
       </div>
       <div class="pat-toolbar-right" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span class="turnos-estado" id="prio-estado">—</span>
+        <button class="turnos-btn" id="prio-asignar" title="Tabla para asignar comunas a Jefes de Área y Responsables">👥 Asignar responsables</button>
         <button class="turnos-btn" id="prio-kpi-avance" title="Avance del trabajo de copamiento por comuna y por responsable" style="background:#0F172A;color:#fff;border-color:#0F172A;">📈 KPI de avance</button>
         <button class="turnos-btn" id="prio-preset-excel" title="Rangos originales de la matriz Excel">📊 Rangos Excel</button>
         <button class="turnos-btn" id="prio-preset-percentil" title="Propuesta: rangos por percentiles de los datos">🧪 Propuesta percentiles</button>
@@ -3113,6 +3204,9 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
       <input type="file" id="input-logo-municipal" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none;">
       <div class="comuna-badge controles-mapa" id="comuna-badge" style="display:none;"><span class="dot"></span><span id="comuna-label">—</span></div>
 
+      <button class="icon-btn" id="btn-ayuda" title="Ayuda: guías ilustradas y recorridos paso a paso">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </button>
       <button class="icon-btn" id="btn-actualizar-datos" title="Actualizar datos desde la base de datos">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       </button>
@@ -5003,13 +5097,16 @@ function renderSimulacionPerfil_() {
   const cm = (state.comunas || []).find(c => c.id === s.comunaId);
   const donde = s.perfil === 'Jefe de Área Relacionamiento' ? 'Área ' + s.area : (cm ? cm.comuna : s.comunaId);
   if (!franja) {
+    // Dentro de la barra superior (junto a 🔄), para no tapar filtros ni barras de herramientas
     franja = document.createElement('div');
     franja.id = 'franja-simulacion';
-    document.body.appendChild(franja);
+    const der = document.querySelector('.navbar__right'), ref = document.getElementById('btn-actualizar-datos');
+    if (der && ref) der.insertBefore(franja, ref); else document.body.appendChild(franja);
   }
-  franja.innerHTML = '👁️ Viendo como <b>' + escapeHtml_(nombrePerfil) + '</b> · ' + escapeHtml_(donde || '—') +
-    '<span class="fs-nota" title="La sesión sigue siendo de Administrador: se prueban las restricciones de la interfaz; la base de datos te sigue permitiendo todo lo de Administrador.">ⓘ</span>' +
-    '<button type="button" id="fs-salir">Salir</button>';
+  franja.title = 'Viendo como ' + nombrePerfil + ' · ' + (donde || '—') +
+    '. La sesión sigue siendo de Administrador: se prueban las restricciones de la interfaz; la base de datos te sigue permitiendo todo lo de Administrador.';
+  franja.innerHTML = '<span class="fs-ico">👁️</span><span class="fs-txt"><b>' + escapeHtml_(nombrePerfil) + '</b> · ' + escapeHtml_(donde || '—') + '</span>' +
+    '<button type="button" id="fs-salir" title="Volver a Administrador">Salir</button>';
   franja.querySelector('#fs-salir').addEventListener('click', salirSimulacion_);
   const rol = document.getElementById('up-rol');
   if (rol) rol.textContent = nombrePerfil + ' (simulado)';
@@ -6842,6 +6939,16 @@ function claveRecurso_(r) {
   if (!r) return '';
   return String(r.clave_radial || r.alias || r.recurso_ref_clave || r.codigo_ref || r.recurso_ref_codigo || '').trim();
 }
+/** «Clave radial · ID» (15-10-2026): referencia visible del recurso en mapas, listas y etiquetas.
+ *  Sin clave → solo el ID; sin ID → solo la clave; ambos vacíos → ''. */
+function claveIdTexto_(clave, id) {
+  const c = String(clave || '').trim(), i = String(id || '').trim();
+  return c && i && c.toUpperCase() !== i.toUpperCase() ? c + ' · ' + i : (c || i);
+}
+function claveIdRecurso_(r) {
+  if (!r) return '';
+  return claveIdTexto_(r.clave_radial || r.alias || r.recurso_ref_clave, r.codigo_ref || r.recurso_ref_codigo);
+}
 
 /** Llena un select de filtro y devuelve el valor vigente (vacío si ya no existe). */
 function plOpcionesFiltro_(id, textoTodos, valores, actual) {
@@ -6967,7 +7074,7 @@ function renderMapaPlanificador_(lista) {
       const g = rn && geo(rn.geom_geojson);
       if (!g) return;
       const capa = L.geoJSON(g, { pane: 'plAsignadas', style: { color: '#2563EB', weight: 3.5, opacity: 0.7 } });
-      capa.bindTooltip('<b>📻 ' + escapeHtml_(claveRecurso_(r) || aTitulo_(r.tipo_recurso || 'Recurso')) + '</b><br>' + etiquetaNormal(rn), { sticky: true });
+      capa.bindTooltip('<b>📻 ' + escapeHtml_(claveIdRecurso_(r) || aTitulo_(r.tipo_recurso || 'Recurso')) + '</b><br>' + etiquetaNormal(rn), { sticky: true });
       capa.on('click', () => seleccionarRecursoPlanificador_(r.id));
       plAsignadasLayer.addLayer(capa);
     });
@@ -9451,6 +9558,304 @@ function iniciarListenersGestion_() {
   window.addEventListener('beforeunload', e => { if (Object.keys(state.gr.cambios).length) { e.preventDefault(); e.returnValue = ''; } });
 }
 
+/* ==================== ❓ CENTRO DE AYUDA + RECORRIDOS GUIADOS (15-10-2026) ====================
+ * Botón ❓ de la barra superior → ventana con 4 guías ilustradas (escenarios de alerta, copamiento,
+ * asignación de recursos y restricciones, edición). Cada guía tiene «▶ Recorrido guiado»: resalta en
+ * vivo los botones reales del sistema (foco + globo), navega a la vista y abre los menús paso a paso. */
+const AY_SVG = {
+  escenarios:
+    '<svg class="ay-ilus" viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg" font-family="Inter,Arial,sans-serif">' +
+    [['Condiciones Normales', '#16A34A', '#DCFCE7', 20, 2], ['Alerta Amarilla', '#D97706', '#FEF3C7', 275, 4], ['Alerta Roja', '#DC2626', '#FEE2E2', 530, 6]].map(([t, c, f, x, n]) =>
+      '<g transform="translate(' + x + ',22)"><rect width="210" height="166" rx="14" fill="' + f + '" stroke="' + c + '" stroke-width="2"/>' +
+      '<text x="14" y="24" font-size="13" font-weight="800" fill="' + c + '">' + t + '</text>' +
+      '<path d="M22 48 L95 38 L178 54 L190 120 L130 150 L40 142 L18 98 Z" fill="#fff" stroke="#334155" stroke-width="1.5" stroke-dasharray="5 3"/>' +
+      Array.from({ length: n }, (_, i) => '<path d="M' + (34 + i * 22) + ' ' + (128 - i * 6) + ' q 30 -' + (40 + i * 4) + ' ' + (70 - i * 4) + ' -' + (52 - i * 3) + '" fill="none" stroke="' + c + '" stroke-width="3.5" stroke-linecap="round"/>').join('') +
+      '<circle cx="152" cy="' + (78 + n * 4) + '" r="7" fill="' + c + '" stroke="#fff" stroke-width="2"/>' +
+      '<text x="14" y="158" font-size="10.5" fill="#475569">' + (n === 2 ? 'Copamiento base' : n === 4 ? 'Refuerzo del copamiento' : 'Copamiento máximo') + '</text></g>').join('') +
+    '<g fill="#7C3AED" font-size="11" font-weight="800"><path d="M236 105 h30 l-8 -7 M266 105 l-8 7" stroke="#7C3AED" stroke-width="2.5" fill="none"/><text x="228" y="94">Propagar</text>' +
+    '<path d="M491 105 h30 l-8 -7 M521 105 l-8 7" stroke="#7C3AED" stroke-width="2.5" fill="none"/><text x="483" y="94">Propagar</text></g></svg>',
+  copamiento:
+    '<svg class="ay-ilus" viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" font-family="Inter,Arial,sans-serif">' +
+    '<g transform="translate(18,30)"><rect width="160" height="140" rx="14" fill="#FEF3C7" stroke="#D97706" stroke-width="2"/><text x="14" y="26" font-size="13" font-weight="800" fill="#92400E">📋 Plantilla</text>' +
+    '<text x="14" y="48" font-size="11" fill="#78350F">Plan de la alerta</text><text x="14" y="64" font-size="11" fill="#78350F">(Normal · Amarilla · Roja)</text>' +
+    '<rect x="14" y="80" width="132" height="12" rx="6" fill="#FCD34D"/><rect x="14" y="98" width="100" height="12" rx="6" fill="#FCD34D"/><rect x="14" y="116" width="118" height="12" rx="6" fill="#FCD34D"/></g>' +
+    '<path d="M186 100 h40 l-9 -7 M226 100 l-9 7" stroke="#334155" stroke-width="2.5" fill="none"/><text x="180" y="88" font-size="10.5" font-weight="700" fill="#334155">🔥 Crear</text>' +
+    '<g transform="translate(236,30)"><rect width="190" height="140" rx="14" fill="#FEE2E2" stroke="#DC2626" stroke-width="2"/><text x="14" y="26" font-size="13" font-weight="800" fill="#991B1B">🚨 Periodo Crítico</text>' +
+    ['CONAF', 'CMPC', 'Carabineros'].map((t, i) => '<g transform="translate(14,' + (44 + i * 30) + ')"><rect width="162" height="24" rx="7" fill="#fff" stroke="#FCA5A5"/>' +
+      '<rect x="7" y="6" width="12" height="12" rx="3" fill="' + (i === 2 ? '#fff' : '#16A34A') + '" stroke="#16A34A"/>' + (i === 2 ? '' : '<path d="M9 12 l3 3 l5 -6" stroke="#fff" stroke-width="2" fill="none"/>') +
+      '<text x="26" y="16" font-size="11" fill="#334155">' + t + (i === 0 ? ' · 5 de 9 Va' : i === 1 ? ' · 12 de 12 Va' : ' · no va') + '</text></g>').join('') + '</g>' +
+    '<path d="M434 100 h40 l-9 -7 M474 100 l-9 7" stroke="#334155" stroke-width="2.5" fill="none"/><text x="426" y="88" font-size="10.5" font-weight="700" fill="#334155">💾 Guardar</text>' +
+    '<g transform="translate(484,30)"><rect width="258" height="140" rx="14" fill="#F0FDF4" stroke="#16A34A" stroke-width="2"/><text x="14" y="26" font-size="13" font-weight="800" fill="#166534">✅ Solo lo seleccionado</text>' +
+    '<path d="M22 60 L100 46 L160 64 L150 120 L60 128 L24 100 Z" fill="#fff" stroke="#334155" stroke-dasharray="5 3"/>' +
+    '<path d="M40 110 q30 -40 90 -50" stroke="#DC2626" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M50 82 q40 10 80 30" stroke="#DC2626" stroke-width="3.5" fill="none" stroke-linecap="round"/>' +
+    '<text x="172" y="62" font-size="11" fill="#166534">Mapa</text><text x="172" y="80" font-size="11" fill="#166534">PDF</text><text x="172" y="98" font-size="11" fill="#166534">Informe</text>' +
+    '<text x="14" y="134" font-size="10.5" fill="#475569">＋ Ver no activadas → reactivar</text></g></svg>',
+  asignar:
+    '<svg class="ay-ilus" viewBox="0 0 760 190" xmlns="http://www.w3.org/2000/svg" font-family="Inter,Arial,sans-serif">' +
+    '<g transform="translate(20,24)"><rect width="300" height="142" rx="14" fill="#F0FDF4" stroke="#16A34A" stroke-width="2"/><text x="14" y="24" font-size="13" font-weight="800" fill="#166534">🟢 Ruta del escenario Normal</text>' +
+    '<path d="M30 110 q60 -70 130 -40 t120 -30" stroke="#16A34A" stroke-width="5" fill="none" stroke-linecap="round"/><circle cx="160" cy="70" r="7" fill="#22C55E" stroke="#fff" stroke-width="2"/>' +
+    '<text x="14" y="130" font-size="10.5" fill="#475569">CMPC · Vigía Camioneta · punto 🟢 = tiene recurso</text></g>' +
+    '<path d="M330 95 h80" stroke="#2563EB" stroke-width="3" stroke-dasharray="6 4"/><text x="334" y="84" font-size="11" font-weight="800" fill="#2563EB">Recurso asociado</text>' +
+    '<g transform="translate(420,24)"><rect width="320" height="142" rx="14" fill="#fff" stroke="#CBD5E1" stroke-width="2"/>' +
+    '<text x="14" y="24" font-size="12" font-weight="800" fill="#334155">Lista de recursos del área</text>' +
+    [['🟢 AV3.51 · Vigía Camioneta · sin ruta', '#16A34A', '#F0FDF4'], ['📍 AV3.58 · Vigía Camioneta · sin ubicar', '#2563EB', '#EFF6FF'], ['🔒 AV3.52 · Vigía Camioneta · ya tiene ruta', '#94A3B8', '#F1F5F9']].map(([t, c, f], i) =>
+      '<g transform="translate(14,' + (36 + i * 33) + ')"><rect width="292" height="26" rx="8" fill="' + f + '" stroke="' + c + '"/><text x="10" y="17" font-size="11" fill="#334155">' + t + '</text></g>').join('') + '</g></svg>',
+  editar:
+    '<svg class="ay-ilus" viewBox="0 0 760 180" xmlns="http://www.w3.org/2000/svg" font-family="Inter,Arial,sans-serif">' +
+    '<g transform="translate(20,20)"><rect width="340" height="140" rx="14" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/><text x="14" y="24" font-size="13" font-weight="800" fill="#1E3A8A">🧩 Editar forma</text>' +
+    '<path d="M30 110 L100 70 L170 92 L250 50 L310 76" stroke="#2563EB" stroke-width="4" fill="none" stroke-linejoin="round"/>' +
+    [[30, 110], [100, 70], [250, 50], [310, 76]].map(([x, y]) => '<circle cx="' + x + '" cy="' + y + '" r="6" fill="#fff" stroke="#2563EB" stroke-width="2.5"/>').join('') +
+    '<circle cx="170" cy="92" r="8" fill="#FBBF24" stroke="#fff" stroke-width="2"/><path d="M170 92 L178 120" stroke="#F59E0B" stroke-width="2" stroke-dasharray="3 3"/>' +
+    '<text x="14" y="132" font-size="10.5" fill="#475569">Arrastra un vértice · clic derecho lo borra · se sincroniza en los 3 escenarios</text></g>' +
+    '<g transform="translate(400,20)"><rect width="340" height="140" rx="14" fill="#FFF7ED" stroke="#F97316" stroke-width="2"/><text x="14" y="24" font-size="13" font-weight="800" fill="#9A3412">✂️ Cortar ruta</text>' +
+    '<path d="M30 100 Q 110 40 170 80" stroke="#2563EB" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M170 80 Q 240 120 310 60" stroke="#F97316" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+    '<circle cx="170" cy="80" r="13" fill="#fff" stroke="#DC2626" stroke-width="2.5"/><text x="162" y="85" font-size="13">✂️</text>' +
+    '<text x="14" y="132" font-size="10.5" fill="#475569">🔵 tramo 1 conserva el recurso · 🟠 tramo 2 = ruta nueva</text></g></svg>',
+};
+const AY_GUIAS = [
+  {
+    k: 'escenarios', ico: '🧭', c: '#16A34A', titulo: 'Crear escenarios de alertas', sub: 'Planes Normal, Alerta Amarilla y Roja por comuna',
+    intro: 'Cada comuna tiene <b>tres planes</b>: 🟢 Condiciones Normales, 🟡 Alerta Amarilla y 🔴 Alerta Roja. Cada plan reúne puntos, rutas (líneas) y áreas por institución: a mayor alerta, más copamiento.',
+    flujo: [['Planificador de Alertas', 'Gestión SIG ▾'], ['Elige la comuna', 'o el filtro 🧭 Área'], ['✏️ Planificar', 'elige el escenario'], ['Dibuja', 'punto · línea · área'], ['Ficha y guardar', 'institución, tipo, recurso'], ['⏫ Propagar', 'Normal → Amarilla → Roja']],
+    pasos: [
+      ['Abre el Planificador de Alertas', 'En el menú superior: <b>Gestión SIG ▾ › Planificador de Alertas</b>.', ['<span class="m">🗺️ Gestión SIG ▾</span>', '<span class="fl">›</span>', '<span class="m az">🧭 Planificador de Alertas</span>']],
+      ['Elige la comuna', 'Con el selector de comuna (arriba a la derecha). El Jefe de Área también puede usar el filtro <b>🧭 Área</b> para trabajar todas las comunas de su área: el resto se ve atenuado.', ['<span class="m">📍 Comuna ▾</span>', '<span class="m">🧭 Área ▾</span>']],
+      ['Abre ✏️ Planificar y elige el escenario', 'El botón del lápiz muestra los escenarios que tu perfil puede planificar.', ['<span class="m osc">✏️</span>', '<span class="fl">›</span>', '<span class="m v">🟢 Escenario Normal</span>', '<span class="m a">🟡 Alerta Amarilla</span>', '<span class="m r">🔴 Alerta Roja</span>']],
+      ['Dibuja en el mapa', 'En la barra de edición elige qué dibujar. Las líneas se trazan con un clic por vértice (o ✍️ trazo libre); el <b>🧲 imán</b> pega la ruta a la Red Vial. Termina con doble clic o ✓ Finalizar.', ['<span class="m">📍 Punto</span>', '<span class="m">📏 Línea</span>', '<span class="m">📐 Área</span>', '<span class="m">🧲 Imán Red Vial</span>', '<span class="m">📥 Importar KML</span>']],
+      ['Completa la ficha y guarda', 'Institución, <b>tipo de recurso</b> (con CMPC aparece el catálogo: Brigada Multipropósito, Vigía Camioneta…), <b>recurso asociado</b> (solo en Normal) y la descripción operativa.', ['<span class="m">Institución ▾</span>', '<span class="m">Tipo de recurso ▾</span>', '<span class="m">Recurso asociado ▾</span>', '<span class="m osc">Guardar en la planificación</span>']],
+      ['Propaga a las otras alertas', '<b>⏫ Propagar copamiento</b> copia lo NUEVO de Normal a Amarilla y luego a Roja. Si el plan de la alerta no existe, se crea. Lo que ya está (misma ruta o misma forma) no se duplica.', ['<span class="m mo">⏫ Propagar copamiento</span>']],
+      ['Sal de la planificación', 'Con <b>🚪 Salir de planificación</b> en la barra de edición. Todo queda guardado al instante.', ['<span class="m">🚪 Salir de planificación</span>']],
+    ],
+    notas: [
+      ['tip', '💡 Consejos', ['Junto a cada ruta CMPC del escenario Normal: punto 🟢 = tiene recurso, punto 🔴 = falta asignarlo.', 'La forma de una ruta se mantiene igual en los 3 escenarios (al editarla en uno, cambia en los otros).', '📤 Exportar plan descarga el escenario en GeoJSON o KML.']],
+      ['rol', '👥 Quién puede', ['Administrador y Jefe de Área: los 3 escenarios.', 'GRD: solo la Alerta Amarilla de su comuna.', 'Visor: solo consulta.']],
+    ],
+    tour: 'escenarios',
+  },
+  {
+    k: 'copamiento', ico: '🚨', c: '#DC2626', titulo: 'Realizar un copamiento de recursos', sub: 'Periodo Crítico a partir de un plan de alerta',
+    intro: 'Cuando se declara una alerta, se crea un <b>Periodo Crítico</b> a partir de la plantilla (el plan Normal, Amarilla o Roja). Luego se marca qué recursos <b>van</b> realmente y el sistema muestra solo lo seleccionado.',
+    flujo: [['Modo Emergencia', 'Gestión SIG ▾'], ['🔥 Crear Periodo Crítico', 'asistente 3 pasos'], ['Marca lo que «Va»', 'por institución'], ['💾 Guardar selección', 'mapa, PDF e informe'], ['Reactivar', 'si llegan más recursos']],
+    pasos: [
+      ['Entra al Modo Emergencia', '<b>Gestión SIG ▾ › Modo Emergencia</b> y elige la comuna.', ['<span class="m">🗺️ Gestión SIG ▾</span>', '<span class="fl">›</span>', '<span class="m r">🚨 Modo Emergencia</span>']],
+      ['Crea el Periodo Crítico', 'Botón <b>🔥 Crear Periodo Crítico</b>: asistente en 3 pasos (fechas → plantilla de alerta → confirmar). Se copia el plan completo de la alerta elegida.', ['<span class="m r">🔥 Crear Periodo Crítico</span>']],
+      ['Marca qué recursos van', 'En el panel <b>Recursos de la emergencia</b>, por institución, marca ✓ <b>Va</b> lo que realmente se dispone. Ej.: CONAF tiene 9 rutas pero hoy dispone de 5.', ['<span class="m v">✓ Va</span>', '<span class="m">CONAF · 5 de 9</span>']],
+      ['Guarda la selección', '<b>💾 Guardar selección</b>: desde ese momento el mapa, el PDF del periodo y el informe muestran SOLO lo seleccionado.', ['<span class="m osc">💾 Guardar selección</span>']],
+      ['Reactiva si llegan más recursos', 'En cada institución, <b>＋ Ver n no activadas</b> muestra lo que quedó fuera para activarlo de nuevo.', ['<span class="m">＋ Ver 4 no activadas</span>', '<span class="m v">✓ Activar las 4</span>']],
+      ['Ajusta en terreno e informa', '<b>✏️ › Editar Periodo Crítico</b> agrega, mueve o edita recursos del periodo activo. El informe de copamiento está en <b>Gestión SIG ▾ › Generar informe</b>.', ['<span class="m osc">✏️</span>', '<span class="fl">›</span>', '<span class="m az">🗓️ Editar Periodo Crítico</span>', '<span class="m">📄 Generar informe</span>']],
+    ],
+    notas: [
+      ['tip', '💡 Consejos', ['La plantilla debe estar planificada antes (guía «Crear escenarios de alertas»).', 'El % de copamiento se calcula sobre la zona de incendios del trienio.']],
+      ['rol', '👥 Quién puede', ['Administrador, Jefe de Área y GRD crean y editan el Periodo Crítico.', 'Visor: solo consulta.']],
+    ],
+    tour: 'copamiento',
+  },
+  {
+    k: 'asignar', ico: '🔗', c: '#2563EB', titulo: 'Asignar recursos y sus restricciones', sub: 'Recurso asociado, turnos y reglas del sistema',
+    intro: 'La <b>ruta de un recurso</b> es su línea del <b>escenario Normal</b>. Al asociarlos, la ruta queda enlazada con el recurso en el Planificador gráfico, el Tablero y el Calendario de Turnos.',
+    flujo: [['Escenario 🟢 Normal', 'dibuja o abre la ruta'], ['Recurso asociado', 'del mismo tipo'], ['Turnos', 'días del recurso'], ['Seguimiento', 'avance y tablero']],
+    pasos: [
+      ['Abre la ruta en el escenario Normal', 'Planifica 🟢 Normal y dibuja la línea, o haz clic en una ruta existente › ✏️ Editar.', ['<span class="m osc">✏️</span>', '<span class="fl">›</span>', '<span class="m v">🟢 Escenario Normal</span>']],
+      ['Elige el recurso asociado', 'La lista muestra los recursos de <b>Relacionamiento (CMPC)</b> del <b>mismo tipo</b> de la ruta, de las áreas de la comuna. Primero los que no tienen ruta en la comuna, luego los aún sin ubicar y los de otras comunas del área. Los que ya tienen ruta aparecen 🔒 bloqueados.', ['<span class="m">Recurso asociado ▾</span>', '<span class="m v">🟢 AV3.51 · sin ruta</span>', '<span class="m">🔒 AV3.52 · ya tiene ruta</span>']],
+      ['Programa los turnos', '<b>Planificador CMPC ▾ › Turnos de Recursos</b>: por área y mes, marca los días de turno (los días sin turno quedan «L» libre). Descarga el PDF mensual o el panorama.', ['<span class="m">🌲 Planificador CMPC ▾</span>', '<span class="fl">›</span>', '<span class="m az">📅 Turnos de Recursos</span>']],
+      ['Revisa y completa los datos', '<b>Gestión de Recursos</b>: datos y contacto de cada recurso (Jefe de Área en sus áreas; carga masiva por Excel solo el Administrador). <b>Planificador gráfico</b>: ubicar o mover el punto del recurso.', ['<span class="m az">🗂️ Gestión de Recursos</span>', '<span class="m az">🧭 Planificador gráfico</span>']],
+    ],
+    tabla: [
+      ['Regla', 'Qué pasa'],
+      ['Un recurso = una ruta por plan', 'Si ya tiene ruta, aparece 🔒 en la lista y no se puede elegir.'],
+      ['Mismo tipo', 'La ruta y el recurso deben ser del mismo tipo (Vigía Camioneta ↔ Vigía Camioneta).'],
+      ['Solo Relacionamiento (CMPC)', 'Se asocian recursos CMPC de las áreas a las que pertenece la comuna.'],
+      ['Comuna sin área', 'No aparecen recursos: asigna la comuna en Administración › Comunas por área.'],
+      ['Eliminar un recurso', 'Solo si NO tiene rutas (🔒 en Gestión de Recursos). Quita primero la asociación.'],
+      ['Turnos', 'No se asignan antes de la fecha de inicio de operación del recurso.'],
+      ['Perfiles', 'Jefe de Área: solo sus áreas · GRD: solo Alerta Amarilla · Visor: solo consulta.'],
+    ],
+    notas: [['tip', '💡 Consejo', ['En el escenario Normal, el punto 🔴 junto a una ruta CMPC indica que aún no tiene recurso: es la lista de pendientes.']]],
+    tour: 'asignar',
+  },
+  {
+    k: 'editar', ico: '✏️', c: '#7C3AED', titulo: 'Editar y mejorar', sub: 'Forma, corte, datos y seguimiento',
+    intro: 'Todo lo planificado se puede corregir y mejorar: forma de las rutas, cortes, ficha, ubicación del recurso, datos y contacto. Los cambios se guardan al instante y se reflejan en todo el sistema.',
+    flujo: [['Clic en la entidad', 'abre su ventana'], ['Editar ficha o forma', 'vértices'], ['✂️ Cortar', 'una ruta en dos'], ['⏫ Propagar', 'a otras alertas'], ['🔄 Actualizar', 'datos al día']],
+    pasos: [
+      ['Edita la ficha o la forma', 'Durante la planificación, clic en una ruta, punto o área: <b>✏️ Editar</b> (institución, tipo, recurso, descripción), <b>🧩 Editar forma</b> (arrastra vértices; clic derecho borra uno), <b>⏫ Propagar</b> o <b>🗑️ Eliminar</b>.', ['<span class="m">✏️ Editar</span>', '<span class="m">🧩 Editar forma</span>', '<span class="m mo">⏫ Propagar</span>', '<span class="m r">🗑️ Eliminar</span>']],
+      ['Corta una ruta', 'En la barra de edición, <b>✂️ Cortar ruta</b>: las rutas se resaltan y el ✂️ se pega a la más cercana (y al vértice). Clic para cortar: el tramo 1 conserva el recurso; el tramo 2 queda como ruta nueva.', ['<span class="m">✂️ Cortar ruta</span>']],
+      ['Importa rutas', '<b>📥 Importar KML/KMZ</b> trae rutas de Google Earth u otros sistemas.', ['<span class="m">📥 Importar KML/KMZ</span>']],
+      ['Mejora los datos de los recursos', '<b>Gestión de Recursos</b>: edita en la tabla (Jefe de Área en sus áreas), elige 🧩 columnas, filtra por empresa, tipo o sector; el Administrador administra 🏢 Empresas y elimina recursos sin ruta (doble confirmación).', ['<span class="m az">🗂️ Gestión de Recursos</span>', '<span class="m">🧩 Columnas</span>', '<span class="m">🏢 Empresas</span>']],
+      ['Haz seguimiento', '<b>Prevención ▾ › Comunas Prioritarias</b> (📈 KPI de avance, ✅ comunas listas) y <b>Acciones de Riesgo</b>. El botón <b>🔄</b> trae los últimos datos de la base.', ['<span class="m">🛡️ Prevención ▾</span>', '<span class="m">📈 KPI de avance</span>', '<span class="m">🔄 Actualizar</span>']],
+    ],
+    notas: [
+      ['ok', '✅ Buenas prácticas', ['Antes de cortar o eliminar, revisa si la ruta tiene recurso asociado (punto 🟢).', 'Tras editar una ruta en Normal, propágala si quieres que la Amarilla/Roja tengan lo nuevo.']],
+      ['no', '⛔ Cuidado', ['Eliminar no se puede deshacer.', 'Unir/separar tramos no se sincroniza entre escenarios (solo los cambios de forma).']],
+    ],
+    tour: 'editar',
+  },
+];
+
+function abrirAyuda_(guia) {
+  let m = document.getElementById('ay-modal');
+  if (!m) {
+    m = document.createElement('div'); m.id = 'ay-modal'; m.className = 'ay-modal';
+    m.innerHTML = '<div class="ay-caja"><div class="ay-cab"><span style="font-size:24px;">❓</span><h3>Centro de ayuda<small>Guías ilustradas y recorridos paso a paso por el sistema</small></h3>' +
+      '<button data-ay="cerrar">✕ Cerrar</button></div><div class="ay-cuerpo"><div class="ay-nav" id="ay-nav"></div><div class="ay-contenido" id="ay-contenido"></div></div></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click', e => {
+      e.stopPropagation();
+      if (e.target === m || e.target.closest('[data-ay="cerrar"]')) { m.classList.remove('show'); return; }
+      const g = e.target.closest('[data-ay-guia]'); if (g) { renderAyuda_(g.dataset.ayGuia); return; }
+      const t = e.target.closest('[data-ay-tour]'); if (t) { m.classList.remove('show'); iniciarRecorrido_(t.dataset.ayTour); }
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && m.classList.contains('show') && !document.getElementById('ay-globo')) m.classList.remove('show'); });
+  }
+  renderAyuda_(guia || state.ayGuia || 'escenarios');
+  m.classList.add('show');
+}
+function renderAyuda_(k) {
+  state.ayGuia = k;
+  const g = AY_GUIAS.find(x => x.k === k) || AY_GUIAS[0];
+  document.getElementById('ay-nav').innerHTML = AY_GUIAS.map(x =>
+    '<button data-ay-guia="' + x.k + '" class="' + (x.k === g.k ? 'on' : '') + '" style="--c:' + x.c + '"><span class="ico">' + x.ico + '</span><span><b>' + x.titulo + '</b><small>' + x.sub + '</small></span></button>').join('') +
+    '<div style="margin-top:auto;font-size:11px;color:var(--text-tertiary);padding:8px 4px;line-height:1.45;">Cada guía tiene un <b>▶ Recorrido guiado</b> que te lleva por los botones reales del sistema. Puedes salir con <b>Esc</b>.</div>';
+  const cont = document.getElementById('ay-contenido');
+  cont.style.setProperty('--c', g.c);
+  cont.innerHTML =
+    '<div class="ay-hero"><span style="font-size:34px;">' + g.ico + '</span><div><h2>' + g.titulo + '</h2><p>' + g.intro + '</p></div>' +
+      '<button class="ay-tour" data-ay-tour="' + g.tour + '">▶ Recorrido guiado</button></div>' +
+    AY_SVG[g.k] +
+    '<div class="ay-flujo">' + g.flujo.map(([t, s], i) => (i ? '<span class="f">→</span>' : '') + '<div class="p"><i>' + (i + 1) + '</i><b>' + t + '</b>' + s + '</div>').join('') + '</div>' +
+    '<div class="ay-pasos">' + g.pasos.map(([t, d, ui], i) =>
+      '<div class="ay-paso"><div class="n">' + (i + 1) + '</div><div><h4>' + t + '</h4><p>' + d + '</p>' + (ui && ui.length ? '<div class="ay-ui">' + ui.join('') + '</div>' : '') + '</div></div>').join('') + '</div>' +
+    (g.tabla ? '<table class="ay-tabla"><thead><tr><th>' + g.tabla[0][0] + '</th><th>' + g.tabla[0][1] + '</th></tr></thead><tbody>' +
+      g.tabla.slice(1).map(([a, b]) => '<tr><td><b>🔒 ' + a + '</b></td><td>' + b + '</td></tr>').join('') + '</tbody></table>' : '') +
+    '<div class="ay-cajas">' + (g.notas || []).map(([cls, t, items]) => '<div class="ay-nota ' + cls + '"><b>' + t + '</b><ul>' + items.map(x => '<li>' + x + '</li>').join('') + '</ul></div>').join('') + '</div>';
+  cont.scrollTop = 0;
+}
+
+/* ── Recorrido guiado: foco sobre el elemento real + globo con el paso ── */
+function ayVisible_(el) { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 2 && r.height > 2 && getComputedStyle(el).visibility !== 'hidden'; }
+function ayAbrirGrupo_(id) { const g = document.getElementById(id); if (g && !g.classList.contains('abierto')) alternarSubmenu_(g); }
+function ayCerrarMenus_() { cerrarSubmenus_(); const p = document.getElementById('planificar-panel'); if (p) p.classList.remove('show'); }
+function ayIrMapa_(modo) { try { if (state.vistaActual !== 'mapa' || state.modoMapa !== modo) mostrarVista_('mapa', modo); } catch (e) { /* sin permiso: el paso lo explica */ } }
+function ayAbrirPlanificar_() { const b = document.getElementById('btn-planificar'), p = document.getElementById('planificar-panel'); if (b && p && ayVisible_(b)) p.classList.add('show'); }
+const AY_TOURS = {
+  escenarios: [
+    { sel: '#grupo-mapa .vista-tab-grupo', t: 'Menú Gestión SIG', d: 'Aquí están el <b>Planificador de Alertas</b>, el <b>Modo Emergencia</b> y el informe de copamiento.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-mapa'); } },
+    { sel: '#sub-mapa-visor', t: 'Planificador de Alertas', d: 'Abre el mapa para planificar los escenarios Normal, Alerta Amarilla y Roja.', antes: () => ayAbrirGrupo_('grupo-mapa') },
+    { sel: '#comuna-select', t: 'Elige la comuna', d: 'Los planes son por comuna. Elígela aquí (o usa el filtro 🧭 Área para ver todas las de tu área).', antes: () => { ayCerrarMenus_(); ayIrMapa_('planificador'); }, aviso: 'El selector aparece en el mapa cuando tienes más de una comuna asignada.' },
+    { sel: '#btn-planificar', t: '✏️ Planificar', d: 'Con una comuna elegida, este botón abre la lista de escenarios que puedes planificar.', antes: () => ayIrMapa_('planificador'), aviso: 'Aparece cuando hay una comuna seleccionada y tu perfil puede planificar.' },
+    { sel: '#plan-verde', t: '🟢 Escenario Normal', d: 'Condiciones normales: la base del copamiento. Aquí se asocia cada ruta CMPC con su recurso.', antes: ayAbrirPlanificar_, aviso: 'Abre ✏️ Planificar con una comuna elegida para ver los escenarios.' },
+    { sel: '#plan-amarilla', t: '🟡 Alerta Amarilla', d: 'Refuerzo del copamiento para la alerta amarilla. El GRD solo puede planificar este escenario.', antes: ayAbrirPlanificar_ },
+    { sel: '#plan-roja', t: '🔴 Alerta Roja', d: 'Máximo copamiento. Al elegir un escenario se activa su capa y aparece la barra de edición: 📍 Punto · 📏 Línea · 📐 Área · 🧲 Imán · ✂️ Cortar · 📥 KML.', antes: ayAbrirPlanificar_ },
+    { sel: '#plan-propagar-copamiento', t: '⏫ Propagar copamiento', d: 'Copia lo NUEVO de Normal → Amarilla → Roja, crea los planes que falten y no duplica lo que ya existe.', antes: ayAbrirPlanificar_ },
+    { sel: '#btn-ayuda', t: '¡Listo!', d: 'Elige un escenario y dibuja tu primera ruta. Puedes volver a esta ayuda cuando quieras con el botón ❓.', antes: ayCerrarMenus_ },
+  ],
+  copamiento: [
+    { sel: '#grupo-mapa .vista-tab-grupo', t: 'Menú Gestión SIG', d: 'El copamiento en terreno se gestiona desde el <b>Modo Emergencia</b>.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-mapa'); } },
+    { sel: '#sub-emergencia', t: '🚨 Modo Emergencia', d: 'Mapa del Periodo Crítico: copamiento real durante la alerta.', antes: () => ayAbrirGrupo_('grupo-mapa') },
+    { sel: '#comuna-select', t: 'Elige la comuna', d: 'El Periodo Crítico es de la comuna seleccionada.', antes: () => { ayCerrarMenus_(); ayIrMapa_('emergencia'); }, aviso: 'El selector aparece cuando tienes más de una comuna asignada.' },
+    { sel: '#btn-crear-periodo-mapa', t: '🔥 Crear Periodo Crítico', d: 'Asistente en 3 pasos: fechas → plantilla (Normal, Amarilla o Roja) → confirmar. Copia el plan completo de esa alerta.', antes: () => ayIrMapa_('emergencia'), aviso: 'Aparece en el Modo Emergencia con una comuna elegida y permiso para crear periodos.' },
+    { sel: '#panel-emergencia', t: 'Recursos de la emergencia', d: 'Por institución, marca ✓ <b>Va</b> lo que realmente se dispone y pulsa <b>💾 Guardar selección</b>. Con <b>＋ Ver n no activadas</b> reactivas lo que llegue después.', antes: () => ayIrMapa_('emergencia'), aviso: 'El panel aparece cuando la comuna tiene un Periodo Crítico activo.' },
+    { sel: '#btn-planificar', t: '✏️ › Editar Periodo Crítico', d: 'Agrega, mueve o edita recursos del periodo activo directamente en el mapa.', antes: () => ayIrMapa_('emergencia'), aviso: 'Aparece con una comuna elegida y permiso para editar el Periodo Crítico.' },
+    { sel: '#grupo-mapa .vista-tab-grupo', t: '📄 Informe de copamiento', d: 'En <b>Gestión SIG ▾ › Generar informe</b>: copamiento por institución y sobre incendios (solo lo seleccionado).', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-mapa'); } },
+  ],
+  asignar: [
+    { sel: '#grupo-mapa .vista-tab-grupo', t: 'La ruta se asocia en el escenario Normal', d: 'Gestión SIG ▾ › Planificador de Alertas › ✏️ › 🟢 Escenario Normal. Dibuja la línea o abre una existente › ✏️ Editar.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-mapa'); } },
+    { sel: '#btn-planificar', t: 'Recurso asociado', d: 'En la ficha de la ruta, el campo <b>Recurso asociado</b> lista los recursos CMPC del mismo tipo de las áreas de la comuna. 🔒 = ya tiene ruta (un recurso, una ruta).', antes: () => { ayCerrarMenus_(); ayIrMapa_('planificador'); }, aviso: 'Elige una comuna en el Planificador de Alertas para ver este botón.' },
+    { sel: '#grupo-cmpc .vista-tab-grupo', t: 'Planificador CMPC', d: 'Aquí están Turnos, Planificador gráfico, Tablero y Gestión de Recursos.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-cmpc'); } },
+    { sel: '#tab-turnos', t: '📅 Turnos de Recursos', d: 'Marca los días de turno de cada recurso por mes. No se puede antes de su fecha de inicio de operación.', antes: () => ayAbrirGrupo_('grupo-cmpc'), aviso: 'Disponible para Administrador y Jefe de Área.' },
+    { sel: '#tab-planificador', t: '🧭 Planificador gráfico', d: 'Ve los recursos del área en el mapa, su ruta asociada, y ubica o mueve su punto.', antes: () => ayAbrirGrupo_('grupo-cmpc') },
+    { sel: '#tab-gestion', t: '🗂️ Gestión de Recursos', d: 'Datos y contacto de cada recurso. 🔒 Un recurso con ruta no se puede eliminar.', antes: () => ayAbrirGrupo_('grupo-cmpc'), aviso: 'Disponible para Administrador y Jefe de Área.' },
+  ],
+  editar: [
+    { sel: '#btn-planificar', t: 'Editar lo planificado', d: 'Entra a planificar un escenario y haz clic en una ruta, punto o área: ✏️ Editar · 🧩 Editar forma · ⏫ Propagar · 🗑️ Eliminar.', antes: () => { ayCerrarMenus_(); ayIrMapa_('planificador'); }, aviso: 'Elige una comuna en el Planificador de Alertas para ver este botón.' },
+    { sel: '#btn-planificar', t: '✂️ Cortar ruta', d: 'Con un escenario abierto, la barra de edición tiene <b>✂️ Cortar ruta</b>: el ✂️ se pega a la ruta y al vértice más cercano; clic para cortar.', antes: () => ayIrMapa_('planificador') },
+    { sel: '#grupo-cmpc .vista-tab-grupo', t: 'Mejora los datos', d: 'Planificador CMPC ▾ › <b>Gestión de Recursos</b>: edición en la tabla, columnas, filtros por empresa/tipo/sector y 🏢 Empresas.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-cmpc'); } },
+    { sel: '#grupo-prevencion .vista-tab-grupo', t: 'Seguimiento', d: 'Prevención ▾ › <b>Comunas Prioritarias</b> (📈 KPI de avance, ✅ listas) y <b>Acciones de Riesgo</b>.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-prevencion'); }, aviso: 'El menú Prevención depende de tu perfil.' },
+    { sel: '#btn-actualizar-datos', t: '🔄 Actualizar datos', d: 'Trae los últimos cambios de la base de datos (de todos los usuarios).', antes: ayCerrarMenus_ },
+    { sel: '#btn-ayuda', t: '¡Listo!', d: 'Vuelve a esta ayuda cuando quieras con ❓.', antes: ayCerrarMenus_ },
+  ],
+};
+let ayRec_ = null;
+function iniciarRecorrido_(k) {
+  const pasos = AY_TOURS[k]; if (!pasos) return;
+  const g = AY_GUIAS.find(x => x.tour === k) || AY_GUIAS[0];
+  terminarRecorrido_();
+  ayRec_ = { k, pasos, i: 0, g };
+  const foco = document.createElement('div'); foco.id = 'ay-foco';
+  const globo = document.createElement('div'); globo.id = 'ay-globo'; globo.style.setProperty('--c', g.c);
+  document.body.appendChild(foco); document.body.appendChild(globo);
+  globo.addEventListener('click', e => {
+    e.stopPropagation();   // no cerrar los menús abiertos por el recorrido
+    const b = e.target.closest('[data-ay-g]'); if (!b) return;
+    if (b.dataset.ayG === 'sig') { if (ayRec_.i < ayRec_.pasos.length - 1) mostrarPasoRecorrido_(ayRec_.i + 1); else { terminarRecorrido_(); mostrarToast_('✅ Recorrido terminado. Vuelve cuando quieras con ❓.'); } }
+    else if (b.dataset.ayG === 'ant') mostrarPasoRecorrido_(Math.max(0, ayRec_.i - 1));
+    else if (b.dataset.ayG === 'guia') { terminarRecorrido_(); abrirAyuda_(g.k); }
+    else terminarRecorrido_();
+  });
+  ayRec_.onKey = e => { if (!ayRec_) return; if (e.key === 'Escape') terminarRecorrido_(); else if (e.key === 'ArrowRight') globo.querySelector('[data-ay-g="sig"]').click(); else if (e.key === 'ArrowLeft') mostrarPasoRecorrido_(Math.max(0, ayRec_.i - 1)); };
+  // Al redimensionar, el sistema cierra los submenús: se vuelve a preparar el paso y se reubica el foco
+  ayRec_.onResize = () => {
+    if (!ayRec_) return;
+    clearTimeout(ayRec_.tRes);
+    ayRec_.tRes = setTimeout(() => { if (!ayRec_) return; const p = ayRec_.pasos[ayRec_.i]; try { if (p.antes) p.antes(); } catch (e) { /* nada */ } setTimeout(() => { if (ayRec_) posicionarRecorrido_(); }, 220); }, 150);
+  };
+  document.addEventListener('keydown', ayRec_.onKey);
+  window.addEventListener('resize', ayRec_.onResize);
+  mostrarPasoRecorrido_(0);
+}
+function mostrarPasoRecorrido_(i) {
+  if (!ayRec_) return;
+  ayRec_.i = i;
+  const p = ayRec_.pasos[i];
+  try { if (p.antes) p.antes(); } catch (e) { /* el paso igual se explica */ }
+  // Espera a que la vista / menú se dibuje antes de ubicar el foco
+  setTimeout(() => { if (ayRec_ && ayRec_.i === i) posicionarRecorrido_(); }, 280);
+}
+function posicionarRecorrido_() {
+  const { pasos, i, g } = ayRec_, p = pasos[i];
+  const foco = document.getElementById('ay-foco'), globo = document.getElementById('ay-globo');
+  const el = document.querySelector(p.sel), vis = ayVisible_(el);
+  globo.innerHTML = '<div class="g-top"><span class="g-guia">' + g.ico + ' ' + g.titulo + '</span><span class="g-n">' + (i + 1) + ' / ' + pasos.length + '</span></div>' +
+    '<h4>' + p.t + '</h4><p>' + p.d + '</p>' +
+    (!vis ? '<div class="g-aviso">ℹ️ ' + (p.aviso || 'Este elemento no está visible en este momento.') + '</div>' : '') +
+    '<div class="g-barra"><i style="width:' + Math.round((i + 1) / pasos.length * 100) + '%"></i></div>' +
+    '<div class="g-pie"><button class="g-salir" data-ay-g="salir">Salir</button><button data-ay-g="guia" title="Volver a la guía ilustrada">📖 Guía</button>' +
+    (i ? '<button data-ay-g="ant">← Anterior</button>' : '') +
+    '<button class="g-sig" data-ay-g="sig">' + (i === pasos.length - 1 ? 'Terminar ✓' : 'Siguiente →') + '</button></div>';
+  const W = window.innerWidth, H = window.innerHeight, gw = globo.offsetWidth, gh = globo.offsetHeight;
+  if (!vis) {
+    foco.classList.add('sin'); foco.style.left = (W / 2) + 'px'; foco.style.top = (H / 2) + 'px';
+    globo.style.left = Math.round((W - gw) / 2) + 'px'; globo.style.top = Math.round((H - gh) / 2) + 'px';
+    return;
+  }
+  foco.classList.remove('sin');
+  const r = el.getBoundingClientRect(), pad = 6;
+  foco.style.left = (r.left - pad) + 'px'; foco.style.top = (r.top - pad) + 'px';
+  foco.style.width = (r.width + pad * 2) + 'px'; foco.style.height = (r.height + pad * 2) + 'px';
+  // Dentro de un menú desplegable: el globo va al costado del menú (para no tapar las otras opciones)
+  const menu = el.closest('.vista-submenu, .planificar-panel');
+  if (menu) {
+    const mr = menu.getBoundingClientRect();
+    const izq = mr.right + 14 + gw <= W - 8 ? mr.right + 14 : Math.max(8, mr.left - gw - 14);
+    globo.style.left = Math.round(izq) + 'px';
+    globo.style.top = Math.round(Math.min(Math.max(12, r.top - 10), H - gh - 12)) + 'px';
+    return;
+  }
+  // Globo: debajo del elemento si cabe; si no, arriba; si no, al costado
+  let top = r.bottom + 14, left = Math.min(Math.max(12, r.left + r.width / 2 - gw / 2), W - gw - 12);
+  if (top + gh > H - 12) top = r.top - gh - 14;
+  if (top < 12) { top = Math.min(Math.max(12, r.top), H - gh - 12); left = r.right + 14 + gw < W ? r.right + 14 : Math.max(12, r.left - gw - 14); }
+  globo.style.left = Math.round(left) + 'px'; globo.style.top = Math.round(top) + 'px';
+}
+function terminarRecorrido_() {
+  if (!ayRec_) { ['ay-foco', 'ay-globo'].forEach(id => { const x = document.getElementById(id); if (x) x.remove(); }); return; }
+  document.removeEventListener('keydown', ayRec_.onKey);
+  window.removeEventListener('resize', ayRec_.onResize);
+  ayRec_ = null;
+  ['ay-foco', 'ay-globo'].forEach(id => { const x = document.getElementById(id); if (x) x.remove(); });
+  ayCerrarMenus_();
+}
+
 /* ==================== ACCIONES DE RIESGO (Prevención ▾, 14-10-2026, SQL 101) ====================
  * Reportes de riesgo de incendio que levantan los conductores y registra la Central de Transporte CMPC
  * en /gestioncentral. El Administrador ve todas las áreas (tablero general); el Jefe de Área ve y
@@ -10091,7 +10496,7 @@ function poblarClavesTurnos_() {
   document.getElementById('turnos-recurso-select').innerHTML =
     '<option value="">📻 ' + (tipo ? 'Todas las claves de ' + escapeHtml_(aTitulo_(tipo)) : 'Todas las claves') + ' (' + lista.length + ')</option>' +
     lista.map(r => '<option value="' + escapeHtml_(String(r.id)) + '"' + (String(r.id) === String(state.turnosFiltroRecurso) ? ' selected' : '') + '>' +
-      escapeHtml_((claveRecurso_(r) || 'Sin clave') + (tipo ? '' : ' · ' + aTitulo_(r.tipo_recurso || ''))) + '</option>').join('');
+      escapeHtml_((claveIdRecurso_(r) || 'Sin clave') + (tipo ? '' : ' · ' + aTitulo_(r.tipo_recurso || ''))) + '</option>').join('');
 }
 
 async function cargarRecursosTurnos_() {
@@ -11433,14 +11838,23 @@ const PRIO_ESTILO_VAR = {
   v6:  { color: '#DB2777', ico: '📌' },
 };
 const PRIO_OPACIDAD_MAPA = 0.62;   // relleno tenue para que se lean las referencias del mapa
-// Niveles por puntaje 0–18: con la suma sin ponderar reproducen el Excel (Alta 16-17, Media 9-14, Baja ≤ 7)
-const PRIO_BANDAS_PROPUESTA = { alta: 15, media: 9 };
+// Niveles por puntaje (V1–V5 hasta 3 c/u + V6 hasta 6 → máximo 21). Con la matriz del 15-10-2026:
+// Alta ≥ 17 · Media ≥ 10 reproducen el Excel tal cual (Alta 19–20, Media 11–16; Curanilahue 8 y Negrete 9 = Baja).
+const PRIO_BANDAS_PROPUESTA = { alta: 17, media: 10 };
+const PRIO_BANDAS_VERSION = 3;   // bandas guardadas antes (escala 0–18 o Media ≥ 9) se reemplazan
 const PRIO_PARAM_EXCEL = {
   v1: { u: [1, 14.3, 28.66] }, v2q: { u: [0, 84.4, 168.8] },
   v3: { u: [1, 26.2, 52.3] }, v4: { u: [1, 32952696, 65905392] }, v5: { estrategico: 3, relevancia: 2 },
 };
-// V6 · Comuna relevante: las 24 comunas marcadas en la matriz (valor 3)
-const PRIO_RELEVANTES_DEFECTO = [8305, 9202, 9201, 9207, 8310, 8304, 9204, 9102, 8204, 8303, 8309, 8306, 8207, 8203, 8301, 9211, 8307, 9209, 9101, 8109, 8205, 8105, 8313, 8311];
+// V6 · Comuna relevante (matriz actualizada 15-10-2026): valor POR COMUNA. 6 = Mulchén, Collipulli,
+// Lumaco y Angol; 5 = las otras 20. Las demás comunas valen 0. (Antes: 24 comunas con el mismo valor 3.)
+const PRIO_V6_VERSION = 2;
+const PRIO_V6_DEFECTO = {
+  8305: 6, 9202: 6, 9207: 6, 9201: 6,
+  9204: 5, 8310: 5, 9102: 5, 8304: 5, 8204: 5, 8303: 5, 8207: 5, 8203: 5, 8309: 5, 8306: 5,
+  9211: 5, 8301: 5, 8109: 5, 9209: 5, 8105: 5, 8108: 5, 9206: 5, 9121: 5, 8313: 5, 8311: 5,
+};
+const PRIO_RELEVANTES_DEFECTO = Object.keys(PRIO_V6_DEFECTO).map(Number);
 // Jefe de Área y Responsable por comuna (matriz). Se editan en el modal 📈 KPI de avance (Administrador).
 const PRIO_RESPONSABLES_DEFECTO = {
   8305: ['Claudio León', 'Giovanni G.'], 9202: ['Rodrigo Alarcón', 'Giovanni G.'], 9201: ['Roberto Martenez', 'Felipe Cid'],
@@ -11466,9 +11880,14 @@ function paramsCompletosPrio_(p) {
   const r = Object.assign(base, clonPrio_(p || {}));
   const v2 = !!(p && p.version === PRIO_VERSION);
   r.version = PRIO_VERSION;
-  r.bandas = Object.assign({}, PRIO_BANDAS_PROPUESTA, (v2 && p.bandas) || {});
+  r.bandas = Object.assign({}, PRIO_BANDAS_PROPUESTA, (v2 && p.bandas && p.bandas.version === PRIO_BANDAS_VERSION && p.bandas) || {}, { version: PRIO_BANDAS_VERSION });
   r.pesos = Object.assign({}, PRIO_PESOS_DEFECTO, (v2 && p.pesos) || {});
-  r.v6 = Object.assign({ puntos: 3, ids: PRIO_RELEVANTES_DEFECTO.slice() }, (v2 && p.v6) || {});
+  // Método de cálculo de la prioridad: 'suma' (como la matriz Excel: Nivel = V1+…+V6) o 'ponderado' (pesos %)
+  r.metodo = (v2 && p.metodo === 'ponderado') ? 'ponderado' : 'suma';
+  // V6 por comuna: si lo guardado es anterior a la matriz del 15-10-2026, se usa la nueva tabla
+  const v6g = v2 && p.v6 && p.v6.version === PRIO_V6_VERSION && p.v6.valores ? p.v6.valores : PRIO_V6_DEFECTO;
+  r.v6 = { version: PRIO_V6_VERSION, valores: Object.assign({}, v6g) };
+  r.v6.ids = Object.keys(r.v6.valores).filter(k => Number(r.v6.valores[k]) > 0).map(Number);
   r.responsables = Object.assign({}, PRIO_RESPONSABLES_DEFECTO, (v2 && p.responsables) || {});
   r.listas = Object.assign({}, (v2 && p.listas) || {});   // ✅ comunas marcadas como listas (KPI de avance)
   delete r.v2t;
@@ -11478,21 +11897,28 @@ function sumaPesosPrio_(P) { return PRIO_PESO_KEYS.reduce((s, k) => s + (Number(
 /** Puntaje con 1 decimal si no es entero (la ponderación puede dar decimales). */
 function fmtNivelPrio_(n) { return n == null ? '—' : (Number.isInteger(n) ? String(n) : fmtNumPrio_(n, 1)); }
 function puntosPrio_(valor, u) { return (valor > 0) ? u.filter(t => valor >= t).length : 0; }
-function esRelevantePrio_(c, P) { return !!(P && P.v6 && (P.v6.ids || []).map(Number).includes(Number(c.id_comuna))); }
+/** Puntos V6 de la comuna (0 si no es relevante). */
+function v6ValorPrio_(c, P) { const V = (P && P.v6 && P.v6.valores) || {}; return Number(V[c.id_comuna] != null ? V[c.id_comuna] : V[String(c.id_comuna)]) || 0; }
+function esRelevantePrio_(c, P) { return v6ValorPrio_(c, P) > 0; }
+/** Solo el Administrador modifica variables, rangos, pesos y asignaciones; el Jefe de Área solo mira. */
+function prioPuedeEditar_() { return puedeEditarModulo_('prioridad'); }
 function calcularPrio_(c, P) {
   const r = {};
   PRIO_VARS.forEach(v => { r[v.k] = puntosPrio_(Number(c[v.campo]) || 0, P[v.k].u); });
   r.v5 = c.v5_tipo === 'Estratégicos' ? P.v5.estrategico : c.v5_tipo === 'Relevancia política' ? P.v5.relevancia : 0;
-  r.v6 = esRelevantePrio_(c, P) ? (Number(P.v6.puntos) || 0) : 0;
+  r.v6 = v6ValorPrio_(c, P);                                         // valor de la matriz por comuna (5 / 6)
   r.nivelBruto = r.v1 + r.v2q + r.v3 + r.v4 + r.v5 + r.v6;          // suma simple (como el Excel)
-  // Ponderado: Σ puntos × peso / Σ pesos × 6 → escala 0–18 (con partes iguales = suma simple)
+  // Ponderado: Σ puntos × peso / Σ pesos × 6 (con partes iguales = suma simple)
   const suma = sumaPesosPrio_(P);
-  r.nivel = suma > 0
+  r.nivelPond = suma > 0
     ? Math.round(PRIO_PESO_KEYS.reduce((s, k) => s + r[k] * (Number(P.pesos[k]) || 0), 0) / suma * 6 * 10) / 10
     : r.nivelBruto;
-  r.promedio = Math.round(r.nivel / 6 * 100) / 100;                   // promedio ponderado 0–3
+  // Por defecto (15-10-2026) la prioridad es la de la MATRIZ: Nivel = suma simple; Promedio = Nivel / 6
+  r.nivel = P.metodo === 'ponderado' ? r.nivelPond : r.nivelBruto;
+  r.promedio = Math.round(r.nivel / 6 * 10) / 10;
   r.prio = nivelAPrioridad_(r.nivel, P.bandas);
   r.prioSinPeso = nivelAPrioridad_(r.nivelBruto, P.bandas);          // referencia: el Excel (sin ponderar)
+  r.prioPond = nivelAPrioridad_(r.nivelPond, P.bandas);
   return r;
 }
 /** Presencia CMPC (V1): hectáreas CMPC en la comuna ≥ mínimo del filtro. */
@@ -11511,6 +11937,8 @@ const prioInfo_ = k => PRIO_NIVELES.find(n => n.k === k) || PRIO_NIVELES[PRIO_NI
 async function abrirPrioridad_() {
   const est = document.getElementById('prio-estado');
   document.getElementById('prio-guardar').style.display = puedeEditarModulo_('prioridad') ? '' : 'none';
+  // Presets de rangos: cambian variables → solo Administrador
+  ['prio-preset-excel', 'prio-preset-percentil'].forEach(id => { document.getElementById(id).style.display = puedeEditarModulo_('prioridad') ? '' : 'none'; });
   if (!state.prio.mapa) {
     // El panel ya está visible (mostrarVista_ lo muestra antes de llamar aquí)
     state.prio.mapa = L.map('prio-map', { zoomControl: true, attributionControl: false, zoomSnap: 0.25 }).setView([-37.8, -72.6], 7);
@@ -11535,17 +11963,34 @@ async function abrirPrioridad_() {
   setTimeout(() => { try { state.prio.mapa.invalidateSize(); } catch (e) {} }, 80);
   if (state.prio.cargado) {
     // Hubo cambios mientras la vista estaba cerrada (aviso en tiempo real) o los datos
-    // tienen más de 2 minutos: se refresca al volver a abrirla.
-    if (state.prio.pendiente === 'todo') return recargarPrioridad_();
+    // tienen más de 2 minutos: se refresca al volver a abrirla. Si los límites fallaron, se reintenta.
+    if (state.prio.pendiente === 'todo' || state.prio.errorGeo) return recargarPrioridad_();
     if (state.prio.pendiente || Date.now() - (state.prio.resumenEn || 0) > 120000) { state.prio.pendiente = null; cargarResumenPrevencion_(); }
     return;
   }
+  // Una sola carga a la vez (al abrir, al recibir un aviso en tiempo real o con 🔄): si no, quedaban
+  // capas duplicadas en el mapa.
+  if (state.prio.cargandoProm) return state.prio.cargandoProm;
+  state.prio.cargandoProm = cargarMatrizPrio_(est).finally(() => { state.prio.cargandoProm = null; });
+  return state.prio.cargandoProm;
+}
+async function cargarMatrizPrio_(est) {
   est.textContent = 'Cargando matriz…';
-  const [datos, params, geo] = await Promise.all([
+  const [datos, params, geo0] = await Promise.all([
     supabaseClient.from('comunas_prioridad').select('*').order('id_comuna'),
     supabaseClient.from('prioridad_parametros').select('id, parametros'),
     supabaseClient.rpc('comunas_prioridad_geojson'),
   ]);
+  // Límites comunales: si la consulta falla o llega vacía, se reintenta (antes la vista quedaba
+  // en blanco sin aviso: KPI con 103 comunas, pero mapa y listado vacíos).
+  let geo = geo0;
+  for (let i = 0; i < 2 && (geo.error || !(geo.data || []).length); i++) {
+    est.textContent = 'Reintentando límites comunales…';
+    await new Promise(r => setTimeout(r, 1500 * (i + 1)));
+    geo = await supabaseClient.rpc('comunas_prioridad_geojson');
+  }
+  state.prio.errorGeo = geo.error ? geo.error.message : (!(geo.data || []).length ? 'la consulta no devolvió límites comunales' : null);
+  if (state.prio.errorGeo) console.error('Comunas Prioritarias · comunas_prioridad_geojson:', geo.error || 'sin filas');
   if (datos.error) {
     est.textContent = 'Sin datos';
     document.getElementById('prio-rangos').innerHTML = '<div class="pe-vacio">No se pudo leer la matriz: ' + escapeHtml_(datos.error.message) +
@@ -11588,11 +12033,66 @@ async function abrirPrioridad_() {
   renderRangosPrio_();
   recalcularPrio_();
   cargarResumenPrevencion_();   // copamiento N/A/R, GRD y rutas (en segundo plano: calcula geometría)
+  cargarAreasPrio_();           // área y subgerencia de cada comuna (filtros), en segundo plano
   iniciarTiempoRealPrio_();
+}
+/* ── Área y subgerencia de cada comuna (15-10-2026) ──
+ * La matriz no trae subgerencia: la comuna toma el ÁREA administrativa (Comunas por área, SQL 94)
+ * y el área, la SUBGERENCIA de sus recursos (referencia_recursos). Una comuna puede tener 2 áreas. */
+async function cargarAreasPrio_() {
+  try {
+    const [ac, rr] = await Promise.all([
+      supabaseClient.from('v_area_comunas_admin').select('id_comuna, area'),
+      supabaseClient.from('referencia_recursos').select('area_nombre, subgerencia').not('subgerencia', 'is', null),
+    ]);
+    if (ac.error) throw ac.error;
+    const subgDeArea = {};
+    (rr.data || []).forEach(r => { const k = plNorm_(r.area_nombre).replace(/[^A-Z0-9]/g, ''); if (k && r.subgerencia && !subgDeArea[k]) subgDeArea[k] = r.subgerencia; });
+    const porComuna = {};
+    (ac.data || []).forEach(x => {
+      if (!x.area || x.id_comuna == null) return;
+      const e = porComuna[x.id_comuna] = porComuna[x.id_comuna] || { areas: [], subgs: [] };
+      if (!e.areas.some(a => plNorm_(a) === plNorm_(x.area))) e.areas.push(x.area);
+      const s = subgDeArea[plNorm_(x.area).replace(/[^A-Z0-9]/g, '')];
+      if (s && !e.subgs.includes(s)) e.subgs.push(s);
+    });
+    state.prio.areasComuna = porComuna;
+  } catch (e) {
+    console.warn('Comunas Prioritarias: no se pudo leer el área de las comunas:', e.message || e);
+    state.prio.areasComuna = {};
+  }
+  poblarFiltrosAreaPrio_();
+  recalcularPrio_();
+}
+function areasComunaPrio_(c) { return ((state.prio.areasComuna || {})[c.id_comuna] || { areas: [], subgs: [] }); }
+/** Subgerencia → Área en cascada (con cantidad de comunas). */
+function poblarFiltrosAreaPrio_() {
+  const AC = state.prio.areasComuna || {};
+  const selS = document.getElementById('prio-subg'), selA = document.getElementById('prio-area');
+  const vS = selS.value, vA = selA.value;
+  const cuentaS = {}, cuentaA = {};
+  let sinArea = 0;
+  state.prio.datos.forEach(c => {
+    const e = AC[c.id_comuna];
+    if (!e || !e.areas.length) { sinArea++; return; }
+    e.subgs.forEach(s => { cuentaS[s] = (cuentaS[s] || 0) + 1; });
+    if (vS && !e.subgs.includes(vS)) return;
+    e.areas.forEach(a => { cuentaA[a] = (cuentaA[a] || 0) + 1; });
+  });
+  const subgs = Object.keys(cuentaS).sort((a, b) => a.localeCompare(b, 'es'));
+  selS.innerHTML = '<option value="">Todas las subgerencias</option>' + subgs.map(s => '<option value="' + escapeHtml_(s) + '">' + escapeHtml_(aTitulo_(s)) + ' (' + cuentaS[s] + ')</option>').join('') +
+    (sinArea ? '<option value="__sin__">— Sin área asignada (' + sinArea + ')</option>' : '');
+  selS.value = (subgs.includes(vS) || vS === '__sin__') ? vS : '';
+  const areas = Object.keys(cuentaA).sort((a, b) => a.localeCompare(b, 'es'));
+  selA.innerHTML = '<option value="">Todas las áreas</option>' + areas.map(a => '<option value="' + escapeHtml_(a) + '">' + escapeHtml_(aTitulo_(a)) + ' (' + cuentaA[a] + ')</option>').join('');
+  selA.value = areas.includes(vA) ? vA : '';
+  selA.disabled = selS.value === '__sin__';
+  selS.classList.toggle('activo', !!selS.value); selA.classList.toggle('activo', !!selA.value);
 }
 /** Recarga completa (datos, rangos y límites): al agregarse una comuna o cambiar la matriz. */
 async function recargarPrioridad_() {
   const region = document.getElementById('prio-region').value;   // se conserva la región elegida
+  if (state.prio.cargandoProm) { try { await state.prio.cargandoProm; } catch (e) { /* se recarga igual */ } }
   if (state.prio.grupo && state.prio.mapa) state.prio.mapa.removeLayer(state.prio.grupo);
   state.prio.capas = {}; state.prio.grupo = null; state.prio.cargado = false; state.prio.pendiente = null;
   state.prio.encuadrado = true;   // no volver a encuadrar: el usuario puede estar mirando una zona
@@ -11771,9 +12271,12 @@ function renderListaPrio_() {
       (!q || normalizarBusqueda_(c.comuna + ' ' + c.id_comuna).includes(q)))
     .sort((a, b) => b._r.nivel - a._r.nivel || a.comuna.localeCompare(b.comuna, 'es'));
   document.getElementById('prio-lista-total').textContent = lista.length + ' comuna(s)';
-  const aviso = state.prio.resumenEstado === 'cargando' ? '<div class="pe-vacio" style="padding:6px;">⏳ Calculando copamiento por escenario…</div>'
+  const avisoGeo = state.prio.errorGeo
+    ? '<div class="pl-aviso warn" style="margin:6px;">⚠️ No se pudieron cargar los límites de las comunas (' + escapeHtml_(state.prio.errorGeo) + '), por eso el mapa y el listado están vacíos. ' +
+      '<button class="turnos-btn" onclick="recargarPrioridad_()" style="margin-top:6px;">🔄 Reintentar</button></div>' : '';
+  const aviso = avisoGeo + (state.prio.resumenEstado === 'cargando' ? '<div class="pe-vacio" style="padding:6px;">⏳ Calculando copamiento por escenario…</div>'
     : (String(state.prio.resumenEstado || '').startsWith('error') ? '<div class="pe-vacio" style="padding:6px;color:#B45309;">Sin datos de copamiento/GRD (' +
-      escapeHtml_(state.prio.resumenEstado.slice(7)) + '). ¿Se ejecutó <b>87_resumen_comunas_prevencion.sql</b>?</div>' : '');
+      escapeHtml_(state.prio.resumenEstado.slice(7)) + '). ¿Se ejecutó <b>87_resumen_comunas_prevencion.sql</b>?</div>' : ''));
   const barra = (etq, pct, color) => '<div>' + etq + '<span>' + (pct == null ? '—' : fmtNumPrio_(pct, 1) + '%') + '</span><i><em style="width:' + Math.min(100, Number(pct) || 0) + '%;background:' + color + ';"></em></i></div>';
   cont.innerHTML = aviso + lista.map(c => {
     const n = prioInfo_(c._r.prio), r = res[c.id_comuna] || {};
@@ -11816,6 +12319,10 @@ function iniciarListenersPrio_() {
     timerBusqueda = setTimeout(encuadrarFiltroPrio_, 400);
   });
   document.getElementById('prio-limpiar').addEventListener('click', limpiarFiltrosPrio_);
+  // Subgerencia → Área (en cascada)
+  document.getElementById('prio-subg').addEventListener('change', () => { document.getElementById('prio-area').value = ''; poblarFiltrosAreaPrio_(); recalcularPrio_(); encuadrarFiltroPrio_(); });
+  document.getElementById('prio-area').addEventListener('change', e => { e.target.classList.toggle('activo', !!e.target.value); recalcularPrio_(); encuadrarFiltroPrio_(); });
+  document.getElementById('prio-asignar').addEventListener('click', abrirAsignarResponsablesPrio_);
   // Presencia CMPC: el mínimo de hectáreas se muestra solo si se filtra por CMPC
   document.getElementById('prio-cmpc').addEventListener('change', e => {
     document.getElementById('prio-cmpc-min-wrap').style.display = e.target.value ? '' : 'none';
@@ -11827,7 +12334,10 @@ function iniciarListenersPrio_() {
     timerMinCmpc = setTimeout(() => { recalcularPrio_(); encuadrarFiltroPrio_(); }, 300);
   });
   document.getElementById('prio-preset-excel').addEventListener('click', () => {
-    state.prio.params = paramsCompletosPrio_(PRIO_PARAM_EXCEL);
+    // Solo los rangos vuelven a los del Excel: se conservan responsables, comunas listas, V6 y pesos
+    const ant = state.prio.params;
+    state.prio.params = Object.assign(paramsCompletosPrio_(PRIO_PARAM_EXCEL),
+      { responsables: ant.responsables, listas: ant.listas, v6: ant.v6, pesos: ant.pesos, bandas: ant.bandas });
     renderRangosPrio_(); recalcularPrio_();
     mostrarToast_('📊 Rangos originales del Excel.');
   });
@@ -11849,17 +12359,20 @@ async function guardarParamsPrio_() {
   }, { onConflict: 'id' });
   return error || null;
 }
-/** V6: marca / desmarca una comuna como relevante (se guarda con «💾 Guardar rangos»). */
+/** V6: cambia el valor de la comuna (0 = no relevante). Solo Administrador; se guarda con «💾 Guardar rangos». */
 function alternarRelevantePrio_(id) {
-  const P = state.prio.params; if (!P) return;
-  const ids = (P.v6.ids || []).map(Number), i = ids.indexOf(Number(id));
-  if (i >= 0) ids.splice(i, 1); else ids.push(Number(id));
-  P.v6.ids = ids;
+  const P = state.prio.params; if (!P || !prioPuedeEditar_()) return;
+  const c = state.prio.datos.find(x => Number(x.id_comuna) === Number(id));
+  const actual = c ? v6ValorPrio_(c, P) : 0;
+  const r = prompt('V6 · Comuna relevante — ' + (c ? c.comuna : id) + '\n\nValor de la matriz (6, 5, …). Escribe 0 para que no sea relevante:', String(actual || 5));
+  if (r === null) return;
+  const v = Math.max(0, Math.min(10, Math.round(Number(String(r).replace(',', '.')) || 0)));
+  if (v > 0) P.v6.valores[id] = v; else delete P.v6.valores[id];
+  P.v6.ids = Object.keys(P.v6.valores).filter(k => Number(P.v6.valores[k]) > 0).map(Number);
   if (state.prio.mapa) state.prio.mapa.closePopup();
   recalcularPrio_();
-  const chips = document.getElementById('prio-chips-v6'); if (chips) chips.innerHTML = resumenUmbralesPrio_('v6');
-  const c = state.prio.datos.find(x => Number(x.id_comuna) === Number(id));
-  mostrarToast_('📌 ' + (c ? c.comuna : 'Comuna') + (i >= 0 ? ' ya no es relevante' : ' marcada como relevante') + ' (' + ids.length + '). Guarda con «💾 Guardar rangos».');
+  renderRangosPrio_();
+  mostrarToast_('📌 ' + (c ? c.comuna : 'Comuna') + (v ? ': V6 = ' + v : ' ya no es relevante') + ' (' + P.v6.ids.length + ' relevantes). Guarda con «💾 Guardar rangos».');
 }
 
 /* ── 📈 KPI de avance por comuna y responsable (modal, 13-10-2026) ──
@@ -12036,6 +12549,193 @@ async function marcarComunaListaPrio_(id, lista) {
   }
   mostrarToast_((lista ? '✅ ' : '⏳ ') + (c ? c.comuna : 'Comuna') + (lista ? ' marcada como lista.' : ' vuelve a pendiente.'));
 }
+/* ── 👥 Asignar comunas a responsables (15-10-2026) ──
+ * Tabla de todas las comunas (o las del filtro del mapa) para asignar Jefe de Área y Responsable,
+ * fila por fila o a varias a la vez. Se trabaja sobre un borrador y se guarda en
+ * prioridad_parametros.responsables ({ id_comuna: [jefe, responsable] }), lo mismo que usa el KPI. */
+state.prio.asig = { alcance: 'filtro', estado: '', resp: '', q: '', sel: new Set(), borrador: null, jefesPerfil: [] };
+function asigCambiosPrio_() {
+  const A = state.prio.asig, R = state.prio.params.responsables || {}, B = A.borrador || {};
+  const ids = new Set([...Object.keys(R), ...Object.keys(B)]);
+  let n = 0; ids.forEach(id => { const a = R[id] || ['', ''], b = B[id] || ['', '']; if (a[0] !== b[0] || a[1] !== b[1]) n++; });
+  return n;
+}
+function filasAsignarPrio_() {
+  const A = state.prio.asig, B = A.borrador, q = normalizarBusqueda_(A.q || '');
+  return state.prio.datos.filter(c => {
+    if (!state.prio.capas[c.id_comuna] && A.alcance !== 'todas') return false;   // solo comunas con mapa (las del sistema)
+    if (A.alcance === 'filtro' && !cumpleFiltrosPrio_(c)) return false;
+    if (A.alcance === 'cmpc' && !presenciaCmpcPrio_(c)) return false;
+    const b = B[c.id_comuna];
+    if (A.estado === 'sin' && b && (b[0] || b[1])) return false;
+    if (A.estado === 'con' && !(b && (b[0] || b[1]))) return false;
+    if (A.resp && (!b || (b[1] !== A.resp && b[0] !== A.resp))) return false;
+    if (q) { const e = areasComunaPrio_(c); if (!normalizarBusqueda_([c.comuna, c.id_comuna, c.region, e.areas.join(' '), e.subgs.join(' ')].join(' ')).includes(q)) return false; }
+    return true;
+  }).sort((a, b) => a.comuna.localeCompare(b.comuna, 'es'));
+}
+async function abrirAsignarResponsablesPrio_() {
+  if (!state.prio.cargado) { mostrarToast_('Espera a que cargue la matriz.'); return; }
+  const A = state.prio.asig;
+  A.borrador = clonPrio_(state.prio.params.responsables || {});
+  A.sel = new Set();
+  let m = document.getElementById('prio-asig-modal');
+  if (!m) {
+    m = document.createElement('div'); m.id = 'prio-asig-modal'; m.className = 'gr-modal pk-modal';
+    m.innerHTML = '<div class="gr-modal-caja"><div class="gr-modal-cab"><b>👥 Asignar comunas a responsables</b><button class="turnos-btn" data-pa="cerrar">✕</button></div>' +
+      '<div class="gr-modal-cuerpo" id="pa-cuerpo"></div><div class="gr-modal-pie" id="pa-pie"></div></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click', e => {
+      const b = e.target.closest('[data-pa]');
+      if (e.target === m || (b && b.dataset.pa === 'cerrar')) {
+        if (asigCambiosPrio_() && !confirm('Hay asignaciones sin guardar. ¿Cerrar y descartarlas?')) return;
+        m.style.display = 'none'; return;
+      }
+      const chip = e.target.closest('[data-pa-resp]');
+      if (chip) { A.resp = A.resp === chip.dataset.paResp ? '' : chip.dataset.paResp; renderAsignarPrio_(); return; }
+      if (!b) return;
+      if (b.dataset.pa === 'asignar') asignarSeleccionPrio_(false);
+      if (b.dataset.pa === 'quitar') asignarSeleccionPrio_(true);
+      if (b.dataset.pa === 'guardar') guardarAsignacionesPrio_();
+      if (b.dataset.pa === 'descartar') { A.borrador = clonPrio_(state.prio.params.responsables || {}); A.sel.clear(); renderAsignarPrio_(); }
+    });
+    m.addEventListener('change', e => {
+      const t = e.target;
+      if (t.id === 'pa-alcance') { A.alcance = t.value; A.sel.clear(); }
+      else if (t.id === 'pa-estado') A.estado = t.value;
+      else if (t.id === 'pa-todas') { filasAsignarPrio_().forEach(c => { if (t.checked) A.sel.add(c.id_comuna); else A.sel.delete(c.id_comuna); }); }
+      else if (t.dataset.paSel) { const id = Number(t.dataset.paSel); if (t.checked) A.sel.add(id); else A.sel.delete(id); actualizarPieAsignarPrio_(); return; }
+      else if (t.dataset.paEdit) {   // edición en la fila
+        const [id, i] = t.dataset.paEdit.split('|');
+        const v = (A.borrador[id] || ['', '']).slice(); v[Number(i)] = t.value.trim().replace(/\s+/g, ' ');
+        if (v[0] || v[1]) A.borrador[id] = v; else delete A.borrador[id];
+        const R = state.prio.params.responsables || {}, o = R[id] || ['', ''];
+        t.classList.toggle('pa-mod', (o[Number(i)] || '') !== v[Number(i)]);
+        actualizarPieAsignarPrio_(); renderChipsAsignarPrio_();
+        return;
+      } else return;
+      renderAsignarPrio_();
+    });
+    let tq = null;
+    m.addEventListener('input', e => { if (e.target.id === 'pa-q') { clearTimeout(tq); tq = setTimeout(() => { A.q = e.target.value; renderAsignarPrio_(true); }, 200); } });
+  }
+  m.style.display = 'flex';
+  renderAsignarPrio_();
+  // Nombres de los Jefes de Área del sistema (sugerencias del desplegable)
+  try {
+    const { data } = await supabaseClient.from('perfiles').select('nombre_completo, perfil');
+    A.jefesPerfil = (data || []).filter(p => esJefeAreaPerfil_(p.perfil) && p.nombre_completo).map(p => p.nombre_completo);
+    renderAsignarPrio_(true);
+  } catch (e) { /* solo sugerencias */ }
+}
+function nombresAsignarPrio_() {
+  const B = state.prio.asig.borrador || {};
+  const jefes = new Set(state.prio.asig.jefesPerfil), resps = new Set();
+  Object.values(B).concat(Object.values(state.prio.params.responsables || {})).forEach(v => { if (v[0]) jefes.add(v[0]); if (v[1]) resps.add(v[1]); });
+  const orden = s => [...s].sort((a, b) => a.localeCompare(b, 'es'));
+  return { jefes: orden(jefes), resps: orden(resps) };
+}
+function renderChipsAsignarPrio_() {
+  const el = document.getElementById('pa-chips'); if (!el) return;
+  const A = state.prio.asig, B = A.borrador || {}, cuenta = {};
+  Object.values(B).forEach(v => { if (v[1]) cuenta[v[1]] = (cuenta[v[1]] || 0) + 1; });
+  const nombres = Object.keys(cuenta).sort((a, b) => cuenta[b] - cuenta[a] || a.localeCompare(b, 'es'));
+  const sinResp = state.prio.datos.filter(c => state.prio.capas[c.id_comuna] && !(B[c.id_comuna] && B[c.id_comuna][1])).length;
+  el.innerHTML = '<span class="pk-seg-tit">👥 Responsable:</span>' +
+    nombres.map(n => '<button class="pk-seg-btn' + (A.resp === n ? ' sel' : '') + '" data-pa-resp="' + escapeHtml_(n) + '">' + escapeHtml_(n) + ' <small>' + cuenta[n] + '</small></button>').join('') +
+    '<span style="font-size:11px;color:var(--text-tertiary);margin-left:6px;">' + sinResp + ' comuna(s) del sistema sin responsable</span>';
+}
+function actualizarPieAsignarPrio_() {
+  const A = state.prio.asig, esAdmin = puedeEditarModulo_('prioridad'), n = asigCambiosPrio_();
+  const s = document.getElementById('pa-nsel'); if (s) s.textContent = A.sel.size;
+  document.getElementById('pa-pie').innerHTML = esAdmin
+    ? '<span style="flex:1;font-size:11.5px;color:var(--text-tertiary);">' + (n ? '✏️ ' + n + ' comuna(s) con cambios sin guardar.' : 'Sin cambios.') + ' Lo asignado se usa en el 📈 KPI de avance.</span>' +
+      (n ? '<button class="turnos-btn" data-pa="descartar">↩️ Descartar</button>' : '') +
+      '<button class="turnos-btn' + (n ? ' gr-btn-guardar' : '') + '" data-pa="guardar"' + (n ? '' : ' disabled') + '>💾 Guardar asignaciones' + (n ? ' (' + n + ')' : '') + '</button>'
+    : '<span style="flex:1;font-size:11.5px;color:var(--text-tertiary);">Solo el Administrador asigna responsables.</span>';
+}
+function renderAsignarPrio_(soloTabla) {
+  const cont = document.getElementById('pa-cuerpo'); if (!cont) return;
+  const A = state.prio.asig, B = A.borrador, R = state.prio.params.responsables || {};
+  const esAdmin = puedeEditarModulo_('prioridad');
+  const filas = filasAsignarPrio_();
+  const { jefes, resps } = nombresAsignarPrio_();
+  const dl = '<datalist id="pa-dl-jefes">' + jefes.map(x => '<option value="' + escapeHtml_(x) + '">').join('') + '</datalist>' +
+    '<datalist id="pa-dl-resps">' + resps.map(x => '<option value="' + escapeHtml_(x) + '">').join('') + '</datalist>';
+  const tabla = '<div class="admin-table-wrap"><table class="admin-table pk-tabla"><thead><tr>' +
+      (esAdmin ? '<th style="width:30px;"><input type="checkbox" id="pa-todas" title="Seleccionar todas las de la lista"' + (filas.length && filas.every(c => A.sel.has(c.id_comuna)) ? ' checked' : '') + '></th>' : '') +
+      '<th>Comuna</th><th>Región</th><th>Subgerencia · Área</th><th>Prioridad</th><th>Jefe de Área</th><th>Responsable</th></tr></thead><tbody>' +
+    (filas.map(c => {
+      const id = c.id_comuna, b = B[id] || ['', ''], o = R[id] || ['', ''], n = c._r ? prioInfo_(c._r.prio) : null, e = areasComunaPrio_(c);
+      const celda = i => esAdmin
+        ? '<input class="pa-in' + ((o[i] || '') !== (b[i] || '') ? ' pa-mod' : '') + '" data-pa-edit="' + id + '|' + i + '" list="' + (i ? 'pa-dl-resps' : 'pa-dl-jefes') + '" value="' + escapeHtml_(b[i] || '') + '" placeholder="— sin asignar —">'
+        : escapeHtml_(b[i] || '—');
+      return '<tr>' + (esAdmin ? '<td style="text-align:center;"><input type="checkbox" data-pa-sel="' + id + '"' + (A.sel.has(id) ? ' checked' : '') + '></td>' : '') +
+        '<td><b>' + escapeHtml_(c.comuna) + '</b>' + (esRelevantePrio_(c, state.prio.params) ? ' <span title="Comuna relevante (V6)">📌</span>' : '') + '</td>' +
+        '<td style="font-size:11px;">' + escapeHtml_(String(c.region || '').replace(/^Región (de |del )?/, '')) + '</td>' +
+        '<td style="font-size:11px;">' + (e.areas.length ? escapeHtml_(e.subgs.map(aTitulo_).join(' / ') || '—') + ' · ' + escapeHtml_(e.areas.map(aTitulo_).join(' / ')) : '<span style="color:var(--text-tertiary);">Sin área</span>') + '</td>' +
+        '<td>' + (n ? '<span class="prio-badge" style="background:' + n.color + ';color:' + n.texto + ';">' + n.nombre + ' · ' + fmtNivelPrio_(c._r.nivel) + '</span>' : '—') + '</td>' +
+        '<td>' + celda(0) + '</td><td>' + celda(1) + '</td></tr>';
+    }).join('') || '<tr><td colspan="7" style="padding:14px;color:var(--text-tertiary);">Sin comunas con este filtro.</td></tr>') +
+    '</tbody></table></div>';
+  if (soloTabla && document.getElementById('pa-tabla')) {
+    document.getElementById('pa-tabla').innerHTML = tabla;
+    document.getElementById('pa-total').textContent = filas.length + ' comuna(s)';
+    const d = document.getElementById('pa-dls'); if (d) d.innerHTML = dl;
+    actualizarPieAsignarPrio_();
+    return;
+  }
+  cont.innerHTML =
+    '<div class="pk-filtros">' +
+      '<select id="pa-alcance" class="admin-search">' +
+        [['filtro', '🔎 Comunas del filtro del mapa'], ['cmpc', '🌲 Comunas con presencia CMPC'], ['sistema', '🗺️ Todas las comunas del mapa'], ['todas', '🇨🇱 Todas las de la matriz']]
+          .map(([v, t]) => '<option value="' + v + '"' + (A.alcance === v ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>' +
+      '<select id="pa-estado" class="admin-search">' +
+        [['', 'Con y sin responsable'], ['sin', '○ Sin responsable'], ['con', '👥 Con responsable']]
+          .map(([v, t]) => '<option value="' + v + '"' + (A.estado === v ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>' +
+      '<input id="pa-q" class="admin-search" placeholder="Buscar comuna, área, subgerencia…" value="' + escapeHtml_(A.q || '') + '" style="min-width:200px;">' +
+      '<span id="pa-total" style="font-size:12px;font-weight:700;">' + filas.length + ' comuna(s)</span>' +
+    '</div>' +
+    '<div class="pk-seg" id="pa-chips"></div>' +
+    (esAdmin
+      ? '<div class="pa-masivo"><b>Asignar a las <span id="pa-nsel">' + A.sel.size + '</span> seleccionadas:</b>' +
+          '<input id="pa-m-jefe" class="pa-in" list="pa-dl-jefes" placeholder="Jefe de Área (vacío = no cambia)">' +
+          '<input id="pa-m-resp" class="pa-in" list="pa-dl-resps" placeholder="Responsable (vacío = no cambia)">' +
+          '<button class="turnos-btn gr-btn-guardar" data-pa="asignar">✅ Asignar</button>' +
+          '<button class="turnos-btn" data-pa="quitar" title="Deja las comunas seleccionadas sin Jefe ni Responsable">🧹 Quitar asignación</button></div>'
+      : '') +
+    '<div id="pa-dls">' + dl + '</div>' +
+    '<div id="pa-tabla">' + tabla + '</div>';
+  renderChipsAsignarPrio_();
+  actualizarPieAsignarPrio_();
+}
+function asignarSeleccionPrio_(quitar) {
+  const A = state.prio.asig;
+  if (!A.sel.size) { mostrarToast_('Marca primero las comunas en la tabla (☑️).'); return; }
+  const jefe = (document.getElementById('pa-m-jefe').value || '').trim().replace(/\s+/g, ' ');
+  const resp = (document.getElementById('pa-m-resp').value || '').trim().replace(/\s+/g, ' ');
+  if (!quitar && !jefe && !resp) { mostrarToast_('Escribe el Jefe de Área y/o el Responsable a asignar.'); return; }
+  if (quitar && !confirm('¿Quitar Jefe de Área y Responsable de ' + A.sel.size + ' comuna(s)?')) return;
+  A.sel.forEach(id => {
+    if (quitar) { delete A.borrador[id]; return; }
+    const v = (A.borrador[id] || ['', '']).slice();
+    if (jefe) v[0] = jefe;
+    if (resp) v[1] = resp;
+    A.borrador[id] = v;
+  });
+  mostrarToast_((quitar ? '🧹 Asignación quitada de ' : '✅ Asignado a ') + A.sel.size + ' comuna(s). Recuerda «💾 Guardar asignaciones».');
+  A.sel.clear();
+  renderAsignarPrio_();
+}
+async function guardarAsignacionesPrio_() {
+  const A = state.prio.asig, P = state.prio.params, antes = P.responsables;
+  P.responsables = clonPrio_(A.borrador);
+  const error = await guardarParamsPrio_();
+  if (error) { P.responsables = antes; mostrarToast_('No se pudo guardar: ' + error.message); return; }
+  mostrarToast_('💾 Asignaciones guardadas.');
+  renderAsignarPrio_();
+  if (document.getElementById('prio-kpi-modal') && document.getElementById('prio-kpi-modal').style.display !== 'none') renderKpiAvancePrio_();
+}
 async function guardarResponsablesPrio_() {
   const error = await guardarParamsPrio_();
   mostrarToast_(error ? 'No se pudo guardar: ' + error.message : '💾 Responsables guardados.');
@@ -12046,8 +12746,8 @@ async function descargarKpiAvancePrio_() {
   if (!filas.length) { mostrarToast_('No hay comunas para descargar.'); return; }
   const si = b => b ? 'Sí' : 'No';
   const datos = filas.map(f => ({
-    'ID comuna': f.c.id_comuna, 'Comuna': f.c.comuna, 'Prioridad': prioInfo_(f.c._r.prio).nombre, 'Promedio ponderado (0-3)': f.c._r.promedio,
-    'Nivel ponderado (0-18)': f.c._r.nivel, 'Nivel sin ponderar': f.c._r.nivelBruto, 'Relevante (V6)': si(esRelevantePrio_(f.c, state.prio.params)),
+    'ID comuna': f.c.id_comuna, 'Comuna': f.c.comuna, 'Prioridad': prioInfo_(f.c._r.prio).nombre, 'Promedio (Nivel / 6)': f.c._r.promedio,
+    'Nivel (suma V1…V6)': f.c._r.nivelBruto, 'Nivel ponderado (%)': f.c._r.nivelPond, 'Relevante (V6)': si(esRelevantePrio_(f.c, state.prio.params)),
     'Jefe de Área': f.asig[0] || '', 'Responsable': f.asig[1] || '',
     'Lista': comunaListaPrio_(f.c.id_comuna) ? 'Sí' : 'No', 'Lista desde': comunaListaPrio_(f.c.id_comuna) ? new Date(comunaListaPrio_(f.c.id_comuna).en).toLocaleDateString('es-CL') : '', 'GRD': si(f.hitos.grd), 'Plan Normal': si(f.hitos.n), 'Plan Amarilla': si(f.hitos.a), 'Plan Roja': si(f.hitos.ro),
     'Copamiento Normal %': f.r.pct_verde ?? '', 'Copamiento Amarilla %': f.r.pct_amarilla ?? '', 'Copamiento Roja %': f.r.pct_roja ?? '', 'Avance %': f.pct,
@@ -12087,7 +12787,11 @@ function resumenUmbralesPrio_(grupo) {
   const peso = P.pesos && P.pesos[grupo] != null
     ? '<span class="prio-chip" style="background:#CCFBF1;color:#0F766E;font-weight:800;" title="Peso de la variable en el puntaje">⚖️ ' + fmtPesoPrio_(P.pesos[grupo]) + ' %</span>' : '';
   if (grupo === 'v5') return peso + chip('Estratégica ' + P.v5.estrategico + ' pts') + chip('Relev. política ' + P.v5.relevancia + ' pts');
-  if (grupo === 'v6') return peso + chip((P.v6.ids || []).length + ' comunas relevantes') + chip('Relevante ' + P.v6.puntos + ' pts');
+  if (grupo === 'v6') {
+    const cuenta = {}; Object.values(P.v6.valores || {}).forEach(v => { if (Number(v) > 0) cuenta[v] = (cuenta[v] || 0) + 1; });
+    return peso + chip((P.v6.ids || []).length + ' comunas relevantes') +
+      Object.keys(cuenta).sort((a, b) => b - a).map(v => chip(v + ' pts · ' + cuenta[v] + ' comuna' + (cuenta[v] > 1 ? 's' : ''))).join('');
+  }
   const v = PRIO_VARS.find(x => x.k === grupo); if (!v || !P[grupo]) return '';
   return peso + P[grupo].u.map((u, i) => chip((i + 1) + ' pt' + (i ? 's' : '') + ' ≥ ' + v.fmt(u))).join('');
 }
@@ -12108,16 +12812,21 @@ function renderRangosPrio_() {
       (grupo === 'b' || grupo === 'v5' || grupo === 'v6' ? '' : '<div class="prio-dist" id="prio-dist-' + grupo + '"></div><div class="prio-dist-txt"><span>0 pts</span><span>1</span><span>2</span><span>3 pts</span></div>') +
       '<details' + (state.prio.abiertos && state.prio.abiertos[grupo] ? ' open' : '') + ' data-prio-det="' + grupo + '"><summary>Ajustar rangos</summary>' + cuerpo + '</details></div>';
   };
-  let html = tarjeta('b', 'Niveles de prioridad', 'Puntaje ponderado 0–18 (promedio 0–3 × 6)',
-    '<p>Puntaje mínimo para cada nivel; bajo «Media» queda Baja. Por defecto: Alta ≥ 15 · Media ≥ 9 (con la suma sin ponderar reproducen la matriz).</p>' +
-    [['alta', 'Alta'], ['media', 'Media']].map(([k, n]) => slider('b.' + k, n, 0, 18, 0.5, b[k], v => '≥ ' + v + ' pts')).join(''));
+  let html = tarjeta('b', 'Niveles de prioridad', 'Puntaje 0–21 (V1–V5 hasta 3 pts c/u + V6 hasta 6)',
+    '<p>Puntaje mínimo para cada nivel; bajo «Media» queda Baja. Por defecto: Alta ≥ 17 · Media ≥ 10 (reproducen la matriz: Alta 19–20, Media 11–16).</p>' +
+    [['alta', 'Alta'], ['media', 'Media']].map(([k, n]) => slider('b.' + k, n, 0, 21, 0.5, b[k], v => '≥ ' + v + ' pts')).join(''));
   // Ponderación manual de cada variable (%): siempre visible para ingresarla a mano
   const nombresPeso = { v1: 'V1 · Presencia CMPC', v2q: 'V2 · Ocurrencia quinquenio', v3: 'V3 · Intencionalidad', v4: 'V4 · Valor económico CMPC', v5: 'V5 · Comuna estratégica', v6: 'V6 · Comuna relevante' };
   html += '<div class="prio-var" style="--c:#0F766E;"><h4><span class="prio-var-tit"><span class="prio-var-ico">⚖️</span>' +
-    '<span class="prio-var-nom">Ponderación de variables<em>Peso de cada variable en el puntaje (en %). Por defecto, el de la matriz</em></span></span>' +
+    '<span class="prio-var-nom">Cálculo de la prioridad<em>' + (P.metodo === 'ponderado'
+      ? 'Ponderado: peso de cada variable en %'
+      : 'Suma simple, como la matriz (Nivel = V1+…+V6). Los % se usan solo con «Ponderado»') + '</em></span></span>' +
     '<span style="display:flex;gap:4px;"><button class="turnos-btn" data-prio-pesos-defecto style="padding:3px 8px;font-size:11px;" title="V1 20 · V2 40 · V3 10 · V4 20 · V5 5 · V6 15">↺ Matriz</button>' +
     '<button class="turnos-btn" data-prio-pesos-iguales style="padding:3px 8px;font-size:11px;" title="Todas las variables con el mismo peso (= suma simple)">⚖️ Iguales</button></span></h4>' +
-    '<div class="prio-pesos">' + PRIO_PESO_KEYS.map(k => {
+    '<div class="prio-metodo">' +
+      '<label><input type="radio" name="prio-metodo" value="suma"' + (P.metodo !== 'ponderado' ? ' checked' : '') + '> 📊 Suma simple (matriz)</label>' +
+      '<label><input type="radio" name="prio-metodo" value="ponderado"' + (P.metodo === 'ponderado' ? ' checked' : '') + '> ⚖️ Ponderado (%)</label></div>' +
+    '<div class="prio-pesos' + (P.metodo === 'ponderado' ? '' : ' prio-pesos-off') + '">' + PRIO_PESO_KEYS.map(k => {
       const e = PRIO_ESTILO_VAR[k] || {}, w = Number(P.pesos[k]) || 0;
       return '<div class="prio-peso"><span>' + (e.ico || '•') + '</span><span class="nom" title="' + escapeHtml_(nombresPeso[k]) + '">' + escapeHtml_(nombresPeso[k]) + '</span>' +
         '<label class="in"><input type="number" min="0" max="100" step="0.01" inputmode="decimal" data-prio-peso="' + k + '" value="' + fmtPesoPrio_(w) + '"><span>%</span></label>' +
@@ -12134,10 +12843,20 @@ function renderRangosPrio_() {
   html += tarjeta('v5', 'Comuna estratégica', 'V5 · Puntos según la clasificación de la comuna en la matriz',
     slider('v5.estrategico', 'Estratég.', 0, 3, 1, P.v5.estrategico, v => v + ' pts') +
     slider('v5.relevancia', 'Relev. pol.', 0, 3, 1, P.v5.relevancia, v => v + ' pts'));
-  html += tarjeta('v6', 'Comuna relevante', 'V6 · Comunas marcadas como relevantes en la matriz (24 por defecto)',
-    slider('v6.puntos', 'Relevante', 0, 3, 1, P.v6.puntos, v => v + ' pts') +
-    '<p style="margin-top:6px;">Para marcar o desmarcar una comuna, ábrela en el mapa (clic) y usa «📌 Relevante».</p>');
+  // V6: valor de la matriz por comuna (6 / 5). Lista de solo lectura; el Administrador lo cambia desde el mapa.
+  const nomComuna = id => { const c = state.prio.datos.find(x => Number(x.id_comuna) === Number(id)); return c ? c.comuna : String(id); };
+  const v6Lista = Object.entries(P.v6.valores || {}).filter(([, v]) => Number(v) > 0)
+    .sort((a, b) => b[1] - a[1] || nomComuna(a[0]).localeCompare(nomComuna(b[0]), 'es'));
+  html += tarjeta('v6', 'Comuna relevante', 'V6 · Valor de la matriz por comuna (' + v6Lista.length + ' comunas)',
+    '<div class="prio-v6-lista">' + v6Lista.map(([id, v]) => '<span class="prio-chip" title="ID ' + id + '">' + escapeHtml_(nomComuna(id)) + ' <b>' + v + '</b></span>').join('') + '</div>' +
+    (prioPuedeEditar_() ? '<p style="margin-top:6px;">Para cambiar el valor de una comuna, ábrela en el mapa (clic) y usa «📌 V6».</p>' : ''));
+  // Jefe de Área y demás perfiles: solo consulta (15-10-2026). Rangos, pesos y V6 los cambia el Administrador.
+  if (!prioPuedeEditar_()) html = '<div class="pl-aviso info" style="margin:0 0 8px;">👁️ Solo consulta: los rangos, pesos y variables los modifica el Administrador.</div>' + html;
   cont.innerHTML = html;
+  if (!prioPuedeEditar_()) {
+    cont.querySelectorAll('input').forEach(i => { i.disabled = true; });
+    cont.querySelectorAll('[data-prio-pesos-defecto], [data-prio-pesos-iguales]').forEach(b => { b.style.display = 'none'; });
+  }
   // Ponderación: al escribir un % se recalcula todo (mapa, listado, ranking)
   const totalPesos = () => {
     const s = sumaPesosPrio_(state.prio.params), el = document.getElementById('prio-peso-total');
@@ -12155,6 +12874,11 @@ function renderRangosPrio_() {
     const chips = document.getElementById('prio-chips-' + k); if (chips) chips.innerHTML = resumenUmbralesPrio_(k);
     totalPesos();
     if (!pendPeso) pendPeso = requestAnimationFrame(() => { pendPeso = null; recalcularPrio_(); });
+  }));
+  cont.querySelectorAll('input[name="prio-metodo"]').forEach(rb => rb.addEventListener('change', () => {
+    state.prio.params.metodo = rb.value;
+    renderRangosPrio_(); recalcularPrio_();
+    mostrarToast_(rb.value === 'ponderado' ? '⚖️ Prioridad ponderada por los %. Guarda con «💾 Guardar rangos».' : '📊 Prioridad = suma simple de la matriz. Guarda con «💾 Guardar rangos».');
   }));
   const btnDefecto = cont.querySelector('[data-prio-pesos-defecto]');
   if (btnDefecto) btnDefecto.addEventListener('click', () => {
@@ -12201,7 +12925,7 @@ function renderRangosPrio_() {
 /** ¿Hay algún filtro activo? (región, tipo, búsqueda o nivel de prioridad) */
 function hayFiltroPrio_() {
   return !!(document.getElementById('prio-region').value || document.getElementById('prio-tipo').value || document.getElementById('prio-trabajo').value ||
-    document.getElementById('prio-cmpc').value ||
+    document.getElementById('prio-cmpc').value || document.getElementById('prio-subg').value || document.getElementById('prio-area').value ||
     (document.getElementById('prio-busqueda').value || '').trim() || state.prio.filtroNivel != null);
 }
 /** Todos los filtros juntos: región, tipo, nivel de prioridad (KPI) y búsqueda. */
@@ -12221,6 +12945,9 @@ function limpiarFiltrosPrio_() {
   document.getElementById('prio-region').value = '';
   document.getElementById('prio-tipo').value = '';
   document.getElementById('prio-trabajo').value = '';
+  document.getElementById('prio-subg').value = '';
+  document.getElementById('prio-area').value = '';
+  poblarFiltrosAreaPrio_();
   // Por defecto: solo comunas con presencia CMPC ≥ 100 ha (las ~103 de la matriz)
   document.getElementById('prio-cmpc').value = 'si';
   document.getElementById('prio-cmpc-min').value = '100';
@@ -12237,6 +12964,14 @@ function pasaFiltrosPrio_(c) {
   const trabajo = document.getElementById('prio-trabajo').value;
   const cmpc = document.getElementById('prio-cmpc').value;
   if (reg && c.region !== reg) return false;
+  // Subgerencia / Área: por el área administrativa de la comuna (cargarAreasPrio_)
+  const subg = document.getElementById('prio-subg').value, area = document.getElementById('prio-area').value;
+  if (subg || area) {
+    const e = areasComunaPrio_(c);
+    if (subg === '__sin__') { if (e.areas.length) return false; }
+    else if (subg && !e.subgs.includes(subg)) return false;
+    if (area && !e.areas.includes(area)) return false;
+  }
   if (cmpc === 'si' && !presenciaCmpcPrio_(c)) return false;   // presencia CMPC (V1, hectáreas)
   if (cmpc === 'no' && presenciaCmpcPrio_(c)) return false;
   if (trabajo) {   // trabajo de copamiento en la comuna (SQL 87)
@@ -12289,6 +13024,7 @@ function recalcularPrio_() {
   // «Limpiar» solo aparece si hay algo distinto de lo por defecto (presencia CMPC ≥ 100 ha)
   const cmpcDefecto = document.getElementById('prio-cmpc').value === 'si' && Number(document.getElementById('prio-cmpc-min').value) === 100;
   const otrosFiltros = !!(document.getElementById('prio-region').value || document.getElementById('prio-tipo').value || document.getElementById('prio-trabajo').value ||
+    document.getElementById('prio-subg').value || document.getElementById('prio-area').value ||
     (document.getElementById('prio-busqueda').value || '').trim() || state.prio.filtroNivel != null);
   if (btnLimpiar) btnLimpiar.style.display = (otrosFiltros || !cmpcDefecto) ? '' : 'none';
   // Cantidad de comunas con / sin presencia CMPC (según el mínimo de hectáreas), en el propio filtro
@@ -12323,8 +13059,10 @@ function recalcularPrio_() {
     el.innerHTML = dist[v.k].map((n, i) => '<span style="width:' + (100 * n / tot) + '%;background:' + col[i] + ';" title="' + i + ' pts: ' + n + ' comunas"></span>').join('');
     const t = document.getElementById('prio-dist-txt-' + v.k); if (t) t.textContent = dist[v.k].join(' · ') + ' comunas';
   });
-  const cambian = state.prio.datos.filter(c => c._r.prio !== c._prioExcel).length;
-  document.getElementById('prio-estado').textContent = cambian ? '⚖️ ' + cambian + ' comuna(s) cambian de nivel por la ponderación' : 'Ponderación sin cambios de nivel vs. la suma simple';
+  const cambian = state.prio.datos.filter(c => c._r.prioPond !== c._r.prioSinPeso).length;
+  document.getElementById('prio-estado').textContent = P.metodo === 'ponderado'
+    ? (cambian ? '⚖️ Ponderado: ' + cambian + ' comuna(s) cambian de nivel vs. la matriz' : '⚖️ Ponderado: sin cambios de nivel vs. la matriz')
+    : '📊 Prioridad = Nivel de la matriz (suma V1…V6)' + (cambian ? ' · con ponderación cambiarían ' + cambian : '');
   if (document.getElementById('prio-ranking').style.display !== 'none') renderRankingPrio_();
 }
 function renderRankingPrio_() {
@@ -12404,7 +13142,7 @@ function abrirDetallePrio_(id, capa) {
   const html = '<div class="prio-det pd">' +
     '<div class="pd-cab"><div style="min-width:0;"><div class="pd-nom">' + escapeHtml_(c.comuna) + '</div>' +
       '<div class="pd-sub">' + escapeHtml_(c.provincia || '') + ' · id ' + c.id_comuna + '</div></div>' +
-      '<div class="pd-nivel" style="background:' + n.color + ';color:' + n.texto + ';" title="Puntaje ' + fmtNivelPrio_(c._r.nivel) + '/18' + (c._r.nivel !== c._r.nivelBruto ? ' (ponderado; sin ponderar ' + c._r.nivelBruto + ')' : '') + '">' +
+      '<div class="pd-nivel" style="background:' + n.color + ';color:' + n.texto + ';" title="Nivel ' + fmtNivelPrio_(c._r.nivel) + ' de 21' + (c._r.nivel !== c._r.nivelBruto ? ' (ponderado; suma de la matriz ' + c._r.nivelBruto + ')' : ' (suma V1…V6 de la matriz)') + '">' +
         '<b>' + n.nombre + '</b><span>' + fmtNumPrio_(c._r.promedio, 1) + ' · ' + fmtNivelPrio_(c._r.nivel) + ' pts</span></div></div>' +
     '<div class="pd-vars">' + minis + '</div>' +
     situacion +
@@ -12417,8 +13155,8 @@ function abrirDetallePrio_(id, capa) {
       (puedeVerModulo_('planificador_mapa')
         ? '<button class="popup-btn pd-btn-pri" onclick="irAPlanificadorComunaPrio_(' + Number(c.id_comuna) + ')" title="Abrir la comuna en el Planificador de Alertas">🧭 Planificador</button>' : '') +
       (puedeEditarModulo_('prioridad')
-        ? '<button class="popup-btn" onclick="alternarRelevantePrio_(' + Number(c.id_comuna) + ')" title="' + (esRelevantePrio_(c, Pp) ? 'Quitar de comunas relevantes (V6)' : 'Marcar como comuna relevante (V6)') + '">' +
-          (esRelevantePrio_(c, Pp) ? '📌 Quitar relevante' : '📌 Relevante') + '</button>' : '') +
+        ? '<button class="popup-btn" onclick="alternarRelevantePrio_(' + Number(c.id_comuna) + ')" title="Cambiar el valor V6 · Comuna relevante de esta comuna">' +
+          '📌 V6 = ' + v6ValorPrio_(c, Pp) + ' · cambiar</button>' : '') +
     '</div></div>';
   capa.bindPopup(html, { maxWidth: 300, minWidth: 270, className: 'prio-popup', autoPanPadding: [24, 24] }).openPopup();
 }
@@ -15621,7 +16359,7 @@ function infoRecursoRutaPlan_(r, escenario) {
   if (!/CMPC/i.test(String((r.instituciones || {}).nombre || ''))) return null;
   if (!r.recurso_ref_id) return { con: false };
   const ri = (state.recursoRefInfo || {})[r.recurso_ref_id] || {};
-  return { con: true, clave: r.recurso_ref_clave || ri.alias || ri.codigo_ref || '' };
+  return { con: true, clave: claveIdTexto_(r.recurso_ref_clave || ri.alias, r.recurso_ref_codigo || ri.codigo_ref) };   // «Clave radial · ID»
 }
 function detalleHoverRecurso_(datos) {
   const institucion = (datos && datos.institucion) ? String(datos.institucion).trim() : '';
@@ -15642,6 +16380,10 @@ function detalleHoverRecurso_(datos) {
   if (datos && datos.recursoRuta) encabezado.push(datos.recursoRuta.con
     ? '<span style="color:#4ADE80;font-weight:700;">📻 ' + escapeHtml_(datos.recursoRuta.clave || 'Recurso asociado') + '</span>'
     : '<span style="color:#F87171;font-weight:700;">Sin recurso asociado</span>');
+  // Recursos disponibles: ¿tiene ruta asignada? (mismo punto neón que las rutas)
+  if (datos && datos.rutaDelRecurso) encabezado.unshift(puntoNeonRecursoRuta_(datos.rutaDelRecurso) + (datos.rutaDelRecurso.con
+    ? '<span style="color:#4ADE80;font-weight:700;">Con ruta asignada</span>'
+    : '<span style="color:#F87171;font-weight:700;">Sin ruta asignada</span>'));
 
   let html = '<div style="text-align:left;line-height:1.4;">';
   html += '<div style="white-space:nowrap;">' + encabezado.join('<span style="opacity:.45;"> · </span>') + '</div>';
@@ -16101,16 +16843,45 @@ async function loadRecursosDisponiblesAreaLayer_() {
 
   if (error) { state.recursosDisponiblesInfo = { ok: false, count: 0, error: error.message }; return; }
 
+  // Nombre de la persona a cargo (recurso_contacto, SQL 92). Por RLS solo lo leen el Administrador
+  // y el Jefe de su área; para los demás la etiqueta queda con ID y clave radial.
+  const personaPor = {};
+  try {
+    const ids = (data || []).map(r => r.id);
+    for (let i = 0; i < ids.length; i += 150) {
+      const { data: cs } = await supabaseClient.from('recurso_contacto').select('recurso_id, nombre_persona').in('recurso_id', ids.slice(i, i + 150));
+      (cs || []).forEach(c => { if (c.nombre_persona) personaPor[c.recurso_id] = c.nombre_persona; });
+    }
+  } catch (e) { /* sin contactos: solo ID y clave */ }
+
+  // ¿Tiene ruta asignada? (línea del escenario Normal, SQL 79, o recurso_rutas): mismo punto neón que las rutas
+  const conRuta = new Set();
+  try {
+    const [rn, rr] = await Promise.all([
+      supabaseClient.from('v_recurso_ruta_normal').select('recurso_id'),
+      supabaseClient.from('recurso_rutas').select('recurso_id'),
+    ]);
+    (rn.data || []).concat(rr.data || []).forEach(x => conRuta.add(String(x.recurso_id)));
+  } catch (e) { /* sin las vistas: no se muestra el indicador */ }
+  state.recursosConRuta = conRuta;
+
   (data || []).forEach(r => {
     const inst = r.instituciones || { nombre: 'Institución', color_hex: '#64748B' };
-    // La etiqueta muestra el TIPO de recurso (VIGÍA INFANTERÍA, CAMIONETA, etc.)
-    const etiqueta = escapeHtml_(r.tipo_recurso || r.nombre_recurso || inst.nombre);
+    // Etiqueta (15-10-2026): Clave radial · ID y, debajo, el nombre de la persona a cargo.
+    // Sin ID ni clave se muestra el tipo de recurso, como antes.
+    const idClave = escapeHtml_(claveIdTexto_(r.clave_radial, r.codigo_ref));   // «Clave radial · ID»
+    // Indicador de ruta (recursos de Relacionamiento): 🟢 con ruta asignada · 🔴 sin ruta, como en las rutas creadas
+    const infoRuta = pertenenciaDeRecurso_(r) === 'Relacionamiento' ? { con: conRuta.has(String(r.id)), clave: idClave ? claveIdTexto_(r.clave_radial, r.codigo_ref) : '' } : null;
+    const punto = infoRuta ? '<span class="punto-neon ' + (infoRuta.con ? 'con' : 'sin') + '" title="' + (infoRuta.con ? 'Tiene ruta asignada' : 'Sin ruta asignada') + '"></span>' : '';
+    const etiqueta = punto + (idClave ? '<b>' + idClave + '</b>' : escapeHtml_(r.tipo_recurso || r.nombre_recurso || inst.nombre)) +
+      (personaPor[r.id] ? '<br><span class="lbl-persona">👤 ' + escapeHtml_(personaPor[r.id]) + '</span>' : '');
     const puedeEditar = puedeGestionarRecursoArea_(r.area);
     const enEdicionEstaZona = !!(state.modoRecursosArea && plNorm_(state.modoRecursosArea.area) === plNorm_(r.area));
     const popupHtml =
       '<div class="popup-title">' + (r.clave_radial ? '📻 ' + escapeHtml_(r.clave_radial) + ' · ' : '') + escapeHtml_(r.nombre_recurso || inst.nombre) + '</div>' +
       '<div class="popup-row">🏢 ' + inst.nombre + '</div>' +
       '<div class="popup-row">🏷️ ' + r.tipo_recurso + (r.tipo_movil && r.tipo_movil !== 'No Aplica' ? ' (' + r.tipo_movil + ')' : '') + (r.cantidad_personas ? ' · ' + r.cantidad_personas + ' persona(s)' : '') + '</div>' +
+      (infoRuta ? '<div class="popup-row">' + punto + (infoRuta.con ? '<b style="color:#16A34A;">Tiene ruta asignada</b>' : '<b style="color:#DC2626;">Sin ruta asignada</b> · se asigna en el escenario Normal') + '</div>' : '') +
       (r.fecha_inicio_operacion ? '<div class="popup-row">📅 Inicio: ' + r.fecha_inicio_operacion + '</div>' : '') +
       '<div class="popup-row">' + escapeHtml_(r.descripcion_funcion || 'Sin descripción') + '</div>' +
       (puedeEditar ? '<div class="popup-actions">' +
@@ -16148,7 +16919,7 @@ async function loadRecursosDisponiblesAreaLayer_() {
         figura.bindTooltip(etiqueta, { permanent: true, direction: 'center', className: 'map-label' });
       }
       figura._tipoRecurso = r.tipo_recurso || 'Sin tipo'; figura._pertenencia = pertenenciaDeRecurso_(r);
-      habilitarHoverEtiqueta_(figura, { institucion: inst.nombre, nombre: r.nombre_recurso, tipo: r.tipo_recurso, descripcion: r.descripcion_funcion }, { direction: 'center', offset: [0, 0] });
+      habilitarHoverEtiqueta_(figura, { institucion: inst.nombre, nombre: r.nombre_recurso, tipo: r.tipo_recurso, descripcion: r.descripcion_funcion, rutaDelRecurso: infoRuta }, { direction: 'center', offset: [0, 0] });
       activarNeonHover_(figura, inst.color_hex);
       recursosDisponiblesAreaLayer.addLayer(figura);
       return;
@@ -16169,7 +16940,7 @@ async function loadRecursosDisponiblesAreaLayer_() {
     if (state.mostrarEtiquetasRecursosArea && !tipoRecursoOculto_(m._tipoRecurso)) {
       m.bindTooltip(etiqueta, { permanent: true, interactive: true, direction: 'top', offset: [0, -16], className: 'map-label' });
     }
-    habilitarHoverEtiqueta_(m, { institucion: inst.nombre, nombre: r.nombre_recurso, tipo: r.tipo_recurso, descripcion: r.descripcion_funcion }, { direction: 'top', offset: [0, -18] });
+    habilitarHoverEtiqueta_(m, { institucion: inst.nombre, nombre: r.nombre_recurso, tipo: r.tipo_recurso, descripcion: r.descripcion_funcion, rutaDelRecurso: infoRuta }, { direction: 'top', offset: [0, -18] });
     activarNeonHover_(m, inst.color_hex);
     recursosDisponiblesAreaLayer.addLayer(m);
     if (tipoRecursoOculto_(m._tipoRecurso) || !recursoActivoHoy_(m._recursoId)) { const el = m.getElement && m.getElement(); if (el) el.style.display = 'none'; }
@@ -19381,6 +20152,8 @@ async function guardarRecursoRef_(prefijo, rutaId) {
   const nuevo = sel.value || null;
   if ((nuevo || '') === (wrap.dataset.original || '')) return null;
   const { error } = await supabaseClient.rpc('asociar_recurso_planificacion', { p_id: rutaId, p_recurso_ref_id: nuevo });
+  // El indicador 🟢/🔴 de los Recursos disponibles cambia con la asociación: se refresca la capa si está visible
+  if (!error && typeof recursosDisponiblesAreaLayer !== 'undefined' && map.hasLayer(recursosDisponiblesAreaLayer)) loadRecursosDisponiblesAreaLayer_();
   return error ? error.message : null;
 }
 
@@ -21810,7 +22583,8 @@ async function loadPlanificacionRecursos_(comunaId) {
       //     puede caer fuera del recorrido cuando la línea es curva o tiene
       //     cruces, y el logo quedaba flotando lejos de la ruta.
       //   · Áreas: se mantiene el centro del bounding box, que sí queda dentro.
-      const logoFig = logoEfectivoInstitucion_(inst);
+      // Rutas (líneas) de CMPC: sin logo al centro (15-10-2026; ya se distinguen por el punto 🟢/🔴 y su etiqueta)
+      const logoFig = (r.tipo_geometria === 'linea' && esInstitucionCmpc_(inst)) ? null : logoEfectivoInstitucion_(inst);
       if (logoFig) {
         try {
           let centro;
@@ -22002,8 +22776,8 @@ function bloqueRecursoRuta_(r, escenario) {
       : '';
   }
   const i = (state.recursoRefInfo || {})[r.recurso_ref_id] || {};
-  // Referencia = clave radial (SQL 91: recurso_ref_clave); si no hay, el ID
-  const codigo = i.alias || r.recurso_ref_clave || i.codigo_ref || r.recurso_ref_codigo || 'Recurso';
+  // Referencia = «Clave radial · ID» (SQL 91: recurso_ref_clave / recurso_ref_codigo)
+  const codigo = claveIdTexto_(i.alias || r.recurso_ref_clave, i.codigo_ref || r.recurso_ref_codigo) || 'Recurso';
   const tipo = i.tipo_recurso || r.recurso_ref_tipo || '';
   const turno = i.en_turno_hoy
     ? '<span style="color:#16A34A;font-weight:700;">🟢 En turno hoy</span>'
@@ -22441,7 +23215,8 @@ async function clicCortarRuta_(e) {
   if (!r) { mostrarToast_('No se encontró la ruta en la planificación cargada.'); return; }
   const ok = confirm('✂️ Cortar esta ruta en dos:\n\n' +
     '🔵 Tramo 1: ' + formatearDistancia_(largoPartes_(partesA)) + ' — se queda en esta misma ruta' + (r.recurso_ref_id ? ' (conserva su recurso asociado)' : '') + '.\n' +
-    '🟠 Tramo 2: ' + formatearDistancia_(largoPartes_(partesB)) + ' — pasa a ser una ruta nueva (' + (r.tipo_recurso || 'mismo tipo') + ', sin recurso asociado).\n\n¿Confirmar el corte?');
+    '🟠 Tramo 2: ' + formatearDistancia_(largoPartes_(partesB)) + ' — pasa a ser una ruta nueva (' + (r.tipo_recurso || 'mismo tipo') + ', sin recurso asociado).\n\n' +
+    'Si esta ruta está propagada, el corte se aplica también en las otras alertas.\n\n¿Confirmar el corte?');
   if (!ok) { if (cortarRutaPrevLayer) { map.removeLayer(cortarRutaPrevLayer); cortarRutaPrevLayer = null; } return; }
   await ejecutarCorteRuta_(r, partesA, partesB);
 }
@@ -22450,6 +23225,24 @@ async function ejecutarCorteRuta_(r, partesA, partesB) {
   const geo = ps => ps.map(pt => pt.map(ll => [ll.lng, ll.lat]));
   const A = geo(partesA), B = geo(partesB);
   mostrarToast_('✂️ Cortando la ruta…');
+  // 15-10-2026 (SQL 106): el corte se aplica en TODOS los escenarios donde está la misma ruta
+  // (tramo 1 = misma entidad en cada alerta; tramo 2 nuevo en cada una, enlazados entre sí).
+  const todo = await supabaseClient.rpc('cortar_ruta_escenarios', { p_id: r.id, p_a: A, p_b: B });
+  if (!todo.error) {
+    const res = todo.data || {}, omit = res.omitidos || [];
+    salirCortarRuta_();
+    map.closePopup();
+    mostrarToast_('✂️ Ruta cortada en dos tramos' + (res.otros_escenarios ? ' (también en ' + res.otros_escenarios + ' escenario(s) más)' : '') + '.' +
+      (omit.length ? ' ⚠️ Sin permiso en: ' + omit.map(x => String(x).split(':')[0]).join(', ') : ''));
+    if (omit.length) console.warn('Corte de ruta, escenarios omitidos:', omit);
+    await loadPlanificacionRecursos_(state.activeComunaId);
+    return;
+  }
+  if (!/cortar_ruta_escenarios|PGRST202|does not exist|schema cache/i.test(todo.error.message || '')) {
+    mostrarToast_('No se pudo cortar: ' + todo.error.message);
+    return;
+  }
+  // Sin el SQL 106: corte solo en este escenario (comportamiento anterior)
   // 1) Tramo 1: nueva forma de la MISMA entidad
   const resA = A.length > 1
     ? await supabaseClient.rpc('actualizar_geometria_multilinea_planificacion', { p_id: r.id, p_partes: A })
@@ -22648,6 +23441,8 @@ async function guardarEdicionRecursoPlanificado_() {
 
   document.getElementById('editar-recurso-plan-overlay').classList.remove('show');
   mostrarToast_('Recurso actualizado.');
+  // SQL 106: institución, tipo y descripción pasan solos a la misma ruta en las otras alertas
+  avisarRutaEnOtrosEscenarios_(editandoRecursoPlanId, 'Recurso actualizado.');
   editandoRecursoPlanId = null;
   loadPlanificacionRecursos_(state.activeComunaId);
   if (document.getElementById('admin-recursos-plan-overlay').classList.contains('show') && planContingenciaEditandoId) {
@@ -26318,6 +27113,8 @@ function bindEvents() {
   document.getElementById('btn-cancel-cp').addEventListener('click', () => document.getElementById('change-password-overlay').classList.remove('show'));
   document.getElementById('btn-save-cp').addEventListener('click', doChangePasswordSelfService);
 
+  // ❓ Centro de ayuda y recorridos guiados
+  document.getElementById('btn-ayuda').addEventListener('click', (e) => { e.stopPropagation(); abrirAyuda_(); });
   // Botón planificar unificado
   document.getElementById('btn-planificar').addEventListener('click', (e) => {
     e.stopPropagation();
