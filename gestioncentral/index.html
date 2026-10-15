@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión Central · Riesgo de Incendios</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!--
+  GESTIÓN CENTRAL · Central de Transporte CMPC (14-10-2026, SQL 101)
+  Flujo: conductor → central de su empresa → CENTRAL DE TRANSPORTE CMPC (esta página)
+         → grupo de WhatsApp del ÁREA DE RELACIONAMIENTO → el área gestiona el reporte
+           (index.html › Prevención › Acciones de Riesgo).
+  El mapa muestra límites comunales y rutas MOP. El límite del ÁREA queda oculto en la BD:
+  al marcar un punto, area_de_punto() devuelve la comuna, el área y su grupo de WhatsApp.
+  Misma base de datos y misma sesión que el sistema de copamiento.
+-->
+<style>
+:root{
+  --verde:#1F3B2D; --verde2:#2F5D46; --verde3:#3E7A5C; --rojo:#C62828; --rojo2:#7F1D1D; --crema:#F4EFE6; --arena:#E9DFCC;
+  --oro:#D9A43B; --texto:#1E293B; --texto2:#475569; --texto3:#64748B; --borde:#E2E8F0; --blanco:#FFFFFF; --fondo:#F8FAFC;
+  --ok:#16A34A; --warn:#D97706;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--texto);background:var(--fondo);}
+button{font-family:inherit;}
+.oculto{display:none!important;}
+
+/* ── Login ── */
+#login{position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;padding:16px;
+  background:linear-gradient(160deg,var(--verde) 0%,#14281E 60%,#0D1A13 100%);}
+.login-caja{width:min(400px,100%);background:var(--blanco);border-radius:18px;padding:28px 26px;box-shadow:0 30px 70px rgba(0,0,0,.35);}
+.login-caja h1{margin:0 0 4px;font-size:21px;color:var(--verde);}
+.login-caja p{margin:0 0 18px;color:var(--texto3);font-size:13px;line-height:1.45;}
+.campo{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.campo label{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--texto2);}
+.campo input,.campo select,.campo textarea{border:1px solid var(--borde);border-radius:10px;padding:9px 11px;font:inherit;font-size:13.5px;background:var(--blanco);color:var(--texto);}
+.campo input:focus,.campo select:focus,.campo textarea:focus{outline:none;border-color:var(--verde3);box-shadow:0 0 0 3px rgba(62,122,92,.18);}
+.campo textarea{resize:vertical;min-height:58px;}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;}
+.btn-prim{background:var(--verde);color:#fff;} .btn-prim:hover{background:var(--verde2);}
+.btn-rojo{background:var(--rojo);color:#fff;} .btn-rojo:hover{background:var(--rojo2);}
+.btn-wa{background:#25D366;color:#073B1D;} .btn-wa:hover{background:#1EBE5A;}
+.btn-sec{background:var(--blanco);color:var(--texto);border:1px solid var(--borde);} .btn-sec:hover{background:var(--fondo);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+a.btn{text-decoration:none;}
+.leaflet-container a.btn-wa,.pop a.btn-wa{color:#073B1D;}
+.btn-blk{width:100%;}
+.error{color:var(--rojo);font-size:12.5px;min-height:16px;margin-top:4px;}
+
+/* ── Estructura ── */
+#app{display:flex;flex-direction:column;height:100%;}
+.top{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--verde);color:#fff;flex-wrap:wrap;}
+.top .marca{display:flex;flex-direction:column;line-height:1.15;margin-right:auto;}
+.top .marca small{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--oro);font-weight:700;}
+.top .marca b{font-size:16px;}
+.top .usuario{font-size:12px;opacity:.85;}
+.top .btn{padding:7px 11px;font-size:12px;}
+.top .btn-sec{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.25);}
+.top .btn-sec:hover{background:rgba(255,255,255,.2);}
+.sim{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:6px 12px;background:#F59E0B;color:#1F2937;font-size:12.5px;}
+.sim small{opacity:.8;}
+.sim button{border:0;border-radius:999px;padding:4px 12px;font-weight:700;font-size:12px;cursor:pointer;background:#1F2937;color:#fff;}
+.sim button#b-sim-config{background:rgba(255,255,255,.55);color:#1F2937;}
+.cadena{display:flex;align-items:center;gap:6px;padding:7px 16px;background:var(--crema);border-bottom:1px solid var(--arena);font-size:11.5px;color:var(--texto2);flex-wrap:wrap;}
+.cadena span{padding:3px 9px;border-radius:999px;background:var(--blanco);border:1px solid var(--arena);font-weight:600;}
+.cadena span.yo{background:var(--verde3);color:#fff;border-color:var(--verde3);}
+.cadena i{font-style:normal;color:var(--oro);font-weight:800;}
+.cuerpo{flex:1;display:flex;min-height:0;}
+.panel{width:410px;max-width:100%;display:flex;flex-direction:column;background:var(--blanco);border-right:1px solid var(--borde);min-height:0;}
+.tabs{display:flex;border-bottom:1px solid var(--borde);}
+.tabs button{flex:1;border:0;background:none;padding:11px 8px;font-weight:700;font-size:12.5px;color:var(--texto3);cursor:pointer;border-bottom:3px solid transparent;}
+.tabs button.on{color:var(--verde);border-bottom-color:var(--verde);}
+.tabs .cnt{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:999px;background:var(--rojo);color:#fff;font-size:10.5px;}
+.scroll{flex:1;overflow:auto;padding:14px 16px 18px;}
+#mapa{flex:1;min-width:0;}
+
+/* ── Formulario ── */
+.paso{border:1px solid var(--borde);border-radius:14px;padding:12px 13px;margin-bottom:12px;}
+.paso h3{margin:0 0 9px;font-size:13px;display:flex;align-items:center;gap:8px;color:var(--verde);}
+.paso h3 .n{width:22px;height:22px;border-radius:50%;background:var(--rojo);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center;}
+.fila{display:flex;gap:8px;}
+.fila .campo{flex:1;}
+.ayuda{font-size:11.5px;color:var(--texto3);line-height:1.4;}
+.cands{display:flex;flex-direction:column;gap:5px;margin-top:6px;}
+.cand{border:1px solid var(--borde);border-radius:9px;padding:7px 9px;font-size:12px;cursor:pointer;background:var(--blanco);text-align:left;}
+.cand:hover{border-color:var(--verde3);background:#F0F7F3;}
+.cand small{color:var(--texto3);}
+.ubic{border-radius:12px;padding:11px 12px;background:#F0F7F3;border:1px solid #CFE3D7;font-size:12.5px;}
+.ubic.sin{background:#FEF3C7;border-color:#FCD34D;}
+.ubic .lin{display:flex;justify-content:space-between;gap:8px;margin-bottom:3px;}
+.ubic .lin b{color:var(--verde);}
+.areas-op{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.area-op{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:var(--blanco);border:1px solid var(--borde);cursor:pointer;font-weight:600;}
+.area-op input{accent-color:var(--verde);}
+.tipos{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.tipo{border:1.5px solid var(--borde);border-radius:10px;padding:8px 9px;background:var(--blanco);cursor:pointer;text-align:left;font-size:12px;font-weight:600;display:flex;gap:7px;align-items:center;}
+.tipo .ico{font-size:17px;}
+.tipo.on{border-color:var(--rojo);background:#FEF2F2;color:var(--rojo2);}
+.msg{white-space:pre-wrap;font-size:12px;background:#ECFDF5;border:1px dashed #6EE7B7;border-radius:10px;padding:10px;color:#064E3B;font-family:ui-monospace,Consolas,monospace;}
+.acciones{display:flex;flex-direction:column;gap:7px;}
+.aviso{font-size:12px;border-radius:10px;padding:9px 11px;background:#FEF2F2;border:1px solid #FECACA;color:var(--rojo2);}
+.aviso.info{background:#EFF6FF;border-color:#BFDBFE;color:#1E3A8A;}
+
+/* ── Lista de reportes ── */
+.filtros{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.filtros select{border:1px solid var(--borde);border-radius:8px;padding:6px 8px;font:inherit;font-size:12px;}
+.rep{border:1px solid var(--borde);border-left:4px solid var(--c,#94A3B8);border-radius:11px;padding:9px 10px;margin-bottom:8px;cursor:pointer;background:var(--blanco);}
+.rep:hover{box-shadow:0 4px 14px rgba(15,23,42,.08);}
+.rep .cab{display:flex;justify-content:space-between;gap:6px;font-size:12.5px;}
+.rep .cab b{color:var(--texto);}
+.rep .det{font-size:11.5px;color:var(--texto2);margin-top:3px;line-height:1.4;}
+.rep .pie{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;}
+.rep .pie .btn{padding:5px 9px;font-size:11.5px;border-radius:8px;}
+.chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:700;background:var(--c2,#F1F5F9);color:var(--c,#475569);}
+.vacio{text-align:center;color:var(--texto3);font-size:12.5px;padding:24px 8px;}
+
+/* ── Mapa ── */
+.lbl-comuna{background:none;border:0;box-shadow:none;color:#334155;font-weight:700;font-size:10.5px;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff;white-space:nowrap;}
+.lbl-comuna::before{display:none;}
+.pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--c,#C62828);border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35);}
+.pin span{display:block;transform:rotate(45deg);text-align:center;line-height:24px;font-size:13px;}
+.pin.nuevo{animation:latido 1.4s infinite;}
+@keyframes latido{0%{box-shadow:0 0 0 0 rgba(198,40,40,.55);}70%{box-shadow:0 0 0 14px rgba(198,40,40,0);}100%{box-shadow:0 0 0 0 rgba(198,40,40,0);}}
+.leaflet-popup-content{margin:11px 13px;font-size:12.5px;line-height:1.45;}
+.pop h4{margin:0 0 4px;font-size:13.5px;color:var(--verde);}
+.pop .area{font-weight:700;}
+.pop .btn{margin-top:7px;padding:7px 10px;font-size:12px;width:100%;text-decoration:none;}
+.pop .sin{color:var(--warn);font-weight:600;}
+.leyenda{background:rgba(255,255,255,.95);border-radius:10px;padding:8px 10px;font-size:11px;box-shadow:0 4px 14px rgba(0,0,0,.12);line-height:1.6;}
+.leyenda i{display:inline-block;width:18px;height:4px;border-radius:2px;margin-right:6px;vertical-align:middle;}
+.cargando-mapa{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:800;background:var(--verde);color:#fff;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:600;}
+
+/* ── Modal configuración ── */
+.modal{position:fixed;inset:0;z-index:2500;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal-caja{background:var(--blanco);border-radius:16px;width:min(980px,100%);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 30px 70px rgba(0,0,0,.35);}
+.modal-cab{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--borde);}
+.modal-cuerpo{overflow:auto;padding:14px 16px;}
+table.t{width:100%;border-collapse:collapse;font-size:12.5px;}
+table.t th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--texto3);padding:6px;border-bottom:1px solid var(--borde);}
+table.t td{padding:6px;border-bottom:1px solid var(--borde);vertical-align:middle;}
+table.t input[type=text],table.t input[type=url]{width:100%;border:1px solid var(--borde);border-radius:8px;padding:6px 8px;font:inherit;font-size:12.5px;}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0F172A;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:4000;box-shadow:0 10px 30px rgba(0,0,0,.3);max-width:90vw;}
+
+@media (max-width: 820px){
+  .cuerpo{flex-direction:column;}
+  .panel{width:100%;height:56%;border-right:0;border-bottom:1px solid var(--borde);}
+  #mapa{min-height:44%;}
+  .cadena{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Login (misma cuenta del sistema de copamiento) ── -->
+<div id="login">
+  <div class="login-caja">
+    <div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--oro);text-transform:uppercase;margin-bottom:6px;">Prevención de incendios forestales</div>
+    <h1>Gestión Central</h1>
+    <p>Central de Transporte CMPC · Reportes de riesgo de incendio levantados por conductores en ruta. Ingresa con tu cuenta del sistema de copamiento.</p>
+    <div class="campo"><label for="l-email">Correo</label><input id="l-email" type="email" autocomplete="username"></div>
+    <div class="campo"><label for="l-clave">Contraseña</label><input id="l-clave" type="password" autocomplete="current-password"></div>
+    <label style="display:flex;gap:7px;align-items:center;font-size:12.5px;color:var(--texto2);margin-bottom:12px;"><input type="checkbox" id="login-remember" checked> Recordar sesión</label>
+    <button class="btn btn-prim btn-blk" id="l-entrar">Ingresar</button>
+    <div class="error" id="l-error"></div>
+  </div>
+</div>
+
+<div id="app" class="oculto">
+  <div class="top">
+    <div class="marca"><small>Prevención de incendios forestales</small><b>🚛 Gestión Central · Reportes de riesgo</b></div>
+    <span class="usuario" id="u-nombre"></span>
+    <a class="btn btn-sec" href="protocolo_conductores.pdf" target="_blank" rel="noopener" title="Afiche del protocolo para conductores">📄 Protocolo</a>
+    <button class="btn btn-sec oculto" id="b-config" title="Grupos de WhatsApp por área y centralistas (Administrador)">⚙️ Configuración</button>
+    <button class="btn btn-sec oculto" id="b-ver-central" title="Ver la página tal como la ve un centralista (sin opciones de Administrador)">🎧 Ver como centralista</button>
+    <a class="btn btn-sec" href="/" title="Volver al sistema de copamiento">🗺️ Sistema</a>
+    <button class="btn btn-sec" id="b-salir">Salir</button>
+  </div>
+  <div class="sim oculto" id="sim">
+    <span>👁️ Viendo como <b>Centralista</b> · Central de Transporte CMPC <small>(eres Administrador: los reportes que registres son reales)</small></span>
+    <button id="b-sim-config" title="Configurar grupos de WhatsApp y centralistas">⚙️ Configuración</button>
+    <button id="b-sim-salir" title="Volver a la vista de Administrador">Salir</button>
+  </div>
+  <div class="cadena">
+    <span>1 · Conductor detecta y avisa</span><i>›</i><span>2 · Central de su empresa</span><i>›</i>
+    <span class="yo">3 · Central de Transporte CMPC (tú)</span><i>›</i><span>4 · Área de Relacionamiento (WhatsApp)</span>
+  </div>
+  <div class="cuerpo">
+    <div class="panel">
+      <div class="tabs">
+        <button class="on" data-tab="nuevo">➕ Nuevo reporte</button>
+        <button data-tab="lista">📋 Reportes <span class="cnt oculto" id="cnt-pend"></span></button>
+      </div>
+
+      <!-- ── Nuevo reporte ── -->
+      <div class="scroll" id="tab-nuevo">
+        <div class="paso">
+          <h3><span class="n">1</span> ¿Dónde? Ubica el punto</h3>
+          <div class="fila">
+            <div class="campo"><label for="f-ruta">Ruta</label><input id="f-ruta" placeholder="Ej.: 148, R-86, 5"></div>
+            <div class="campo" style="max-width:110px;"><label for="f-km">Kilómetro</label><input id="f-km" type="number" step="0.1" min="0" placeholder="23"></div>
+          </div>
+          <button class="btn btn-sec btn-blk" id="b-ubicar">📍 Ubicar ruta + km en el mapa</button>
+          <div class="cands" id="cands"></div>
+          <div class="campo" style="margin-top:9px;"><label for="f-buscar-comuna">… o busca la comuna / sector</label><input id="f-buscar-comuna" list="dl-comunas" placeholder="Escribe la comuna y presiona Enter"><datalist id="dl-comunas"></datalist></div>
+          <div class="ayuda">También puedes <b>hacer clic directo en el mapa</b> donde ocurrió (sector, cruce o hito kilométrico).</div>
+          <div id="ubic" style="margin-top:10px;"></div>
+        </div>
+
+        <div class="paso">
+          <h3><span class="n">2</span> ¿Qué vio el conductor?</h3>
+          <div class="tipos" id="tipos"></div>
+          <div class="campo" style="margin-top:9px;"><label for="f-sector">Sector (localidad, predio o cruce)</label><input id="f-sector" placeholder="Ej.: Los Robles"></div>
+          <div class="fila">
+            <div class="campo"><label for="f-empresa">Empresa de transporte</label><input id="f-empresa" list="dl-empresas" placeholder="Central que reporta"><datalist id="dl-empresas"></datalist></div>
+            <div class="campo" style="max-width:120px;"><label for="f-patente">Patente</label><input id="f-patente" placeholder="Opcional" style="text-transform:uppercase;"></div>
+          </div>
+          <div class="fila">
+            <div class="campo"><label for="f-conductor">Conductor</label><input id="f-conductor" placeholder="Opcional"></div>
+            <div class="campo" style="max-width:170px;"><label for="f-hora">Hora del aviso</label><input id="f-hora" type="datetime-local"></div>
+          </div>
+          <div class="campo"><label for="f-desc">Detalle</label><textarea id="f-desc" placeholder="Ej.: dos personas quemando ramas junto a pasto seco, a 50 m de la berma"></textarea></div>
+        </div>
+
+        <div class="paso">
+          <h3><span class="n">3</span> Notificar al área</h3>
+          <div class="msg" id="msg">Completa el punto y el tipo de riesgo para armar el mensaje.</div>
+          <div class="acciones" style="margin-top:9px;">
+            <button class="btn btn-rojo btn-blk" id="b-guardar" disabled>💾 Registrar reporte y copiar mensaje</button>
+            <a class="btn btn-wa btn-blk oculto" id="b-wa" target="_blank" rel="noopener">📲 Abrir grupo de WhatsApp del área</a>
+            <button class="btn btn-sec btn-blk oculto" id="b-otro">➕ Nuevo reporte</button>
+          </div>
+          <div class="ayuda" style="margin-top:7px;">El mensaje queda copiado: en el grupo de WhatsApp solo pega (Ctrl + V) y envía.</div>
+        </div>
+      </div>
+
+      <!-- ── Lista ── -->
+      <div class="scroll oculto" id="tab-lista">
+        <div class="filtros">
+          <select id="fl-periodo"><option value="1">Últimas 24 h</option><option value="3">Últimos 3 días</option><option value="7" selected>Últimos 7 días</option><option value="30">Últimos 30 días</option></select>
+          <select id="fl-estado"><option value="">Todos los estados</option></select>
+          <select id="fl-area"><option value="">Todas las áreas</option></select>
+        </div>
+        <div id="lista"></div>
+      </div>
+    </div>
+    <div id="mapa"></div>
+  </div>
+</div>
+
+<!-- ── Configuración (Administrador) ── -->
+<div class="modal oculto" id="m-config">
+  <div class="modal-caja">
+    <div class="modal-cab"><b>⚙️ Configuración de la Gestión Central</b><button class="btn btn-sec" data-cerrar>✕</button></div>
+    <div class="tabs" id="cfg-tabs"><button class="on" data-cfg="wa">📲 WhatsApp por área</button><button data-cfg="cen">🎧 Centralistas</button></div>
+    <div class="modal-cuerpo" id="cfg-cuerpo"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
+// Misma sesión que el sistema de copamiento (mismo dominio y misma clave de almacenamiento)
+const almacen = {
+  getItem: k => { try { return localStorage.getItem(k) || sessionStorage.getItem(k); } catch (e) { return null; } },
+  setItem: (k, v) => {
+    try {
+      const rec = document.getElementById('login-remember');
+      if (!rec || rec.checked) { localStorage.setItem(k, v); sessionStorage.removeItem(k); }
+      else { sessionStorage.setItem(k, v); localStorage.removeItem(k); }
+    } catch (e) { /* sin almacenamiento */ }
+  },
+  removeItem: k => { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch (e) { /* nada */ } },
+};
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { storage: almacen, persistSession: true, autoRefreshToken: true } });
+
+// Tipos de riesgo del protocolo para conductores (afiche) + fuego y otro
+const TIPOS = [
+  { k: 'Quema de desechos', ico: '🔥', d: 'Quemando basura o restos cerca de vegetación seca' },
+  { k: 'Personas fumando en pastizales', ico: '🚬', d: 'Cigarros o colillas sobre pasto seco' },
+  { k: 'Herramientas con chispas', ico: '🛠️', d: 'Motosierras, esmeriles, soldadoras' },
+  { k: 'Tendido eléctrico con chispas', ico: '⚡', d: 'Cables o transformadores con arco' },
+  { k: 'Fuego en la ruta', ico: '🚨', d: 'Inicio de fuego visible' },
+  { k: 'Otro riesgo', ico: '⚠️', d: 'Otra acción de riesgo' },
+];
+const ESTADOS = {
+  'Nuevo':      { c: '#C62828', c2: '#FEE2E2', ico: '🆕' },
+  'Notificado': { c: '#B45309', c2: '#FEF3C7', ico: '📲' },
+  'En gestión': { c: '#1D4ED8', c2: '#DBEAFE', ico: '🛠️' },
+  'Cerrado':    { c: '#15803D', c2: '#DCFCE7', ico: '✅' },
+  'Descartado': { c: '#64748B', c2: '#F1F5F9', ico: '✖️' },
+};
+const st = { perfil: null, esAdmin: false, punto: null, info: null, areaSel: null, tipo: null, guardado: null, reportes: [], comunas: [], wa: {} };
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const titulo = s => String(s || '').toLowerCase().replace(/(^|[\s\-\/(])([a-záéíóúñü])/g, (m, a, b) => a + b.toUpperCase());
+const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim();
+function toast(t, ms) {
+  const el = document.createElement('div'); el.className = 'toast'; el.textContent = t; document.body.appendChild(el);
+  setTimeout(() => el.remove(), ms || 3500);
+}
+function fechaHora(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+}
+function localISO(d) { const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000); return z.toISOString().slice(0, 16); }
+
+/* ════════════ Sesión ════════════ */
+async function iniciar() {
+  const { data } = await sb.auth.getSession();
+  if (data && data.session) await entrar(data.session.user);
+  else $('login').classList.remove('oculto');
+}
+$('l-entrar').addEventListener('click', async () => {
+  $('l-error').textContent = '';
+  const email = $('l-email').value.trim(), password = $('l-clave').value;
+  if (!email || !password) { $('l-error').textContent = 'Ingresa correo y contraseña.'; return; }
+  $('l-entrar').disabled = true;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  $('l-entrar').disabled = false;
+  if (error) { $('l-error').textContent = 'No se pudo ingresar: ' + error.message; return; }
+  await entrar(data.user);
+});
+$('l-clave').addEventListener('keydown', e => { if (e.key === 'Enter') $('l-entrar').click(); });
+$('b-salir').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+
+async function entrar(user) {
+  const { data: perfil } = await sb.from('perfiles').select('id, nombre_completo, perfil').eq('id', user.id).maybeSingle();
+  st.perfil = perfil || { id: user.id, nombre_completo: user.email, perfil: '' };
+  st.esAdmin = st.perfil.perfil === 'Administrador';
+  const { data: ok, error } = await sb.rpc('es_centralista_');
+  if (error) {
+    $('login').classList.remove('oculto');
+    $('l-error').textContent = /es_centralista_/.test(error.message) ? 'Falta ejecutar el SQL 101 en Supabase.' : error.message;
+    return;
+  }
+  if (!ok) {
+    $('login').classList.remove('oculto');
+    $('l-error').innerHTML = 'Tu usuario (' + esc(user.email) + ') no está habilitado como <b>Central de Transporte CMPC</b>. Pide al Administrador que te agregue en ⚙️ Configuración › Centralistas.';
+    return;
+  }
+  $('login').classList.add('oculto');
+  $('app').classList.remove('oculto');
+  $('u-nombre').textContent = '👤 ' + (st.perfil.nombre_completo || user.email);
+  // Modo Centralista (desde el sistema: Administrador › Ver el sistema como… › 🎧 Modo Centralista):
+  // la página se ve igual que para un centralista, con una franja para volver a la vista de Administrador.
+  const modoCentral = st.esAdmin && new URLSearchParams(location.search).get('modo') === 'centralista';
+  $('sim').classList.toggle('oculto', !modoCentral);
+  $('b-config').classList.toggle('oculto', !st.esAdmin || modoCentral);
+  $('b-ver-central').classList.toggle('oculto', !st.esAdmin || modoCentral);
+  if (modoCentral) $('u-nombre').textContent = '🎧 Centralista (vista previa) · ' + (st.perfil.nombre_completo || user.email);
+  iniciarMapa();
+  iniciarFormulario();
+  cargarWhatsapp();
+  cargarComunas();
+  cargarReportes();
+  suscribirTiempoReal();
+}
+
+/* ════════════ Mapa ════════════ */
+let mapa, capaComunas, capaEtiquetas, capaRutas, capaReportes, marcaPunto, rendRutas;
+const RUTA_CAT = {
+  autopista: { fill: '#F29E4C', casing: '#C26A1E', w: 5, n: 'Autopista / doble calzada' },
+  nacional:  { fill: '#FCD34D', casing: '#B8901F', w: 4.2, n: 'Ruta nacional' },
+  principal: { fill: '#FEF3B5', casing: '#B9A44A', w: 3.4, n: 'Regional principal / provincial' },
+  comunal:   { fill: '#FFFFFF', casing: '#94A3B8', w: 2.6, n: 'Regional comunal / acceso' },
+  ripio:     { fill: '#FFFFFF', casing: '#B8A88A', w: 2.2, n: 'Ripio', dash: '6,4' },
+  tierra:    { fill: '#F5EFE3', casing: '#B8A88A', w: 1.8, n: 'Tierra', dash: '3,4' },
+};
+function catRuta(r) {
+  const cl = norm(r.clasificacion), ca = norm(r.carpeta);
+  if (ca.includes('DOBLE CALZADA') || norm(r.concesionado) === 'SI') return 'autopista';
+  if (cl.startsWith('CAMINO NACIONAL')) return 'nacional';
+  if (cl.includes('REGIONAL PRINCIPAL') || cl.includes('REGIONAL PROVINCIAL')) return 'principal';
+  if (ca.includes('SUELO NATURAL')) return 'tierra';
+  if (ca.includes('RIPIO') || ca.includes('GRAVA')) return 'ripio';
+  return 'comunal';
+}
+function iniciarMapa() {
+  if (mapa) return;
+  mapa = L.map('mapa', { zoomControl: true, preferCanvas: false }).setView([-37.9, -72.6], 8);
+  const base = {
+    'Mapa claro': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'Tiles &copy; Esri' }),
+    'Calles (OSM)': L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }),
+    'Satélite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri' }),
+  };
+  base['Mapa claro'].addTo(mapa);
+  mapa.createPane('comunas').style.zIndex = 350;
+  mapa.createPane('rutasBorde').style.zIndex = 380;
+  mapa.createPane('rutasRelleno').style.zIndex = 381;
+  rendRutas = { b: L.canvas({ pane: 'rutasBorde', padding: 0.4 }), f: L.canvas({ pane: 'rutasRelleno', padding: 0.4 }) };
+  capaComunas = L.geoJSON(null, { pane: 'comunas', style: f => ({ color: '#0F172A', weight: f.properties.con_area ? 1.6 : 0.9, opacity: f.properties.con_area ? 0.8 : 0.45, fillColor: '#0F172A', fillOpacity: 0.015 }), interactive: false }).addTo(mapa);
+  capaEtiquetas = L.layerGroup().addTo(mapa);
+  capaRutas = L.layerGroup().addTo(mapa);
+  capaReportes = L.layerGroup().addTo(mapa);
+  L.control.layers(base, { 'Límites comunales': capaComunas, 'Rutas MOP': capaRutas, 'Reportes': capaReportes }, { position: 'topright' }).addTo(mapa);
+  const ley = L.control({ position: 'bottomright' });
+  ley.onAdd = () => {
+    const d = L.DomUtil.create('div', 'leyenda');
+    d.innerHTML = '<b>Rutas MOP</b><br>' + ['autopista', 'nacional', 'principal', 'comunal', 'ripio'].map(k => '<i style="background:' + RUTA_CAT[k].casing + '"></i>' + RUTA_CAT[k].n).join('<br>') +
+      '<br><b style="display:block;margin-top:4px;">Reportes</b>' + Object.keys(ESTADOS).map(k => '<i style="background:' + ESTADOS[k].c + ';height:8px;width:8px;border-radius:50%;"></i>' + k).join('<br>');
+    return d;
+  };
+  ley.addTo(mapa);
+  L.control.scale({ imperial: false }).addTo(mapa);
+  let t = null;
+  mapa.on('moveend', () => { clearTimeout(t); t = setTimeout(cargarRutas, 250); });
+  mapa.on('zoomend', etiquetasComunas);
+  mapa.on('click', e => fijarPunto(e.latlng, { desdeMapa: true }));
+  cargarRutas();
+}
+
+/* Límites comunales (simplificados, SQL 101) */
+async function cargarComunas() {
+  const { data, error } = await sb.rpc('central_comunas_geojson');
+  if (error) { toast('No se pudieron cargar las comunas: ' + error.message); return; }
+  st.comunas = data || [];
+  capaComunas.clearLayers();
+  capaComunas.addData({ type: 'FeatureCollection', features: st.comunas });
+  $('dl-comunas').innerHTML = st.comunas.map(f => '<option value="' + esc(titulo(f.properties.comuna)) + '">').join('');
+  const conArea = st.comunas.filter(f => f.properties.con_area);
+  if (conArea.length) mapa.fitBounds(L.geoJSON({ type: 'FeatureCollection', features: conArea }).getBounds(), { padding: [10, 10] });
+  etiquetasComunas();
+}
+function etiquetasComunas() {
+  capaEtiquetas.clearLayers();
+  if (!mapa || mapa.getZoom() < 9) return;
+  const vista = mapa.getBounds();
+  capaComunas.eachLayer(ly => {
+    const c = ly.getBounds().getCenter();
+    if (!vista.contains(c)) return;
+    L.marker(c, { interactive: false, icon: L.divIcon({ className: 'lbl-comuna', html: esc(titulo(ly.feature.properties.comuna)), iconSize: null }) }).addTo(capaEtiquetas);
+  });
+}
+
+/* Rutas MOP de lo que se ve (SQL 101) */
+let rutasPedido = 0;
+async function cargarRutas() {
+  if (!mapa || !mapa.hasLayer(capaRutas)) return;
+  const z = mapa.getZoom();
+  if (z < 8) { capaRutas.clearLayers(); return; }
+  const b = mapa.getBounds().pad(0.15), n = ++rutasPedido;
+  const aviso = document.createElement('div'); aviso.className = 'cargando-mapa'; aviso.textContent = 'Cargando rutas MOP…';
+  mapa.getContainer().appendChild(aviso);
+  const { data, error } = await sb.rpc('red_vial_mop_en_vista_json', { p_oeste: b.getWest(), p_sur: b.getSouth(), p_este: b.getEast(), p_norte: b.getNorth(), p_zoom: z });
+  aviso.remove();
+  if (n !== rutasPedido) return;
+  if (error) { console.warn('Rutas MOP:', error.message); return; }
+  capaRutas.clearLayers();
+  const f = Math.max(0.45, Math.min(1.8, Math.pow(2, (z - 12) * 0.35)));
+  (data || []).forEach(r => {
+    const g = r.geometry; if (!g) return;
+    const partes = (g.type === 'LineString' ? [g.coordinates] : g.type === 'MultiLineString' ? g.coordinates : []).map(p => p.map(c => [c[1], c[0]]));
+    if (!partes.length) return;
+    const c = RUTA_CAT[catRuta(r)];
+    L.polyline(partes, { renderer: rendRutas.b, color: c.casing, weight: c.w * f + 2, opacity: z >= 10 ? 1 : 0, interactive: false }).addTo(capaRutas);
+    const fill = L.polyline(partes, { renderer: rendRutas.f, color: z >= 10 ? c.fill : c.casing, weight: c.w * f, dashArray: z >= 10 ? (c.dash || null) : null }).addTo(capaRutas);
+    fill.on('click', e => { L.DomEvent.stopPropagation(e); fijarPunto(e.latlng, { desdeMapa: true, ruta: r }); });
+  });
+}
+
+/* ════════════ Punto → comuna, área (oculta) y WhatsApp ════════════ */
+async function fijarPunto(latlng, op) {
+  op = op || {};
+  st.punto = { lat: latlng.lat, lng: latlng.lng };
+  if (marcaPunto) mapa.removeLayer(marcaPunto);
+  marcaPunto = L.marker(latlng, { zIndexOffset: 1000, icon: L.divIcon({ className: '', html: '<div class="pin nuevo" style="--c:#C62828"><span>⚠️</span></div>', iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -28] }) }).addTo(mapa);
+  marcaPunto.bindPopup('<div class="pop">Buscando comuna y área…</div>').openPopup();
+  if (op.ruta) {
+    const rol = op.ruta.rol_label || op.ruta.rol;
+    if (rol && !$('f-ruta').value) $('f-ruta').value = rol;
+  }
+  const { data, error } = await sb.rpc('area_de_punto', { p_lat: latlng.lat, p_lng: latlng.lng });
+  if (error) { marcaPunto.setPopupContent('<div class="pop">Error: ' + esc(error.message) + '</div>'); return; }
+  st.info = data || {};
+  const areas = st.info.areas || [];
+  st.areaSel = areas.length === 1 ? areas[0] : null;
+  marcaPunto.setPopupContent(popupPunto());
+  renderUbicacion();
+  renderMensaje();
+  if (op.desdeMapa) cambiarTab('nuevo');
+}
+function botonWa(a, texto) {
+  return a && a.link
+    ? '<a class="btn btn-wa" href="' + esc(a.link) + '" target="_blank" rel="noopener">📲 ' + esc(texto || ('WhatsApp · ' + titulo(a.area))) + '</a>'
+    : '<div class="sin">⚠️ ' + esc(titulo(a ? a.area : '')) + ': sin grupo de WhatsApp configurado</div>';
+}
+function popupPunto() {
+  const i = st.info || {}, areas = i.areas || [];
+  let h = '<div class="pop"><h4>📍 ' + (i.comuna ? esc(titulo(i.comuna)) : 'Fuera de las comunas registradas') + '</h4>';
+  if (!areas.length) h += '<div class="sin">Sin área de relacionamiento asignada a esta comuna. Deriva al Administrador.</div>';
+  else if (areas.length === 1) h += '<div>Área: <span class="area">' + esc(titulo(areas[0].area)) + '</span></div>' + botonWa(areas[0], 'Abrir grupo WhatsApp del área');
+  else h += '<div>Comuna compartida por ' + areas.length + ' áreas: elige según el sector.</div>' + areas.map(a => botonWa(a, titulo(a.area))).join('');
+  return h + '</div>';
+}
+function renderUbicacion() {
+  const i = st.info || {}, areas = i.areas || [], p = st.punto;
+  if (!p) { $('ubic').innerHTML = ''; return; }
+  let h = '<div class="ubic' + (areas.length ? '' : ' sin') + '">' +
+    '<div class="lin"><span>Comuna</span><b>' + esc(i.comuna ? titulo(i.comuna) : '—') + '</b></div>' +
+    '<div class="lin"><span>Coordenadas</span><span>' + p.lat.toFixed(5) + ', ' + p.lng.toFixed(5) + '</span></div>';
+  if (!areas.length) h += '<div style="margin-top:6px;font-weight:600;">⚠️ Esta comuna no tiene área de relacionamiento asignada. El reporte se registra igual y lo deriva el Administrador.</div>';
+  else if (areas.length === 1) h += '<div class="lin"><span>Área de relacionamiento</span><b>' + esc(titulo(areas[0].area)) + '</b></div>' +
+    (areas[0].link ? '' : '<div style="margin-top:4px;color:#B45309;font-weight:600;">⚠️ El área no tiene grupo de WhatsApp configurado.</div>');
+  else h += '<div style="margin-top:6px;font-weight:600;">La comuna es compartida: elige el área según el sector.</div><div class="areas-op">' +
+    areas.map((a, k) => '<label class="area-op"><input type="radio" name="area-op" value="' + k + '"' + (st.areaSel === a ? ' checked' : '') + '> ' + esc(titulo(a.area)) + (a.link ? '' : ' <small style="color:#B45309;">(sin WhatsApp)</small>') + '</label>').join('') + '</div>';
+  $('ubic').innerHTML = h + '</div>';
+  $('ubic').querySelectorAll('input[name=area-op]').forEach(r => r.addEventListener('change', () => { st.areaSel = areas[Number(r.value)]; renderMensaje(); }));
+}
+
+/* Ruta + km → punto (SQL 101) */
+async function ubicarRutaKm() {
+  const ruta = $('f-ruta').value.trim(), km = $('f-km').value;
+  if (!ruta) { toast('Escribe la ruta (ej.: 148, R-86).'); return; }
+  $('cands').innerHTML = '<div class="ayuda">Buscando…</div>';
+  const { data, error } = await sb.rpc('ubicar_ruta_km', { p_ruta: ruta, p_km: km === '' ? 0 : Number(km) });
+  if (error) { $('cands').innerHTML = '<div class="aviso">' + esc(error.message) + '</div>'; return; }
+  const c = data || [];
+  if (!c.length) { $('cands').innerHTML = '<div class="aviso">No se encontró la ruta «' + esc(ruta) + '» en la Red Vial MOP. Marca el punto directo en el mapa.</div>'; return; }
+  if (c.length === 1 && c[0].exacto) { elegirCandidato(c[0]); $('cands').innerHTML = ''; return; }
+  $('cands').innerHTML = '<div class="ayuda">' + c.length + ' coincidencia(s): elige la correcta</div>' + c.map((x, k) =>
+    '<button class="cand" data-k="' + k + '"><b>' + esc(x.rol || '—') + '</b> · ' + esc(titulo(x.comuna || x.region || '')) +
+    '<br><small>' + esc(x.nombre || '') + ' · tramo km ' + x.km_i + '–' + x.km_f + (x.exacto ? '' : ' · ⚠️ km fuera del tramo (punto más cercano)') + '</small></button>').join('');
+  $('cands').querySelectorAll('.cand').forEach(b => b.addEventListener('click', () => { elegirCandidato(c[Number(b.dataset.k)]); $('cands').innerHTML = ''; }));
+}
+function elegirCandidato(x) {
+  const ll = L.latLng(x.lat, x.lng);
+  mapa.setView(ll, Math.max(mapa.getZoom(), 13));
+  fijarPunto(ll);
+}
+function irAComuna() {
+  const q = norm($('f-buscar-comuna').value);
+  if (!q) return;
+  const f = st.comunas.find(x => norm(x.properties.comuna) === q) || st.comunas.find(x => norm(x.properties.comuna).startsWith(q));
+  if (!f) { toast('No se encontró la comuna.'); return; }
+  mapa.fitBounds(L.geoJSON(f).getBounds());
+  toast('Haz clic en el mapa donde ocurrió el riesgo.');
+}
+
+/* ════════════ Formulario y mensaje ════════════ */
+function iniciarFormulario() {
+  $('tipos').innerHTML = TIPOS.map((t, k) => '<button class="tipo" data-k="' + k + '" title="' + esc(t.d) + '"><span class="ico">' + t.ico + '</span>' + esc(t.k) + '</button>').join('');
+  $('tipos').addEventListener('click', e => {
+    const b = e.target.closest('.tipo'); if (!b) return;
+    st.tipo = TIPOS[Number(b.dataset.k)].k;
+    $('tipos').querySelectorAll('.tipo').forEach(x => x.classList.toggle('on', x === b));
+    renderMensaje();
+  });
+  ['f-sector', 'f-ruta', 'f-km', 'f-empresa', 'f-patente', 'f-conductor', 'f-hora', 'f-desc'].forEach(id => $(id).addEventListener('input', renderMensaje));
+  $('f-hora').value = localISO(new Date());
+  $('b-ubicar').addEventListener('click', ubicarRutaKm);
+  $('f-km').addEventListener('keydown', e => { if (e.key === 'Enter') ubicarRutaKm(); });
+  $('f-buscar-comuna').addEventListener('keydown', e => { if (e.key === 'Enter') irAComuna(); });
+  $('f-buscar-comuna').addEventListener('change', irAComuna);
+  $('b-guardar').addEventListener('click', guardarReporte);
+  $('b-wa').addEventListener('click', marcarNotificado);
+  $('b-otro').addEventListener('click', limpiarFormulario);
+  document.querySelectorAll('.tabs [data-tab]').forEach(b => b.addEventListener('click', () => cambiarTab(b.dataset.tab)));
+  ['fl-periodo', 'fl-estado', 'fl-area'].forEach(id => $(id).addEventListener('change', () => (id === 'fl-periodo' ? cargarReportes() : renderLista())));
+  $('fl-estado').innerHTML = '<option value="">Todos los estados</option><option value="pend">⏳ Pendientes (Nuevo + Notificado)</option>' + Object.keys(ESTADOS).map(k => '<option>' + k + '</option>').join('');
+}
+function cambiarTab(t) {
+  document.querySelectorAll('.tabs [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  $('tab-nuevo').classList.toggle('oculto', t !== 'nuevo');
+  $('tab-lista').classList.toggle('oculto', t !== 'lista');
+}
+function areaElegida() { const a = (st.info && st.info.areas) || []; return a.length === 1 ? a[0] : st.areaSel; }
+function textoMensaje(folio) {
+  const p = st.punto, i = st.info || {}, a = areaElegida();
+  const hora = $('f-hora').value ? new Date($('f-hora').value) : new Date();
+  const l = [];
+  l.push('⚠️ *REPORTE DE RIESGO DE INCENDIO*' + (folio ? ' · Folio #' + folio : ''));
+  l.push('*Riesgo:* ' + (st.tipo || '—'));
+  if ($('f-sector').value.trim()) l.push('*Sector:* ' + $('f-sector').value.trim());
+  if ($('f-ruta').value.trim() || $('f-km').value) l.push('*Ruta:* ' + ($('f-ruta').value.trim() || '—') + ($('f-km').value ? ' · *Km* ' + $('f-km').value : ''));
+  l.push('*Comuna:* ' + (i.comuna ? titulo(i.comuna) : '—') + (a ? ' · *Área:* ' + titulo(a.area) : ''));
+  l.push('*Hora del aviso:* ' + hora.toLocaleDateString('es-CL') + ' ' + hora.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }));
+  if ($('f-empresa').value.trim()) l.push('*Reporta:* central de ' + $('f-empresa').value.trim() + ($('f-patente').value.trim() ? ' · patente ' + $('f-patente').value.trim().toUpperCase() : '') + ($('f-conductor').value.trim() ? ' · conductor ' + $('f-conductor').value.trim() : ''));
+  if ($('f-desc').value.trim()) l.push('*Detalle:* ' + $('f-desc').value.trim());
+  if (p) l.push('*Ubicación:* https://maps.google.com/?q=' + p.lat.toFixed(6) + ',' + p.lng.toFixed(6));
+  l.push('_Central de Transporte CMPC · Gestión Central_');
+  return l.join('\n');
+}
+function renderMensaje() {
+  const listo = !!(st.punto && st.tipo);
+  $('msg').textContent = listo ? textoMensaje(st.guardado && st.guardado.folio) : 'Completa el punto (paso 1) y el tipo de riesgo (paso 2) para armar el mensaje.';
+  const multi = ((st.info && st.info.areas) || []).length > 1;
+  $('b-guardar').disabled = !listo || (multi && !st.areaSel) || !!st.guardado;
+  $('b-guardar').title = multi && !st.areaSel ? 'Elige el área (comuna compartida)' : '';
+}
+async function copiar(t) {
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch (e) {
+    const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+    ta.remove(); return ok;
+  }
+}
+async function guardarReporte() {
+  if (!st.punto || !st.tipo) return;
+  const a = areaElegida();
+  const fila = {
+    tipo_riesgo: st.tipo, lat: st.punto.lat, lng: st.punto.lng,
+    sector: $('f-sector').value.trim() || null, ruta: $('f-ruta').value.trim() || null,
+    km: $('f-km').value === '' ? null : Number($('f-km').value),
+    empresa_transporte: $('f-empresa').value.trim() || null, conductor: $('f-conductor').value.trim() || null,
+    patente: $('f-patente').value.trim().toUpperCase() || null, descripcion: $('f-desc').value.trim() || null,
+    fecha_evento: $('f-hora').value ? new Date($('f-hora').value).toISOString() : new Date().toISOString(),
+    area_norm: a ? a.area_norm : null, area: a ? a.area : null,
+  };
+  $('b-guardar').disabled = true; $('b-guardar').textContent = 'Registrando…';
+  const { data, error } = await sb.from('reportes_riesgo').insert(fila).select('id, folio, area, area_norm, comuna').single();
+  $('b-guardar').textContent = '💾 Registrar reporte y copiar mensaje';
+  if (error) { $('b-guardar').disabled = false; toast('No se pudo registrar: ' + error.message, 6000); return; }
+  st.guardado = data;
+  try { localStorage.setItem('gc-ultima-empresa', fila.empresa_transporte || ''); } catch (e) { /* nada */ }
+  const msg = textoMensaje(data.folio);
+  $('msg').textContent = msg;
+  const ok = await copiar(msg);
+  const wa = a && a.link;
+  $('b-wa').classList.toggle('oculto', !wa);
+  if (wa) { $('b-wa').href = a.link; $('b-wa').textContent = '📲 Abrir grupo de WhatsApp · ' + titulo(a.area); }
+  $('b-otro').classList.remove('oculto');
+  renderMensaje();
+  toast('✅ Reporte #' + data.folio + ' registrado' + (ok ? ' · mensaje copiado' : '') + (wa ? '. Abre el grupo y pega (Ctrl + V).' : '. El área no tiene WhatsApp configurado.'), 6000);
+  cargarReportes();
+}
+async function marcarNotificado() {
+  if (!st.guardado) return;
+  await copiar($('msg').textContent);
+  const { error } = await sb.from('reportes_riesgo').update({ estado: 'Notificado' }).eq('id', st.guardado.id).eq('estado', 'Nuevo');
+  if (error) toast('No se pudo marcar como notificado: ' + error.message);
+  else cargarReportes();
+}
+function limpiarFormulario() {
+  st.punto = null; st.info = null; st.areaSel = null; st.tipo = null; st.guardado = null;
+  if (marcaPunto) { mapa.removeLayer(marcaPunto); marcaPunto = null; }
+  ['f-sector', 'f-ruta', 'f-km', 'f-patente', 'f-conductor', 'f-desc', 'f-buscar-comuna'].forEach(id => { $(id).value = ''; });
+  $('f-hora').value = localISO(new Date());
+  $('tipos').querySelectorAll('.tipo').forEach(x => x.classList.remove('on'));
+  $('cands').innerHTML = ''; $('ubic').innerHTML = '';
+  $('b-wa').classList.add('oculto'); $('b-otro').classList.add('oculto');
+  renderMensaje();
+  $('tab-nuevo').scrollTop = 0;
+}
+
+/* ════════════ Reportes ════════════ */
+async function cargarWhatsapp() {
+  const { data } = await sb.from('area_whatsapp').select('area_norm, area, nombre_grupo, link, activo');
+  st.wa = {}; (data || []).forEach(w => { st.wa[w.area_norm] = w; });
+}
+async function cargarReportes() {
+  const dias = Number($('fl-periodo').value || 7);
+  const desde = new Date(Date.now() - dias * 864e5).toISOString();
+  const { data, error } = await sb.from('reportes_riesgo').select('*').gte('creado_en', desde).order('creado_en', { ascending: false }).limit(1000);
+  if (error) { $('lista').innerHTML = '<div class="aviso">' + esc(error.message) + '</div>'; return; }
+  st.reportes = data || [];
+  const areas = [...new Set(st.reportes.map(r => r.area).filter(Boolean))].sort();
+  const vA = $('fl-area').value;
+  $('fl-area').innerHTML = '<option value="">Todas las áreas</option>' + areas.map(a => '<option value="' + esc(a) + '">' + esc(titulo(a)) + '</option>').join('') + '<option value="__sin__">⚠️ Sin área</option>';
+  $('fl-area').value = vA;
+  const empresas = [...new Set(st.reportes.map(r => r.empresa_transporte).filter(Boolean))].sort();
+  $('dl-empresas').innerHTML = empresas.map(e => '<option value="' + esc(e) + '">').join('');
+  if (!$('f-empresa').value) { try { $('f-empresa').value = localStorage.getItem('gc-ultima-empresa') || ''; } catch (e) { /* nada */ } }
+  renderLista();
+}
+function renderLista() {
+  const fe = $('fl-estado').value, fa = $('fl-area').value;
+  const lista = st.reportes.filter(r => (!fe || (fe === 'pend' ? ['Nuevo', 'Notificado'].includes(r.estado) : r.estado === fe)) &&
+    (!fa || (fa === '__sin__' ? !r.area : r.area === fa)));
+  const pend = st.reportes.filter(r => r.estado === 'Nuevo').length;
+  $('cnt-pend').textContent = pend; $('cnt-pend').classList.toggle('oculto', !pend);
+  $('lista').innerHTML = lista.length ? lista.map(r => {
+    const e = ESTADOS[r.estado] || ESTADOS.Nuevo, w = st.wa[r.area_norm];
+    return '<div class="rep" data-id="' + esc(r.id) + '" style="--c:' + e.c + '">' +
+      '<div class="cab"><b>#' + r.folio + ' · ' + esc(r.tipo_riesgo) + '</b><span class="chip" style="--c:' + e.c + ';--c2:' + e.c2 + '">' + e.ico + ' ' + esc(r.estado) + '</span></div>' +
+      '<div class="det">📍 ' + esc(titulo(r.comuna || 'Sin comuna')) + (r.sector ? ' · ' + esc(r.sector) : '') + (r.ruta ? ' · Ruta ' + esc(r.ruta) : '') + (r.km != null ? ' km ' + r.km : '') +
+      '<br>🧭 ' + (r.area ? esc(titulo(r.area)) : '<b style="color:#B45309;">Sin área</b>') + ' · 🕒 ' + fechaHora(r.fecha_evento) + (r.empresa_transporte ? ' · 🚛 ' + esc(r.empresa_transporte) : '') + '</div>' +
+      (r.gestion_obs ? '<div class="det" style="white-space:pre-wrap;border-top:1px dashed #E2E8F0;margin-top:5px;padding-top:4px;">' + esc(r.gestion_obs) + '</div>' : '') +
+      '<div class="pie">' + (w && w.link && w.activo ? '<a class="btn btn-wa" href="' + esc(w.link) + '" target="_blank" rel="noopener" data-notif="' + esc(r.id) + '">📲 WhatsApp</a>' : '') +
+      '<button class="btn btn-sec" data-copiar="' + esc(r.id) + '">📋 Copiar mensaje</button>' +
+      (r.estado === 'Nuevo' ? '<button class="btn btn-sec" data-estado="Notificado" data-rid="' + esc(r.id) + '">✓ Marcar notificado</button>' : '') + '</div></div>';
+  }).join('') : '<div class="vacio">Sin reportes con estos filtros.</div>';
+  dibujarReportes(lista);
+}
+function mensajeDeReporte(r) {
+  const l = ['⚠️ *REPORTE DE RIESGO DE INCENDIO* · Folio #' + r.folio, '*Riesgo:* ' + r.tipo_riesgo];
+  if (r.sector) l.push('*Sector:* ' + r.sector);
+  if (r.ruta || r.km != null) l.push('*Ruta:* ' + (r.ruta || '—') + (r.km != null ? ' · *Km* ' + r.km : ''));
+  l.push('*Comuna:* ' + titulo(r.comuna || '—') + (r.area ? ' · *Área:* ' + titulo(r.area) : ''));
+  l.push('*Hora del aviso:* ' + fechaHora(r.fecha_evento));
+  if (r.empresa_transporte) l.push('*Reporta:* central de ' + r.empresa_transporte + (r.patente ? ' · patente ' + r.patente : '') + (r.conductor ? ' · conductor ' + r.conductor : ''));
+  if (r.descripcion) l.push('*Detalle:* ' + r.descripcion);
+  l.push('*Ubicación:* https://maps.google.com/?q=' + Number(r.lat).toFixed(6) + ',' + Number(r.lng).toFixed(6));
+  l.push('_Central de Transporte CMPC · Gestión Central_');
+  return l.join('\n');
+}
+$('lista').addEventListener('click', async e => {
+  const cp = e.target.closest('[data-copiar]'), es = e.target.closest('[data-estado]'), nt = e.target.closest('[data-notif]');
+  if (cp) { const r = st.reportes.find(x => x.id === cp.dataset.copiar); if (r && await copiar(mensajeDeReporte(r))) toast('📋 Mensaje copiado.'); return; }
+  if (nt) {
+    const r = st.reportes.find(x => x.id === nt.dataset.notif);
+    if (r) { await copiar(mensajeDeReporte(r)); toast('📋 Mensaje copiado: pégalo en el grupo.'); if (r.estado === 'Nuevo') { await sb.from('reportes_riesgo').update({ estado: 'Notificado' }).eq('id', r.id); cargarReportes(); } }
+    return;
+  }
+  if (es) {
+    const { error } = await sb.from('reportes_riesgo').update({ estado: es.dataset.estado }).eq('id', es.dataset.rid);
+    if (error) toast('Error: ' + error.message); else cargarReportes();
+    return;
+  }
+  const card = e.target.closest('.rep');
+  if (card) { const r = st.reportes.find(x => x.id === card.dataset.id); if (r) { mapa.setView([r.lat, r.lng], Math.max(mapa.getZoom(), 13)); const m = marcasReporte[r.id]; if (m) m.openPopup(); } }
+});
+const marcasReporte = {};
+function dibujarReportes(lista) {
+  capaReportes.clearLayers();
+  Object.keys(marcasReporte).forEach(k => delete marcasReporte[k]);
+  lista.forEach(r => {
+    const e = ESTADOS[r.estado] || ESTADOS.Nuevo, t = TIPOS.find(x => x.k === r.tipo_riesgo) || TIPOS[TIPOS.length - 1];
+    const m = L.marker([r.lat, r.lng], { icon: L.divIcon({ className: '', html: '<div class="pin' + (r.estado === 'Nuevo' ? ' nuevo' : '') + '" style="--c:' + e.c + '"><span>' + t.ico + '</span></div>', iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -28] }) });
+    const w = st.wa[r.area_norm];
+    m.bindPopup('<div class="pop"><h4>#' + r.folio + ' · ' + esc(r.tipo_riesgo) + '</h4>' + esc(titulo(r.comuna || '')) + (r.sector ? ' · ' + esc(r.sector) : '') +
+      '<br>Área: <span class="area">' + (r.area ? esc(titulo(r.area)) : 'Sin área') + '</span><br>Estado: <b style="color:' + e.c + '">' + esc(r.estado) + '</b> · ' + fechaHora(r.fecha_evento) +
+      (w && w.link && w.activo ? '<a class="btn btn-wa" href="' + esc(w.link) + '" target="_blank" rel="noopener">📲 Grupo WhatsApp del área</a>' : '') + '</div>');
+    m.on('click', e2 => L.DomEvent.stopPropagation(e2));
+    m.addTo(capaReportes);
+    marcasReporte[r.id] = m;
+  });
+}
+function suscribirTiempoReal() {
+  try {
+    sb.channel('gc-reportes').on('postgres_changes', { event: '*', schema: 'public', table: 'reportes_riesgo' }, () => {
+      clearTimeout(suscribirTiempoReal._t); suscribirTiempoReal._t = setTimeout(cargarReportes, 400);
+    }).subscribe();
+  } catch (e) { /* sin tiempo real: se refresca al registrar */ }
+}
+
+/* ════════════ Configuración (Administrador) ════════════ */
+$('b-config').addEventListener('click', () => { $('m-config').classList.remove('oculto'); cfgTab('wa'); });
+$('b-sim-config').addEventListener('click', () => { $('m-config').classList.remove('oculto'); cfgTab('wa'); });
+$('b-ver-central').addEventListener('click', () => { location.search = '?modo=centralista'; });
+$('b-sim-salir').addEventListener('click', () => { location.href = location.pathname; });
+$('m-config').addEventListener('click', e => { if (e.target.id === 'm-config' || e.target.closest('[data-cerrar]')) $('m-config').classList.add('oculto'); });
+$('cfg-tabs').addEventListener('click', e => { const b = e.target.closest('[data-cfg]'); if (b) cfgTab(b.dataset.cfg); });
+function cfgTab(t) {
+  $('cfg-tabs').querySelectorAll('[data-cfg]').forEach(b => b.classList.toggle('on', b.dataset.cfg === t));
+  if (t === 'wa') cfgWhatsapp(); else cfgCentralistas();
+}
+async function cfgWhatsapp() {
+  $('cfg-cuerpo').innerHTML = '<div class="vacio">Cargando…</div>';
+  await cargarWhatsapp();
+  const filas = Object.values(st.wa).sort((a, b) => a.area.localeCompare(b.area, 'es'));
+  $('cfg-cuerpo').innerHTML = '<div class="aviso info" style="margin-bottom:10px;">Pega el <b>link de invitación</b> del grupo de WhatsApp de cada área (WhatsApp › grupo › Invitar mediante enlace). ' +
+    'El área de un punto se calcula con <b>Comunas por área</b> del sistema (Administración); una comuna compartida muestra las dos áreas.</div>' +
+    '<table class="t"><thead><tr><th>Área de relacionamiento</th><th>Nombre del grupo</th><th>Link del grupo</th><th>Activo</th><th></th></tr></thead><tbody>' +
+    filas.map(w => '<tr data-area="' + esc(w.area_norm) + '"><td><b>' + esc(titulo(w.area)) + '</b></td>' +
+      '<td><input type="text" data-k="nombre_grupo" value="' + esc(w.nombre_grupo || '') + '" placeholder="Ej.: Relacionamiento Los Ángeles"></td>' +
+      '<td><input type="url" data-k="link" value="' + esc(w.link || '') + '" placeholder="https://chat.whatsapp.com/…"></td>' +
+      '<td style="text-align:center;"><input type="checkbox" data-k="activo"' + (w.activo ? ' checked' : '') + '></td>' +
+      '<td><button class="btn btn-prim" data-guardar-wa style="padding:6px 10px;font-size:12px;">Guardar</button>' + (w.link ? ' <a class="btn btn-wa" href="' + esc(w.link) + '" target="_blank" rel="noopener" style="padding:6px 10px;font-size:12px;">Probar</a>' : '') + '</td></tr>').join('') +
+    '</tbody></table>';
+  $('cfg-cuerpo').querySelectorAll('[data-guardar-wa]').forEach(b => b.addEventListener('click', async () => {
+    const tr = b.closest('tr'), v = k => tr.querySelector('[data-k="' + k + '"]');
+    const link = v('link').value.trim();
+    if (link && !/^https:\/\/(chat\.whatsapp\.com|wa\.me|api\.whatsapp\.com)\//i.test(link)) { toast('El link debe empezar con https://chat.whatsapp.com/'); return; }
+    const { error } = await sb.from('area_whatsapp').update({ nombre_grupo: v('nombre_grupo').value.trim() || null, link: link || null, activo: v('activo').checked, actualizado_en: new Date().toISOString() }).eq('area_norm', tr.dataset.area);
+    if (error) toast('Error: ' + error.message); else { toast('✅ Guardado.'); cfgWhatsapp(); }
+  }));
+}
+async function cfgCentralistas() {
+  $('cfg-cuerpo').innerHTML = '<div class="vacio">Cargando…</div>';
+  const { data, error } = await sb.rpc('listar_usuarios_central');
+  if (error) { $('cfg-cuerpo').innerHTML = '<div class="aviso">' + esc(error.message) + '</div>'; return; }
+  $('cfg-cuerpo').innerHTML = '<div class="aviso info" style="margin-bottom:10px;">Marca a los usuarios que trabajan en la <b>Central de Transporte CMPC</b>. Crea primero su cuenta en el sistema (Administración › Usuarios, perfil Visor) y luego habilítalos aquí. El Administrador siempre tiene acceso.</div>' +
+    '<input id="cfg-q" placeholder="Buscar usuario…" style="width:100%;border:1px solid var(--borde);border-radius:9px;padding:7px 9px;margin-bottom:8px;font:inherit;">' +
+    '<table class="t"><thead><tr><th>Usuario</th><th>Correo</th><th>Perfil</th><th>Centralista</th></tr></thead><tbody>' +
+    (data || []).map(u => '<tr data-q="' + esc(norm((u.nombre || '') + ' ' + (u.email || ''))) + '"><td>' + esc(u.nombre || '—') + '</td><td>' + esc(u.email || '') + '</td><td>' + esc(u.perfil || '') + '</td>' +
+      '<td style="text-align:center;"><input type="checkbox" data-cen="' + esc(u.perfil_id) + '"' + (u.centralista && u.activo ? ' checked' : '') + '></td></tr>').join('') + '</tbody></table>';
+  $('cfg-q').addEventListener('input', e => { const q = norm(e.target.value); $('cfg-cuerpo').querySelectorAll('tbody tr').forEach(tr => { tr.style.display = !q || tr.dataset.q.includes(q) ? '' : 'none'; }); });
+  $('cfg-cuerpo').querySelectorAll('[data-cen]').forEach(c => c.addEventListener('change', async () => {
+    const { error: e2 } = c.checked
+      ? await sb.from('centralistas').upsert({ perfil_id: c.dataset.cen, activo: true })
+      : await sb.from('centralistas').delete().eq('perfil_id', c.dataset.cen);
+    if (e2) { c.checked = !c.checked; toast('Error: ' + e2.message); } else toast(c.checked ? '✅ Habilitado como centralista.' : 'Quitado de la central.');
+  }));
+}
+
+iniciar();
+</script>
+</body>
+</html>

@@ -1458,6 +1458,19 @@ body.tema-oscuro .pd-nom{color:#F1F5F9;} body.tema-oscuro .pd-var, body.tema-osc
 /* ===== Gestión de Recursos (Planificador CMPC ▾, 12-10-2026, SQL 92) ===== */
 #gestion-panel{position:absolute;top:60px;left:0;right:0;bottom:0;z-index:350;background:var(--bg-light);display:none;flex-direction:column;color:var(--text-primary);}
 #gestion-panel.show{display:flex;}
+/* Acciones de Riesgo (SQL 101) */
+#riesgo-panel{position:absolute;top:60px;left:0;right:0;bottom:0;z-index:350;background:var(--bg-light);display:none;flex-direction:column;color:var(--text-primary);}
+#riesgo-panel.show{display:flex;}
+.rg-areas{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:0 0 10px;}
+.rg-area{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:9px 11px;cursor:pointer;font-size:11.5px;}
+.rg-area:hover{border-color:#94A3B8;}
+.rg-area.on{border-color:#2563EB;box-shadow:0 0 0 2px color-mix(in srgb,#2563EB 20%,transparent);}
+.rg-area b{display:block;font-size:12.5px;margin-bottom:4px;color:var(--text-primary);}
+.rg-area .rg-barra{display:flex;height:6px;border-radius:4px;overflow:hidden;background:#F1F5F9;margin:5px 0 3px;}
+.rg-area .rg-barra span{display:block;height:100%;}
+.rg-chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:700;white-space:nowrap;}
+.rg-sel{border:1px solid var(--border);border-radius:7px;padding:3px 5px;font:inherit;font-size:11.5px;background:var(--white);color:var(--text-primary);}
+.rg-obs{white-space:pre-wrap;font-size:11px;color:var(--text-secondary);max-width:320px;}
 .gr-cuerpo{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:12px 16px 14px;}
 .gr-aviso{padding:9px 14px;border-radius:10px;background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;font-size:12.5px;}
 .gr-kpis{display:flex;gap:8px;flex-wrap:wrap;}
@@ -1971,7 +1984,7 @@ body.tema-oscuro .pl-tag.warn,body.tema-oscuro .pl-aviso.warn{background:#3B2A0A
 @media (max-width: 600px) {
   /* --- Barra superior: hamburguesa + compacta --- */
   #topbar{ height:56px; padding:0 8px; gap:8px; }
-  #map, #dashboard, #patrullajes-panel, #planificador-panel, #prioridad-panel, #tablero-panel, #gestion-panel{ top:56px; }
+  #map, #dashboard, #patrullajes-panel, #planificador-panel, #prioridad-panel, #tablero-panel, #gestion-panel, #riesgo-panel{ top:56px; }
   #admin-panel{ top:56px; }
   #simbologia-flotante{ top:auto; }
   #btn-hamburguesa{
@@ -2700,8 +2713,8 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
         <input type="search" id="turnos-busqueda" placeholder="Buscar clave radial, ID o tipo…">
         <div class="sep"></div>
         <div class="turnos-seg">
-          <button id="turnos-vista-semana" class="active">Semana</button>
-          <button id="turnos-vista-mes">Mes</button>
+          <button id="turnos-vista-semana">Semana</button>
+          <button id="turnos-vista-mes" class="active">Mes</button>
         </div>
         <div class="turnos-nav">
           <button id="turnos-prev" title="Periodo anterior">‹</button>
@@ -2907,6 +2920,34 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
     <div class="tb-cuerpo" id="tb-cuerpo"><div class="tb-vacio">Cargando…</div></div>
   </div>
 
+  <!-- Acciones de Riesgo (Prevención ▾, 14-10-2026, SQL 101): reportes de conductores registrados por la
+       Central de Transporte CMPC (/gestioncentral). Cada área gestiona los suyos; el Administrador ve todo. -->
+  <div id="riesgo-panel">
+    <div class="pat-toolbar">
+      <div class="pat-toolbar-left">
+        <strong>🚛 Acciones de Riesgo</strong>
+        <select id="rg-periodo" class="admin-search" style="min-width:130px;" title="Periodo">
+          <option value="7">Últimos 7 días</option><option value="30" selected>Últimos 30 días</option><option value="90">Últimos 90 días</option><option value="365">Último año</option>
+        </select>
+        <select id="rg-area" class="admin-search" style="min-width:150px;max-width:200px;" title="Área de relacionamiento"></select>
+        <select id="rg-estado" class="admin-search" style="min-width:150px;" title="Estado"></select>
+        <select id="rg-tipo" class="admin-search" style="min-width:160px;max-width:220px;" title="Tipo de riesgo"></select>
+        <input id="rg-buscar" class="admin-search" style="min-width:170px;max-width:220px;" placeholder="Buscar folio, comuna, sector, ruta…" autocomplete="off">
+      </div>
+      <div class="pat-toolbar-right" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span class="turnos-estado" id="rg-estado-txt">—</span>
+        <a class="turnos-btn" id="rg-central" href="/gestioncentral/?modo=centralista" target="_blank" rel="noopener" style="display:none;text-decoration:none;" title="Abrir la página de la Central de Transporte CMPC">🎧 Gestión Central</a>
+        <button class="turnos-btn" id="rg-descargar" title="Descargar los reportes filtrados a Excel">⬇️ Descargar Excel</button>
+      </div>
+    </div>
+    <div class="gr-cuerpo">
+      <div id="rg-aviso" class="gr-aviso" style="display:none;"></div>
+      <div class="gr-kpis" id="rg-kpis"></div>
+      <div id="rg-areas"></div>
+      <div class="gr-tabla-wrap" id="rg-tabla"><div class="tb-vacio">Cargando…</div></div>
+    </div>
+  </div>
+
   <!-- Gestión de Recursos (Planificador CMPC ▾, 12-10-2026, SQL 92): datos y contacto de cada recurso.
        Jefe de Área: edición directa en sus áreas. Administrador: además carga masiva (Excel). -->
   <div id="gestion-panel">
@@ -3043,6 +3084,7 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
           <div class="vista-submenu">
             <button class="vista-subitem" data-vista="patrullajes" id="tab-patrullajes" style="display:none;"><span class="vs-ico">🚓</span><span><b>Gestión Patrullajes SIGEI</b><small>Rutas de patrullaje y su asignación por fecha</small></span></button>
             <button class="vista-subitem" data-vista="prioridad" id="tab-prioridad" style="display:none;"><span class="vs-ico">🎯</span><span><b>Comunas Prioritarias</b><small>Matriz de prioridad por comuna (6 variables)</small></span></button>
+            <button class="vista-subitem" data-vista="riesgo" id="tab-riesgo" style="display:none;"><span class="vs-ico">🚛</span><span><b>Acciones de Riesgo</b><small>Reportes de conductores (Gestión Central) por área</small></span></button>
           </div>
         </div>
         <!-- Planificador CMPC ▾: Turnos de Recursos + Planificador gráfico de Recursos -->
@@ -3166,6 +3208,7 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
             <div class="up-sub">Ver el sistema como…</div>
             <button class="dropdown-item" id="btn-sim-jefe">🧭 Modo Jefe de Área</button>
             <button class="dropdown-item" id="btn-sim-comuna">🏛️ Modo GRD / Visor</button>
+            <button class="dropdown-item" id="btn-sim-central" title="Abre la Gestión Central (/gestioncentral) tal como la ve un centralista de la Central de Transporte CMPC">🎧 Modo Centralista (Gestión Central)</button>
             <button class="dropdown-item" id="btn-sim-salir" style="display:none;color:#B45309;">↩️ Volver a Administrador</button>
           </div>
           <div class="up-divider"></div>
@@ -9408,6 +9451,204 @@ function iniciarListenersGestion_() {
   window.addEventListener('beforeunload', e => { if (Object.keys(state.gr.cambios).length) { e.preventDefault(); e.returnValue = ''; } });
 }
 
+/* ==================== ACCIONES DE RIESGO (Prevención ▾, 14-10-2026, SQL 101) ====================
+ * Reportes de riesgo de incendio que levantan los conductores y registra la Central de Transporte CMPC
+ * en /gestioncentral. El Administrador ve todas las áreas (tablero general); el Jefe de Área ve y
+ * gestiona los de SUS áreas (RLS de reportes_riesgo + RPC gestionar_reporte_riesgo). */
+const RG_ESTADOS = {
+  'Nuevo':      { c: '#C62828', c2: '#FEE2E2', ico: '🆕' },
+  'Notificado': { c: '#B45309', c2: '#FEF3C7', ico: '📲' },
+  'En gestión': { c: '#1D4ED8', c2: '#DBEAFE', ico: '🛠️' },
+  'Cerrado':    { c: '#15803D', c2: '#DCFCE7', ico: '✅' },
+  'Descartado': { c: '#64748B', c2: '#F1F5F9', ico: '✖️' },
+};
+const RG_TIPOS_ICO = { 'Quema de desechos': '🔥', 'Personas fumando en pastizales': '🚬', 'Herramientas con chispas': '🛠️', 'Tendido eléctrico con chispas': '⚡', 'Fuego en la ruta': '🚨', 'Otro riesgo': '⚠️' };
+state.rg = { reportes: [], listeners: false, canal: null, sinSql101: false };
+
+function puedeAccionesRiesgo_() {
+  const p = state.perfil && state.perfil.perfil;
+  return p === 'Administrador' || esJefeAreaPerfil_(p);
+}
+function rgPendiente_(r) { return r.estado === 'Nuevo' || r.estado === 'Notificado'; }
+function rgFechaHora_(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' + d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+}
+async function abrirAccionesRiesgo_() {
+  if (!state.rg.listeners) {
+    state.rg.listeners = true;
+    const re = () => renderAccionesRiesgo_();
+    document.getElementById('rg-periodo').addEventListener('change', () => cargarAccionesRiesgo_());
+    ['rg-area', 'rg-estado', 'rg-tipo'].forEach(id => document.getElementById(id).addEventListener('change', re));
+    let t = null;
+    document.getElementById('rg-buscar').addEventListener('input', () => { clearTimeout(t); t = setTimeout(re, 200); });
+    document.getElementById('rg-descargar').addEventListener('click', descargarAccionesRiesgo_);
+    document.getElementById('rg-areas').addEventListener('click', e => {
+      const c = e.target.closest('[data-rg-area]'); if (!c) return;
+      const sel = document.getElementById('rg-area');
+      sel.value = sel.value === c.dataset.rgArea ? '' : c.dataset.rgArea;
+      renderAccionesRiesgo_();
+    });
+    document.getElementById('rg-tabla').addEventListener('change', e => {
+      const s = e.target.closest('[data-rg-estado]'); if (s) cambiarEstadoRiesgo_(s.dataset.rgEstado, s.value, s);
+    });
+    document.getElementById('rg-tabla').addEventListener('click', e => {
+      const b = e.target.closest('[data-rg-obs]'); if (b) cambiarEstadoRiesgo_(b.dataset.rgObs, null, null);
+    });
+  }
+  document.getElementById('rg-central').style.display = state.perfil && state.perfil.perfil === 'Administrador' ? '' : 'none';
+  await cargarAccionesRiesgo_();
+  // Tiempo real: un reporte nuevo de la central aparece solo
+  if (!state.rg.canal && !state.rg.sinSql101) {
+    try {
+      state.rg.canal = supabaseClient.channel('rg-reportes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'reportes_riesgo' }, () => {
+          clearTimeout(state.rg._t);
+          state.rg._t = setTimeout(() => { if (state.vistaActual === 'riesgo') cargarAccionesRiesgo_(); }, 500);
+        }).subscribe();
+    } catch (e) { /* sin tiempo real: se refresca al abrir */ }
+  }
+}
+async function cargarAccionesRiesgo_() {
+  const dias = Number(document.getElementById('rg-periodo').value || 30);
+  const desde = new Date(Date.now() - dias * 864e5).toISOString();
+  document.getElementById('rg-estado-txt').textContent = 'Cargando…';
+  const filas = [];
+  for (let d = 0; ; d += 1000) {
+    const { data, error } = await supabaseClient.from('reportes_riesgo').select('*').gte('creado_en', desde)
+      .order('creado_en', { ascending: false }).range(d, d + 999);
+    if (error) {
+      state.rg.sinSql101 = /reportes_riesgo/.test(error.message);
+      const av = document.getElementById('rg-aviso');
+      av.style.display = '';
+      av.textContent = state.rg.sinSql101 ? '⚠️ Falta ejecutar en Supabase el SQL 101 (sql/pendientes/101_gestion_central_riesgo.sql).' : '⚠️ ' + error.message;
+      document.getElementById('rg-tabla').innerHTML = '';
+      document.getElementById('rg-estado-txt').textContent = 'Error';
+      return;
+    }
+    filas.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  document.getElementById('rg-aviso').style.display = 'none';
+  state.rg.reportes = filas;
+  // Filtros con lo que hay
+  const areas = [...new Set(filas.map(r => r.area).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+  const selA = document.getElementById('rg-area'), vA = selA.value;
+  selA.innerHTML = '<option value="">Todas las áreas (' + areas.length + ')</option>' + areas.map(a => '<option value="' + escapeHtml_(a) + '">' + escapeHtml_(aTitulo_(a)) + '</option>').join('') +
+    (filas.some(r => !r.area) ? '<option value="__sin__">⚠️ Sin área</option>' : '');
+  selA.value = [...selA.options].some(o => o.value === vA) ? vA : '';
+  const selE = document.getElementById('rg-estado'), vE = selE.value;
+  selE.innerHTML = '<option value="">Todos los estados</option><option value="__pend__">⏳ Pendientes (Nuevo + Notificado)</option>' +
+    Object.keys(RG_ESTADOS).map(k => '<option value="' + k + '">' + RG_ESTADOS[k].ico + ' ' + k + '</option>').join('');
+  selE.value = vE;
+  const tipos = [...new Set(filas.map(r => r.tipo_riesgo).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+  const selT = document.getElementById('rg-tipo'), vT = selT.value;
+  selT.innerHTML = '<option value="">Todos los tipos</option>' + tipos.map(t => '<option value="' + escapeHtml_(t) + '">' + (RG_TIPOS_ICO[t] || '⚠️') + ' ' + escapeHtml_(t) + '</option>').join('');
+  selT.value = tipos.includes(vT) ? vT : '';
+  document.getElementById('rg-estado-txt').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  renderAccionesRiesgo_();
+}
+function rgFiltrados_() {
+  const fA = document.getElementById('rg-area').value, fE = document.getElementById('rg-estado').value, fT = document.getElementById('rg-tipo').value;
+  const q = normalizarBusqueda_(document.getElementById('rg-buscar').value || '');
+  return state.rg.reportes.filter(r => {
+    if (fA === '__sin__' ? !!r.area : (fA && r.area !== fA)) return false;
+    if (fE === '__pend__' ? !rgPendiente_(r) : (fE && r.estado !== fE)) return false;
+    if (fT && r.tipo_riesgo !== fT) return false;
+    if (q && !normalizarBusqueda_(['#' + r.folio, r.folio, r.comuna, r.sector, r.ruta, r.empresa_transporte, r.patente, r.tipo_riesgo, r.descripcion].join(' ')).includes(q)) return false;
+    return true;
+  });
+}
+function renderAccionesRiesgo_() {
+  const lista = rgFiltrados_(), todos = state.rg.reportes;
+  const cuenta = k => lista.filter(r => r.estado === k).length;
+  const cerr = lista.filter(r => r.estado === 'Cerrado' && r.cerrado_en);
+  const horas = cerr.length ? cerr.reduce((s, r) => s + (new Date(r.cerrado_en) - new Date(r.creado_en)) / 36e5, 0) / cerr.length : null;
+  const kpi = (n, t, c) => '<div class="gr-kpi" style="--c:' + c + '"><b>' + n + '</b>' + t + '</div>';
+  document.getElementById('rg-kpis').innerHTML =
+    kpi(lista.length, 'reportes' + (lista.length !== todos.length ? ' (de ' + todos.length + ')' : ''), '#0F172A') +
+    kpi(cuenta('Nuevo'), '🆕 nuevos', RG_ESTADOS.Nuevo.c) +
+    kpi(cuenta('Notificado'), '📲 notificados al área', RG_ESTADOS.Notificado.c) +
+    kpi(cuenta('En gestión'), '🛠️ en gestión', RG_ESTADOS['En gestión'].c) +
+    kpi(cuenta('Cerrado'), '✅ cerrados', RG_ESTADOS.Cerrado.c) +
+    kpi(lista.length ? Math.round((cuenta('Cerrado') + cuenta('Descartado')) / lista.length * 100) + ' %' : '—', 'resueltos', '#15803D') +
+    kpi(horas == null ? '—' : (horas < 48 ? horas.toFixed(1) + ' h' : (horas / 24).toFixed(1) + ' d'), '⏱️ tiempo medio de cierre', '#7C3AED');
+  // Tablero por área (estado de cada área en el periodo; clic = filtrar)
+  const fA = document.getElementById('rg-area').value;
+  const porArea = {};
+  todos.forEach(r => { const k = r.area || '__sin__'; (porArea[k] = porArea[k] || []).push(r); });
+  const claves = Object.keys(porArea).sort((a, b) => porArea[b].filter(rgPendiente_).length - porArea[a].filter(rgPendiente_).length || a.localeCompare(b, 'es'));
+  document.getElementById('rg-areas').innerHTML = claves.length > 1 || (claves.length === 1 && state.perfil.perfil === 'Administrador')
+    ? '<div class="rg-areas">' + claves.map(k => {
+        const rs = porArea[k], n = rs.length, pend = rs.filter(rgPendiente_).length;
+        const barra = Object.keys(RG_ESTADOS).map(e => { const c = rs.filter(r => r.estado === e).length; return c ? '<span style="width:' + (c / n * 100) + '%;background:' + RG_ESTADOS[e].c + '" title="' + e + ': ' + c + '"></span>' : ''; }).join('');
+        return '<div class="rg-area' + (fA === k ? ' on' : '') + '" data-rg-area="' + escapeHtml_(k) + '"><b>' + (k === '__sin__' ? '⚠️ Sin área' : escapeHtml_(aTitulo_(k))) + '</b>' +
+          n + ' reporte(s) · <span style="color:' + (pend ? '#C62828' : '#15803D') + ';font-weight:700;">' + (pend ? pend + ' pendiente(s)' : 'al día') + '</span>' +
+          '<div class="rg-barra">' + barra + '</div></div>';
+      }).join('') + '</div>'
+    : '';
+  const cont = document.getElementById('rg-tabla');
+  if (!lista.length) { cont.innerHTML = '<div class="tb-vacio">' + (todos.length ? 'No hay reportes con estos filtros.' : 'Aún no hay reportes de riesgo en este periodo. La Central de Transporte CMPC los registra en /gestioncentral.') + '</div>'; return; }
+  cont.innerHTML = '<table class="gr-tabla"><thead><tr><th>Folio</th><th>Fecha aviso</th><th>Riesgo</th><th>Ubicación</th><th>Área</th><th>Reporta</th><th>Estado</th><th>Gestión</th></tr></thead><tbody>' +
+    lista.map(r => {
+      const e = RG_ESTADOS[r.estado] || RG_ESTADOS.Nuevo;
+      const mapsUrl = 'https://maps.google.com/?q=' + Number(r.lat).toFixed(6) + ',' + Number(r.lng).toFixed(6);
+      return '<tr>' +
+        '<td><b>#' + r.folio + '</b></td>' +
+        '<td style="white-space:nowrap;">' + rgFechaHora_(r.fecha_evento) + '</td>' +
+        '<td>' + (RG_TIPOS_ICO[r.tipo_riesgo] || '⚠️') + ' ' + escapeHtml_(r.tipo_riesgo) + (r.descripcion ? '<div class="rg-obs">' + escapeHtml_(r.descripcion) + '</div>' : '') + '</td>' +
+        '<td>' + escapeHtml_(aTitulo_(r.comuna || '—')) + (r.sector ? ' · ' + escapeHtml_(r.sector) : '') +
+          (r.ruta ? '<br><small>Ruta ' + escapeHtml_(r.ruta) + (r.km != null ? ' · km ' + r.km : '') + '</small>' : '') +
+          '<br><a href="' + mapsUrl + '" target="_blank" rel="noopener" style="font-size:11px;">📍 Ver en mapa</a></td>' +
+        '<td>' + (r.area ? escapeHtml_(aTitulo_(r.area)) : '<b style="color:#B45309;">Sin área</b>') + '</td>' +
+        '<td>' + escapeHtml_(r.empresa_transporte || '—') + (r.patente ? '<br><small>' + escapeHtml_(r.patente) + '</small>' : '') + '</td>' +
+        '<td><span class="rg-chip" style="background:' + e.c2 + ';color:' + e.c + ';">' + e.ico + ' ' + escapeHtml_(r.estado) + '</span>' +
+          '<div style="margin-top:4px;"><select class="rg-sel" data-rg-estado="' + escapeHtml_(r.id) + '" title="Cambiar estado">' +
+          Object.keys(RG_ESTADOS).map(k => '<option' + (k === r.estado ? ' selected' : '') + '>' + k + '</option>').join('') + '</select></div></td>' +
+        '<td>' + (r.gestion_obs ? '<div class="rg-obs">' + escapeHtml_(r.gestion_obs) + '</div>' : '<small style="color:var(--text-tertiary);">Sin observaciones</small>') +
+          '<div><button class="gr-del" style="width:auto;padding:0 8px;margin-top:4px;" data-rg-obs="' + escapeHtml_(r.id) + '" title="Agregar una observación de la gestión">✍️ Observación</button></div></td>' +
+        '</tr>';
+    }).join('') + '</tbody></table>';
+}
+async function cambiarEstadoRiesgo_(id, estado, sel) {
+  const r = state.rg.reportes.find(x => x.id === id); if (!r) return;
+  const nuevo = estado || r.estado;
+  const obs = prompt((estado ? 'Cambiar el reporte #' + r.folio + ' a «' + nuevo + '».' : 'Observación para el reporte #' + r.folio + '.') +
+    '\n\nDescribe la gestión realizada (quedará registrada con tu nombre y la hora):', '');
+  if (obs === null) { if (sel) sel.value = r.estado; return; }
+  if (!estado && !obs.trim()) return;
+  if ((nuevo === 'Cerrado' || nuevo === 'Descartado') && !obs.trim()) {
+    mostrarToast_('Para cerrar o descartar, describe la gestión realizada.'); if (sel) sel.value = r.estado; return;
+  }
+  const { error } = await supabaseClient.rpc('gestionar_reporte_riesgo', { p_id: id, p_estado: nuevo, p_obs: obs.trim() || null });
+  if (error) { mostrarToast_('No se pudo guardar: ' + error.message); if (sel) sel.value = r.estado; return; }
+  mostrarToast_('✅ Reporte #' + r.folio + ' · ' + nuevo + '.');
+  await cargarAccionesRiesgo_();
+}
+async function descargarAccionesRiesgo_() {
+  const lista = rgFiltrados_();
+  if (!lista.length) { mostrarToast_('No hay reportes para descargar con estos filtros.'); return; }
+  try {
+    mostrarToast_('Generando Excel…');
+    const XLSX = await tbCargarSheetJs_();
+    const filas = lista.map(r => ({
+      'Folio': r.folio, 'Fecha aviso': rgFechaHora_(r.fecha_evento), 'Registrado': rgFechaHora_(r.creado_en),
+      'Tipo de riesgo': r.tipo_riesgo, 'Detalle': r.descripcion || '', 'Comuna': aTitulo_(r.comuna || ''), 'Sector': r.sector || '',
+      'Ruta': r.ruta || '', 'Km': r.km != null ? Number(r.km) : '', 'Área': r.area ? aTitulo_(r.area) : 'Sin área',
+      'Empresa de transporte': r.empresa_transporte || '', 'Patente': r.patente || '', 'Conductor': r.conductor || '',
+      'Estado': r.estado, 'Notificado': rgFechaHora_(r.notificado_en), 'Cerrado': r.cerrado_en ? rgFechaHora_(r.cerrado_en) : '',
+      'Gestión': r.gestion_obs || '', 'Latitud': Number(r.lat), 'Longitud': Number(r.lng),
+    }));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(filas);
+    ws['!cols'] = Object.keys(filas[0]).map(k => ({ wch: ['Detalle', 'Gestión'].includes(k) ? 50 : 16 }));
+    XLSX.utils.book_append_sheet(wb, ws, 'Acciones de riesgo');
+    XLSX.writeFile(wb, 'acciones_riesgo_' + tbHoyISO_() + '.xlsx');
+    mostrarToast_('✅ Descargado: ' + filas.length + ' reportes.');
+  } catch (e) { mostrarToast_('No se pudo generar el Excel: ' + (e.message || e)); }
+}
+
 /* ==================== MÓDULO GESTIÓN DE PATRULLAJES (mapa exclusivo) ==================== */
 let patMap = null, patRutasLayer = null;
 state.patRutas = [];
@@ -9593,7 +9834,7 @@ state.vistaActual = 'dashboard';
 // Regla de negocio: no se puede asignar turno antes de fecha_inicio_operacion
 // (validado en UI y en BD con trigger trg_validar_turno_inicio).
 // ════════════════════════════════════════════════════════════════
-state.turnosVista = state.turnosVista || 'semana';
+state.turnosVista = state.turnosVista || 'mes';   // por defecto el mes completo (14-10-2026)
 state.turnosFechaBase = state.turnosFechaBase || new Date();
 state.turnosArea = state.turnosArea || null;
 state.turnosRecursos = state.turnosRecursos || [];
@@ -9723,7 +9964,9 @@ function iniciarListenersTurnos_() {
     }
   });
   document.getElementById('turnos-tipo-select').addEventListener('change', (e) => {
-    state.turnosFiltroTipo = e.target.value; renderGridTurnos_();
+    state.turnosFiltroTipo = e.target.value;
+    poblarClavesTurnos_();   // el filtro de claves deja solo las del tipo elegido
+    renderGridTurnos_();
   });
   document.getElementById('turnos-recurso-select').addEventListener('change', (e) => {
     state.turnosFiltroRecurso = e.target.value; renderGridTurnos_();
@@ -9840,6 +10083,17 @@ function navegarTurnos_(dir) {
   cargarRecursosTurnos_();
 }
 
+/** Desplegable de claves radiales: solo las del tipo elegido (si la clave elegida no es de ese tipo, se limpia). */
+function poblarClavesTurnos_() {
+  const tipo = state.turnosFiltroTipo;
+  const lista = state.turnosRecursos.filter(r => !tipo || (r.tipo_recurso || 'Sin tipo') === tipo);
+  if (state.turnosFiltroRecurso && !lista.some(r => String(r.id) === String(state.turnosFiltroRecurso))) state.turnosFiltroRecurso = '';
+  document.getElementById('turnos-recurso-select').innerHTML =
+    '<option value="">📻 ' + (tipo ? 'Todas las claves de ' + escapeHtml_(aTitulo_(tipo)) : 'Todas las claves') + ' (' + lista.length + ')</option>' +
+    lista.map(r => '<option value="' + escapeHtml_(String(r.id)) + '"' + (String(r.id) === String(state.turnosFiltroRecurso) ? ' selected' : '') + '>' +
+      escapeHtml_((claveRecurso_(r) || 'Sin clave') + (tipo ? '' : ' · ' + aTitulo_(r.tipo_recurso || ''))) + '</option>').join('');
+}
+
 async function cargarRecursosTurnos_() {
   if (!state.turnosArea) return;
   const grid = document.getElementById('turnos-grid');
@@ -9870,11 +10124,8 @@ async function cargarRecursosTurnos_() {
   if (state.turnosFiltroTipo && !tipos.includes(state.turnosFiltroTipo)) state.turnosFiltroTipo = '';
   document.getElementById('turnos-tipo-select').innerHTML = '<option value="">Todos los tipos (' + state.turnosRecursos.length + ')</option>' +
     tipos.map(t => '<option value="' + escapeHtml_(t) + '"' + (t === state.turnosFiltroTipo ? ' selected' : '') + '>' + escapeHtml_(t) + '</option>').join('');
-  // Filtro rápido por clave radial (un recurso)
-  if (state.turnosFiltroRecurso && !state.turnosRecursos.some(r => String(r.id) === String(state.turnosFiltroRecurso))) state.turnosFiltroRecurso = '';
-  document.getElementById('turnos-recurso-select').innerHTML = '<option value="">📻 Todas las claves</option>' +
-    state.turnosRecursos.map(r => '<option value="' + escapeHtml_(String(r.id)) + '"' + (String(r.id) === String(state.turnosFiltroRecurso) ? ' selected' : '') + '>' +
-      escapeHtml_((claveRecurso_(r) || 'Sin clave') + ' · ' + aTitulo_(r.tipo_recurso || '')) + '</option>').join('');
+  // Filtro rápido por clave radial (un recurso), limitado al tipo elegido
+  poblarClavesTurnos_();
 
   // Turnos del periodo visible + hoy (para el KPI "en turno hoy" aunque hoy no esté en la vista)
   const fechas = fechasDelPeriodo_();
@@ -10158,19 +10409,34 @@ async function generarPdfPanoramaTurnos_(todas) {
   const promPct = conOp.length ? Math.round(conOp.reduce((s, d) => s + d.pct, 0) / conOp.length) : 0;
   const minD = conOp.length ? conOp.reduce((a, d) => (d.turno < a.turno ? d : a), conOp[0]) : null;
   const maxD = conOp.length ? conOp.reduce((a, d) => (d.turno > a.turno ? d : a), conOp[0]) : null;
-  const diaDe = d => d ? (porDia.indexOf(d) + 1) : '—';
-  const kpis = [['Recursos', recs.length, [37, 99, 235]], ['Disponibles promedio / día', prom.toFixed(1), [22, 163, 74]], ['% disponible promedio', promPct + ' %', [22, 163, 74]],
-    ['Día con menos disponibles', minD ? 'Día ' + diaDe(minD) + ' · ' + minD.turno : '—', [220, 38, 38]], ['Día con más disponibles', maxD ? 'Día ' + diaDe(maxD) + ' · ' + maxD.turno : '—', [124, 58, 237]]];
-  const kw = (W - 2 * M - 4 * 3) / 5;
-  kpis.forEach(([t, v, c], i) => {
+  // Tarjetas explicadas (14-10-2026): valor + qué es + cómo se lee
+  const promOp = conOp.length ? conOp.reduce((s, d) => s + d.operan, 0) / conOp.length : 0;
+  const DSEM = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const fechaDe = d => { const k = porDia.indexOf(d); return DSEM[dias[k].dow] + ' ' + dias[k].n + ' ' + TURNOS_MESES[m].slice(0, 3).toLowerCase(); };
+  const num1 = v => (Math.round(v * 10) / 10).toLocaleString('es-CL');
+  const kpis = [
+    ['Recursos en el calendario', String(recs.length), 'Total de recursos incluidos en este PDF.', [37, 99, 235]],
+    ['Disponibles por día (promedio)', num1(prom) + ' de ' + num1(promOp), 'En turno cada día, en promedio, de los recursos que operan ese día.', [22, 163, 74]],
+    ['Disponibilidad promedio', promPct + ' %', 'En turno ÷ que operan, promediado entre los días del mes.', [22, 163, 74]],
+    ['Día con MENOS disponibles', minD ? fechaDe(minD) : '—', minD ? minD.turno + ' de ' + minD.operan + ' recursos en turno ese día (' + minD.pct + ' %).' : 'Sin días con recursos operando.', [220, 38, 38]],
+    ['Día con MÁS disponibles', maxD ? fechaDe(maxD) : '—', maxD ? maxD.turno + ' de ' + maxD.operan + ' recursos en turno ese día (' + maxD.pct + ' %).' : 'Sin días con recursos operando.', [124, 58, 237]],
+  ];
+  const kw = (W - 2 * M - 4 * 3) / 5, kh = 21;
+  kpis.forEach(([t, v, nota, c], i) => {
     const x = M + i * (kw + 3);
-    doc.setDrawColor(226, 232, 240); doc.setFillColor(255, 255, 255); doc.roundedRect(x, 19, kw, 13, 1.5, 1.5, 'FD');
-    doc.setFillColor(...c); doc.rect(x, 19, 1.2, 13, 'F');
-    doc.setTextColor(...c); doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.text(String(v), x + 4, 26);
-    doc.setTextColor(71, 85, 105); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.3); doc.text(t, x + 4, 30);
+    doc.setDrawColor(226, 232, 240); doc.setFillColor(255, 255, 255); doc.roundedRect(x, 18, kw, kh, 1.5, 1.5, 'FD');
+    doc.setFillColor(...c); doc.rect(x, 18, 1.2, kh, 'F');
+    doc.setTextColor(...c); doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.text(v, x + 4, 24.5);
+    doc.setTextColor(30, 41, 59); doc.setFont('helvetica', 'bold'); doc.setFontSize(7.2); doc.text(t, x + 4, 29);
+    doc.setTextColor(100, 116, 139); doc.setFont('helvetica', 'normal'); doc.setFontSize(6.3);
+    doc.text(doc.splitTextToSize(nota, kw - 6).slice(0, 2), x + 4, 32.4);
   });
+  // Cómo se leen los términos
+  doc.setFontSize(6.6); doc.setTextColor(71, 85, 105);
+  doc.text('Cómo leer:  OPERAN = recursos vigentes ese día (dentro de su fecha de inicio y término de operación)  ·  ' +
+    'EN TURNO (T, verde) = disponibles ese día  ·  LIBRE (L, amarillo) = operan pero ese día no tienen turno  ·  % = en turno ÷ operan.', M, 43.5);
   // Gráfico de barras: disponibles (verde) sobre los que operan (amarillo = libres), con % arriba
-  const gx = x0, gy = 40, gh = 70;
+  const gx = x0, gy = 47, gh = 66;
   const maxOp = Math.max(1, ...porDia.map(d => d.operan));
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(30, 41, 59);
   doc.text('Recursos disponibles por día', M, gy + 3);
@@ -10812,6 +11078,7 @@ async function actualizarDatos_(origen) {
     else if (vista === 'turnos' && state.turnosArea) tareas.push(correr(() => cargarRecursosTurnos_()));
     else if (vista === 'tablero') tareas.push(correr(() => abrirTablero_(true)));
     else if (vista === 'gestion') tareas.push(correr(() => abrirGestionRecursos_(true)));
+    else if (vista === 'riesgo') tareas.push(correr(() => cargarAccionesRiesgo_()));
     else if (vista === 'planificador') {
       tareas.push(correr(async () => {
         await cargarRecursosPlanificador_();
@@ -10843,6 +11110,7 @@ function mostrarVista_(vista, modoMapa) {
   if ((vista === 'planificador' || vista === 'tablero') && !puedeVerModulo_('planificador_grafico')) vista = 'dashboard';
   if (vista === 'gestion' && !puedeGestionRecursos_()) vista = 'dashboard';
   if (vista === 'prioridad' && !puedeVerModulo_('prioridad')) vista = 'dashboard';
+  if (vista === 'riesgo' && !puedeAccionesRiesgo_()) vista = 'dashboard';
   if (vista === 'patrullajes' && !puedeVerModulo_('patrullajes')) vista = 'dashboard';
   if (vista === 'dashboard' && !puedeVerModulo_('dashboard')) vista = 'mapa';
   // Mapa: 'planificador' (Planificador de Alertas), 'emergencia' (Modo Emergencia:
@@ -10884,6 +11152,8 @@ function mostrarVista_(vista, modoMapa) {
   if (tabP) tabP.classList.toggle('show', vista === 'tablero');
   const gesP = document.getElementById('gestion-panel');
   if (gesP) gesP.classList.toggle('show', vista === 'gestion');
+  const rgP = document.getElementById('riesgo-panel');
+  if (rgP) rgP.classList.toggle('show', vista === 'riesgo');
   document.body.classList.toggle('modo-dashboard', !esMapa);
   actualizarBotonLogoMunicipal_();
   const esVisor = esMapa && state.modoMapa === 'visor';
@@ -10909,6 +11179,7 @@ function mostrarVista_(vista, modoMapa) {
   else if (vista === 'prioridad') abrirPrioridad_();
   else if (vista === 'tablero') abrirTablero_();
   else if (vista === 'gestion') abrirGestionRecursos_();
+  else if (vista === 'riesgo') abrirAccionesRiesgo_();
   else setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 60);
 
   // Mostrar/ocultar controles del mapa según la vista activa
@@ -12793,7 +13064,8 @@ function aplicarPermisosMenu_() {
   ver('tab-patrullajes', esAdmin && puedeVerModulo_('patrullajes'));
   ver('tab-prioridad', puedeVerModulo_('prioridad'));
   // Prevención ▾ (Gestión Patrullajes SIGEI + Comunas Prioritarias)
-  ver('grupo-prevencion', (esAdmin && puedeVerModulo_('patrullajes')) || puedeVerModulo_('prioridad'));
+  ver('tab-riesgo', puedeAccionesRiesgo_());
+  ver('grupo-prevencion', (esAdmin && puedeVerModulo_('patrullajes')) || puedeVerModulo_('prioridad') || puedeAccionesRiesgo_());
   ver('tab-admin', esAdmin);
   // Menú Gestión SIG: Planificador de Alertas · Modo Emergencia · informe.
   ver('sub-mapa-visor', puedeVerModulo_('planificador_mapa') || puedeVerModulo_('mapa'));
@@ -26035,6 +26307,8 @@ function bindEvents() {
   });
   document.getElementById('btn-sim-jefe').addEventListener('click', () => abrirModalSimulacion_('jefe'));
   document.getElementById('btn-sim-comuna').addEventListener('click', () => abrirModalSimulacion_('comuna'));
+  // Modo Centralista: la Gestión Central en otra pestaña, con la misma sesión, vista como centralista
+  document.getElementById('btn-sim-central').addEventListener('click', () => window.open('/gestioncentral/?modo=centralista', '_blank', 'noopener'));
   document.getElementById('btn-sim-salir').addEventListener('click', salirSimulacion_);
 
   document.getElementById('btn-open-change-password').addEventListener('click', () => {
