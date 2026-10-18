@@ -6,9 +6,12 @@
 <title>Patrullaje Territorial</title>
 <meta name="theme-color" content="#0F172A">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Patrullaje">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -27,7 +30,38 @@ input,textarea,select{font:inherit;color:inherit;}
 
 /* ── Login */
 #s-login{min-height:100%;display:flex;flex-direction:column;justify-content:center;padding:32px 24px calc(32px + var(--safe-b));background:linear-gradient(160deg,#0F172A 0%,#1E3A8A 100%);color:#fff;}
-.lg-logo{width:76px;height:76px;border-radius:22px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 18px;}
+.lg-logo{width:150px;height:96px;margin:0 auto 14px;overflow:hidden;border-radius:22px;background:rgba(255,255,255,.08);}
+.lg-logo svg{width:100%;height:100%;display:block;}
+.lg-logo .carro{animation:bote .5s ease-in-out infinite alternate;}
+.lg-logo .franjas{animation:pista .6s linear infinite;}
+.lg-logo .mov line{animation:viento .8s ease-in infinite;}
+.lg-logo .mov line:nth-child(2){animation-delay:.25s;}
+.lg-logo .mov line:nth-child(3){animation-delay:.5s;}
+.lg-logo .baliza-r{animation:baliza .7s steps(1) infinite;}
+.lg-logo .baliza-a{animation:baliza .7s steps(1) infinite reverse;}
+.lg-logo .pin{animation:latido 1.6s ease-in-out infinite;transform-origin:56px 30px;transform-box:view-box;}
+@keyframes bote{to{transform:translateY(-2px);}}
+@keyframes pista{to{transform:translateX(-36px);}}
+@keyframes viento{0%{transform:translateX(14px);opacity:0;}40%{opacity:1;}100%{transform:translateX(-18px);opacity:0;}}
+@keyframes baliza{50%{opacity:.25;}}
+@keyframes latido{50%{transform:scale(1.12);}}
+
+/* ── Permisos */
+#s-permisos{min-height:100%;display:flex;flex-direction:column;justify-content:center;padding:28px 22px calc(28px + var(--safe-b));background:linear-gradient(160deg,#0F172A 0%,#1E3A8A 100%);color:#fff;}
+.pm-ico{width:84px;height:84px;border-radius:26px;background:rgba(34,197,94,.18);display:flex;align-items:center;justify-content:center;font-size:44px;margin:0 auto 18px;}
+.pm-tit{text-align:center;font-size:22px;font-weight:900;margin-bottom:8px;}
+.pm-txt{text-align:center;color:#BFDBFE;font-size:14px;line-height:1.45;margin-bottom:20px;}
+.pm-pasos{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:14px 16px;margin-bottom:16px;font-size:13.5px;line-height:1.5;}
+.pm-pasos b{color:#fff;}
+.pm-pasos ol{padding-left:18px;}
+.pm-pasos li{margin:4px 0;}
+.pm-err{color:#FCA5A5;font-size:13px;font-weight:700;text-align:center;min-height:18px;margin-bottom:10px;}
+.pm-saltar{display:block;margin:14px auto 0;color:#93C5FD;font-size:13px;text-decoration:underline;}
+.instalar{display:flex;align-items:center;gap:12px;}
+.instalar img{width:46px;height:46px;border-radius:12px;}
+.instalar div{flex:1;font-size:13px;color:var(--muted);}
+.instalar .t{display:block;color:var(--text);font-size:14px;font-weight:800;margin-bottom:2px;}
+.instalar b{color:var(--text);}
 .lg-tit{text-align:center;font-size:24px;font-weight:900;}
 .lg-sub{text-align:center;color:#BFDBFE;font-size:13.5px;margin:6px 0 28px;}
 .lg-campo{display:block;margin-bottom:14px;}
@@ -91,6 +125,20 @@ main{flex:1;position:relative;overflow:hidden;}
 .map-info{position:absolute;left:12px;right:70px;top:12px;z-index:500;background:rgba(15,23,42,.88);color:#fff;border-radius:12px;padding:8px 12px;font-size:12.5px;}
 .map-btns{position:absolute;right:12px;top:12px;z-index:500;display:flex;flex-direction:column;gap:8px;}
 .map-btns button{width:46px;height:46px;border-radius:14px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.2);font-size:20px;}
+.map-filtros{position:absolute;left:12px;right:88px;bottom:14px;z-index:500;display:flex;flex-direction:column;gap:6px;pointer-events:none;}
+.seg-mapa{pointer-events:auto;background:rgba(255,255,255,.95);box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.seg-mapa button{padding:8px 6px;font-size:12.5px;}
+.seg-mapa button[data-esc="Amarilla"].sel{background:#FBBF24;color:#422006;}
+.seg-mapa button[data-esc="Roja"].sel{background:#DC2626;color:#fff;}
+.seg-mapa button[data-esc="Verde"].sel{background:#16A34A;color:#fff;}
+.comp-et{background:#0F172A;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;border:none;box-shadow:0 1px 4px rgba(0,0,0,.3);}
+.comp-et::before{display:none;}
+.comp{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;}
+.comp:last-child{border-bottom:none;}
+.comp i{font-style:normal;font-size:20px;}
+.comp div{flex:1;min-width:0;}
+.comp b{display:block;font-size:13.5px;}
+.comp small{color:var(--muted);}
 .me{width:18px;height:18px;border-radius:50%;background:var(--cobalt);border:3px solid #fff;box-shadow:0 0 0 2px rgba(37,99,235,.4);}
 .rep-pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);}
 .rep-pin span{transform:rotate(45deg);font-size:14px;}
@@ -159,7 +207,12 @@ textarea.campo:focus{border-color:var(--cobalt);}
 .ruta-op{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px;border:2px solid var(--line);border-radius:12px;margin-bottom:8px;}
 .ruta-op.sel{border-color:var(--cobalt);background:#EFF6FF;}
 .ruta-op b{display:block;font-size:14px;}
-.ruta-op small{color:var(--muted);font-size:12px;}
+.ruta-op small{color:var(--muted);font-size:12px;display:block;}
+.ruta-color{width:8px;align-self:stretch;border-radius:4px;flex-shrink:0;}
+.rg-esc{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:99px;margin-left:6px;vertical-align:middle;}
+.esc-Verde{background:#DCFCE7;color:#166534;}
+.esc-Amarilla{background:#FEF3C7;color:#92400E;}
+.esc-Roja{background:#FEE2E2;color:#991B1B;}
 
 #toast{position:fixed;left:50%;bottom:calc(150px + var(--safe-b));transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 16px;border-radius:12px;font-size:13.5px;font-weight:600;z-index:2000;max-width:88%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .2s;}
 #toast.ver{opacity:1;}
@@ -169,14 +222,41 @@ textarea.campo:focus{border-color:var(--cobalt);}
 
 <!-- ═════════ LOGIN ═════════ -->
 <section id="s-login" class="hidden">
-  <div class="lg-logo">🛡️</div>
+  <div class="lg-logo" aria-hidden="true">
+    <svg viewBox="0 0 150 96">
+      <rect x="0" y="70" width="150" height="26" fill="rgba(2,6,23,.55)"/>
+      <g class="franjas" stroke="#FBBF24" stroke-width="3"><line x1="0" y1="83" x2="16" y2="83"/><line x1="36" y1="83" x2="52" y2="83"/><line x1="72" y1="83" x2="88" y2="83"/><line x1="108" y1="83" x2="124" y2="83"/><line x1="144" y1="83" x2="160" y2="83"/><line x1="180" y1="83" x2="196" y2="83"/></g>
+      <g class="mov" stroke="#BFDBFE" stroke-width="4" stroke-linecap="round"><line x1="14" y1="44" x2="32" y2="44"/><line x1="8" y1="54" x2="30" y2="54"/><line x1="16" y1="64" x2="32" y2="64"/></g>
+      <g class="carro">
+        <path d="M38 50 H80 V36 H103 L116 50 L126 52 L130 58 V72 H36 V52 Z" fill="#F8FAFC"/>
+        <rect x="36" y="60" width="94" height="4" fill="#2563EB"/>
+        <path d="M84 40 H101 L111 50 H84 Z" fill="#1E3A8A"/>
+        <rect class="baliza-r" x="82" y="31" width="9" height="5" fill="#EF4444"/>
+        <rect class="baliza-a" x="91" y="31" width="9" height="5" fill="#3B82F6"/>
+        <circle cx="56" cy="72" r="10" fill="#0F172A"/><circle cx="56" cy="72" r="4" fill="#94A3B8"/>
+        <circle cx="110" cy="72" r="10" fill="#0F172A"/><circle cx="110" cy="72" r="4" fill="#94A3B8"/>
+      </g>
+      <g class="pin"><path d="M56 6 a9 9 0 0 1 9 9 c0 7 -9 15 -9 15 s-9 -8 -9 -15 a9 9 0 0 1 9 -9 z" fill="#22C55E"/><circle cx="56" cy="15" r="3.5" fill="#fff"/></g>
+    </svg>
+  </div>
   <div class="lg-tit">Patrullaje Territorial</div>
-  <div class="lg-sub">Copamiento Territorial · La Araucanía</div>
+  <div class="lg-sub">Plan de Copamiento Territorial</div>
   <label class="lg-campo"><span>Teléfono</span><input id="lg-tel" type="tel" inputmode="tel" autocomplete="username" placeholder="+56912345678"></label>
   <label class="lg-campo"><span>Contraseña</span><input id="lg-clave" type="password" autocomplete="current-password" placeholder="••••••••"></label>
   <div class="lg-err" id="lg-err"></div>
   <button class="btn btn-claro" id="lg-btn">Ingresar</button>
   <div class="lg-ver" id="lg-ver"></div>
+</section>
+
+<!-- ═════════ PERMISOS (ubicación obligatoria para patrullar) ═════════ -->
+<section id="s-permisos" class="hidden">
+  <div class="pm-ico">📍</div>
+  <div class="pm-tit">Activa tu ubicación</div>
+  <div class="pm-txt">La app registra tu recorrido y la ubicación de cada reporte. Sin GPS no puedes patrullar.</div>
+  <div class="pm-err" id="pm-err"></div>
+  <div class="pm-pasos hidden" id="pm-pasos"></div>
+  <button class="btn btn-ok" id="pm-btn">📍 Permitir ubicación</button>
+  <button class="pm-saltar" id="pm-saltar">Continuar sin ubicación (solo consulta)</button>
 </section>
 
 <!-- ═════════ APP ═════════ -->
@@ -187,6 +267,7 @@ textarea.campo:focus{border-color:var(--cobalt);}
   </header>
   <main>
     <section class="vista" id="v-inicio">
+      <div class="card hidden" id="card-instalar"></div>
       <div class="card">
         <div class="fila">
           <div class="gps-ico" id="gps-ico">📡</div>
@@ -194,6 +275,7 @@ textarea.campo:focus{border-color:var(--cobalt);}
         </div>
       </div>
       <div class="card" id="turno-card"></div>
+      <div class="card hidden" id="card-companeros"></div>
       <div class="sec-tit">Reportar una acción</div>
       <div class="acciones" id="acciones"></div>
       <div class="card">
@@ -207,6 +289,10 @@ textarea.campo:focus{border-color:var(--cobalt);}
     <section class="vista mapa hidden" id="v-mapa">
       <div id="mapa"></div>
       <div class="map-info" id="map-info">Cargando…</div>
+      <div class="map-filtros">
+        <div class="seg seg-mapa" id="mf-esc"><button data-esc="Verde" class="sel">Normal</button><button data-esc="Amarilla">Amarilla</button><button data-esc="Roja">Roja</button></div>
+        <div class="seg seg-mapa" id="mf-inst"><button data-inst="mia" class="sel">Mi institución</button><button data-inst="todas">Todas</button></div>
+      </div>
       <div class="map-btns">
         <button id="btn-centrar" title="Centrar en mi posición">◎</button>
         <button id="btn-ruta" title="Ver la ruta completa">🛣️</button>
@@ -244,7 +330,7 @@ textarea.campo:focus{border-color:var(--cobalt);}
 // Los reportes, turnos y puntos GPS se guardan primero en el teléfono (IndexedDB) y se envían cuando hay
 // señal: nada se pierde si se corta la conexión.
 // ════════════════════════════════════════════════════════════════
-const APP_VERSION = '2.0.0';
+const APP_VERSION = '2.1.0';
 const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -270,8 +356,11 @@ const state = {
   token: null, usuario: null, tipos: [], rutas: [], turno: null,
   pos: null, ultimoPunto: null, rastro: [], cubiertos: new Set(), rutaVertices: [],
   reportesServidor: [], pendientes: 0, ultimaSync: null, sincronizando: false,
-  vista: 'inicio', mapa: null, capas: {}, fondoSat: false, watchId: null, wakeLock: null, filtroRep: 'todos'
+  vista: 'inicio', mapa: null, capas: {}, fondoSat: false, watchId: null, wakeLock: null, filtroRep: 'todos',
+  rutasPlan: [], escMapa: 'Verde', instMapa: 'mia', companeros: [], instalarEvt: null, sinGps: false
 };
+const ESCENARIOS = { Verde: 'Normal', Amarilla: 'Alerta Amarilla', Roja: 'Alerta Roja' };
+const COMPANEROS_CADA_MS = 60000;
 
 // ════════════════════════════════════════════════════════════════
 // Utilidades
@@ -396,7 +485,7 @@ async function cerrarSesion(motivo) {
   if (!motivo && navigator.onLine && state.token) { try { await rpc('app_logout', { p_token: state.token }); } catch (e) { /* sin importancia */ } }
   detenerGps(); liberarWakeLock();
   await Promise.all(['kv', 'cola', 'gps', 'fotos'].map(s => DB.clear(s)));
-  Object.assign(state, { token: null, usuario: null, turno: null, rastro: [], cubiertos: new Set(), ultimoPunto: null, reportesServidor: [] });
+  Object.assign(state, { token: null, usuario: null, turno: null, rastro: [], cubiertos: new Set(), ultimoPunto: null, reportesServidor: [], rutasPlan: [], companeros: [] });
   if (state.mapa) { state.mapa.remove(); state.mapa = null; state.capas = {}; }
   mostrarLogin();
   if (motivo) $('lg-err').textContent = motivo;
@@ -404,6 +493,7 @@ async function cerrarSesion(motivo) {
 
 function mostrarLogin() {
   $('s-app').classList.add('hidden');
+  $('s-permisos').classList.add('hidden');
   $('s-login').classList.remove('hidden');
 }
 
@@ -416,10 +506,13 @@ async function entrar() {
   // Datos guardados primero (abre al instante y sin señal), luego el servidor
   const cache = await DB.get('kv', 'inicio');
   if (cache) aplicarInicio(cache, true);
+  const rp = await DB.get('kv', 'rutas_plan');
+  if (rp) aplicarRutasPlan(rp);
   const local = await DB.get('kv', 'turno');
   if (local) restaurarTurnoLocal(local);
   renderTodo();
-  iniciarGps();
+  renderInstalar();
+  await verificarPermisoGps();
   cargarInicio();
   sincronizar();
 }
@@ -435,12 +528,83 @@ async function cargarInicio() {
     if (e.sesion) return cerrarSesion('Tu sesión venció o el usuario fue desactivado. Ingresa nuevamente.');
     console.warn('app_inicio', e);
   }
+  cargarRutasPlan();
+  cargarCompaneros();
+}
+
+// Rutas del plan de copamiento de la comuna, en los 3 escenarios (SQL 123)
+async function cargarRutasPlan() {
+  if (!navigator.onLine || !state.token) return;
+  try {
+    const r = await rpc('app_rutas_plan', { p_token: state.token });
+    await DB.put('kv', r || [], 'rutas_plan');
+    aplicarRutasPlan(r || []);
+    renderTurno();
+    if (state.mapa) dibujarMapa();
+  } catch (e) {
+    if (e.sesion) return cerrarSesion('Tu sesión venció. Ingresa nuevamente.');
+    console.warn('app_rutas_plan', e);
+  }
+}
+function normTxt(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+function aplicarRutasPlan(lista) {
+  const miInst = normTxt(state.usuario && state.usuario.institucion);
+  state.rutasPlan = lista.map(x => ({
+    id: 'plan:' + x.id, origen: 'plan', escenario: x.escenario,
+    nombre: x.descripcion || x.clave || x.tipo_recurso || 'Ruta del plan',
+    detalle: [x.clave, x.tipo_recurso].filter(Boolean).join(' · '),
+    institucion: x.institucion || 'Sin institución', color: x.color || '#2563EB',
+    propia: !!miInst && normTxt(x.institucion) === miInst,
+    geometry: typeof x.geometry === 'string' ? safeJson(x.geometry) : x.geometry
+  })).filter(r => r.geometry);
+  state.rutasPlan.forEach(r => { r.km = kmGeom(r.geometry); });
+  prepararRutaTurno();
+}
+function kmGeom(g) {
+  if (!g) return 0;
+  const geo = g.type === 'Feature' ? g.geometry : g;
+  const lineas = geo.type === 'LineString' ? [geo.coordinates] : geo.type === 'MultiLineString' ? geo.coordinates : [];
+  let m = 0;
+  lineas.forEach(l => { for (let i = 1; i < l.length; i++) m += distM({ lat: l[i - 1][1], lng: l[i - 1][0] }, { lat: l[i][1], lng: l[i][0] }); });
+  return m / 1000;
+}
+function todasRutas() { return state.rutasPlan.concat(state.rutas); }
+
+// Patrulleros con turno activo en la misma comuna (SQL 123)
+async function cargarCompaneros() {
+  if (!navigator.onLine || !state.token || document.visibilityState === 'hidden') return;
+  try {
+    state.companeros = (await rpc('app_companeros', { p_token: state.token })) || [];
+  } catch (e) {
+    if (e.sesion) return cerrarSesion('Tu sesión venció. Ingresa nuevamente.');
+    return;
+  }
+  renderCompaneros();
+  if (state.mapa) dibujarCompaneros();
+}
+function haceMin(iso) {
+  if (!iso) return 'sin señal';
+  const m = Math.round((Date.now() - new Date(iso)) / 60000);
+  return m < 1 ? 'ahora' : m < 60 ? 'hace ' + m + ' min' : 'hace ' + Math.floor(m / 60) + ' h';
+}
+function renderCompaneros() {
+  const otros = state.companeros.filter(c => !c.yo);
+  const card = $('card-companeros');
+  card.classList.toggle('hidden', !otros.length);
+  if (!otros.length) return;
+  card.innerHTML = '<h4>👥 Patrullando en ' + esc(state.usuario.comuna || 'tu comuna') + ' (' + otros.length + ')</h4>' +
+    otros.map(c => `<div class="comp"><i>🚓</i><div><b>${esc(c.nombre || 'Patrullero')}</b><small>${esc([c.institucion, c.ruta_nombre || 'Patrullaje libre'].filter(Boolean).join(' · '))}</small></div><small>${haceMin(c.visto)}</small></div>`).join('');
 }
 
 function aplicarInicio(r, desdeCache) {
   state.usuario = Object.assign({}, state.usuario, r.usuario || {});
   state.tipos = r.tipos || [];
-  state.rutas = (r.rutas || []).map(x => Object.assign({}, x, { geometry: typeof x.geometry === 'string' ? safeJson(x.geometry) : x.geometry }));
+  state.rutas = (r.rutas || []).map(x => Object.assign({}, x, {
+    id: String(x.id), origen: 'sigei', nombre: x.nombre_ruta || x.alias || 'Ruta SIGEI', propia: true,
+    detalle: [x.tipo_movil, x.sector].filter(Boolean).join(' · '), institucion: 'Ruta SIGEI',
+    geometry: typeof x.geometry === 'string' ? safeJson(x.geometry) : x.geometry
+  }));
+  state.rutas.forEach(r => { r.km = Number(r.km) || kmGeom(r.geometry); });
   // Turno activo del servidor (otro teléfono / reinstalación) si aquí no hay uno local
   if (!desdeCache && r.turno && !state.turno) {
     state.turno = { id: r.turno.id, inicio: r.turno.inicio, ruta_id: r.turno.ruta_id, ruta_nombre: r.turno.ruta_nombre, km: Number(r.turno.km) || 0, puntos: r.turno.puntos || 0 };
@@ -464,8 +628,114 @@ function detenerGps() {
   state.watchId = null;
 }
 function enErrorGps(e) {
-  if (e.code === 1) pintarGps('mal', 'Ubicación bloqueada', 'Permite el acceso a la ubicación en el navegador');
-  else pintarGps('', 'Sin señal GPS', 'Buscando… sal a un lugar despejado');
+  if (e.code === 1) {
+    pintarGps('mal', 'Ubicación bloqueada', 'Toca aquí para ver cómo activarla');
+    detenerGps();
+  } else pintarGps('', 'Sin señal GPS', 'Buscando… sal a un lugar despejado');
+}
+
+// ── Permiso de ubicación: se pide al entrar; si está bloqueado se explica cómo activarlo en ese teléfono/navegador
+async function estadoPermisoGps() {
+  try { if (navigator.permissions && navigator.permissions.query) return (await navigator.permissions.query({ name: 'geolocation' })).state; }
+  catch (e) { /* Safari antiguo: no informa */ }
+  return 'prompt';
+}
+async function verificarPermisoGps() {
+  if (!('geolocation' in navigator)) { pintarGps('mal', 'GPS no disponible', 'Este navegador no entrega ubicación'); return; }
+  const st = await estadoPermisoGps();
+  if (st === 'granted') { iniciarGps(); return; }
+  if (state.sinGps) { pintarGps('mal', 'Ubicación desactivada', 'Toca aquí para activarla'); return; }
+  mostrarPermisos(st === 'denied');
+}
+function plataforma() {
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return {
+    ios, android: /Android/.test(ua),
+    embebido: /FBAN|FBAV|Instagram|WhatsApp|Line\/|; wv\)/.test(ua),
+    navegador: /CriOS/.test(ua) ? 'Chrome' : /FxiOS|Firefox/.test(ua) ? 'Firefox' : /EdgiOS|EdgA|Edg\//.test(ua) ? 'Edge' : /SamsungBrowser/.test(ua) ? 'Samsung Internet' : ios ? 'Safari' : 'Chrome',
+    instalada: window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true
+  };
+}
+function pasosPermiso() {
+  const p = plataforma();
+  if (p.embebido) return '<b>Estás dentro de otra app (WhatsApp, Instagram…).</b> Esa ventana no permite usar el GPS.<ol><li>Toca el menú <b>⋯</b> de arriba.</li><li>Elige <b>Abrir en ' + (p.ios ? 'Safari' : 'Chrome') + '</b>.</li></ol>';
+  if (p.ios) {
+    const app = p.navegador === 'Safari' ? 'Sitios web de Safari' : p.navegador;
+    return '<b>En tu iPhone:</b><ol>' +
+      '<li>Abre <b>Ajustes › Privacidad y seguridad › Localización</b> y actívala.</li>' +
+      '<li>En esa lista entra a <b>' + app + '</b>, elige <b>«Al usar la app»</b> y activa <b>Ubicación exacta</b>.</li>' +
+      (p.navegador === 'Safari' ? '<li>Vuelve aquí. Si sigue bloqueada: en Safari toca <b>aA</b> (junto a la dirección) › <b>Configuración del sitio web › Ubicación › Permitir</b>.</li>' : '') +
+      '<li>Toca <b>Reintentar</b>.</li></ol>';
+  }
+  if (p.android) {
+    return '<b>En tu Android:</b><ol>' +
+      '<li>Activa la <b>Ubicación</b> del teléfono (desliza el panel de arriba y toca 📍 Ubicación).</li>' +
+      (p.instalada
+        ? '<li>Mantén presionado el ícono <b>Patrullaje</b> › <b>Información de la app › Permisos › Ubicación › Permitir</b> (y «Usar ubicación precisa»).</li>'
+        : '<li>Toca el <b>🔒</b> o <b>ⓘ</b> junto a la dirección › <b>Permisos › Ubicación › Permitir</b>.</li>') +
+      '<li>Si no aparece: <b>Ajustes › Apps › ' + p.navegador + ' › Permisos › Ubicación › Permitir solo con la app en uso</b>.</li>' +
+      '<li>Toca <b>Reintentar</b>.</li></ol>';
+  }
+  return '<ol><li>Haz clic en el <b>🔒</b> junto a la dirección.</li><li>En <b>Ubicación</b> elige <b>Permitir</b>.</li><li>Toca <b>Reintentar</b>.</li></ol>';
+}
+function mostrarPermisos(bloqueado) {
+  $('s-app').classList.add('hidden');
+  $('s-permisos').classList.remove('hidden');
+  $('pm-err').textContent = '';
+  $('pm-pasos').innerHTML = pasosPermiso();
+  $('pm-pasos').classList.toggle('hidden', !bloqueado && !plataforma().embebido);
+  $('pm-btn').textContent = bloqueado ? '🔄 Ya lo activé, reintentar' : '📍 Permitir ubicación';
+  if (bloqueado) $('pm-err').textContent = 'El permiso de ubicación está bloqueado. Sigue estos pasos:';
+}
+function ocultarPermisos() {
+  $('s-permisos').classList.add('hidden');
+  $('s-app').classList.remove('hidden');
+}
+function pedirPermisoGps() {
+  const btn = $('pm-btn');
+  btn.disabled = true; btn.textContent = 'Esperando permiso…';
+  navigator.geolocation.getCurrentPosition(p => {
+    btn.disabled = false;
+    state.sinGps = false;
+    try { sessionStorage.removeItem('sin_gps'); } catch (e) {}
+    ocultarPermisos(); iniciarGps(); enPosicion(p);
+    toast('✅ Ubicación activada');
+  }, e => {
+    btn.disabled = false;
+    if (e.code === 1) { mostrarPermisos(true); return; }
+    // Permiso concedido pero sin señal todavía: se sigue buscando en segundo plano
+    ocultarPermisos(); iniciarGps();
+  }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+}
+// Exige GPS antes de patrullar o reportar
+function exigirGps() {
+  if (state.pos) return true;
+  if (state.watchId == null) { mostrarPermisos(false); return false; }
+  toast('Esperando señal GPS… espera unos segundos al aire libre.');
+  return false;
+}
+
+// ── Instalar como app (Android: aviso del navegador; iPhone: instrucciones de «Agregar a inicio»)
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); state.instalarEvt = e; renderInstalar(); });
+window.addEventListener('appinstalled', () => { state.instalarEvt = null; renderInstalar(); toast('✅ App instalada en tu pantalla de inicio'); });
+function renderInstalar() {
+  const card = $('card-instalar'), p = plataforma();
+  let cerrado = 0; try { cerrado = Number(localStorage.getItem('instalar_cerrado') || 0); } catch (e) {}
+  const mostrar = !p.instalada && Date.now() - cerrado > 3 * 864e5 && (state.instalarEvt || p.ios || p.android);
+  card.classList.toggle('hidden', !mostrar);
+  if (!mostrar) return;
+  const como = state.instalarEvt ? 'Queda en tu pantalla de inicio y se abre a pantalla completa.'
+    : p.ios ? (p.navegador === 'Safari' ? 'Toca <b>Compartir</b> (□↑) abajo y luego <b>«Agregar a inicio»</b>.' : 'Toca <b>Compartir</b> (□↑) y luego <b>«Agregar a inicio»</b>. Si no aparece, ábrela en Safari.')
+    : 'Toca el menú <b>⋮</b> del navegador › <b>«Instalar aplicación»</b> o <b>«Agregar a la pantalla principal»</b>.';
+  card.innerHTML = `<div class="instalar"><img src="icon-192.png" alt=""><div><span class="t">Instala la app Patrullaje</span>${como}</div>
+    ${state.instalarEvt ? '<button class="btn-mini" id="btn-instalar">📲 Instalar</button>' : ''}<button class="btn-mini" id="btn-instalar-x" style="background:#F1F5F9;color:var(--muted)">✕</button></div>`;
+  if (state.instalarEvt) $('btn-instalar').addEventListener('click', async () => {
+    state.instalarEvt.prompt();
+    try { await state.instalarEvt.userChoice; } catch (e) {}
+    state.instalarEvt = null; renderInstalar();
+  });
+  $('btn-instalar-x').addEventListener('click', () => { try { localStorage.setItem('instalar_cerrado', String(Date.now())); } catch (e) {} renderInstalar(); });
 }
 function pintarGps(clase, tit, det) {
   $('gps-ico').className = 'gps-ico ' + clase;
@@ -532,7 +802,7 @@ function restaurarTurnoLocal(l) {
 }
 function activarSeguimiento() { pedirWakeLock(); }
 
-function rutaDelTurno() { return state.turno && state.turno.ruta_id ? state.rutas.find(r => String(r.id) === String(state.turno.ruta_id)) || null : null; }
+function rutaDelTurno() { return state.turno && state.turno.ruta_id ? todasRutas().find(r => String(r.id) === String(state.turno.ruta_id)) || null : null; }
 
 // Vértices de la ruta del turno (para el % recorrido)
 function prepararRutaTurno() {
@@ -558,27 +828,48 @@ function marcarCobertura(p) {
 }
 function coberturaPct() { return state.rutaVertices.length ? Math.round(state.cubiertos.size * 100 / state.rutaVertices.length) : null; }
 
+function opcionRuta(r) {
+  const esc_ = r.escenario ? `<span class="rg-esc esc-${esc(r.escenario)}">${esc(ESCENARIOS[r.escenario] || r.escenario)}</span>` : '';
+  return `<button class="ruta-op" data-id="${esc(r.id)}"><span class="ruta-color" style="background:${esc(r.color || '#64748B')}"></span><div><b>${esc(r.nombre)}</b>${esc_}<small>${esc([r.origen === 'plan' && !r.propia ? r.institucion : '', r.detalle, r.km ? r.km.toFixed(1) + ' km' : ''].filter(Boolean).join(' · '))}</small></div></button>`;
+}
 function elegirRutaEIniciar() {
-  let sel = '';
-  const ops = state.rutas.map(r => `<button class="ruta-op" data-id="${esc(r.id)}"><span style="font-size:22px">🛣️</span><div><b>${esc(r.nombre_ruta || r.alias || 'Ruta')}</b><small>${esc([r.tipo_movil, r.km ? Number(r.km).toFixed(1) + ' km' : '', r.sector].filter(Boolean).join(' · '))}</small></div></button>`).join('');
+  if (!exigirGps()) return;
+  let sel = '', esc0 = 'Verde', todas = false;
   const h = abrirHoja(`<h3>▶ Iniciar patrullaje</h3>
+    <span class="lbl">Escenario del plan</span>
+    <div class="seg" id="ri-esc"><button data-esc="Verde" class="sel">Normal</button><button data-esc="Amarilla">Amarilla</button><button data-esc="Roja">Roja</button></div>
     <span class="lbl">¿Qué ruta vas a recorrer?</span>
-    ${ops || '<div class="ubic">No hay rutas cargadas para tu comuna.</div>'}
+    <div id="ri-lista"></div>
+    <button class="btn-mini" id="ri-todas" style="width:100%;margin-bottom:10px">Ver rutas de todas las instituciones</button>
     <button class="ruta-op sel" data-id=""><span style="font-size:22px">🧭</span><div><b>Patrullaje libre</b><small>Sin una ruta específica</small></div></button>
     <div class="hoja-acc"><button class="btn btn-sec" data-cerrar>Cancelar</button><button class="btn btn-ok" id="btn-ini-ok">Iniciar</button></div>`);
-  h.querySelectorAll('.ruta-op').forEach(b => b.addEventListener('click', () => {
+  const enlazar = () => h.querySelectorAll('.ruta-op').forEach(b => b.onclick = () => {
     h.querySelectorAll('.ruta-op').forEach(x => x.classList.remove('sel'));
     b.classList.add('sel'); sel = b.dataset.id;
+  });
+  const pintar = () => {
+    const plan = state.rutasPlan.filter(r => r.escenario === esc0 && (todas || r.propia));
+    const lista = plan.concat(esc0 === 'Verde' ? state.rutas : []);
+    h.querySelector('#ri-lista').innerHTML = lista.map(opcionRuta).join('') ||
+      `<div class="ubic">No hay rutas ${todas ? '' : 'de tu institución '}en ${esc(ESCENARIOS[esc0])} para tu comuna.</div>`;
+    h.querySelector('#ri-todas').textContent = todas ? 'Ver solo las de mi institución' : 'Ver rutas de todas las instituciones';
+    enlazar();
+  };
+  h.querySelectorAll('#ri-esc button').forEach(b => b.addEventListener('click', () => {
+    h.querySelectorAll('#ri-esc button').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); esc0 = b.dataset.esc; pintar();
   }));
+  h.querySelector('#ri-todas').addEventListener('click', () => { todas = !todas; pintar(); });
+  pintar();
   h.querySelector('#btn-ini-ok').addEventListener('click', async () => {
-    const ruta = state.rutas.find(r => String(r.id) === String(sel)) || null;
+    const ruta = todasRutas().find(r => String(r.id) === String(sel)) || null;
     cerrarHoja();
     await iniciarTurno(ruta);
   });
 }
 
 async function iniciarTurno(ruta) {
-  const t = { id: uuid(), inicio: new Date().toISOString(), ruta_id: ruta ? String(ruta.id) : null, ruta_nombre: ruta ? (ruta.nombre_ruta || ruta.alias || 'Ruta') : null, km: 0, puntos: 0 };
+  const t = { id: uuid(), inicio: new Date().toISOString(), ruta_id: ruta ? String(ruta.id) : null,
+              ruta_nombre: ruta ? ruta.nombre + (ruta.escenario ? ' (' + (ESCENARIOS[ruta.escenario] || ruta.escenario) + ')' : '') : null, km: 0, puntos: 0 };
   state.turno = t; state.rastro = []; state.ultimoPunto = null; state.cubiertos = new Set();
   prepararRutaTurno();
   await encolar({ tipo: 'turno_ini', turno: t });
@@ -661,7 +952,7 @@ function nuevoReporte(tipoId) {
   });
   h.querySelector('#r-ok').addEventListener('click', async () => {
     if (!r.tipo) { toast('Elige el tipo de acción'); return; }
-    if (!state.pos) { toast('Aún no hay ubicación GPS. Espera unos segundos.'); return; }
+    if (!state.pos) { cerrarHoja(); exigirGps(); return; }
     const btn = h.querySelector('#r-ok'); btn.disabled = true; btn.textContent = 'Guardando…';
     const rep = {
       id: uuid(), turno_id: state.turno ? state.turno.id : null, tipo_accion_id: r.tipo,
@@ -915,35 +1206,71 @@ function abrirMapa() {
     state.mapa = L.map('mapa', { zoomControl: false, attributionControl: true }).setView(state.pos ? [state.pos.lat, state.pos.lng] : [-38.74, -72.6], state.pos ? 15 : 9);
     state.capas.fondo = FONDOS.calles().addTo(state.mapa);
     state.capas.rutas = L.layerGroup().addTo(state.mapa);
+    state.capas.companeros = L.layerGroup().addTo(state.mapa);
     state.capas.reportes = L.layerGroup().addTo(state.mapa);
     state.capas.rastro = L.polyline([], { color: '#2563EB', weight: 4, opacity: .9 }).addTo(state.mapa);
-    dibujarMapa();
+    // Al patrullar, el mapa abre en el escenario de la ruta elegida
     const ruta = rutaDelTurno();
-    if (!state.pos && (ruta || state.rutas.length)) verRuta();
+    if (ruta && ruta.escenario) state.escMapa = ruta.escenario;
+    pintarFiltrosMapa();
+    dibujarMapa(); dibujarCompaneros();
+    if (!state.pos) setTimeout(verRuta, 120);
   }
   setTimeout(() => state.mapa.invalidateSize(), 60);
+  cargarCompaneros();
+}
+function pintarFiltrosMapa() {
+  document.querySelectorAll('#mf-esc button').forEach(b => b.classList.toggle('sel', b.dataset.esc === state.escMapa));
+  document.querySelectorAll('#mf-inst button').forEach(b => b.classList.toggle('sel', b.dataset.inst === state.instMapa));
+}
+// Rutas visibles: las del plan en el escenario elegido (de mi institución o de todas) + rutas SIGEI de la comuna
+function rutasVisibles() {
+  return state.rutasPlan.filter(r => r.escenario === state.escMapa && (state.instMapa === 'todas' || r.propia))
+    .concat(state.escMapa === 'Verde' ? state.rutas : []);
 }
 function dibujarMapa() {
   if (!state.mapa) return;
   state.capas.rutas.clearLayers();
   const activa = rutaDelTurno();
-  state.rutas.forEach(r => {
+  const visibles = rutasVisibles();
+  if (activa && !visibles.includes(activa)) visibles.push(activa);
+  // Primero las ajenas (abajo), luego las propias y al final la del turno (arriba)
+  visibles.sort((a, b) => (a === activa) - (b === activa) || (a.propia === b.propia ? 0 : a.propia ? 1 : -1)).forEach(r => {
     if (!r.geometry) return;
-    const esActiva = activa && String(activa.id) === String(r.id);
-    L.geoJSON(r.geometry, { style: { color: esActiva ? '#16A34A' : '#94A3B8', weight: esActiva ? 6 : 3, opacity: esActiva ? .95 : .6, dashArray: esActiva ? null : '6 6' } })
-      .bindPopup(`<b>🛣️ ${esc(r.nombre_ruta || r.alias || 'Ruta')}</b><br>${esc([r.tipo_movil, r.km ? Number(r.km).toFixed(1) + ' km' : ''].filter(Boolean).join(' · '))}`)
+    const esActiva = activa && r === activa;
+    const estilo = esActiva ? { color: '#16A34A', weight: 7, opacity: .95 }
+      : r.origen === 'sigei' ? { color: '#64748B', weight: 3, opacity: .7, dashArray: '6 6' }
+      : r.propia ? { color: r.color, weight: 5, opacity: .9 } : { color: r.color, weight: 3, opacity: .55, dashArray: '2 6' };
+    L.geoJSON(r.geometry, { style: estilo })
+      .bindPopup(`<b>🛣️ ${esc(r.nombre)}</b>${r.escenario ? '<br>' + esc(ESCENARIOS[r.escenario] || r.escenario) : ''}<br><small>${esc([r.institucion, r.detalle, r.km ? r.km.toFixed(1) + ' km' : ''].filter(Boolean).join(' · '))}</small>`)
       .addTo(state.capas.rutas);
   });
   actualizarRastroMapa(); actualizarMapaPosicion(); renderReportes();
-  const cob = coberturaPct();
-  $('map-info').innerHTML = state.turno
-    ? '🚓 ' + esc(state.turno.ruta_nombre || 'Patrullaje libre') + ' · ' + (state.turno.km || 0).toFixed(1) + ' km' + (cob != null ? ' · ' + cob + '% de la ruta' : '')
-    : state.rutas.length ? '🛣️ ' + state.rutas.length + ' ruta(s) de tu comuna' : 'Sin rutas cargadas para tu comuna';
+  if (state.turno) dibujarInfoMapa();
+  else {
+    const n = visibles.length, otros = state.companeros.filter(c => !c.yo).length;
+    $('map-info').innerHTML = (n ? '🛣️ ' + n + ' ruta(s) · ' + esc(ESCENARIOS[state.escMapa]) + (state.instMapa === 'mia' ? ' · mi institución' : ' · todas') : 'Sin rutas en ' + esc(ESCENARIOS[state.escMapa]) + (state.instMapa === 'mia' ? ' para tu institución' : ''))
+      + (otros ? ' · 👥 ' + otros + ' patrullando' : '');
+  }
+}
+// Compañeros en turno: rastro reciente + última posición con su nombre
+function dibujarCompaneros() {
+  if (!state.mapa) return;
+  state.capas.companeros.clearLayers();
+  const colores = ['#7C3AED', '#EA580C', '#0891B2', '#DB2777', '#65A30D', '#CA8A04'];
+  state.companeros.filter(c => !c.yo && c.lat != null).forEach((c, i) => {
+    const col = colores[i % colores.length];
+    if (c.rastro && c.rastro.length > 1) L.polyline(c.rastro, { color: col, weight: 3, opacity: .7 }).addTo(state.capas.companeros);
+    L.marker([c.lat, c.lng], { icon: L.divIcon({ className: '', html: '<div style="font-size:24px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))">🚓</div>', iconSize: [26, 26], iconAnchor: [13, 13] }) })
+      .bindTooltip(esc((c.nombre || 'Patrullero').split(' ')[0]), { permanent: true, direction: 'top', offset: [0, -12], className: 'comp-et' })
+      .bindPopup(`<b>🚓 ${esc(c.nombre || 'Patrullero')}</b><br>${esc(c.institucion || '')}<br>${esc(c.ruta_nombre || 'Patrullaje libre')}<br><small>Última señal ${haceMin(c.visto)}</small>`)
+      .addTo(state.capas.companeros);
+  });
 }
 function actualizarRastroMapa() { if (state.mapa) { state.capas.rastro.setLatLngs(state.rastro); if (state.turno) dibujarInfoMapa(); } }
 function dibujarInfoMapa() {
-  const cob = coberturaPct();
-  $('map-info').innerHTML = '🚓 ' + esc(state.turno.ruta_nombre || 'Patrullaje libre') + ' · ' + (state.turno.km || 0).toFixed(1) + ' km' + (cob != null ? ' · ' + cob + '% de la ruta' : '');
+  const cob = coberturaPct(), otros = state.companeros.filter(c => !c.yo).length;
+  $('map-info').innerHTML = '🚓 ' + esc(state.turno.ruta_nombre || 'Patrullaje libre') + ' · ' + (state.turno.km || 0).toFixed(1) + ' km' + (cob != null ? ' · ' + cob + '% de la ruta' : '') + (otros ? ' · 👥 ' + otros : '');
 }
 function actualizarMapaPosicion() {
   if (!state.mapa || !state.pos) return;
@@ -969,8 +1296,8 @@ function dibujarReportesMapa(todos) {
 function verRuta() {
   if (!state.mapa) return;
   const ruta = rutaDelTurno();
-  const capa = ruta && ruta.geometry ? L.geoJSON(ruta.geometry) : state.capas.rutas;
-  try { const b = capa.getBounds(); if (b.isValid()) state.mapa.fitBounds(b, { padding: [30, 30] }); else toast('Sin ruta para mostrar'); } catch (e) { toast('Sin ruta para mostrar'); }
+  const capa = ruta && ruta.geometry ? L.geoJSON(ruta.geometry) : L.featureGroup(state.capas.rutas.getLayers());
+  try { const b = capa.getBounds(); if (b.isValid()) state.mapa.fitBounds(b, { padding: [30, 30] }); else toast('Sin rutas para mostrar en este escenario'); } catch (e) { toast('Sin rutas para mostrar en este escenario'); }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1007,9 +1334,28 @@ $('btn-capa').addEventListener('click', () => {
   state.capas.fondo.bringToBack();
   $('btn-capa').textContent = state.fondoSat ? '🗺️' : '🛰️';
 });
+// Filtros del mapa: escenario e institución
+document.querySelectorAll('#mf-esc button').forEach(b => b.addEventListener('click', () => { state.escMapa = b.dataset.esc; pintarFiltrosMapa(); dibujarMapa(); verRuta(); }));
+document.querySelectorAll('#mf-inst button').forEach(b => b.addEventListener('click', () => { state.instMapa = b.dataset.inst; pintarFiltrosMapa(); dibujarMapa(); }));
+// Permisos de ubicación
+$('pm-btn').addEventListener('click', pedirPermisoGps);
+$('pm-saltar').addEventListener('click', () => {
+  state.sinGps = true;
+  try { sessionStorage.setItem('sin_gps', '1'); } catch (e) {}
+  ocultarPermisos();
+  pintarGps('mal', 'Ubicación desactivada', 'Toca aquí para activarla (necesaria para patrullar)');
+});
+$('gps-ico').parentElement.addEventListener('click', async () => {
+  if (state.pos) return;
+  const st = await estadoPermisoGps();
+  if (st === 'granted') { detenerGps(); iniciarGps(); toast('Buscando señal GPS…'); }
+  else mostrarPermisos(st === 'denied');
+});
 setInterval(() => sincronizar(), SYNC_CADA_MS);
+setInterval(() => cargarCompaneros(), COMPANEROS_CADA_MS);
 
 (async function arrancar() {
+  try { state.sinGps = sessionStorage.getItem('sin_gps') === '1'; } catch (e) {}
   // Limpia lo que dejó la versión 1 (sesión con datos del usuario en localStorage)
   ['app_sesion', 'app_rutas_cache', 'app_cola_reportes', 'app_cola_gps', 'app_reportes_locales'].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
   try {

@@ -1,16 +1,16 @@
 // Service worker de la App de Patrullaje v2: permite abrir la app sin señal.
 // Solo atiende la app y sus librerías; no toca el sistema web ni las llamadas a Supabase.
-const VERSION = 'patrullero-v2.0.0';
+const VERSION = 'patrullero-v2.1.0';
 const CDN = [
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js'
 ];
-const PROPIOS = /\/(app|app\.html|manifest\.json|icon-192\.png|icon-512\.png)$/;
+const PROPIOS = /\/(app\.html|manifest\.json|icon-192\.png|icon-512\.png|icon-maskable-512\.png|apple-touch-icon\.png)$/;
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => Promise.all(
-    CDN.concat(['manifest.json', 'icon-192.png', 'icon-512.png']).map(u => c.add(u).catch(() => null))
+    CDN.concat(['app.html', 'manifest.json', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png']).map(u => c.add(u).catch(() => null))
   )).then(() => self.skipWaiting()));
 });
 
