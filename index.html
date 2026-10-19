@@ -566,6 +566,14 @@ body{
 .editor-mode-banner .popup-btn.active{background:var(--cobalt);border-color:var(--cobalt);}
 .editor-mode-banner .popup-btn:hover{background:rgba(255,255,255,0.22);color:#fff;}
 .editor-mode-banner.show{display:flex;}
+/* Barra compacta (19-10-2026): ayuda en una línea + botones chicos */
+.editor-mode-banner{flex-direction:column;align-items:stretch;gap:5px;padding:6px 10px 7px;border-radius:14px;bottom:12px;max-width:min(94vw,860px);}
+.editor-mode-banner .eb-fila{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;cursor:pointer;min-width:0;padding:0 2px;}
+.editor-mode-banner #editor-banner-texto{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.editor-mode-banner .eb-fila.expandida #editor-banner-texto{white-space:normal;}
+.editor-mode-banner .eb-mas{opacity:.7;font-size:12px;flex-shrink:0;}
+.editor-mode-banner .eb-botones{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;}
+.editor-mode-banner .popup-btn{padding:4px 9px;font-size:11.5px;border-radius:8px;line-height:1.3;}
 .editor-mode-banner .pulse{width:7px;height:7px;border-radius:50%;background:var(--amber);animation:pulse 1.4s infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
 
@@ -1024,6 +1032,7 @@ body.modo-dashboard #editar-forma-banner{display:none !important;}
 .vista-subitem b{display:block;font-size:12.5px;font-weight:700;}
 .vista-subitem small{display:block;font-size:10.5px;color:var(--text-tertiary);font-weight:500;margin-top:1px;}
 .vista-subitem.active b{color:var(--cobalt);}
+.vista-subitem.active{box-shadow:inset 3px 0 0 var(--cobalt);}
 .vista-subsep{height:1px;background:var(--border);margin:5px 6px;}
 body.tema-oscuro .vista-submenu{background:#0F172A;border-color:#1E293B;}
 body.tema-oscuro .vista-subitem{color:#E2E8F0;}
@@ -1566,6 +1575,9 @@ body.tema-oscuro .sg-rec div{background:#0F172A;}
 .sg-vistas{display:inline-flex;background:var(--bg-light);border:1px solid var(--border);border-radius:11px;padding:3px;gap:2px;}
 .sg-vistas button{border:0;background:none;padding:6px 12px;border-radius:8px;font:inherit;font-size:12.5px;font-weight:700;color:var(--text-secondary);cursor:pointer;}
 .sg-vistas button.on{background:var(--white);color:var(--text-primary);box-shadow:0 1px 4px rgba(15,23,42,.12);}
+/* 19-10-2026: la pestaña activa se destaca en azul (antes blanca sobre gris, casi no se distinguía) */
+.sg-vistas button.on{background:var(--cobalt);color:#fff;box-shadow:0 2px 6px color-mix(in srgb,var(--cobalt) 40%,transparent);}
+.sg-vistas button:not(.on):hover{background:color-mix(in srgb,var(--cobalt) 10%,transparent);color:var(--text-primary);}
 .sg-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px;}
 .sg-chips .tit{font-size:11px;font-weight:800;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.04em;margin-right:2px;}
 .sg-chip{border:1px solid var(--border);background:var(--white);border-radius:999px;padding:5px 11px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;color:var(--text-primary);}
@@ -1636,6 +1648,28 @@ body.modo-dashboard #btn-volver-sg{display:none !important;}   /* solo se ve sob
   background:color-mix(in srgb,#0F766E 6%,var(--white));border:1px solid color-mix(in srgb,#0F766E 22%,var(--border));}
 .sg-alcance .txt{font-size:12.5px;color:var(--text-secondary);}
 .sg-alcance .mia{color:#0F766E;font-weight:800;} .sg-alcance .otra{color:#475569;font-weight:700;} .sg-alcance .sin{color:#B45309;font-weight:800;}
+/* 19-10-2026: tarjetas por alerta (sin promedio) */
+@media (min-width: 901px){ .sg-com{grid-template-columns:350px minmax(330px,1.7fr) minmax(220px,1fr);} }
+/* Nombre de la comuna + torta de implementación en la misma columna, sin espacio vacío entre ambos */
+.sg-nom-impl{display:flex;align-items:center;justify-content:flex-start;gap:10px;min-width:0;}
+.sg-nom-impl .nom{min-width:0;flex:0 0 150px;}
+.sg-nom-impl .sg-impl{max-width:180px;}
+.sg-nom-impl .nom b{overflow-wrap:anywhere;}
+.sg-nom-impl .sg-impl{flex-shrink:0;padding-left:10px;border-left:1px dashed var(--border);}
+.sg-nom-impl .im-pop{right:auto;left:calc(100% + 8px);}
+.sg-impl{display:flex;align-items:center;gap:7px;}
+.sg-lista .sg-com:nth-last-child(-n+2) .im-pop{top:auto;bottom:-10px;}
+.sg-impl > small{font-size:10px;line-height:1.25;color:var(--text-tertiary);font-weight:600;}
+.sg-impl-na{width:64px;height:64px;border-radius:50%;border:6px solid #F1F5F9;display:flex;align-items:center;justify-content:center;color:#CBD5E1;font-weight:900;flex-shrink:0;}
+.sg-alertas{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.sg-al{border-radius:10px;padding:6px 10px 7px;background:color-mix(in srgb,var(--a) 7%,var(--white));border:1px solid color-mix(in srgb,var(--a) 28%,transparent);}
+.sg-al span{display:block;font-size:10.5px;font-weight:800;color:var(--a);}
+.sg-al b{display:block;font-size:20px;font-weight:900;color:var(--a);font-variant-numeric:tabular-nums;line-height:1.15;}
+.sg-al i,.sg-res-al i{display:block;height:6px;border-radius:4px;background:#E2E8F0;overflow:hidden;margin-top:3px;}
+.sg-al i em{display:block;height:100%;background:var(--a);border-radius:4px;}
+.sg-res-al i em{display:block;height:100%;background:var(--c);border-radius:4px;}
+.sg-res-al{min-width:170px;}
+.sg-chips-prio{background:color-mix(in srgb,var(--cobalt) 5%,var(--white));border:1px solid color-mix(in srgb,var(--cobalt) 20%,transparent);border-radius:12px;padding:7px 10px;}
 .sg-com.ajena{opacity:.62;background:color-mix(in srgb,#94A3B8 6%,var(--white));}
 .sg-com.ajena:hover{opacity:.9;}
 .sg-etq.otra{background:#E2E8F0;color:#334155;border-color:#CBD5E1;}
@@ -1763,6 +1797,75 @@ body.modo-dashboard #btn-volver-sg{display:none !important;}   /* solo se ve sob
 .rg-chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:700;white-space:nowrap;}
 .rg-sel{border:1px solid var(--border);border-radius:7px;padding:3px 5px;font:inherit;font-size:11.5px;background:var(--white);color:var(--text-primary);}
 .rg-obs{white-space:pre-wrap;font-size:11px;color:var(--text-secondary);max-width:320px;}
+/* 🧩 Administración › Módulos por perfil */
+.mp-leyenda{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;margin:0 0 10px;color:var(--text-secondary);}
+.mp-leyenda > span:not(:last-child){padding:3px 9px;border-radius:99px;font-weight:700;}
+.mp-tabla th{text-align:center;white-space:nowrap;}
+.mp-tabla th:first-child{text-align:left;}
+.mp-tabla th small{display:block;font-weight:600;color:var(--text-tertiary);font-size:10px;}
+.mp-tabla td{text-align:center;font-size:12px;}
+.mp-tabla td:first-child{text-align:left;}
+.mp-tabla td small{display:block;font-size:10px;opacity:.8;}
+.mp-tabla tr.mp-grupo td{background:var(--bg-light);font-weight:800;text-align:left;font-size:11.5px;color:var(--text-secondary);}
+.mp-ed{background:#DCFCE7;color:#166534;font-weight:700;}
+.mp-ver{background:#DBEAFE;color:#1E40AF;font-weight:700;}
+.mp-no{color:#94A3B8;}
+
+/* 🪜 Implementación por comuna (SQL 124) */
+#implementacion-panel{position:absolute;top:60px;left:0;right:0;bottom:0;z-index:350;background:var(--bg-light);display:none;flex-direction:column;color:var(--text-primary);}
+#implementacion-panel.show{display:flex;}
+.im-global{display:flex;align-items:center;gap:16px;background:var(--white);border:1px solid var(--border);border-radius:14px;padding:12px 16px;}
+.im-global .pct{font-size:34px;font-weight:900;color:var(--c);font-variant-numeric:tabular-nums;min-width:90px;}
+.im-global .barra{flex:1;}
+.im-barra{display:block;height:12px;border-radius:7px;background:#E2E8F0;overflow:hidden;}
+.im-barra em{display:block;height:100%;border-radius:7px;background:var(--c);transition:width .3s;}
+.im-barra.chica{height:7px;}
+.im-global small{display:block;font-size:11.5px;color:var(--text-secondary);margin-top:5px;}
+.im-areas{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;}
+.im-area{background:var(--white);border:1px solid var(--border);border-left:4px solid var(--c);border-radius:11px;padding:8px 11px;cursor:pointer;font-size:11.5px;display:flex;align-items:center;gap:10px;}
+.im-area small{display:block;}
+.im-torta{flex-shrink:0;}
+.im-av-torta{position:relative;display:inline-flex;align-items:center;gap:6px;cursor:help;outline:none;}
+.im-av-torta > small{color:var(--text-tertiary);font-size:10.5px;white-space:nowrap;}
+.im-pop{display:none;position:absolute;right:calc(100% + 8px);top:-10px;z-index:20;min-width:270px;background:#0F172A;color:#fff;border-radius:10px;padding:9px 11px;box-shadow:0 8px 24px rgba(0,0,0,.3);font-size:11.5px;line-height:1.55;text-align:left;}
+.im-pop b{display:block;margin-bottom:4px;font-size:12px;}
+.im-pop .pend{opacity:.6;}
+.im-pop small{opacity:.7;font-size:10px;}
+.im-av-torta:hover .im-pop,.im-av-torta:focus .im-pop{display:block;}
+.im-tabla tbody tr:nth-last-child(-n+3) .im-pop{top:auto;bottom:-10px;}
+.im-etapas-res{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:4px 16px;}
+.im-etapas-res div{display:grid;grid-template-columns:minmax(0,1fr) 90px 36px;align-items:center;gap:8px;font-size:11.5px;}
+.im-etapas-res div span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.im-etapas-res b{text-align:right;font-variant-numeric:tabular-nums;}
+.im-area.on{box-shadow:0 0 0 2px var(--cobalt);}
+.im-area b{display:block;font-size:12.5px;}
+.im-area .fila{display:flex;align-items:center;gap:8px;margin-top:4px;}
+.im-area .fila .im-barra{flex:1;}
+.im-area .fila strong{color:var(--c);font-variant-numeric:tabular-nums;}
+.im-tabla{border-collapse:separate;border-spacing:0;font-size:12px;width:100%;background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.im-tabla th{position:sticky;top:0;z-index:2;background:var(--bg-light);padding:7px 6px;font-size:10.5px;color:var(--text-secondary);border-bottom:1px solid var(--border);text-align:center;vertical-align:bottom;}
+.im-tabla th.izq,.im-tabla td.izq{text-align:left;}
+.im-tabla th .ico{display:block;font-size:16px;}
+.im-tabla td{padding:5px 6px;border-bottom:1px solid var(--border);text-align:center;vertical-align:middle;}
+.im-tabla tr:hover td{background:color-mix(in srgb,var(--cobalt) 4%,transparent);}
+.im-tabla tfoot td{background:var(--bg-light);font-weight:800;font-size:11px;}
+.im-celda{width:34px;height:30px;border-radius:8px;border:1.5px dashed #CBD5E1;background:transparent;color:#94A3B8;font-size:14px;font-weight:900;cursor:default;display:inline-flex;align-items:center;justify-content:center;flex-direction:column;line-height:1;}
+.im-celda.ok{background:#DCFCE7;border:1.5px solid #16A34A;color:#15803D;}
+.im-celda small{font-size:8.5px;font-weight:700;margin-top:1px;}
+.im-celda.editable{cursor:pointer;}
+.im-celda.editable:hover{border-color:var(--cobalt);background:color-mix(in srgb,var(--cobalt) 8%,transparent);}
+.im-celda.ok.editable:hover{background:#BBF7D0;}
+.im-av{display:flex;align-items:center;gap:7px;min-width:120px;}
+.im-av .im-barra{flex:1;}
+.im-av b{font-variant-numeric:tabular-nums;min-width:36px;text-align:right;color:var(--c);}
+
+/* 📱 Reportes de la App de Patrullaje (SQL 122) */
+#appreportes-panel{position:absolute;top:60px;left:0;right:0;bottom:0;z-index:350;background:var(--bg-light);display:none;flex-direction:column;color:var(--text-primary);}
+#appreportes-panel.show{display:flex;}
+.ar-cuerpo{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:10px;}
+#ar-mapa{min-height:300px;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+#ar-tabla td{white-space:normal;}
+@media (max-width:900px){.ar-cuerpo{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 300px;}}
 .gr-cuerpo{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:12px 16px 14px;}
 .gr-aviso{padding:9px 14px;border-radius:10px;background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;font-size:12.5px;}
 .gr-kpis{display:flex;gap:8px;flex-wrap:wrap;}
@@ -2349,7 +2452,7 @@ body.tema-oscuro .pl-tag.warn,body.tema-oscuro .pl-aviso.warn{background:#3B2A0A
 @media (max-width: 600px) {
   /* --- Barra superior: hamburguesa + compacta --- */
   #topbar{ height:56px; padding:0 8px; gap:8px; }
-  #map, #dashboard, #patrullajes-panel, #planificador-panel, #prioridad-panel, #tablero-panel, #gestion-panel, #riesgo-panel, #seguimiento-panel, #bosques-panel{ top:56px; }
+  #map, #dashboard, #patrullajes-panel, #planificador-panel, #prioridad-panel, #tablero-panel, #gestion-panel, #riesgo-panel, #appreportes-panel, #implementacion-panel, #seguimiento-panel, #bosques-panel{ top:56px; }
   #admin-panel{ top:56px; }
   #simbologia-flotante{ top:auto; }
   #btn-hamburguesa{
@@ -2583,6 +2686,11 @@ body.tema-oscuro .planificar-item{ border-color:#334155; }
   cursor:pointer;font-size:10px;font-weight:600;padding:4px 6px;border-radius:6px;white-space:nowrap;
 }
 #resumen-alertas .ra-botones button:hover{ background:rgba(255,255,255,0.18); }
+/* 🚦 Semáforos de propagación en el mapa: se pueden ocultar (19-10-2026) */
+body.sin-semaforos .sem-mapa{ display:none !important; }
+#resumen-alertas .ra-botones{ flex-wrap:wrap; }
+#resumen-alertas .ra-botones #btn-semaforos{ flex:0 0 auto; padding:4px 8px; font-size:12px; }
+#resumen-alertas .ra-botones #btn-semaforos:not(.active){ opacity:.45; filter:grayscale(1); }
 /* Fila del escenario encendido en la tabla de incendios: resaltada */
 .kpi-inc-fila{ border-radius:6px;padding:2px 3px;margin:2px -3px 0; }
 .kpi-inc-fila.activa{ background:rgba(255,255,255,0.10);box-shadow:inset 3px 0 0 var(--fila-color); }
@@ -2886,7 +2994,7 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
     <!-- REGLA DE MEDICIÓN: se muestra sola al dibujar o editar líneas y áreas.
          Va en el costado derecho, en la misma columna que la herramienta 📐,
          porque al pie del mapa quedaba tapada por la barra de modo dibujo. -->
-    <div id="regla-medicion" style="display:none;position:absolute;right:12px;top:124px;z-index:800;background:rgba(15,23,42,0.94);color:#fff;padding:10px 13px;border-radius:10px;font-size:12.5px;line-height:1.7;box-shadow:0 4px 16px rgba(0,0,0,0.4);pointer-events:none;max-width:210px;backdrop-filter:blur(3px);"></div>
+    <div id="regla-medicion" style="display:none;position:absolute;right:54px;top:116px;z-index:800;background:rgba(15,23,42,0.92);color:#fff;padding:6px 11px;border-radius:9px;font-size:12px;line-height:1.4;box-shadow:0 3px 12px rgba(0,0,0,0.35);pointer-events:none;white-space:nowrap;backdrop-filter:blur(3px);"></div>
 
     <!-- RESUMEN DINÁMICO DE RECURSOS POR ALERTA -->
     <div id="resumen-alertas" style="display:none;position:absolute;right:16px;bottom:16px;z-index:460;background:rgba(15,23,42,0.92);color:#fff;border-radius:11px;box-shadow:0 4px 16px rgba(0,0,0,0.35);backdrop-filter:blur(4px);font-size:11px;overflow:hidden;">
@@ -2899,6 +3007,7 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
       <div class="ra-botones">
         <button id="btn-kpi-incendios" title="Copamiento sobre la zona de ocurrencia de incendios">🔥 Incendios</button>
         <button id="btn-influencia" title="Mostrar las áreas de influencia de 500 m y el % de comuna copada">🎯 Influencia</button>
+        <button id="btn-semaforos" class="active" title="🚦 Semáforos de propagación: mostrar u ocultar sobre las rutas y áreas" aria-label="Semáforos de propagación">🚦</button>
       </div>
       <div id="resumen-alertas-cuerpo" style="padding:0 10px 9px;"></div>
       <div id="kpi-incendios-cuerpo" style="display:none;padding:0 10px 9px;border-top:1px solid rgba(255,255,255,0.12);"></div>
@@ -2906,14 +3015,12 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
 
     <!-- HERRAMIENTA REGLA (medición libre con el cursor) -->
     <button id="btn-regla" class="icon-btn" title="Regla: medir distancias y superficies" style="position:absolute;right:12px;top:116px;z-index:800;width:34px;height:34px;font-size:16px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.22);">📐</button>
-    <div id="regla-panel" style="display:none;position:absolute;right:12px;top:156px;z-index:800;background:rgba(15,23,42,0.94);color:#fff;padding:11px 13px;border-radius:10px;font-size:12.5px;line-height:1.6;box-shadow:0 4px 16px rgba(0,0,0,0.4);min-width:210px;backdrop-filter:blur(3px);">
-      <div style="font-weight:600;margin-bottom:5px;">📐 Regla</div>
-      <div id="regla-panel-datos" style="opacity:.92;">Haz clic en el mapa para empezar a medir.</div>
-      <div style="display:flex;gap:6px;margin-top:9px;">
-        <button id="btn-regla-cerrar-area" style="flex:1;font-size:11px;padding:5px 6px;border-radius:6px;border:none;background:#334155;color:#fff;cursor:pointer;">Cerrar área</button>
-        <button id="btn-regla-limpiar" style="flex:1;font-size:11px;padding:5px 6px;border-radius:6px;border:none;background:#334155;color:#fff;cursor:pointer;">Limpiar</button>
-        <button id="btn-regla-salir" style="flex:1;font-size:11px;padding:5px 6px;border-radius:6px;border:none;background:#B91C1C;color:#fff;cursor:pointer;">Salir</button>
-      </div>
+    <!-- Regla compacta (19-10-2026): una fila junto al botón 📐 -->
+    <div id="regla-panel" style="display:none;position:absolute;right:54px;top:116px;z-index:800;background:rgba(15,23,42,0.92);color:#fff;padding:4px 5px 4px 10px;border-radius:9px;font-size:12px;line-height:1.3;box-shadow:0 3px 12px rgba(0,0,0,0.35);backdrop-filter:blur(3px);align-items:center;gap:6px;white-space:nowrap;">
+      <span id="regla-panel-datos">📐 Clic en el mapa para medir</span>
+      <button id="btn-regla-cerrar-area" title="Cerrar el área (une el último punto con el primero) y calcular la superficie" style="font-size:11px;padding:3px 7px;border-radius:6px;border:none;background:#334155;color:#fff;cursor:pointer;">⬠ Área</button>
+      <button id="btn-regla-limpiar" title="Borrar la medición" style="font-size:11px;padding:3px 7px;border-radius:6px;border:none;background:#334155;color:#fff;cursor:pointer;">↺</button>
+      <button id="btn-regla-salir" title="Salir de la regla (Esc)" style="font-size:11px;padding:3px 7px;border-radius:6px;border:none;background:#B91C1C;color:#fff;cursor:pointer;">✕</button>
     </div>
     <!-- BOTONES FLOTANTES: cambiar escenario de alerta -->
     <div id="escenario-switcher">
@@ -3075,6 +3182,7 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
           <button class="admin-menu-item" data-seccion="appPatrulleros">📱 Patrulleros App</button>
           <button class="admin-menu-item" data-seccion="appAcciones">⚠️ Acciones de Peligro</button>
         <button class="admin-menu-item" data-seccion="auditoria">🧾 Auditoría</button>
+        <button class="admin-menu-item" data-seccion="modulosPerfil">🧩 Módulos por perfil</button>
         <button class="admin-menu-item" data-seccion="auditoriaPerfiles">🔎 Auditoría de perfiles</button>
       </aside>
       <main class="admin-content" id="admin-content">
@@ -3368,6 +3476,62 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
     </div>
   </div>
 
+  <!-- 🪜 Implementación por comuna (Prevención ▾, 19-10-2026, SQL 124): control INTERNO del avance de las 24 comunas
+       relevantes en 7 etapas. Marca el Administrador; Jefes de Área y Subgerentes solo leen. -->
+  <div id="implementacion-panel">
+    <div class="pat-toolbar">
+      <div class="pat-toolbar-left">
+        <strong>🪜 Implementación por comuna</strong>
+        <span class="turnos-estado" id="im-modo">—</span>
+      </div>
+      <div class="pat-toolbar-right" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span class="turnos-estado" id="im-estado">—</span>
+        <button class="turnos-btn" id="im-recargar" title="Volver a leer el avance">🔄 Actualizar</button>
+        <button class="turnos-btn" id="im-excel" title="Descargar el avance a Excel">⬇️ Descargar Excel</button>
+      </div>
+    </div>
+    <div class="gr-cuerpo" id="im-cuerpo" style="overflow:auto;"><div class="tb-vacio">Cargando…</div></div>
+  </div>
+
+  <!-- 📱 Reportes de la App de Patrullaje (Prevención ▾, 18-10-2026, SQL 122): reportes enviados por los patrulleros desde
+       app-patrullero/app.html; la central cambia el estado y responde (el patrullero lo ve en su app). -->
+  <div id="appreportes-panel">
+    <div class="pat-toolbar">
+      <div class="pat-toolbar-left">
+        <strong>📱 App de Patrullaje</strong>
+        <div class="sg-vistas" id="ar-vistas">
+          <button data-ar-vista="vivo" class="on">🛰️ Patrullajes en vivo</button>
+          <button data-ar-vista="reportes">📋 Reportes</button>
+        </div>
+        <span id="ar-filtros" style="display:contents;">
+        <select id="ar-periodo" class="admin-search" style="min-width:130px;" title="Periodo">
+          <option value="1">Últimas 24 horas</option><option value="7" selected>Últimos 7 días</option><option value="30">Últimos 30 días</option><option value="90">Últimos 90 días</option>
+        </select>
+        <select id="ar-estado" class="admin-search" style="min-width:150px;" title="Estado">
+          <option value="">Todos los estados</option><option value="__abiertos__">⏳ Abiertos (no cerrados)</option><option value="__urgentes__">⚠️ Urgentes abiertos</option>
+          <option value="enviado">📨 Sin revisar</option><option value="recibido">👁️ Recibido</option><option value="en_atencion">🚨 En atención</option><option value="cerrado">✅ Cerrado</option>
+        </select>
+        <select id="ar-comuna" class="admin-search" style="min-width:150px;max-width:200px;" title="Comuna"></select>
+        <select id="ar-tipo" class="admin-search" style="min-width:150px;max-width:200px;" title="Tipo de acción"></select>
+        <input id="ar-buscar" class="admin-search" style="min-width:170px;max-width:220px;" placeholder="Buscar patrullero, texto…" autocomplete="off">
+        </span>
+      </div>
+      <div class="pat-toolbar-right" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span class="turnos-estado" id="ar-estado-txt">—</span>
+        <button class="turnos-btn" id="ar-actualizar" title="Traer los últimos reportes (se actualiza solo cada minuto)">🔄 Actualizar</button>
+        <button class="turnos-btn" id="ar-descargar" title="Descargar los reportes filtrados a Excel">⬇️ Descargar Excel</button>
+      </div>
+    </div>
+    <div class="gr-cuerpo">
+      <div id="ar-aviso" class="gr-aviso" style="display:none;"></div>
+      <div class="gr-kpis" id="ar-kpis"></div>
+      <div class="ar-cuerpo">
+        <div class="gr-tabla-wrap" id="ar-tabla"><div class="tb-vacio">Cargando…</div></div>
+        <div id="ar-mapa"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- 🌳 Gestión Bosque Recreativo (Prevención ▾, 16-10-2026, SQL 109 + 110): visitas, mapa, implementación
        (mesas, fogones, letreros), administración comunitaria, acceso e inversión con trazabilidad. -->
   <div id="bosques-panel">
@@ -3537,6 +3701,8 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
             <button class="vista-subitem" data-vista="patrullajes" id="tab-patrullajes" style="display:none;"><span class="vs-ico">🚓</span><span><b>Gestión Patrullajes SIGEI</b><small>Rutas de patrullaje y su asignación por fecha</small></span></button>
             <button class="vista-subitem" data-vista="prioridad" id="tab-prioridad" style="display:none;"><span class="vs-ico">🎯</span><span><b>Comunas Prioritarias</b><small>Matriz de prioridad por comuna (6 variables)</small></span></button>
             <button class="vista-subitem" data-vista="riesgo" id="tab-riesgo" style="display:none;"><span class="vs-ico">🚛</span><span><b>Acciones de Riesgo</b><small>Reportes de conductores (Gestión Central) por área</small></span></button>
+            <button class="vista-subitem" data-vista="implementacion" id="tab-implementacion" style="display:none;"><span class="vs-ico">🪜</span><span><b>Implementación por comuna</b><small>7 etapas en las 24 comunas · control interno</small></span></button>
+            <button class="vista-subitem" data-vista="appreportes" id="tab-appreportes" style="display:none;"><span class="vs-ico">📱</span><span><b>App de Patrullaje</b><small>Patrullajes en vivo y reportes de los patrulleros</small></span></button>
             <button class="vista-subitem" data-vista="bosques" id="tab-bosques" style="display:none;"><span class="vs-ico">🌳</span><span><b>Gestión Bosque Recreativo</b><small>Visitas, implementación, acceso e inversión</small></span></button>
           </div>
         </div>
@@ -3709,21 +3875,28 @@ body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E
     </div>
   </div>
 
+  <!-- Barra de edición compacta (19-10-2026): ayuda en una línea (clic = ver completa) y botones cortos con
+       la explicación en el title. -->
   <div class="editor-mode-banner" id="editor-banner">
-    <span class="pulse"></span>
-    <span id="editor-banner-texto">Modo edición activo — haz clic en el mapa para posicionar un recurso</span>
-    <button class="popup-btn" id="btn-modo-punto" style="margin-left:8px;">📍 Punto</button>
-    <button class="popup-btn" id="btn-modo-linea">📏 Línea</button>
-    <button class="popup-btn" id="btn-modo-area">📐 Área</button>
-    <button class="popup-btn" id="btn-dibujo-libre" style="display:none;" title="Mantén pulsado y arrastra para trazar de corrido · botón del medio = mover el mapa">✍️ Trazo libre</button>
-    <button class="popup-btn" id="btn-iman-red-vial" style="display:none;" title="Pega los vértices a la Red Vial y sigue la curva del camino entre dos clics (Shift = sin imán)">🧲 Imán Red Vial</button>
-    <button class="popup-btn" id="btn-cortar-ruta" style="display:none;" title="Cortar una ruta ya trazada en dos: clic sobre la ruta en el punto de corte (Esc para cancelar)">✂️ Cortar ruta</button>
-    <button class="popup-btn" id="btn-importar-kml" title="Importar rutas desde un archivo KML o KMZ">📥 Importar KML/KMZ</button>
+    <div class="eb-fila" id="eb-fila" title="Clic para ver u ocultar la ayuda completa">
+      <span class="pulse"></span>
+      <span id="editor-banner-texto">Modo edición activo — haz clic en el mapa para posicionar un recurso</span>
+      <span class="eb-mas">ⓘ</span>
+    </div>
+    <div class="eb-botones">
+    <button class="popup-btn" id="btn-modo-punto" title="Ubicar un punto (recurso)">📍 Punto</button>
+    <button class="popup-btn" id="btn-modo-linea" title="Dibujar una ruta (línea) con clics">📏 Línea</button>
+    <button class="popup-btn" id="btn-modo-area" title="Dibujar un área (polígono)">📐 Área</button>
+    <button class="popup-btn" id="btn-dibujo-libre" style="display:none;" title="Trazo libre: clic para EMPEZAR, mueve el mouse (sin apretar) y la ruta sigue el cursor —con 🧲 se pega al camino—, clic otra vez para TERMINAR el tramo. Arrastrar mueve el mapa; Esc descarta el tramo.">✍️ Trazo libre</button>
+    <button class="popup-btn" id="btn-iman-red-vial" style="display:none;" title="Pega los vértices a la Red Vial y sigue la curva del camino entre dos clics (Shift = sin imán)">🧲 Imán</button>
+    <button class="popup-btn" id="btn-cortar-ruta" style="display:none;" title="Cortar una ruta ya trazada en dos: clic sobre la ruta en el punto de corte (Esc para cancelar)">✂️ Cortar</button>
+    <button class="popup-btn" id="btn-importar-kml" title="Importar rutas desde un archivo KML o KMZ">📥 KML/KMZ</button>
     <input type="file" id="input-kml" accept=".kml,.kmz,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz" style="display:none;">
-    <button class="popup-btn" id="btn-finalizar-dibujo" style="display:none;color:#16A34A;">✓ Finalizar</button>
-    <button class="popup-btn" id="btn-cancelar-dibujo" style="display:none;color:#DC2626;">✕ Cancelar</button>
-    <button class="popup-btn" id="btn-salir-planificacion" style="display:none;">🚪 Salir de planificación</button>
-    <button class="popup-btn" id="btn-salir-edicion" style="background:rgba(239,68,68,0.25);border-color:rgba(239,68,68,0.5);color:#FCA5A5;">✕ Salir de edición</button>
+    <button class="popup-btn" id="btn-finalizar-dibujo" style="display:none;color:#16A34A;" title="Guardar el dibujo">✓ Finalizar</button>
+    <button class="popup-btn" id="btn-cancelar-dibujo" style="display:none;color:#DC2626;" title="Descartar el dibujo en curso">✕ Cancelar</button>
+    <button class="popup-btn" id="btn-salir-planificacion" style="display:none;" title="Salir de planificación (todo queda guardado)">🚪 Salir</button>
+    <button class="popup-btn" id="btn-salir-edicion" style="background:rgba(239,68,68,0.25);border-color:rgba(239,68,68,0.5);color:#FCA5A5;" title="Salir de edición">✕ Salir</button>
+    </div>
   </div>
 
   <div class="debug-toast" id="debug-toast"></div>
@@ -6451,7 +6624,7 @@ function cargarSeccionAdmin_(seccion) {
   c.innerHTML = '<div class="layer-empty-msg">Cargando…</div>';
   const fn = {
     resumen: adminSeccionResumen_, usuarios: adminSeccionUsuarios_, permisosPerfil: adminSeccionPermisosPerfil_, instituciones: adminSeccionInstituciones_,
-    recursos: adminSeccionRecursos_, patrulleros: adminSeccionPatrulleros_, comunas: adminSeccionComunas_, areaComunas: adminSeccionAreaComunas_, auditoria: adminSeccionAuditoria_, auditoriaPerfiles: adminSeccionAuditoriaPerfiles_, actividad: adminSeccionActividad_, sesiones: adminSeccionSesiones_,
+    recursos: adminSeccionRecursos_, patrulleros: adminSeccionPatrulleros_, comunas: adminSeccionComunas_, areaComunas: adminSeccionAreaComunas_, auditoria: adminSeccionAuditoria_, auditoriaPerfiles: adminSeccionAuditoriaPerfiles_, modulosPerfil: adminSeccionModulosPerfil_, actividad: adminSeccionActividad_, sesiones: adminSeccionSesiones_,
     appPatrulleros: adminSeccionAppPatrulleros_, appAcciones: adminSeccionAppAcciones_,
   }[seccion];
   if (fn) fn(c);
@@ -6676,6 +6849,9 @@ const AUD_CAPACIDADES = [
   ['🚓 Prevención', 'Comunas Prioritarias: consultar', 'prioridad', 'ver', ['si', 'si', 'si', 'si', 'no', 'no']],
   ['🚓 Prevención', 'Comunas Prioritarias: editar parámetros y responsables', 'prioridad', 'editar', ['si', 'si', 'si', 'si', 'no', 'no']],
   ['🚓 Prevención', 'Acciones de Riesgo (Central de Transporte)', null, null, ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no']],
+  ['🚓 Prevención', 'Reportes de la App de Patrullaje (estado y respuesta al patrullero)', null, null, ['si', 'si', 'si', 'si', 'no', 'no']],
+  ['🚓 Prevención', 'Implementación por comuna (7 etapas, 24 comunas) — marcar etapas', null, null, ['si', 'no (solo lectura)', 'no (solo lectura)', 'no (solo lectura)', 'no', 'no']],
+  ['🚓 Prevención', 'Implementación por comuna — ver avance', null, null, ['si', 'si', 'si', 'si', 'no', 'no']],
   ['🚓 Prevención', 'Bosques recreativos: consultar', null, null, ['si', 'Su subgerencia', 'Sus áreas', 'Sus áreas', 'no', 'no']],
   ['🚓 Prevención', 'Bosques recreativos: administración, acceso e inversión', null, null, ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no']],
   ['🚓 Prevención', 'Bosques recreativos: crear o eliminar bosques', null, null, ['si', 'no', 'no', 'no', 'no', 'no']],
@@ -6703,6 +6879,62 @@ function audCelda_(fila, i) {
   if (k && ORDEN_NIVEL_PERMISO[audNivelPerfil_(perfil, k)] < ORDEN_NIVEL_PERMISO[n]) return { txt: 'Restringido por perfil', cls: 'restr' };
   return regla === 'si' ? { txt: '✔', cls: 'si' } : { txt: regla, cls: 'cond' };
 }
+/* ── 🧩 Módulos por perfil (19-10-2026): TODOS los menús del sistema y qué ve / edita cada perfil, calculado con las
+ *  MISMAS reglas de los menús (MENU_MODULOS) simulando cada perfil con sus permisos guardados (permisos_perfil). ── */
+function conPerfilSimulado_(perfilVisible, permPerfil, fn) {
+  const g = { perfil: state.perfil, subgerencia: state.subgerencia, esGRT: state.esGRT, pp: state.permisosPerfilRol, pu: state.permisosUsuario };
+  try {
+    state.perfil = Object.assign({}, state.perfil || {}, { perfil: perfilBase_(perfilVisible) });
+    state.subgerencia = perfilVisible === 'Subgerente de Relacionamiento' ? 'NORTE' : null;
+    state.esGRT = perfilVisible === PERFIL_GRT;
+    state.permisosPerfilRol = (permPerfil || {})[perfilVisible] || null;
+    state.permisosUsuario = null;   // sin restricciones propias de un usuario
+    return fn();
+  } finally {
+    state.perfil = g.perfil; state.subgerencia = g.subgerencia; state.esGRT = g.esGRT; state.permisosPerfilRol = g.pp; state.permisosUsuario = g.pu;
+  }
+}
+function matrizModulosPerfil_(permPerfil) {
+  return MENU_MODULOS.map(m => ({ m, celdas: AUD_PERFILES.map(p => conPerfilSimulado_(p, permPerfil, () => {
+    let ve = false, nivel = 'no', nota = '';
+    try { ve = !!m.ver(); if (ve) { nivel = m.nivel ? m.nivel() : 'ver'; nota = m.nota ? m.nota() : ''; } } catch (e) { ve = false; }
+    return { ve, nivel: ve ? (nivel === 'no' ? 'ver' : nivel) : 'no', nota };
+  })) }));
+}
+async function adminSeccionModulosPerfil_(c) {
+  c.innerHTML = adminHead_('🧩 Módulos por perfil', 'Cargando…');
+  const permPerfil = {};
+  try { const { data } = await supabaseClient.from('permisos_perfil').select('*'); (data || []).forEach(f => { permPerfil[f.perfil] = f; }); } catch (e) { /* sin SQL 119 */ }
+  const filas = matrizModulosPerfil_(permPerfil);
+  const ICO = { editar: ['✏️', 'Editar', 'mp-ed'], ver: ['👁️', 'Ver', 'mp-ver'], no: ['—', 'No ve', 'mp-no'] };
+  const totales = AUD_PERFILES.map((p, i) => filas.filter(f => f.celdas[i].ve).length);
+  let grupo = '';
+  c.innerHTML = adminHead_('🧩 Módulos por perfil', 'Todos los menús del sistema y lo que ve cada perfil. Se calcula con las mismas reglas que muestran los menús, con los permisos por perfil guardados.',
+      '<button class="popup-btn" id="mp-excel" style="padding:9px 12px;">⬇️ Excel</button>') +
+    '<div class="mp-leyenda"><span class="mp-ed">✏️ Editar</span><span class="mp-ver">👁️ Solo ver</span><span class="mp-no">— No lo ve</span>' +
+      '<span style="margin-left:auto;">Para cambiar un perfil: <a href="#" data-mp-ir="permisosPerfil">🛡️ Permisos por perfil</a> · por usuario: <a href="#" data-mp-ir="usuarios">👥 Usuarios</a></span></div>' +
+    '<div class="admin-table-wrap" style="max-height:72vh;"><table class="admin-table mp-tabla"><thead><tr><th>Módulo</th>' +
+      AUD_PERFILES.map((p, i) => '<th>' + escapeHtml_(AUD_CORTO[p] || p) + '<small>' + totales[i] + ' de ' + filas.length + '</small></th>').join('') + '</tr></thead><tbody>' +
+      filas.map(f => {
+        const cab = f.m.grupo !== grupo ? '<tr class="mp-grupo"><td colspan="' + (AUD_PERFILES.length + 1) + '">' + escapeHtml_(f.m.grupo) + '</td></tr>' : '';
+        grupo = f.m.grupo;
+        return cab + '<tr><td><b>' + escapeHtml_(f.m.nombre) + '</b></td>' + f.celdas.map(x => {
+          const [ico, txt, cls] = ICO[x.nivel] || ICO.no;
+          return '<td class="' + cls + '" title="' + escapeHtml_(txt + (x.nota ? ' · ' + x.nota : '')) + '"><span>' + ico + ' ' + txt + '</span>' + (x.nota ? '<small>' + escapeHtml_(x.nota) + '</small>' : '') + '</td>';
+        }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+  c.querySelectorAll('[data-mp-ir]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); state.adminSeccion = a.dataset.mpIr; cargarSeccionAdmin_(a.dataset.mpIr); }));
+  document.getElementById('mp-excel').addEventListener('click', async () => {
+    try {
+      const XLSX = await tbCargarSheetJs_();
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filas.map(f => Object.assign({ 'Menú': f.m.grupo, 'Módulo': f.m.nombre },
+        ...AUD_PERFILES.map((p, i) => ({ [p]: (ICO[f.celdas[i].nivel] || ICO.no)[1] + (f.celdas[i].nota ? ' (' + f.celdas[i].nota + ')' : '') }))))), 'Módulos por perfil');
+      XLSX.writeFile(wb, 'modulos_por_perfil_' + tbHoyISO_() + '.xlsx');
+    } catch (e) { mostrarToast_('No se pudo generar el Excel: ' + (e.message || e)); }
+  });
+}
+
 async function adminSeccionAuditoriaPerfiles_(c) {
   const S = state.audp;
   c.innerHTML = adminHead_('🔎 Auditoría de perfiles', 'Cargando…');
@@ -7706,6 +7938,16 @@ function fmtMinutosSes_(m) {
   const h = Math.floor(m / 60), r = m % 60;
   return h + ' h' + (r ? ' ' + r + ' min' : '');
 }
+/** Perfil para mostrar en Sesiones: Subgerente con su subgerencia y GRD con su comuna (19-10-2026). */
+function perfilSesion_(s) {
+  if (s.subgerencia) return 'Subgerente · ' + aTitulo_(s.subgerencia);
+  if (s.perfil === 'GRD') {
+    const slugs = ((state.ses && state.ses.comunaGrd) || {})[s.perfil_id] || [];
+    const nombres = slugs.map(id => { const c = (state.comunas || []).find(x => x.id === id); return c ? c.comuna : String(id).replace(/-/g, ' ').replace(/(^|\s)\S/g, m => m.toUpperCase()); });
+    return nombres.length ? 'GRD (' + nombres.join(', ') + ')' : 'GRD';
+  }
+  return s.perfil;
+}
 async function adminSeccionSesiones_(c, recargar) {
   const S = state.ses;
   if (!S.filas || recargar) {
@@ -7722,13 +7964,27 @@ async function adminSeccionSesiones_(c, recargar) {
       filas.push(...(data || [])); if (!data || data.length < 1000) break;
     }
     S.filas = filas;
+    // 19-10-2026: comuna de cada GRD («GRD (Victoria)»): perfiles.comuna_id + perfil_comunas
+    S.comunaGrd = {};
+    const idsGrd = [...new Set(filas.filter(s => s.perfil === 'GRD').map(s => s.perfil_id))];
+    if (idsGrd.length) {
+      try {
+        const [pf, pc] = await Promise.all([
+          supabaseClient.from('perfiles').select('id, comuna_id').in('id', idsGrd),
+          supabaseClient.from('perfil_comunas').select('perfil_id, comuna_id').in('perfil_id', idsGrd),
+        ]);
+        const add = (id, slug) => { if (!slug) return; const l = S.comunaGrd[id] = S.comunaGrd[id] || []; if (!l.includes(slug)) l.push(slug); };
+        (pf.data || []).forEach(p => add(p.id, p.comuna_id));
+        (pc.data || []).forEach(p => add(p.perfil_id, p.comuna_id));
+      } catch (e) { /* sin comuna: se muestra solo «GRD» */ }
+    }
   }
   const q = normalizarBusqueda_(S.q || '');
   const ses = S.filas.filter(s => (!S.perfil || (s.subgerencia ? 'Subgerente de Relacionamiento' : s.perfil) === S.perfil) && (!q || normalizarBusqueda_(s.nombre_completo || '').includes(q)));
   // Por usuario
   const porU = {};
   ses.forEach(s => {
-    const u = porU[s.perfil_id] = porU[s.perfil_id] || { id: s.perfil_id, nombre: s.nombre_completo, perfil: s.subgerencia ? 'Subgerente · ' + aTitulo_(s.subgerencia) : s.perfil, estado: s.estado, n: 0, min: 0, dias: new Set(), ultima: null, primera: null, enCurso: false, lista: [] };
+    const u = porU[s.perfil_id] = porU[s.perfil_id] || { id: s.perfil_id, nombre: s.nombre_completo, perfil: perfilSesion_(s), estado: s.estado, n: 0, min: 0, dias: new Set(), ultima: null, primera: null, enCurso: false, lista: [] };
     u.n++; u.min += Number(s.minutos || 0); u.dias.add(String(s.inicio).slice(0, 10)); u.lista.push(s);
     if (!u.ultima || s.inicio > u.ultima) u.ultima = s.inicio;
     if (!u.primera || s.inicio < u.primera) u.primera = s.inicio;
@@ -7802,7 +8058,7 @@ async function descargarSesiones_(ses) {
     const XLSX = await tbCargarSheetJs_();
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ses.map(s => ({
-      'Usuario': s.nombre_completo, 'Perfil': s.subgerencia ? 'Subgerente ' + s.subgerencia : s.perfil, 'Inicio': new Date(s.inicio).toLocaleString('es-CL'),
+      'Usuario': s.nombre_completo, 'Perfil': perfilSesion_(s), 'Inicio': new Date(s.inicio).toLocaleString('es-CL'),
       'Fin': s.en_curso ? 'En curso' : (s.fin ? new Date(s.fin).toLocaleString('es-CL') : ''), 'Minutos': Number(s.minutos || 0),
       'Vistas': (s.vistas || []).join(', '), 'Equipo': dispositivoSes_(s.agente), 'Pantalla': s.pantalla || '' }))), 'Sesiones');
     XLSX.writeFile(wb, 'sesiones_usuarios_' + fechaISO_(new Date()) + '.xlsx');
@@ -10705,7 +10961,7 @@ function iniciarListenersGestion_() {
  *      trienio), estado (⛔ sin iniciar / 🟠 en curso / ✅ 3 escenarios) y los usuarios que trabajaron en ella.
  *   🌲 Inicio de recursos — fechas de inicio de operación por área: gráfico por semana, línea de tiempo y
  *      lista, con filtros rápidos (área, periodo, tipo). */
-state.sg = { datos: null, vista: 'comunas', area: '', estado: '', prio: '', q: '', rArea: '', rPeriodo: '', rTipo: '', tPer: 'mes', tArea: '', turnos: {}, listeners: false };
+state.sg = { datos: null, vista: 'comunas', area: '', estado: '', prios: [], q: '', rArea: '', rPeriodo: '', rTipo: '', tPer: 'mes', tArea: '', turnos: {}, listeners: false };
 const SG_MAX_LIBRES = 4;   // más de 4 días libres seguidos (operando) = calendario de turnos incompleto
 let chartSgInicios = null, chartSgActivacion = null;
 /** 16-10-2026: el Administrador también ve el Seguimiento, con ambas subgerencias y un filtro (Ambas / Norte / Sur). */
@@ -10739,6 +10995,21 @@ function sgFecha_(s) { if (!s) return null; const d = new Date(String(s).slice(0
 function sgFechaTxt_(d) { return d ? d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'; }
 function sgColorAv_(p) { return p >= 60 ? '#16A34A' : p >= 30 ? '#D97706' : p > 0 ? '#EA580C' : '#DC2626'; }
 
+/** Nombres de usuarios por id. 19-10-2026 (SQL 124): por RPC, porque la RLS de `perfiles` no deja al Subgerente /
+ *  Jefe leer el perfil de otras personas (veía «Usuario (27)»). Sin el SQL 124, lectura directa como antes. */
+async function nombresPerfiles_(ids) {
+  const out = {};
+  if (!ids || !ids.length) return out;
+  const { data, error } = await supabaseClient.rpc('nombres_perfiles', { p_ids: ids });
+  if (!error) { (data || []).forEach(p => { out[p.id] = p.nombre_completo; }); }
+  const faltan = ids.filter(id => !out[id]);
+  if (faltan.length) {
+    const { data: pf } = await supabaseClient.from('perfiles').select('id, nombre_completo').in('id', faltan);
+    (pf || []).forEach(p => { out[p.id] = p.nombre_completo; });
+  }
+  return out;
+}
+
 async function abrirSeguimiento_() {
   if (!state.sg.listeners) {
     state.sg.listeners = true;
@@ -10751,6 +11022,13 @@ async function abrirSeguimiento_() {
     const cuerpo = document.getElementById('sg-cuerpo');
     cuerpo.addEventListener('click', e => {
       const vm = e.target.closest('[data-sg-mapa]'); if (vm) { verCopamientoMapaSg_(vm.dataset.sgMapa); return; }
+      // Prioridad: selección múltiple
+      const bp = e.target.closest('[data-sg-prio]');
+      if (bp) {
+        const p = bp.dataset.sgPrio, S = state.sg;
+        S.prios = p === '__todas__' ? [] : (S.prios || []).includes(p) ? S.prios.filter(x => x !== p) : (S.prios || []).concat(p);
+        renderSeguimiento_(); return;
+      }
       const c = e.target.closest('[data-sg-f]'); if (!c) return;
       const [k, v] = c.dataset.sgF.split('|');
       state.sg[k] = state.sg[k] === v && k !== 'area' && k !== 'rArea' && k !== 'tPer' ? '' : v;
@@ -10853,11 +11131,14 @@ async function cargarSeguimiento_(forzar) {
         const { data } = await supabaseClient.from('planificacion_recursos').select('plan_id, creado_por').in('plan_id', pids.slice(i, i + 120));
         (data || []).forEach(r => { if (!r.creado_por) return; const s = comunaDePlan[r.plan_id]; const u = usuariosPor[s] = usuariosPor[s] || {}; u[r.creado_por] = (u[r.creado_por] || 0) + 1; ids.add(r.creado_por); });
       }
-      if (ids.size) {
-        const { data: pf } = await supabaseClient.from('perfiles').select('id, nombre_completo').in('id', [...ids]);
-        state.sg.nombres = {}; (pf || []).forEach(p => { state.sg.nombres[p.id] = p.nombre_completo; });
-      }
+      if (ids.size) state.sg.nombres = await nombresPerfiles_([...ids]);
     } catch (e) { /* sin detalle de usuarios */ }
+    // 🪜 Avance de la implementación por comuna (SQL 124; solo las 24 comunas relevantes V6)
+    let etapas = null;
+    try {
+      const { data, error } = await supabaseClient.from('implementacion_etapas').select('id_comuna, etapa, completada, fecha');
+      if (!error) { etapas = {}; (data || []).forEach(r => { if (r.completada) (etapas[r.id_comuna] = etapas[r.id_comuna] || {})[r.etapa] = r; }); }
+    } catch (e) { /* sin el SQL 124 */ }
     // Jefes de cada área
     try {
       const [pa, pf, ps] = await Promise.all([
@@ -10869,7 +11150,8 @@ async function cargarSeguimiento_(forzar) {
       const nom = {}; (pf.data || []).forEach(p => { if (esJefeAreaPerfil_(p.perfil) && !subgs.has(p.id)) nom[p.id] = p.nombre_completo; });
       (pa.data || []).forEach(x => { const a = areas[SG_KEY(x.area)]; if (a && nom[x.perfil_id] && !a.jefes.includes(nom[x.perfil_id])) a.jefes.push(nom[x.perfil_id]); });
     } catch (e) { /* sin nombres */ }
-    state.sg.datos = { areas, comunas, todas, areasPorComuna, prioPor, resumen, usuariosPor, listas: P.listas || {}, responsables: P.responsables || {} };
+    state.sg.datos = { areas, comunas, todas, areasPorComuna, prioPor, resumen, usuariosPor, listas: P.listas || {}, responsables: P.responsables || {},
+      etapas, implIds: new Set(((P.v6 && P.v6.ids) || PRIO_RELEVANTES_DEFECTO).map(Number)) };
     est.textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
   } catch (e) {
     est.textContent = 'Error';
@@ -10877,6 +11159,22 @@ async function cargarSeguimiento_(forzar) {
     return;
   }
   renderSeguimiento_();
+}
+
+/** 🪜 Torta del avance de la implementación de la comuna (7 etapas) con la lista de etapas al pasar el mouse. */
+function sgImplHtml_(c) {
+  const D = state.sg.datos;
+  if (!D || !D.etapas) return '';   // sin el SQL 124
+  const id = Number(c.id_comuna);
+  if (!D.implIds.has(id)) return '<div class="sg-impl" title="Esta comuna no está entre las 24 comunas de implementación"><span class="sg-impl-na">—</span><small>Fuera de<br>implementación</small></div>';
+  const M = D.etapas[id] || {}, N = IM_ETAPAS.length;
+  const h = IM_ETAPAS.filter(([k]) => M[k]).length, p = Math.round(h * 100 / N);
+  const fmtF = f => f ? new Date(String(f).slice(0, 10) + 'T12:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' }) : '';
+  return '<div class="sg-impl im-av-torta" tabindex="0">' + imTorta_(p, 64) + '<small><b style="color:var(--text-secondary);">🪜 Implementación</b><br>' + h + ' de ' + N + ' etapas<br><span style="color:var(--cobalt);">ver detalle ›</span></small>' +
+    '<div class="im-pop"><b>🪜 ' + escapeHtml_(c.comuna) + ' · ' + p + '%</b>' + IM_ETAPAS.map(([k, ico, nom]) => {
+      const r = M[k];
+      return '<div class="' + (r ? 'ok' : 'pend') + '">' + (r ? '✅' : '⬜') + ' ' + ico + ' ' + escapeHtml_(nom) + (r && r.fecha ? ' <small>' + fmtF(r.fecha) + '</small>' : '') + '</div>';
+    }).join('') + '</div></div>';
 }
 
 /** Comuna: avance = nivel de copamiento (promedio N·A·R), estado y usuarios. */
@@ -11025,25 +11323,32 @@ function renderSgComunas_(soloLista) {
   const nMia = T.filter(x => x.alcance === 'mia').length, nOtra = T.filter(x => x.alcance === 'otra').length, nSin = T.filter(x => x.alcance === 'sin').length;
   const base = S.alcance === 'todas' && !S.area ? T : D.comunas.map(c => ({ c, alcance: 'mia', subgs: [] }));
   const delArea = S.area ? base.filter(x => D.areas[S.area].comunas.has(Number(x.c.id_comuna))) : base;
-  const todas = delArea.map(x => Object.assign(sgComuna_(x.c), { alcance: x.alcance, subgs: x.subgs }));
+  const todasSinPrio = delArea.map(x => Object.assign(sgComuna_(x.c), { alcance: x.alcance, subgs: x.subgs }));
+  // 19-10-2026: el filtro de PRIORIDAD va primero y admite varias a la vez (p. ej. Alta + Media); los conteos y
+  // tarjetas de resumen se calculan sobre las comunas de las prioridades elegidas.
+  S.prios = S.prios || [];
+  const todas = S.prios.length ? todasSinPrio.filter(f => S.prios.includes(String(f.prio))) : todasSinPrio;
   const q = normalizarBusqueda_(S.q || '');
-  const filas = todas.filter(f => (!S.estado || f.estado === S.estado) && (!S.prio || String(f.prio) === S.prio) && (!q || normalizarBusqueda_(f.c.comuna).includes(q)))
+  const filas = todas.filter(f => (!S.estado || f.estado === S.estado) && (!q || normalizarBusqueda_(f.c.comuna).includes(q)))
     .sort((a, b) => ({ mia: 0, otra: 1, sin: 2 }[a.alcance] || 0) - ({ mia: 0, otra: 1, sin: 2 }[b.alcance] || 0) ||   // primero las de la subgerencia
       a.prio - b.prio || (b.nivel || 0) - (a.nivel || 0) || a.c.comuna.localeCompare(b.c.comuna, 'es'));
   const fmt = v => Number(v || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 });
   const cuenta = (k, v) => todas.filter(f => f[k] === v).length;
   const chip = (k, v, txt, n) => '<button class="sg-chip' + (S[k] === v ? ' on' : '') + '" data-sg-f="' + k + '|' + escapeHtml_(v) + '">' + txt + (n != null ? '<small>' + n + '</small>' : '') + '</button>';
+  // 19-10-2026: sin promedio; una tarjeta por alerta (Normal · Amarilla · Roja) con su % y barra
+  const tarjetaAlerta = (lbl, p, c) => '<div class="sg-al" style="--a:' + c + '"><span>' + lbl + '</span><b>' + fmt(p) + '%</b><i><em style="width:' + Math.min(100, p) + '%"></em></i></div>';
+  const colEstado = { sin: '#DC2626', curso: '#D97706', ok: '#16A34A' };
   const lista = filas.map(f => {
-    const n = prioInfo_(f.prio), col = sgColorAv_(f.avance);
-    const barra = (lbl, p, c) => '<div><span style="color:' + c + '">' + lbl + '</span><i><em style="width:' + Math.min(100, p) + '%;background:' + c + ';"></em></i><b>' + fmt(p) + '%</b></div>';
+    const n = prioInfo_(f.prio), col = colEstado[f.estado] || '#94A3B8';
     const est = f.estado === 'sin' ? '<span class="sg-estado sin">⛔ Sin iniciar</span>'
       : f.estado === 'ok' ? '<span class="sg-estado ok">✅ 3 escenarios</span>' : '<span class="sg-estado curso">🟠 En curso · falta ' + f.falta.join(', ') + '</span>';
     const usu = f.usuarios.length
       ? '👤 Trabajaron: ' + f.usuarios.slice(0, 4).map(u => '<b>' + escapeHtml_(u.nombre) + '</b> (' + u.n + ')').join(', ') + (f.usuarios.length > 4 ? ' y ' + (f.usuarios.length - 4) + ' más' : '')
       : '👤 Nadie ha trabajado aún en esta comuna';
     const ajena = f.alcance && f.alcance !== 'mia';
+    // 19-10-2026: la torta de implementación va junto al nombre (aprovecha el espacio de la primera columna)
     return '<div class="sg-com' + (ajena ? ' ajena' : '') + '" style="--c:' + (ajena ? '#94A3B8' : col) + '">' +
-      '<div class="nom"><b>' + escapeHtml_(f.c.comuna) + (f.lista ? ' ✅' : '') + '</b>' +
+      '<div class="sg-nom-impl"><div class="nom"><b>' + escapeHtml_(f.c.comuna) + (f.lista ? ' ✅' : '') + '</b>' +
         '<span class="prio-badge" style="background:' + n.color + ';color:' + n.texto + ';">Prioridad ' + n.nombre + (f.nivel != null ? ' · ' + fmtNivelPrio_(f.nivel) : '') + '</span>' +
         // Etiquetas: responsable y jefe (Comunas Prioritarias › 👥 Asignar responsables) y SIEMPRE el área de relacionamiento
         '<div class="sg-resp">' +
@@ -11052,23 +11357,26 @@ function renderSgComunas_(soloLista) {
             : '<span class="sg-etq sinarea" title="Sin área de relacionamiento: asígnala en Administración › Comunas por área">⚠️ Sin área asignada</span>') : '') +
           (f.responsable ? '<span class="sg-etq resp" title="Responsable de la comuna">👤 ' + escapeHtml_(f.responsable) + '</span>'
                          : '<span class="sg-etq vacio" title="Asígnalo en Comunas Prioritarias › 👥 Asignar responsables">👤 Sin responsable</span>') +
-          (f.jefe ? '<span class="sg-etq jefe" title="Jefe de Área a cargo (según las áreas asignadas en el sistema)">🧭 ' + escapeHtml_(f.jefe) + '</span>' : '') +
-          (f.jefeDistinto ? '<span class="sg-etq sinarea" title="En Comunas Prioritarias › 👥 Asignar responsables esta comuna figura con «' + escapeHtml_(f.jefeMatriz) +
-            '» como Jefe, pero en el sistema la administra ' + escapeHtml_(f.jefe) + '. Corrígelo allí.">⚠️ Matriz: ' + escapeHtml_(f.jefeMatriz) + '</span>' : '') +
-          (f.areas.length ? '<span class="sg-etq area" title="Área de relacionamiento">📍 Área ' + escapeHtml_(f.areas.map(aTitulo_).join(' / ')) + (f.areas.length > 1 ? ' 🤝' : '') + '</span>' : '') +
-        '</div></div>' +
-      '<div class="av"><b>' + f.avance + '%</b><small>avance de<br>copamiento<br>(prom. N·A·R)</small></div>' +
-      '<div class="sg-nar">' + barra('Normal', f.pN, '#16A34A') + barra('Amarilla', f.pA, '#D97706') + barra('Roja', f.pR, '#DC2626') + '</div>' +
+          // 19-10-2026: sin las etiquetas de Jefe de Área y Área de relacionamiento (siguen en el Excel y en el filtro Área)
+        '</div></div>' + sgImplHtml_(f.c) + '</div>' +
+      '<div class="sg-alertas" title="Nivel de copamiento por alerta sobre la zona de incendios del trienio">' +
+        tarjetaAlerta('🟢 Normal', f.pN, '#16A34A') + tarjetaAlerta('🟡 Amarilla', f.pA, '#D97706') + tarjetaAlerta('🔴 Roja', f.pR, '#DC2626') + '</div>' +
       '<div>' + est + '<div class="sg-usu">' + usu + (f.grd ? '<br>🏛️ GRD: ' + escapeHtml_(f.grd) : '') + '</div>' +
         (ajena ? '' : '<button class="sg-ver-mapa" data-sg-mapa="' + f.c.id_comuna + '" title="Ver el copamiento de ' + escapeHtml_(f.c.comuna) + ' en el mapa (Normal, Amarilla y Roja)">🗺️ Ver copamiento en el mapa</button>') + '</div>' +
     '</div>';
   }).join('') || '<div class="tb-vacio">Sin comunas con este filtro.</div>';
   if (soloLista && document.getElementById('sg-lista')) { document.getElementById('sg-lista').innerHTML = lista; return; }
-  const prom = todas.length ? Math.round(todas.reduce((s, f) => s + f.avance, 0) / todas.length) : 0;
+  const promDe = k => todas.length ? Math.round(todas.reduce((s, f) => s + (Number(f[k]) || 0), 0) / todas.length) : 0;
+  const cuentaPrio = p => todasSinPrio.filter(f => String(f.prio) === p).length;
+  const chipPrio = (p, txt) => '<button class="sg-chip' + (S.prios.includes(p) ? ' on' : '') + '" data-sg-prio="' + p + '">' + txt + '<small>' + cuentaPrio(p) + '</small></button>';
   const A = S.area ? D.areas[S.area] : null;
   const verTodas = S.alcance === 'todas' && !S.area;
   const subgTxt = sgModoAdmin_() && !sgSubgActiva_() ? 'las subgerencias' : 'tu subgerencia';
   cuerpo.innerHTML =
+    // Prioridad primero (varias a la vez)
+    '<div class="sg-chips sg-chips-prio"><span class="tit">Prioridad</span>' + chipPrio('1', '🔴 Alta') + chipPrio('2', '🟠 Media') + chipPrio('3', '🟢 Baja') +
+      (S.prios.length ? '<button class="sg-chip" data-sg-prio="__todas__">✕ Todas</button>' : '') +
+      '<span style="font-size:11px;color:var(--text-tertiary);margin-left:6px;">Puedes marcar varias (p. ej. Alta + Media)</span></div>' +
     // 🗺️ Las ~103 comunas con presencia CMPC: cuántas son de la subgerencia, de otra o sin área
     '<div class="sg-alcance">' +
       '<div class="txt"><b>' + T.length + ' comunas con presencia CMPC</b> (≥ ' + SG_MIN_HA_CMPC + ' ha): ' +
@@ -11080,14 +11388,16 @@ function renderSgComunas_(soloLista) {
       areas.map(a => chip('area', a.k, escapeHtml_(aTitulo_(a.nombre)), a.comunas.size)).join('') + '</div>' +
     '<div class="sg-chips"><span class="tit">Estado</span>' + chip('estado', 'sin', '⛔ Sin iniciar', cuenta('estado', 'sin')) +
       chip('estado', 'curso', '🟠 En curso', cuenta('estado', 'curso')) + chip('estado', 'ok', '✅ 3 escenarios', cuenta('estado', 'ok')) +
-      '<span class="tit" style="margin-left:10px;">Prioridad</span>' + chip('prio', '1', 'Alta', cuenta('prio', 1)) + chip('prio', '2', 'Media', cuenta('prio', 2)) + chip('prio', '3', 'Baja', cuenta('prio', 3)) +
       '<input id="sg-q" class="admin-search" placeholder="Buscar comuna…" value="' + escapeHtml_(S.q || '') + '" style="max-width:180px;margin-left:auto;"></div>' +
     (A ? '<div class="sg-area-cab2"><b>🧭 ' + escapeHtml_(aTitulo_(A.nombre)) + '</b><span>' + A.comunas.size + ' comuna(s)' + (A.jefes.length ? ' · Jefe de Área: ' + escapeHtml_(A.jefes.join(', ')) : '') + '</span></div>' : '') +
     '<div class="sg-resumen">' +
       '<div><b>' + todas.length + '</b><span>comunas' + (A ? ' del área' : verTodas ? ' mostradas (todas las CMPC)' : ' de la subgerencia') + ' con presencia CMPC</span></div>' +
       '<div style="--c:#DC2626"><b>' + cuenta('estado', 'sin') + '</b><span>⛔ sin iniciar</span></div>' +
-      '<div style="--c:' + sgColorAv_(prom) + '"><b>' + prom + '%</b><span>avance de copamiento promedio</span></div>' +
       '<div style="--c:#16A34A"><b>' + cuenta('estado', 'ok') + '</b><span>✅ con los 3 escenarios</span></div>' +
+      // Una tarjeta por alerta: copamiento promedio de las comunas mostradas
+      '<div class="sg-res-al" style="--c:#16A34A"><b>' + promDe('pN') + '%</b><span>🟢 copamiento Normal</span><i><em style="width:' + promDe('pN') + '%"></em></i></div>' +
+      '<div class="sg-res-al" style="--c:#D97706"><b>' + promDe('pA') + '%</b><span>🟡 copamiento Alerta Amarilla</span><i><em style="width:' + promDe('pA') + '%"></em></i></div>' +
+      '<div class="sg-res-al" style="--c:#DC2626"><b>' + promDe('pR') + '%</b><span>🔴 copamiento Alerta Roja</span><i><em style="width:' + promDe('pR') + '%"></em></i></div>' +
     '</div>' +
     '<div class="sg-lista" id="sg-lista">' + lista + '</div>';
   state.sg.ultimoComunas = filas;
@@ -11285,7 +11595,7 @@ async function descargarSeguimiento_() {
       'Comuna': f.c.comuna,
       'Alcance': f.alcance === 'mia' ? 'De la subgerencia' : f.alcance === 'otra' ? 'Otra subgerencia (' + f.subgs.map(aTitulo_).join(' / ') + ')' : 'Sin área asignada',
       'Responsable': f.responsable, 'Jefe de Área': f.jefe, 'Área(s)': f.areas.map(aTitulo_).join(' / '), 'Prioridad': prioInfo_(f.prio).nombre, 'Nivel': f.nivel,
-      'Avance de copamiento %': f.avance, 'Copamiento Normal %': Math.round(f.pN), 'Copamiento Amarilla %': Math.round(f.pA), 'Copamiento Roja %': Math.round(f.pR),
+      'Copamiento Normal %': Math.round(f.pN), 'Copamiento Amarilla %': Math.round(f.pA), 'Copamiento Roja %': Math.round(f.pR),
       'Estado': f.estado === 'sin' ? 'Sin iniciar' : f.estado === 'ok' ? '3 escenarios' : 'En curso (falta ' + f.falta.join(', ') + ')',
       'Usuarios que trabajaron': f.usuarios.map(u => u.nombre + ' (' + u.n + ')').join(', '), 'GRD': f.grd, 'Lista': f.lista ? 'Sí' : 'No',
     }))), 'Comunas');
@@ -12164,7 +12474,7 @@ const AY_GUIAS = [
     pasos: [
       ['Entra al tablero', 'Al iniciar sesión, el Subgerente llega directo a <b>📈 Seguimiento</b> (pestaña superior). No ve los reportes meteorológicos.', ['<span class="m osc">📈 Seguimiento</span>', '<span class="m">🏘️ Comunas y copamiento</span>', '<span class="m">🌲 Inicio de recursos</span>']],
       ['Elige un área', 'Los botones de <b>Área</b> muestran <b>todas</b> las comunas de esa área (con su cantidad). Cada comuna trae su <b>prioridad</b> de Comunas Prioritarias (Alta, Media, Baja) y 🤝 si la comparte con otra área.', ['<span class="m">Todas</span>', '<span class="m v">Los Ángeles</span>', '<span class="m">Mulchén</span>', '<span class="m">Prioridad Alta</span>']],
-      ['Mira el avance de cada comuna', 'El <b>avance</b> es el <b>nivel de copamiento</b>: el promedio de lo cubierto en Normal, Amarilla y Roja sobre la zona de incendios del trienio. Debajo, las tres barras por alerta. Verde ≥ 60%, ámbar ≥ 30%, rojo bajo.', ['<span class="m v">Normal 40%</span>', '<span class="m a">Amarilla 62%</span>', '<span class="m r">Roja 81%</span>', '<span class="m osc">61% avance</span>']],
+      ['Mira el avance de cada comuna', 'Parte eligiendo la <b>prioridad</b> (puedes marcar varias, p. ej. Alta + Media). Cada comuna muestra <b>tres tarjetas</b>: el nivel de copamiento en <b>Normal</b>, <b>Amarilla</b> y <b>Roja</b> sobre la zona de incendios del trienio. Arriba, el promedio de cada alerta para las comunas mostradas.', ['<span class="m v">Normal 40%</span>', '<span class="m a">Amarilla 62%</span>', '<span class="m r">Roja 81%</span>']],
       ['Detecta lo que falta iniciar', 'Cada comuna dice su estado: <b>⛔ Sin iniciar</b> (ningún escenario con entidades), <b>🟠 En curso</b> (y qué escenario falta) o <b>✅ 3 escenarios</b>. Filtra con los botones de <b>Estado</b> y <b>Prioridad</b>.', ['<span class="m r">⛔ Sin iniciar</span>', '<span class="m a">🟠 En curso · falta Roja</span>', '<span class="m v">✅ 3 escenarios</span>']],
       ['Quién ha trabajado', 'En cada comuna aparecen los <b>usuarios que han trabajado</b> en sus planes (con cuántas entidades crearon) y su usuario GRD. «Nadie ha trabajado aún» = hay que asignar o activar a alguien.', ['<span class="m">👤 Claudio León (2)</span>', '<span class="m">🏛️ GRD</span>']],
       ['Revisa el inicio de los recursos', 'Vista <b>🌲 Inicio de recursos</b>: filtros rápidos por <b>área</b> (o toda la subgerencia), <b>periodo</b> (ya iniciados, próximos 7 o 30 días, más adelante, sin fecha) y tipo. La <b>línea de tiempo</b> muestra cada recurso en su fecha de inicio (línea roja = hoy) y el gráfico, cuántos inician por semana.', ['<span class="m">✅ Ya iniciados</span>', '<span class="m">⏳ Próximos 7 días</span>', '<span class="m">📅 Próximos 30 días</span>', '<span class="m">❓ Sin fecha</span>']],
@@ -12172,7 +12482,7 @@ const AY_GUIAS = [
     ],
     tabla: [
       ['Indicador', 'Cómo se lee'],
-      ['Avance de copamiento', 'Promedio del % de copamiento de Normal, Amarilla y Roja sobre la zona de incendios de las últimas 3 temporadas (mismo cálculo de Comunas Prioritarias).'],
+      ['Copamiento por alerta', '% de copamiento de Normal, Amarilla y Roja (una tarjeta cada una) sobre la zona de incendios de las últimas 3 temporadas (mismo cálculo de Comunas Prioritarias).'],
       ['Prioridad', 'Nivel de la comuna en la matriz de Comunas Prioritarias (Alta, Media, Baja).'],
       ['⛔ Sin iniciar', 'La comuna no tiene entidades planificadas en ningún escenario.'],
       ['🟠 En curso', 'Tiene planificación, pero le falta al menos un escenario (se indica cuál).'],
@@ -12301,7 +12611,7 @@ const AY_TOURS = {
     { sel: '#tab-seguimiento', t: '📈 Seguimiento', d: 'El tablero exclusivo del Subgerente. Es su vista de inicio.', antes: () => { ayCerrarMenus_(); }, aviso: 'Solo lo ve el Subgerente (el Administrador lo prueba con «Ver como… › 📈 Modo Subgerente»).' },
     { sel: '#sg-vistas', t: 'Dos vistas simples', d: '<b>🏘️ Comunas y copamiento</b> y <b>🌲 Inicio de recursos</b>, por separado.', antes: () => { ayIrVista_('seguimiento'); state.sg.vista = 'comunas'; if (state.sg.datos) renderSeguimiento_(); } },
     { sel: '#sg-cuerpo .sg-chips', t: 'Elige un área', d: 'Muestra todas las comunas del área, cada una con su prioridad de Comunas Prioritarias.', antes: () => ayIrVista_('seguimiento'), aviso: 'Aparece cuando el tablero termina de calcular.' },
-    { sel: '.sg-com', t: 'Avance de una comuna', d: 'El % grande es el <b>nivel de copamiento</b> (promedio Normal · Amarilla · Roja). A la derecha: ⛔ sin iniciar / 🟠 en curso / ✅ 3 escenarios y los usuarios que han trabajado.', antes: () => ayIrVista_('seguimiento'), aviso: 'Aparece cuando el tablero termina de calcular.' },
+    { sel: '.sg-com', t: 'Avance de una comuna', d: 'Tres tarjetas con el <b>nivel de copamiento</b> de Normal, Amarilla y Roja. A la derecha: ⛔ sin iniciar / 🟠 en curso / ✅ 3 escenarios y los usuarios que han trabajado.', antes: () => ayIrVista_('seguimiento'), aviso: 'Aparece cuando el tablero termina de calcular.' },
     { sel: '[data-sg-vista="recursos"]', t: '🌲 Inicio de recursos', d: 'Fechas de inicio de operación por área: línea de tiempo, inicios por semana y filtros rápidos (ya iniciados, próximos 7 / 30 días, sin fecha).', antes: () => ayIrVista_('seguimiento') },
     { sel: '[data-sg-vista="turnos"]', t: '📅 Turnos', d: 'Qué áreas tienen el calendario de turnos completo. Un recurso queda incompleto si tiene más de 4 días libres seguidos en el periodo.', antes: () => ayIrVista_('seguimiento') },
     { sel: '#sg-excel', t: '⬇️ Excel', d: 'Descarga comunas, inicio de recursos y, si abriste la vista Turnos, la completitud del calendario por recurso.', antes: () => ayIrVista_('seguimiento') },
@@ -12593,6 +12903,555 @@ async function descargarAccionesRiesgo_() {
     ws['!cols'] = Object.keys(filas[0]).map(k => ({ wch: ['Detalle', 'Gestión'].includes(k) ? 50 : 16 }));
     XLSX.utils.book_append_sheet(wb, ws, 'Acciones de riesgo');
     XLSX.writeFile(wb, 'acciones_riesgo_' + tbHoyISO_() + '.xlsx');
+    mostrarToast_('✅ Descargado: ' + filas.length + ' reportes.');
+  } catch (e) { mostrarToast_('No se pudo generar el Excel: ' + (e.message || e)); }
+}
+
+/* ==================== 🪜 IMPLEMENTACIÓN POR COMUNA (Prevención ▾, 19-10-2026, SQL 124) ====================
+ * Control interno: avance de las 24 comunas relevantes (V6 de Comunas Prioritarias) en 7 etapas, por comuna y por
+ * área. Solo el Administrador marca; Jefes de Área, Subgerentes y GRT ven (RLS de implementacion_etapas). */
+const IM_ETAPAS = [
+  ['reunion_autoridades', '🤝', 'Reunión autoridades'],
+  ['capacitacion_sistema', '🎓', 'Capacitación del Sistema'],
+  ['bajada_gestores', '👥', 'Bajada a Gestores'],
+  ['rutas_normal', '🛣️', 'Construcción de rutas en condiciones normales'],
+  ['bajada_alcalde', '🏛️', 'Bajada a Alcalde'],
+  ['sistema_grd', '🖥️', 'Mostrar Sistema a GRD'],
+  ['autonomia_grd', '🚀', 'Autonomía de GRD en el Sistema'],
+];
+state.im = { datos: null, area: '', listeners: false };
+function puedeImplementacion_() { return esAdminOJefe_(); }
+function imPuedeEditar_() { return !!(state.perfil && state.perfil.perfil === 'Administrador'); }
+function imColor_(p) { return p >= 100 ? '#16A34A' : p >= 60 ? '#65A30D' : p >= 30 ? '#D97706' : p > 0 ? '#EA580C' : '#DC2626'; }
+
+async function abrirImplementacion_() {
+  if (!state.im.listeners) {
+    state.im.listeners = true;
+    document.getElementById('im-recargar').addEventListener('click', () => cargarImplementacion_());
+    document.getElementById('im-excel').addEventListener('click', descargarImplementacion_);
+    document.getElementById('im-cuerpo').addEventListener('click', e => {
+      const a = e.target.closest('[data-im-area]');
+      if (a) { e.preventDefault(); state.im.area = state.im.area === a.dataset.imArea ? '' : a.dataset.imArea; renderImplementacion_(); return; }
+      const c = e.target.closest('[data-im-celda]');
+      if (c && imPuedeEditar_()) { const [id, et] = c.dataset.imCelda.split('|'); marcarEtapa_(Number(id), et); }
+    });
+  }
+  document.getElementById('im-modo').textContent = imPuedeEditar_() ? '✏️ Puedes marcar las etapas (clic en cada casilla)' : '👁️ Solo lectura';
+  if (!state.im.datos) await cargarImplementacion_();
+  else renderImplementacion_();
+}
+
+async function cargarImplementacion_() {
+  const est = document.getElementById('im-estado'), cuerpo = document.getElementById('im-cuerpo');
+  est.textContent = 'Cargando…';
+  try {
+    const { data: pp } = await supabaseClient.from('prioridad_parametros').select('id, parametros');
+    const vig = (pp || []).find(f => f.id === 'vigente');
+    const P = paramsCompletosPrio_(vig ? vig.parametros : null);
+    const ids = (P.v6 && P.v6.ids) || PRIO_RELEVANTES_DEFECTO;
+    const [cp, ac, et] = await Promise.all([
+      supabaseClient.from('comunas_prioridad').select('*').in('id_comuna', ids),
+      supabaseClient.from('v_area_comunas_admin').select('area, id_comuna').in('id_comuna', ids),
+      supabaseClient.from('implementacion_etapas').select('*').in('id_comuna', ids),
+    ]);
+    if (et.error) {
+      cuerpo.innerHTML = '<div class="gr-aviso">⚠️ ' + (/implementacion_etapas/.test(et.error.message)
+        ? 'Falta ejecutar en Supabase el SQL 124 (sql/pendientes/124_implementacion_etapas_y_nombres.sql).' : escapeHtml_(et.error.message)) + '</div>';
+      est.textContent = 'Error'; return;
+    }
+    // Un nombre por área aunque venga escrita con y sin tilde («CONCEPCION» / «CONCEPCIÓN»): se prefiere la con tilde
+    const nombreArea = {};
+    (ac.data || []).forEach(x => { if (!x.area) return; const k = SG_KEY(x.area); if (!nombreArea[k] || /[^\x00-\x7F]/.test(x.area)) nombreArea[k] = x.area; });
+    const areasDe = {};
+    (ac.data || []).forEach(x => { if (!x.area) return; const k = Number(x.id_comuna), a = nombreArea[SG_KEY(x.area)]; (areasDe[k] = areasDe[k] || []); if (!areasDe[k].includes(a)) areasDe[k].push(a); });
+    const marcas = {}; (et.data || []).forEach(r => { marcas[r.id_comuna + '|' + r.etapa] = r; });
+    const nombres = await nombresPerfiles_([...new Set((et.data || []).map(r => r.actualizado_por).filter(Boolean))]);
+    const comunas = ids.map(id => {
+      const m = (cp.data || []).find(x => Number(x.id_comuna) === Number(id)) || { id_comuna: id, comuna: 'Comuna ' + id };
+      const pr = calcularPrio_(m, P);
+      return { id: Number(id), comuna: m.comuna, prio: pr.prio, nivel: pr.nivel, areas: areasDe[Number(id)] || [] };
+    }).sort((a, b) => a.prio - b.prio || (b.nivel || 0) - (a.nivel || 0) || a.comuna.localeCompare(b.comuna, 'es'));
+    state.im.datos = { comunas, marcas, nombres };
+    est.textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  } catch (e) {
+    est.textContent = 'Error';
+    cuerpo.innerHTML = '<div class="tb-vacio">No se pudo cargar: ' + escapeHtml_(e.message || String(e)) + '</div>';
+    return;
+  }
+  renderImplementacion_();
+}
+
+/** Gráfico de torta (anillo) del avance con el % al centro (SVG, sin librería). */
+function imTorta_(pct, tam, sub) {
+  const r = 42, cir = 2 * Math.PI * r, p = Math.max(0, Math.min(100, pct || 0)), col = imColor_(p);
+  return '<svg class="im-torta" viewBox="0 0 100 100" width="' + tam + '" height="' + tam + '" role="img" aria-label="Avance ' + p + '%">' +
+    '<circle cx="50" cy="50" r="' + r + '" fill="none" stroke="#E2E8F0" stroke-width="13"/>' +
+    '<circle cx="50" cy="50" r="' + r + '" fill="none" stroke="' + col + '" stroke-width="13" stroke-linecap="round" transform="rotate(-90 50 50)"' +
+      ' stroke-dasharray="' + (cir * p / 100).toFixed(1) + ' ' + cir.toFixed(1) + '"/>' +
+    '<text x="50" y="' + (sub ? 50 : 56) + '" text-anchor="middle" font-size="' + (sub ? 21 : 22) + '" font-weight="900" fill="' + col + '">' + p + '%</text>' +
+    (sub ? '<text x="50" y="66" text-anchor="middle" font-size="9.5" font-weight="700" fill="#64748B">' + sub + '</text>' : '') + '</svg>';
+}
+function imHechas_(c) { const M = state.im.datos.marcas; return IM_ETAPAS.filter(([k]) => M[c.id + '|' + k] && M[c.id + '|' + k].completada).length; }
+
+function renderImplementacion_() {
+  const D = state.im.datos; if (!D) return;
+  const cuerpo = document.getElementById('im-cuerpo'), M = D.marcas, edita = imPuedeEditar_();
+  const N = IM_ETAPAS.length;
+  const pctDe = lista => { const tot = lista.length * N; return tot ? Math.round(lista.reduce((s, c) => s + imHechas_(c), 0) * 100 / tot) : 0; };
+  // Áreas (una comuna compartida cuenta en ambas; el nombre ya viene unificado con/sin tilde desde la carga)
+  const porArea = {};
+  D.comunas.forEach(c => (c.areas.length ? c.areas : ['(sin área)']).forEach(a => { (porArea[a] = porArea[a] || []).push(c); }));
+  const areas = Object.keys(porArea).map(a => ({ a, lista: porArea[a], pct: pctDe(porArea[a]) })).sort((x, y) => y.pct - x.pct || x.a.localeCompare(y.a, 'es'));
+  const filas = state.im.area ? (porArea[state.im.area] || []) : D.comunas;
+  const pctG = pctDe(D.comunas), pctF = pctDe(filas);
+  const completas = D.comunas.filter(c => imHechas_(c) === N).length, sinIniciar = D.comunas.filter(c => imHechas_(c) === 0).length;
+  const porEtapa = IM_ETAPAS.map(([k]) => filas.filter(c => M[c.id + '|' + k] && M[c.id + '|' + k].completada).length);
+  const fmtF = f => f ? new Date(String(f).slice(0, 10) + 'T12:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' }) : '';
+  cuerpo.innerHTML =
+    '<div class="im-global" style="--c:' + imColor_(pctG) + '">' + imTorta_(pctG, 132, 'avance') +
+      '<div class="barra"><b style="font-size:15px;">Avance de la implementación</b>' +
+      '<small style="margin:2px 0 8px;">' + D.comunas.length + ' comunas × ' + N + ' etapas · ✅ ' + completas + ' comuna(s) completas · ⛔ ' + sinIniciar + ' sin iniciar</small>' +
+      '<div class="im-etapas-res">' + IM_ETAPAS.map(([k, ico, nom]) => {
+        const n = D.comunas.filter(c => M[c.id + '|' + k] && M[c.id + '|' + k].completada).length, p = D.comunas.length ? Math.round(n * 100 / D.comunas.length) : 0;
+        return '<div title="' + escapeHtml_(nom) + ': ' + n + ' de ' + D.comunas.length + ' comunas"><span>' + ico + ' ' + escapeHtml_(nom) + '</span><span class="im-barra chica" style="--c:' + imColor_(p) + '"><em style="width:' + p + '%"></em></span><b style="color:' + imColor_(p) + '">' + p + '%</b></div>';
+      }).join('') + '</div></div></div>' +
+    '<div class="im-areas">' + areas.map(x => '<div class="im-area' + (state.im.area === x.a ? ' on' : '') + '" style="--c:' + imColor_(x.pct) + '" data-im-area="' + escapeHtml_(x.a) + '" title="Clic para ver solo esta área">' +
+      imTorta_(x.pct, 54) + '<div><b>📍 ' + escapeHtml_(aTitulo_(x.a)) + '</b>' +
+      '<small style="color:var(--text-tertiary);">' + x.lista.length + ' comuna(s) · ' + x.lista.filter(c => imHechas_(c) === N).length + ' completa(s)</small></div></div>').join('') + '</div>' +
+    (state.im.area ? '<div class="sg-area-cab2"><b>📍 ' + escapeHtml_(aTitulo_(state.im.area)) + '</b><span>' + filas.length + ' comuna(s) · avance ' + pctF + '% · <a href="#" data-im-area="' + escapeHtml_(state.im.area) + '">ver todas</a></span></div>' : '') +
+    '<div style="overflow:auto;"><table class="im-tabla"><thead><tr><th class="izq">Comuna</th><th class="izq">Área</th>' +
+      IM_ETAPAS.map(([, ico, nom], i) => '<th title="' + escapeHtml_(nom) + '"><span class="ico">' + ico + '</span>' + (i + 1) + '. ' + escapeHtml_(nom.length > 18 ? nom.slice(0, 16) + '…' : nom) + '</th>').join('') +
+      '<th class="izq">Avance</th></tr></thead><tbody>' +
+      filas.map(c => {
+        const h = imHechas_(c), p = Math.round(h * 100 / N), n = prioInfo_(c.prio);
+        return '<tr><td class="izq"><b>' + escapeHtml_(c.comuna) + '</b><br><span class="prio-badge" style="background:' + n.color + ';color:' + n.texto + ';">' + n.nombre + (c.nivel != null ? ' · ' + fmtNivelPrio_(c.nivel) : '') + '</span></td>' +
+          '<td class="izq" style="font-size:11px;">' + escapeHtml_(c.areas.map(aTitulo_).join(' / ') || '—') + '</td>' +
+          IM_ETAPAS.map(([k, , nom]) => {
+            const r = M[c.id + '|' + k], ok = !!(r && r.completada);
+            const quien = r && r.actualizado_por ? (D.nombres[r.actualizado_por] || 'Administrador') : '';
+            const t = nom + (ok ? ' · ✅ ' + (r.fecha ? fmtF(r.fecha) + ' · ' : '') + quien : ' · pendiente') + (edita ? ' · clic para ' + (ok ? 'desmarcar' : 'marcar') : '');
+            return '<td><span class="im-celda' + (ok ? ' ok' : '') + (edita ? ' editable' : '') + '" data-im-celda="' + c.id + '|' + k + '" title="' + escapeHtml_(t) + '">' +
+              (ok ? '✓<small>' + fmtF(r.fecha) + '</small>' : '') + '</span></td>';
+          }).join('') +
+          '<td class="izq"><div class="im-av" style="--c:' + imColor_(p) + '"><span class="im-barra chica"><em style="width:' + p + '%"></em></span><b>' + p + '%</b></div><small style="color:var(--text-tertiary);">' + h + ' de ' + N + '</small></td></tr>';
+      }).join('') +
+      '</tbody><tfoot><tr><td class="izq" colspan="2">Comunas con la etapa cumplida</td>' +
+      porEtapa.map(n => { const p = filas.length ? Math.round(n * 100 / filas.length) : 0; return '<td style="color:' + imColor_(p) + '">' + n + '/' + filas.length + '<br>' + p + '%</td>'; }).join('') +
+      '<td class="izq" style="color:' + imColor_(pctF) + '">' + pctF + '%</td></tr></tfoot></table></div>';
+}
+
+async function marcarEtapa_(idComuna, etapa) {
+  const D = state.im.datos, k = idComuna + '|' + etapa, actual = D.marcas[k];
+  const nuevo = !(actual && actual.completada);
+  const { data, error } = await supabaseClient.from('implementacion_etapas')
+    .upsert({ id_comuna: idComuna, etapa, completada: nuevo }, { onConflict: 'id_comuna,etapa' }).select().maybeSingle();
+  if (error) { mostrarToast_('No se pudo guardar: ' + error.message); return; }
+  D.marcas[k] = data || { id_comuna: idComuna, etapa, completada: nuevo, fecha: nuevo ? tbHoyISO_() : null, actualizado_por: state.perfil.id };
+  if (state.perfil && state.perfil.id) D.nombres[state.perfil.id] = state.perfil.nombre_completo;
+  const c = D.comunas.find(x => x.id === idComuna), et = IM_ETAPAS.find(x => x[0] === etapa);
+  mostrarToast_((nuevo ? '✅ ' : '↩️ ') + (c ? c.comuna : '') + ' · ' + (et ? et[2] : etapa) + (nuevo ? ' cumplida' : ' pendiente'));
+  renderImplementacion_();
+}
+
+async function descargarImplementacion_() {
+  const D = state.im.datos; if (!D) { mostrarToast_('No hay datos para descargar.'); return; }
+  try {
+    const XLSX = await tbCargarSheetJs_();
+    const wb = XLSX.utils.book_new(), N = IM_ETAPAS.length;
+    const filas = D.comunas.map(c => {
+      const o = { 'Comuna': c.comuna, 'Área': c.areas.map(aTitulo_).join(' / '), 'Prioridad': prioInfo_(c.prio).nombre };
+      IM_ETAPAS.forEach(([k, , nom], i) => { const r = D.marcas[c.id + '|' + k]; o[(i + 1) + '. ' + nom] = r && r.completada ? 'Sí' + (r.fecha ? ' (' + String(r.fecha).slice(0, 10) + ')' : '') : 'No'; });
+      o['Etapas cumplidas'] = imHechas_(c); o['Avance %'] = Math.round(imHechas_(c) * 100 / N);
+      return o;
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filas), 'Por comuna');
+    const porArea = {}; D.comunas.forEach(c => (c.areas.length ? c.areas : ['(sin área)']).forEach(a => { (porArea[a] = porArea[a] || []).push(c); }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(Object.keys(porArea).sort().map(a => ({
+      'Área': aTitulo_(a), 'Comunas': porArea[a].length, 'Comunas completas': porArea[a].filter(c => imHechas_(c) === N).length,
+      'Avance %': Math.round(porArea[a].reduce((s, c) => s + imHechas_(c), 0) * 100 / (porArea[a].length * N)),
+    }))), 'Por área');
+    XLSX.writeFile(wb, 'implementacion_comunas_' + tbHoyISO_() + '.xlsx');
+    mostrarToast_('✅ Descargado: ' + filas.length + ' comunas.');
+  } catch (e) { mostrarToast_('No se pudo generar el Excel: ' + (e.message || e)); }
+}
+
+/* ==================== 📱 REPORTES DE LA APP DE PATRULLAJE (Prevención ▾, 18-10-2026, SQL 122) ====================
+ * La central revisa los reportes que envían los patrulleros desde app-patrullero/app.html, ve la foto (bucket
+ * privado app-fotos, URL firmada), cambia el estado y responde: el patrullero ve estado y respuesta en su app.
+ * Lectura: cualquier usuario autenticado (RLS); cambiar estado: Admin + Jefe de Área (política app_rep_gestionar). */
+const AR_ESTADOS = {
+  enviado:     { t: 'Sin revisar', c: '#1D4ED8', c2: '#DBEAFE', ico: '📨' },
+  recibido:    { t: 'Recibido',    c: '#4338CA', c2: '#E0E7FF', ico: '👁️' },
+  en_atencion: { t: 'En atención', c: '#C2410C', c2: '#FFEDD5', ico: '🚨' },
+  cerrado:     { t: 'Cerrado',     c: '#15803D', c2: '#DCFCE7', ico: '✅' },
+};
+state.ar = { reportes: [], usuarios: {}, tipos: {}, turnos: [], posTurnos: {}, listeners: false, mapa: null, capa: null, timer: null, encuadrado: false,
+             vista: 'vivo', vivo: { turnos: [], puntos: {} }, vivoCapas: {}, vivoEncuadrado: false };
+
+function puedeReportesApp_() { return esAdminOJefe_(); }
+function arComuna_(id) { const c = (state.comunas || []).find(x => String(x.id) === String(id)); return c ? c.comuna : ''; }
+function arAbierto_(r) { return r.estado !== 'cerrado'; }
+
+async function abrirReportesApp_() {
+  if (!state.ar.listeners) {
+    state.ar.listeners = true;
+    const re = () => renderReportesApp_();
+    document.getElementById('ar-periodo').addEventListener('change', () => cargarReportesApp_());
+    ['ar-estado', 'ar-comuna', 'ar-tipo'].forEach(id => document.getElementById(id).addEventListener('change', re));
+    let t = null;
+    document.getElementById('ar-buscar').addEventListener('input', () => { clearTimeout(t); t = setTimeout(re, 200); });
+    document.getElementById('ar-descargar').addEventListener('click', descargarReportesApp_);
+    document.getElementById('ar-actualizar').addEventListener('click', () => cargarReportesApp_());
+    const tabla = document.getElementById('ar-tabla');
+    tabla.addEventListener('change', e => {
+      const s = e.target.closest('[data-ar-estado]'); if (s) cambiarEstadoReporteApp_(s.dataset.arEstado, s.value, s);
+    });
+    document.getElementById('ar-vistas').addEventListener('click', e => {
+      const b = e.target.closest('[data-ar-vista]'); if (!b || b.dataset.arVista === state.ar.vista) return;
+      state.ar.vista = b.dataset.arVista;
+      aplicarVistaApp_();
+      cargarReportesApp_();
+    });
+    tabla.addEventListener('click', e => {
+      const tv = e.target.closest('tr[data-ar-turno]'); if (tv) { enfocarTurnoApp_(tv.dataset.arTurno); return; }
+      const f = e.target.closest('[data-ar-foto]'); if (f) { verFotoReporteApp_(f.dataset.arFoto); return; }
+      const b = e.target.closest('[data-ar-resp]'); if (b) { cambiarEstadoReporteApp_(b.dataset.arResp, null, null); return; }
+      const fila = e.target.closest('tr[data-ar-id]');
+      if (fila && !e.target.closest('select,button,a')) enfocarReporteApp_(fila.dataset.arId);
+    });
+  }
+  aplicarVistaApp_();
+  await cargarReportesApp_();
+  // Se refresca solo cada 30 s mientras la vista esté abierta
+  clearInterval(state.ar.timer);
+  state.ar.timer = setInterval(() => {
+    if (state.vistaActual === 'appreportes') cargarReportesApp_(true);
+    else { clearInterval(state.ar.timer); state.ar.timer = null; }
+  }, 30000);
+}
+function aplicarVistaApp_() {
+  const vivo = state.ar.vista === 'vivo';
+  document.querySelectorAll('#ar-vistas [data-ar-vista]').forEach(b => b.classList.toggle('on', b.dataset.arVista === state.ar.vista));
+  document.getElementById('ar-filtros').style.display = vivo ? 'none' : 'contents';
+  document.getElementById('ar-descargar').style.display = vivo ? 'none' : '';
+}
+function arMapa_() {
+  if (!state.ar.mapa) {
+    state.ar.mapa = L.map('ar-mapa', { zoomControl: true }).setView([-38.6, -72.5], 8);
+    // Mapas base de Esri, como el resto del sistema (los servidores de OpenStreetMap bloquean este uso: error 403)
+    const esri = s => 'https://server.arcgisonline.com/ArcGIS/rest/services/' + s + '/MapServer/tile/{z}/{y}/{x}';
+    const calles = L.tileLayer(esri('World_Street_Map'), { maxZoom: 19, attribution: 'Tiles &copy; Esri' }).addTo(state.ar.mapa);
+    const sat = L.layerGroup([L.tileLayer(esri('World_Imagery'), { maxZoom: 19, attribution: 'Tiles &copy; Esri' }),
+                              L.tileLayer(esri('Reference/World_Transportation'), { maxZoom: 19 })]);
+    const gris = L.tileLayer(esri('Canvas/World_Light_Gray_Base'), { maxZoom: 16, attribution: 'Tiles &copy; Esri' });
+    L.control.layers({ '🗺️ Calles': calles, '🛰️ Satélite': sat, '⬜ Gris': gris }, null, { position: 'topright', collapsed: true }).addTo(state.ar.mapa);
+    state.ar.capa = L.layerGroup().addTo(state.ar.mapa);
+  }
+  setTimeout(() => state.ar.mapa.invalidateSize(), 80);
+  return state.ar.mapa;
+}
+
+// ── 🛰️ Patrullajes en vivo: turnos activos + los de hoy, con su recorrido
+async function cargarVivoApp_(silencioso) {
+  if (!silencioso) document.getElementById('ar-estado-txt').textContent = 'Cargando…';
+  const hoy0 = new Date(); hoy0.setHours(0, 0, 0, 0);
+  const [act, hoy, usr] = await Promise.all([
+    supabaseClient.from('app_turnos').select('*').eq('estado', 'activo').limit(500),
+    supabaseClient.from('app_turnos').select('*').gte('inicio', hoy0.toISOString()).limit(500),
+    supabaseClient.from('app_usuarios').select('id, nombre, telefono, institucion, comuna_id'),
+  ]);
+  const av = document.getElementById('ar-aviso');
+  if (act.error) { av.style.display = ''; av.textContent = '⚠️ ' + act.error.message; document.getElementById('ar-estado-txt').textContent = 'Error'; return; }
+  av.style.display = 'none';
+  state.ar.usuarios = {}; (usr.data || []).forEach(u => { state.ar.usuarios[u.id] = u; });
+  const porId = {}; (act.data || []).concat(hoy.data || []).forEach(t => { porId[t.id] = t; });
+  const turnos = Object.values(porId);
+  // Recorridos (de a 1.000 puntos)
+  const puntos = {};
+  const ids = turnos.map(t => t.id);
+  for (let i = 0; i < ids.length; i += 60) {
+    for (let d = 0; d < 30000; d += 1000) {
+      const { data, error } = await supabaseClient.from('app_sesiones_gps').select('turno_id, lat, lng, registrado_en')
+        .in('turno_id', ids.slice(i, i + 60)).order('registrado_en', { ascending: true }).range(d, d + 999);
+      if (error || !data || !data.length) break;
+      data.forEach(p => { (puntos[p.turno_id] = puntos[p.turno_id] || []).push(p); });
+      if (data.length < 1000) break;
+    }
+  }
+  const dist = (a, b) => { const r = Math.PI / 180, h = Math.sin((b.lat - a.lat) * r / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin((b.lng - a.lng) * r / 2) ** 2; return 12742 * Math.asin(Math.sqrt(h)); };
+  turnos.forEach(t => {
+    const ps = puntos[t.id] || [];
+    let km = 0;
+    for (let i = 1; i < ps.length; i++) {
+      const d = dist(ps[i - 1], ps[i]), hrs = (new Date(ps[i].registrado_en) - new Date(ps[i - 1].registrado_en)) / 36e5;
+      if (hrs <= 0 || d / hrs <= 200) km += d;
+    }
+    t._km = t.estado === 'cerrado' && Number(t.km) ? Number(t.km) : km;
+    t._ult = ps.length ? ps[ps.length - 1] : null;
+    t._min = t._ult ? (Date.now() - new Date(t._ult.registrado_en)) / 60000 : null;
+  });
+  turnos.sort((a, b) => (a.estado === 'activo' ? 0 : 1) - (b.estado === 'activo' ? 0 : 1) || new Date(b.inicio) - new Date(a.inicio));
+  state.ar.vivo = { turnos, puntos };
+  renderVivoApp_();
+  document.getElementById('ar-estado-txt').textContent = 'En vivo · ' + new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+function arSenal_(t) {
+  if (t.estado !== 'activo') return '<span class="rg-chip" style="background:#F1F5F9;color:#64748B;">⏹ Terminado</span>';
+  if (t._min == null) return '<span class="rg-chip" style="background:#FEE2E2;color:#B91C1C;">⚠️ Sin señal</span>';
+  const m = Math.round(t._min), txt = m < 1 ? 'ahora' : m < 60 ? 'hace ' + m + ' min' : 'hace ' + Math.floor(m / 60) + ' h';
+  const [c, c2] = m <= 5 ? ['#15803D', '#DCFCE7'] : m <= 15 ? ['#B45309', '#FEF3C7'] : ['#B91C1C', '#FEE2E2'];
+  return '<span class="rg-chip" style="background:' + c2 + ';color:' + c + ';">● ' + txt + '</span>';
+}
+function renderVivoApp_() {
+  const { turnos, puntos } = state.ar.vivo;
+  const activos = turnos.filter(t => t.estado === 'activo');
+  const kpi = (n, t, c) => '<div class="gr-kpi" style="--c:' + c + '"><b>' + n + '</b>' + t + '</div>';
+  document.getElementById('ar-kpis').innerHTML =
+    kpi(activos.length, '🚓 patrullando ahora', '#16A34A') +
+    kpi(activos.filter(t => t._min == null || t._min > 15).length, '⚠️ sin señal > 15 min', '#DC2626') +
+    kpi(turnos.filter(t => t.estado !== 'activo').length, '⏹ terminados hoy', '#64748B') +
+    kpi(turnos.reduce((s, t) => s + (t._km || 0), 0).toFixed(1), 'km recorridos hoy', '#2563EB') +
+    kpi(turnos.reduce((s, t) => s + (t.reportes || 0), 0), '📋 reportes en turnos', '#7C3AED');
+  const cont = document.getElementById('ar-tabla');
+  cont.innerHTML = !turnos.length ? '<div class="tb-vacio">No hay patrullajes hoy. Aparecen aquí apenas un patrullero toca «Iniciar patrullaje» en la app.</div>'
+    : '<table class="gr-tabla"><thead><tr><th>Patrullero</th><th>Comuna</th><th>Ruta</th><th>Inicio</th><th>Duración</th><th>Km</th><th>Señal</th></tr></thead><tbody>' +
+      turnos.map(t => {
+        const u = state.ar.usuarios[t.usuario_id] || {};
+        const fin = t.estado === 'activo' ? Date.now() : new Date(t.fin || t.inicio).getTime();
+        const min = Math.max(0, Math.round((fin - new Date(t.inicio)) / 60000));
+        return '<tr data-ar-turno="' + escapeHtml_(t.id) + '" style="cursor:pointer;" title="Clic para ver el recorrido en el mapa">' +
+          '<td><b>' + escapeHtml_(u.nombre || '—') + '</b><br><small>' + escapeHtml_([u.institucion, u.telefono].filter(Boolean).join(' · ')) + '</small></td>' +
+          '<td>' + escapeHtml_(arComuna_(t.comuna_id) || '—') + '</td>' +
+          '<td>' + escapeHtml_(t.ruta_nombre || 'Patrullaje libre') + '</td>' +
+          '<td style="white-space:nowrap;">' + rgFechaHora_(t.inicio) + '</td>' +
+          '<td>' + Math.floor(min / 60) + ':' + String(min % 60).padStart(2, '0') + ' h</td>' +
+          '<td>' + (t._km || 0).toFixed(1) + '<br><small>' + ((puntos[t.id] || []).length) + ' pts</small></td>' +
+          '<td>' + arSenal_(t) + '</td></tr>';
+      }).join('') + '</tbody></table>';
+  // Mapa: recorridos (terminados atenuados) + 🚓 en la última posición de los activos
+  const mapa = arMapa_();
+  state.ar.capa.clearLayers();
+  state.ar.vivoCapas = {};
+  const colores = ['#2563EB', '#16A34A', '#7C3AED', '#EA580C', '#0891B2', '#DB2777', '#CA8A04', '#DC2626'];
+  turnos.forEach((t, i) => {
+    const ps = puntos[t.id] || [], u = state.ar.usuarios[t.usuario_id] || {}, activo = t.estado === 'activo';
+    const g = L.featureGroup().addTo(state.ar.capa);
+    if (ps.length > 1) L.polyline(ps.map(p => [p.lat, p.lng]), activo ? { color: colores[i % colores.length], weight: 4, opacity: .9 } : { color: '#64748B', weight: 3, opacity: .5, dashArray: '5 6' })
+      .bindPopup('<b>' + escapeHtml_(u.nombre || 'Patrullero') + '</b><br>' + escapeHtml_(t.ruta_nombre || 'Patrullaje libre') + '<br><small>' + (t._km || 0).toFixed(1) + ' km</small>').addTo(g);
+    if (activo && t._ult) L.marker([t._ult.lat, t._ult.lng], { icon: L.divIcon({ className: '', html: '<div style="font-size:24px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))">🚓</div>', iconSize: [26, 26], iconAnchor: [13, 13] }), zIndexOffset: 500 })
+      .bindTooltip(escapeHtml_(u.nombre || 'Patrullero'), { permanent: true, direction: 'top', offset: [0, -12] })
+      .bindPopup('<b>🚓 ' + escapeHtml_(u.nombre || 'Patrullero') + '</b><br>' + escapeHtml_([u.institucion, u.telefono].filter(Boolean).join(' · ')) + '<br>' + escapeHtml_(t.ruta_nombre || 'Patrullaje libre') +
+        '<br><small>Última señal ' + new Date(t._ult.registrado_en).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) + ' · ' + (t._km || 0).toFixed(1) + ' km</small>').addTo(g);
+    state.ar.vivoCapas[t.id] = g;
+  });
+  if (!state.ar.vivoEncuadrado && state.ar.capa.getLayers().some(g => g.getLayers().length)) {
+    state.ar.vivoEncuadrado = true;
+    setTimeout(() => {
+      mapa.invalidateSize();
+      const b = L.featureGroup(state.ar.capa.getLayers().filter(g => g.getLayers().length)).getBounds();
+      if (b.isValid()) mapa.fitBounds(b, { padding: [30, 30], maxZoom: 15 });
+    }, 120);
+  }
+}
+function enfocarTurnoApp_(id) {
+  const g = state.ar.vivoCapas[id];
+  if (!g || !g.getLayers().length) { mostrarToast_('Este patrullaje aún no tiene puntos GPS.'); return; }
+  const b = g.getBounds();
+  if (b.isValid()) state.ar.mapa.fitBounds(b, { padding: [30, 30], maxZoom: 16 });
+  const m = g.getLayers().find(l => l instanceof L.Marker); if (m) m.openPopup();
+}
+
+async function cargarReportesApp_(silencioso) {
+  if (state.ar.vista === 'vivo') return cargarVivoApp_(silencioso);
+  const dias = Number(document.getElementById('ar-periodo').value || 7);
+  const desde = new Date(Date.now() - dias * 864e5).toISOString();
+  if (!silencioso) document.getElementById('ar-estado-txt').textContent = 'Cargando…';
+  const [rep, usr, tip, tur] = await Promise.all([
+    supabaseClient.from('app_reportes').select('*').gte('creado_en', desde).order('creado_en', { ascending: false }).limit(3000),
+    supabaseClient.from('app_usuarios').select('id, nombre, telefono, institucion, comuna_id'),
+    supabaseClient.from('app_tipos_accion').select('id, nombre, icono, color'),
+    supabaseClient.from('app_turnos').select('*').eq('estado', 'activo'),
+  ]);
+  const av = document.getElementById('ar-aviso');
+  if (rep.error) {
+    av.style.display = '';
+    av.textContent = /estado|app_turnos/.test(rep.error.message) ? '⚠️ Falta ejecutar en Supabase el SQL 122 (app_patrullero_v2).' : '⚠️ ' + rep.error.message;
+    document.getElementById('ar-tabla').innerHTML = '';
+    document.getElementById('ar-estado-txt').textContent = 'Error';
+    return;
+  }
+  av.style.display = 'none';
+  const nuevos = state.ar.reportes.length ? (rep.data || []).filter(r => !state.ar.reportes.some(x => x.id === r.id)).length : 0;
+  state.ar.reportes = rep.data || [];
+  state.ar.usuarios = {}; (usr.data || []).forEach(u => { state.ar.usuarios[u.id] = u; });
+  state.ar.tipos = {}; (tip.data || []).forEach(t => { state.ar.tipos[t.id] = t; });
+  state.ar.turnos = tur.error ? [] : (tur.data || []);
+  // Última posición de cada patrullero en turno (últimas 3 h)
+  state.ar.posTurnos = {};
+  if (state.ar.turnos.length) {
+    const { data: pts } = await supabaseClient.from('app_sesiones_gps').select('turno_id, lat, lng, registrado_en')
+      .in('turno_id', state.ar.turnos.map(t => t.id)).gte('registrado_en', new Date(Date.now() - 3 * 36e5).toISOString())
+      .order('registrado_en', { ascending: false }).limit(2000);
+    (pts || []).forEach(p => { if (!state.ar.posTurnos[p.turno_id]) state.ar.posTurnos[p.turno_id] = p; });
+  }
+  // Filtros con lo que hay
+  const comunas = [...new Set(state.ar.reportes.map(r => r.comuna_id).filter(Boolean))].map(id => [id, arComuna_(id) || id]).sort((a, b) => a[1].localeCompare(b[1], 'es'));
+  const selC = document.getElementById('ar-comuna'), vC = selC.value;
+  selC.innerHTML = '<option value="">Todas las comunas (' + comunas.length + ')</option>' + comunas.map(([id, n]) => '<option value="' + escapeHtml_(id) + '">' + escapeHtml_(n) + '</option>').join('');
+  selC.value = [...selC.options].some(o => o.value === vC) ? vC : '';
+  const selT = document.getElementById('ar-tipo'), vT = selT.value;
+  const tipos = Object.values(state.ar.tipos).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  selT.innerHTML = '<option value="">Todas las acciones</option>' + tipos.map(t => '<option value="' + escapeHtml_(t.id) + '">' + escapeHtml_((t.icono || '') + ' ' + t.nombre) + '</option>').join('');
+  selT.value = [...selT.options].some(o => o.value === vT) ? vT : '';
+  renderReportesApp_();
+  document.getElementById('ar-estado-txt').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  if (silencioso && nuevos) mostrarToast_('📱 ' + nuevos + ' reporte(s) nuevo(s) de la app de patrullaje');
+}
+
+function arFiltrados_() {
+  const fE = document.getElementById('ar-estado').value, fC = document.getElementById('ar-comuna').value, fT = document.getElementById('ar-tipo').value;
+  const q = plNorm_(document.getElementById('ar-buscar').value || '');
+  return state.ar.reportes.filter(r => {
+    if (fE === '__abiertos__' ? !arAbierto_(r) : fE === '__urgentes__' ? !(r.urgencia === 'urgente' && arAbierto_(r)) : (fE && r.estado !== fE)) return false;
+    if (fC && String(r.comuna_id) !== fC) return false;
+    if (fT && String(r.tipo_accion_id) !== fT) return false;
+    if (q) {
+      const u = state.ar.usuarios[r.usuario_id] || {}, t = state.ar.tipos[r.tipo_accion_id] || {};
+      if (!plNorm_([r.descripcion, u.nombre, u.institucion, u.telefono, t.nombre, arComuna_(r.comuna_id), r.respuesta].join(' ')).includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderReportesApp_() {
+  const lista = arFiltrados_(), todos = state.ar.reportes;
+  const cuenta = k => lista.filter(r => r.estado === k).length;
+  const kpi = (n, t, c) => '<div class="gr-kpi" style="--c:' + c + '"><b>' + n + '</b>' + t + '</div>';
+  const urg = lista.filter(r => r.urgencia === 'urgente' && arAbierto_(r)).length;
+  document.getElementById('ar-kpis').innerHTML =
+    kpi(lista.length, 'reportes' + (lista.length !== todos.length ? ' (de ' + todos.length + ')' : ''), '#0F172A') +
+    kpi(cuenta('enviado'), '📨 sin revisar', AR_ESTADOS.enviado.c) +
+    kpi(cuenta('recibido'), '👁️ recibidos', AR_ESTADOS.recibido.c) +
+    kpi(cuenta('en_atencion'), '🚨 en atención', AR_ESTADOS.en_atencion.c) +
+    kpi(cuenta('cerrado'), '✅ cerrados', AR_ESTADOS.cerrado.c) +
+    kpi(urg, '⚠️ urgentes abiertos', '#DC2626') +
+    kpi(state.ar.turnos.length, '🚓 patrullando ahora', '#16A34A');
+  const cont = document.getElementById('ar-tabla');
+  if (!lista.length) {
+    cont.innerHTML = '<div class="tb-vacio">' + (todos.length ? 'No hay reportes con estos filtros.' : 'Aún no hay reportes de la app en este periodo.') + '</div>';
+  } else {
+    cont.innerHTML = '<table class="gr-tabla"><thead><tr><th>Fecha</th><th>Acción</th><th>Patrullero</th><th>Comuna</th><th>Foto</th><th>Estado</th><th>Respuesta al patrullero</th></tr></thead><tbody>' +
+      lista.map(r => {
+        const e = AR_ESTADOS[r.estado] || AR_ESTADOS.enviado, t = state.ar.tipos[r.tipo_accion_id] || {}, u = state.ar.usuarios[r.usuario_id] || {};
+        const foto = r.foto_path || r.foto_url;
+        const alerta = r.urgencia === 'urgente' && arAbierto_(r);
+        return '<tr data-ar-id="' + escapeHtml_(r.id) + '" style="cursor:pointer;' + (alerta ? 'background:#FEF2F2;' : '') + '" title="Clic para ver en el mapa">' +
+          '<td style="white-space:nowrap;">' + rgFechaHora_(r.creado_en) + '</td>' +
+          '<td>' + escapeHtml_(t.icono || '⚠️') + ' <b>' + escapeHtml_(t.nombre || 'Reporte') + '</b>' +
+            (r.urgencia === 'urgente' ? ' <span class="rg-chip" style="background:#DC2626;color:#fff;">URGENTE</span>' : '') +
+            (r.descripcion ? '<div class="rg-obs">' + escapeHtml_(r.descripcion) + '</div>' : '') + '</td>' +
+          '<td>' + escapeHtml_(u.nombre || '—') + '<br><small>' + escapeHtml_([u.institucion, u.telefono].filter(Boolean).join(' · ')) + '</small></td>' +
+          '<td>' + escapeHtml_(arComuna_(r.comuna_id) || '—') + '<br><a href="https://maps.google.com/?q=' + Number(r.lat).toFixed(6) + ',' + Number(r.lng).toFixed(6) + '" target="_blank" rel="noopener" style="font-size:11px;">📍 Google Maps</a>' +
+            (r.precision_m ? ' <small style="color:var(--text-tertiary);">±' + Math.round(r.precision_m) + ' m</small>' : '') + '</td>' +
+          '<td>' + (foto ? '<button class="gr-del" style="width:auto;padding:0 8px;" data-ar-foto="' + escapeHtml_(r.id) + '">📷 Ver</button>' : '<small style="color:var(--text-tertiary);">—</small>') + '</td>' +
+          '<td><span class="rg-chip" style="background:' + e.c2 + ';color:' + e.c + ';">' + e.ico + ' ' + e.t + '</span>' +
+            (puedeReportesApp_() ? '<div style="margin-top:4px;"><select class="rg-sel" data-ar-estado="' + escapeHtml_(r.id) + '" title="Cambiar estado">' +
+              Object.keys(AR_ESTADOS).map(k => '<option value="' + k + '"' + (k === r.estado ? ' selected' : '') + '>' + AR_ESTADOS[k].t + '</option>').join('') + '</select></div>' : '') + '</td>' +
+          '<td>' + (r.respuesta ? '<div class="rg-obs">' + escapeHtml_(r.respuesta) + '</div><small style="color:var(--text-tertiary);">' + escapeHtml_(r.atendido_por || '') + (r.actualizado_en ? ' · ' + rgFechaHora_(r.actualizado_en) : '') + '</small>' : '<small style="color:var(--text-tertiary);">Sin respuesta</small>') +
+            (puedeReportesApp_() ? '<div><button class="gr-del" style="width:auto;padding:0 8px;margin-top:4px;" data-ar-resp="' + escapeHtml_(r.id) + '">✍️ Responder</button></div>' : '') + '</td>' +
+          '</tr>';
+      }).join('') + '</tbody></table>';
+  }
+  renderMapaReportesApp_(lista);
+}
+
+function renderMapaReportesApp_(lista) {
+  arMapa_();
+  state.ar.capa.clearLayers();
+  state.ar.marcadores = {};
+  lista.forEach(r => {
+    if (r.lat == null || r.lng == null) return;
+    const e = AR_ESTADOS[r.estado] || AR_ESTADOS.enviado, t = state.ar.tipos[r.tipo_accion_id] || {}, u = state.ar.usuarios[r.usuario_id] || {};
+    const m = L.circleMarker([r.lat, r.lng], { radius: r.urgencia === 'urgente' ? 10 : 7, color: '#fff', weight: 2, fillColor: e.c, fillOpacity: .9 })
+      .bindPopup('<b>' + escapeHtml_((t.icono || '⚠️') + ' ' + (t.nombre || 'Reporte')) + '</b>' + (r.urgencia === 'urgente' ? ' · <b style="color:#DC2626">URGENTE</b>' : '') +
+        '<br>' + escapeHtml_(r.descripcion || '') + '<br><small>' + escapeHtml_(u.nombre || '') + ' · ' + rgFechaHora_(r.creado_en) + '<br>' + e.ico + ' ' + e.t + '</small>')
+      .addTo(state.ar.capa);
+    state.ar.marcadores[r.id] = m;
+  });
+  // Patrulleros en turno: última posición conocida
+  state.ar.turnos.forEach(tu => {
+    const p = state.ar.posTurnos[tu.id]; if (!p) return;
+    const u = state.ar.usuarios[tu.usuario_id] || {};
+    L.marker([p.lat, p.lng], { icon: L.divIcon({ className: '', html: '<div style="font-size:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))">🚓</div>', iconSize: [24, 24], iconAnchor: [12, 12] }), zIndexOffset: 500 })
+      .bindPopup('<b>🚓 ' + escapeHtml_(u.nombre || 'Patrullero') + '</b><br>' + escapeHtml_(tu.ruta_nombre || 'Patrullaje libre') +
+        '<br><small>En turno desde ' + rgFechaHora_(tu.inicio) + ' · última posición ' + new Date(p.registrado_en).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) + '</small>')
+      .addTo(state.ar.capa);
+  });
+  // Encuadre inicial, después de que el mapa toma su tamaño real
+  if (!state.ar.encuadrado && state.ar.capa.getLayers().length) {
+    state.ar.encuadrado = true;
+    setTimeout(() => {
+      state.ar.mapa.invalidateSize();
+      const b = L.featureGroup(state.ar.capa.getLayers()).getBounds();
+      if (b.isValid()) state.ar.mapa.fitBounds(b, { padding: [30, 30], maxZoom: 14 });
+    }, 120);
+  }
+}
+
+function enfocarReporteApp_(id) {
+  const m = state.ar.marcadores && state.ar.marcadores[id];
+  if (!m) return;
+  state.ar.mapa.setView(m.getLatLng(), Math.max(state.ar.mapa.getZoom(), 14));
+  m.openPopup();
+}
+
+async function verFotoReporteApp_(id) {
+  const r = state.ar.reportes.find(x => x.id === id); if (!r) return;
+  let url = r.foto_url || null;
+  if (r.foto_path) {
+    const { data, error } = await supabaseClient.storage.from('app-fotos').createSignedUrl(r.foto_path, 3600);
+    if (error) { mostrarToast_('No se pudo abrir la foto: ' + error.message); return; }
+    url = data.signedUrl;
+  }
+  if (url) window.open(url, '_blank', 'noopener');
+}
+
+async function cambiarEstadoReporteApp_(id, estado, sel) {
+  const r = state.ar.reportes.find(x => x.id === id); if (!r) return;
+  const nuevo = estado || r.estado;
+  const resp = prompt((estado ? 'Cambiar el reporte a «' + AR_ESTADOS[nuevo].t + '».' : 'Respuesta al patrullero.') +
+    '\n\nMensaje para el patrullero (lo verá en su app; opcional al cambiar de estado):', estado ? '' : (r.respuesta || ''));
+  if (resp === null) { if (sel) sel.value = r.estado; return; }
+  if (!estado && !resp.trim()) return;
+  const cambios = { estado: nuevo, atendido_por: state.perfil.nombre_completo || null, actualizado_en: new Date().toISOString() };
+  if (resp.trim()) cambios.respuesta = resp.trim();
+  const { error } = await supabaseClient.from('app_reportes').update(cambios).eq('id', id);
+  if (error) { mostrarToast_('No se pudo guardar: ' + error.message); if (sel) sel.value = r.estado; return; }
+  mostrarToast_('✅ Reporte actualizado · ' + AR_ESTADOS[nuevo].t);
+  await cargarReportesApp_(true);
+}
+
+async function descargarReportesApp_() {
+  const lista = arFiltrados_();
+  if (!lista.length) { mostrarToast_('No hay reportes para descargar con estos filtros.'); return; }
+  try {
+    mostrarToast_('Generando Excel…');
+    const XLSX = await tbCargarSheetJs_();
+    const filas = lista.map(r => {
+      const t = state.ar.tipos[r.tipo_accion_id] || {}, u = state.ar.usuarios[r.usuario_id] || {};
+      return {
+        'Fecha': rgFechaHora_(r.creado_en), 'Acción': t.nombre || '', 'Urgencia': r.urgencia === 'urgente' ? 'Urgente' : 'Normal',
+        'Descripción': r.descripcion || '', 'Patrullero': u.nombre || '', 'Institución': u.institucion || '', 'Teléfono': u.telefono || '',
+        'Comuna': arComuna_(r.comuna_id), 'Estado': (AR_ESTADOS[r.estado] || AR_ESTADOS.enviado).t, 'Respuesta': r.respuesta || '',
+        'Atendido por': r.atendido_por || '', 'Con foto': (r.foto_path || r.foto_url) ? 'Sí' : 'No',
+        'Latitud': Number(r.lat), 'Longitud': Number(r.lng), 'Precisión (m)': r.precision_m != null ? Math.round(r.precision_m) : '',
+      };
+    });
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(filas);
+    ws['!cols'] = Object.keys(filas[0]).map(k => ({ wch: ['Descripción', 'Respuesta'].includes(k) ? 50 : 16 }));
+    XLSX.utils.book_append_sheet(wb, ws, 'Reportes app');
+    XLSX.writeFile(wb, 'reportes_app_patrullaje_' + tbHoyISO_() + '.xlsx');
     mostrarToast_('✅ Descargado: ' + filas.length + ' reportes.');
   } catch (e) { mostrarToast_('No se pudo generar el Excel: ' + (e.message || e)); }
 }
@@ -14027,6 +14886,8 @@ async function actualizarDatos_(origen) {
     else if (vista === 'tablero') tareas.push(correr(() => abrirTablero_(true)));
     else if (vista === 'gestion') tareas.push(correr(() => abrirGestionRecursos_(true)));
     else if (vista === 'riesgo') tareas.push(correr(() => cargarAccionesRiesgo_()));
+    else if (vista === 'appreportes') tareas.push(correr(() => cargarReportesApp_()));
+    else if (vista === 'implementacion') tareas.push(correr(() => cargarImplementacion_()));
     else if (vista === 'bosques') tareas.push(correr(() => cargarBosques_(true)));
     else if (vista === 'seguimiento') tareas.push(correr(() => cargarSeguimiento_(true)));
     else if (vista === 'planificador') {
@@ -14062,6 +14923,8 @@ function mostrarVista_(vista, modoMapa) {
   if (vista === 'gestion' && !puedeGestionRecursos_()) vista = 'dashboard';
   if (vista === 'prioridad' && !puedeVerModulo_('prioridad')) vista = 'dashboard';
   if (vista === 'riesgo' && !puedeAccionesRiesgo_()) vista = 'dashboard';
+  if (vista === 'appreportes' && !puedeReportesApp_()) vista = 'dashboard';
+  if (vista === 'implementacion' && !puedeImplementacion_()) vista = 'dashboard';
   if (vista === 'bosques' && !puedeBosques_()) vista = 'dashboard';
   if (vista === 'seguimiento' && !puedeSeguimiento_()) vista = 'dashboard';
   if (vista === 'patrullajes' && !puedeVerModulo_('patrullajes')) vista = 'dashboard';
@@ -14107,6 +14970,10 @@ function mostrarVista_(vista, modoMapa) {
   if (gesP) gesP.classList.toggle('show', vista === 'gestion');
   const rgP = document.getElementById('riesgo-panel');
   if (rgP) rgP.classList.toggle('show', vista === 'riesgo');
+  const arP = document.getElementById('appreportes-panel');
+  if (arP) arP.classList.toggle('show', vista === 'appreportes');
+  const imP = document.getElementById('implementacion-panel');
+  if (imP) imP.classList.toggle('show', vista === 'implementacion');
   const brP = document.getElementById('bosques-panel');
   if (brP) brP.classList.toggle('show', vista === 'bosques');
   const sgP = document.getElementById('seguimiento-panel');
@@ -14137,6 +15004,8 @@ function mostrarVista_(vista, modoMapa) {
   else if (vista === 'tablero') abrirTablero_();
   else if (vista === 'gestion') abrirGestionRecursos_();
   else if (vista === 'riesgo') abrirAccionesRiesgo_();
+  else if (vista === 'appreportes') abrirReportesApp_();
+  else if (vista === 'implementacion') abrirImplementacion_();
   else if (vista === 'bosques') abrirBosques_();
   else if (vista === 'seguimiento') abrirSeguimiento_();
   else setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 60);
@@ -16354,34 +17223,46 @@ async function cargarMisPermisos_() {
   } catch (e) { /* sin el SQL 83: permisos solo por perfil */ }
 }
 
+/* 🧩 Menús del sistema y QUIÉN los ve (19-10-2026). FUENTE ÚNICA: la usan los menús (aplicarPermisosMenu_) y
+ * Administración › 🧩 Módulos por perfil, que la evalúa simulando cada perfil. Al agregar un menú, agregarlo AQUÍ.
+ *   ver()   → si el menú aparece · nivel() → 'editar' | 'ver' (solo si ver()) · nota() → aclaración opcional */
+const MENU_MODULOS = [
+  { id: 'tab-dashboard', grupo: '📊 Dashboard', nombre: 'Dashboard', ver: () => puedeVerModulo_('dashboard'), nivel: () => 'ver' },
+  { id: 'tab-seguimiento', grupo: '📈 Seguimiento', nombre: 'Seguimiento de subgerencias', ver: () => puedeSeguimiento_(), nivel: () => 'ver',
+    nota: () => sgModoAdmin_() ? 'Ambas subgerencias' : 'Su subgerencia' },
+  { id: 'sub-mapa-visor', grupo: '🗺️ Gestión SIG', nombre: 'Planificador de Alertas (mapa)', ver: () => puedeVerModulo_('planificador_mapa') || puedeVerModulo_('mapa'),
+    nivel: () => puedeEditarModulo_('planificador_mapa') && ['GRD', 'Administrador', 'Jefe de Área Relacionamiento'].includes(state.perfil && state.perfil.perfil) ? 'editar' : 'ver',
+    nota: () => state.perfil && state.perfil.perfil === 'GRD' ? 'Edita Amarilla y Roja, sin CMPC' : (esAdminOJefe_() && state.perfil.perfil !== 'Administrador' ? 'Sus comunas/áreas' : '') },
+  { id: 'sub-emergencia', grupo: '🗺️ Gestión SIG', nombre: 'Modo Emergencia (Periodo Crítico)', ver: () => puedeVerModulo_('periodo_critico'), nivel: () => nivelPermiso_('periodo_critico') },
+  { id: 'sub-informe', grupo: '🗺️ Gestión SIG', nombre: 'Informe', ver: () => puedeVerModulo_('informe'), nivel: () => 'ver' },
+  { id: 'tab-patrullajes', grupo: '🛡️ Prevención', nombre: 'Gestión Patrullajes SIGEI', ver: () => esAdminOJefe_() && puedeVerModulo_('patrullajes'), nivel: () => nivelPermiso_('patrullajes') },
+  { id: 'tab-prioridad', grupo: '🛡️ Prevención', nombre: 'Comunas Prioritarias', ver: () => puedeVerModulo_('prioridad'), nivel: () => nivelPermiso_('prioridad') },
+  { id: 'tab-riesgo', grupo: '🛡️ Prevención', nombre: 'Acciones de Riesgo', ver: () => puedeAccionesRiesgo_(), nivel: () => 'editar',
+    nota: () => state.perfil.perfil === 'Administrador' ? '' : 'Sus áreas' },
+  { id: 'tab-implementacion', grupo: '🛡️ Prevención', nombre: 'Implementación por comuna', ver: () => puedeImplementacion_(), nivel: () => imPuedeEditar_() ? 'editar' : 'ver' },
+  { id: 'tab-appreportes', grupo: '🛡️ Prevención', nombre: 'App de Patrullaje (en vivo y reportes)', ver: () => puedeReportesApp_(), nivel: () => 'editar' },
+  { id: 'tab-bosques', grupo: '🛡️ Prevención', nombre: 'Gestión Bosque Recreativo', ver: () => puedeBosques_(), nivel: () => 'editar',
+    nota: () => state.perfil.perfil === 'Administrador' ? '' : 'Su alcance' },
+  { id: 'tab-turnos', grupo: '🌲 Planificador CMPC', nombre: 'Calendario de Turnos', ver: () => puedeVerModulo_('turnos'),
+    nivel: () => puedeGestionarTurnos_() && puedeEditarModulo_('turnos') ? 'editar' : 'ver' },
+  { id: 'tab-planificador', grupo: '🌲 Planificador CMPC', nombre: 'Planificador gráfico', ver: () => puedeVerModulo_('planificador_grafico'), nivel: () => nivelPermiso_('planificador_grafico') },
+  { id: 'tab-tablero', grupo: '🌲 Planificador CMPC', nombre: 'Tablero de Recursos', ver: () => puedeVerModulo_('planificador_grafico'), nivel: () => 'ver' },
+  { id: 'tab-gestion', grupo: '🌲 Planificador CMPC', nombre: 'Gestión de Recursos', ver: () => puedeGestionRecursos_(), nivel: () => 'editar' },
+  { id: 'tab-admin', grupo: '⚙️ Administración', nombre: 'Administración del sistema', ver: () => !!(state.perfil && state.perfil.perfil === 'Administrador'), nivel: () => 'editar' },
+];
+
 /** Muestra u oculta menús y opciones según los permisos efectivos. */
 function aplicarPermisosMenu_() {
   const ver = (id, visible) => { const el = document.getElementById(id); if (el) el.style.display = visible ? '' : 'none'; };
-  const esAdmin = state.perfil && state.perfil.perfil === 'Administrador';
-  ver('tab-dashboard', puedeVerModulo_('dashboard'));
-  ver('tab-patrullajes', esAdminOJefe_() && puedeVerModulo_('patrullajes'));
-  ver('tab-prioridad', puedeVerModulo_('prioridad'));
-  // Prevención ▾ (Gestión Patrullajes SIGEI + Comunas Prioritarias)
-  ver('tab-riesgo', puedeAccionesRiesgo_());
-  ver('tab-bosques', puedeBosques_());
-  ver('tab-seguimiento', puedeSeguimiento_());
-  ver('grupo-prevencion', (esAdminOJefe_() && puedeVerModulo_('patrullajes')) || puedeVerModulo_('prioridad') || puedeAccionesRiesgo_() || puedeBosques_());
-  ver('tab-admin', esAdmin);
-  // Menú Gestión SIG: Planificador de Alertas · Modo Emergencia · informe.
-  ver('sub-mapa-visor', puedeVerModulo_('planificador_mapa') || puedeVerModulo_('mapa'));
-  ver('sub-emergencia', puedeVerModulo_('periodo_critico'));
-  ver('sub-informe', puedeVerModulo_('informe'));
+  MENU_MODULOS.forEach(m => ver(m.id, !!m.ver()));
+  // Grupos: se ven si tienen al menos un menú visible
+  ver('grupo-prevencion', MENU_MODULOS.some(m => m.grupo === '🛡️ Prevención' && m.ver()));
   // Botón 🔥 Crear Periodo Crítico dentro del mapa del Modo Emergencia
   document.body.classList.toggle('puede-crear-periodo', puedeEditarModulo_('periodo_critico') &&
     ['GRD', 'Administrador', 'Jefe de Área Relacionamiento'].includes(state.perfil && state.perfil.perfil));
   ver('grupo-mapa', ['sub-mapa-visor', 'sub-emergencia', 'sub-informe']
     .some(id => { const el = document.getElementById(id); return el && el.style.display !== 'none'; }));
-  // Menú Planificador CMPC
-  ver('tab-turnos', puedeVerModulo_('turnos'));
-  ver('tab-planificador', puedeVerModulo_('planificador_grafico'));
-  ver('tab-tablero', puedeVerModulo_('planificador_grafico'));   // mismo permiso (lectura) que el Planificador gráfico
-  ver('tab-gestion', puedeGestionRecursos_());                   // solo Administrador y Jefe de Área (datos personales)
-  ver('grupo-cmpc', puedeVerModulo_('turnos') || puedeVerModulo_('planificador_grafico'));
+  ver('grupo-cmpc', MENU_MODULOS.some(m => m.grupo === '🌲 Planificador CMPC' && m.ver()));
   actualizarBotonPlanificar_();
 }
 
@@ -21705,6 +22586,7 @@ function actualizarReglaMedicion_() {
 
   const modo = state.dibujoModo;
   const pts = tempDibujoVertices || [];
+  if (trazoLibreActivo) return;   // el trazo libre en curso muestra su propia medición
 
   if ((modo !== 'linea' && modo !== 'area') || pts.length < 2) {
     caja.style.display = 'none';
@@ -21712,6 +22594,7 @@ function actualizarReglaMedicion_() {
     return;
   }
 
+  // Formato compacto en una línea (19-10-2026)
   let html = '';
   if (modo === 'linea') {
     const ef = state.editandoForma;
@@ -21719,22 +22602,11 @@ function actualizarReglaMedicion_() {
       ? ef.partes.reduce((s, parte) => s + longitudTotal_(parte, false), 0)
       : longitudTotal_(pts, false);
     const ultimo = distanciaHaversine_(pts[pts.length - 2], pts[pts.length - 1]);
-    html = '<div style="font-weight:600;margin-bottom:4px;">📏 Medición</div>' +
-           '<div><b>Longitud</b><br>' + formatearDistancia_(largo) + '</div>' +
-           '<div style="opacity:.85;"><b>Último tramo</b><br>' + formatearDistancia_(ultimo) + '</div>' +
-           '<div style="opacity:.7;font-size:11px;">' + pts.length + ' vértice(s)</div>';
+    html = '📏 <b>' + formatearDistancia_(largo) + '</b> <span style="opacity:.7;">· último ' + formatearDistancia_(ultimo) + ' · ' + pts.length + ' vért.</span>';
+  } else if (pts.length < 3) {
+    html = '📐 ' + formatearDistancia_(longitudTotal_(pts, false)) + ' <span style="opacity:.7;">· faltan ' + (3 - pts.length) + ' vért. para cerrar</span>';
   } else {
-    const perimetro = longitudTotal_(pts, true);
-    if (pts.length < 3) {
-      html = '<div style="font-weight:600;margin-bottom:4px;">📏 Medición</div>' +
-             '<div><b>Perímetro parcial</b><br>' + formatearDistancia_(longitudTotal_(pts, false)) + '</div>' +
-             '<div style="opacity:.7;font-size:11px;">' + pts.length + ' vértice(s)<br>faltan ' + (3 - pts.length) + ' para cerrar</div>';
-    } else {
-      html = '<div style="font-weight:600;margin-bottom:4px;">📐 Medición</div>' +
-             '<div><b>Superficie</b><br>' + formatearArea_(areaEsferica_(pts)) + '</div>' +
-             '<div style="opacity:.85;"><b>Perímetro</b><br>' + formatearDistancia_(perimetro) + '</div>' +
-             '<div style="opacity:.7;font-size:11px;">' + pts.length + ' vértice(s)</div>';
-    }
+    html = '📐 <b>' + formatearArea_(areaEsferica_(pts)) + '</b> <span style="opacity:.7;">· perím. ' + formatearDistancia_(longitudTotal_(pts, true)) + ' · ' + pts.length + ' vért.</span>';
   }
 
   caja.innerHTML = html;
@@ -21774,7 +22646,7 @@ function toggleRegla_() {
   reglaLayerGroup.clearLayers();
 
   document.getElementById('btn-regla').classList.add('active');
-  document.getElementById('regla-panel').style.display = 'block';
+  document.getElementById('regla-panel').style.display = 'flex';
   document.getElementById('map').style.cursor = 'crosshair';
 
   map.on('click', reglaClick_);
@@ -21856,9 +22728,7 @@ function reglaMouseMove_(e) {
   const parcial = longitudTotal_(reglaPuntos, false) + distanciaHaversine_(ultimo, e.latlng);
   const datos = document.getElementById('regla-panel-datos');
   if (datos) {
-    datos.innerHTML =
-      '<b>Distancia:</b> ' + formatearDistancia_(parcial) + ' <span style="opacity:.6;">(en curso)</span><br>' +
-      '<b>Puntos:</b> ' + reglaPuntos.length;
+    datos.innerHTML = '📐 <b>' + formatearDistancia_(parcial) + '</b> <span style="opacity:.6;">· ' + reglaPuntos.length + ' pts · en curso</span>';
   }
 }
 
@@ -21896,23 +22766,13 @@ function actualizarPanelRegla_() {
   const datos = document.getElementById('regla-panel-datos');
   if (!datos) return;
 
-  if (reglaPuntos.length === 0) {
-    datos.innerHTML = 'Haz clic en el mapa para empezar a medir.';
-    return;
-  }
-  if (reglaPuntos.length === 1) {
-    datos.innerHTML = 'Primer punto marcado.<br><span style="opacity:.7;">Agrega otro para ver la distancia.</span>';
-    return;
-  }
+  datos.title = 'Clic: agrega punto · doble clic: termina · clic derecho: deshace el último · Esc: salir';
+  if (reglaPuntos.length === 0) { datos.innerHTML = '📐 Clic en el mapa para medir'; return; }
+  if (reglaPuntos.length === 1) { datos.innerHTML = '📐 <span style="opacity:.8;">1 punto · agrega otro</span>'; return; }
 
   const largo = longitudTotal_(reglaPuntos, reglaCerrada);
-  let html = '<b>' + (reglaCerrada ? 'Perímetro:' : 'Distancia:') + '</b> ' + formatearDistancia_(largo) + '<br>';
-  if (reglaCerrada && reglaPuntos.length >= 3) {
-    html += '<b>Superficie:</b> ' + formatearArea_(areaEsferica_(reglaPuntos)) + '<br>';
-  }
-  html += '<b>Puntos:</b> ' + reglaPuntos.length +
-          '<div style="opacity:.6;font-size:11px;margin-top:4px;">Clic derecho deshace el último.</div>';
-  datos.innerHTML = html;
+  datos.innerHTML = '📐 ' + (reglaCerrada && reglaPuntos.length >= 3 ? '<b>' + formatearArea_(areaEsferica_(reglaPuntos)) + '</b> · perím. ' : '<b>') +
+    formatearDistancia_(largo) + (reglaCerrada ? '' : '</b>') + ' <span style="opacity:.6;">· ' + reglaPuntos.length + ' pts</span>';
 }
 
 /* ============ IMPORTAR RUTAS DESDE KML / KMZ ============
@@ -22167,10 +23027,11 @@ function toggleDibujoLibre_() {
     mostrarToast_('✍️ Elige primero 📏 Línea o 📐 Área.');
     return;
   }
+  if (state.dibujoLibre && trazoLibreActivo) terminarTrazoLibre_();   // apagarlo a mitad conserva el tramo
   state.dibujoLibre = !state.dibujoLibre;
   actualizarBotonesModoDibujo_();
   if (state.dibujoLibre) {
-    mostrarToast_('✍️ Trazo libre activo: mantén pulsado y arrastra sobre el mapa.');
+    mostrarToast_('✍️ Trazo libre: clic para empezar, mueve el mouse y clic otra vez para terminar.');
   } else {
     mostrarToast_('Trazo libre desactivado: vuelve al dibujo por clics.');
   }
@@ -22221,62 +23082,90 @@ function puntoTrazoConIman_(e) {
   return s ? s.punto : e.latlng;
 }
 
-function iniciarTrazoLibre_(e) {
+/* Trazo libre por CLIC (19-10-2026): clic = empezar · mover el mouse SIN apretar = la ruta sigue el cursor (con el
+ * 🧲 imán se pega al camino) · clic otra vez = terminar el tramo. Arrastrar con el botón apretado mueve el mapa sin
+ * cortar el trazo; Esc descarta el tramo en curso. Los tramos se suman a lo ya dibujado hasta ✓ Finalizar. */
+function clicTrazoLibre_(e) {
   if (!state.dibujoLibre) return;
-  // Solo el botón izquierdo dibuja. El del medio desplaza el mapa (panConBotonMedio_)
-  // y el derecho queda para borrar vértices.
-  if (e.originalEvent && e.originalEvent.button !== 0) return;
   if (state.dibujoModo !== 'linea' && state.dibujoModo !== 'area') return;
   if (!state.editorMode && !state.modoPlanificacion) return;
-  if (state.modoRegla || state.unionLinea) return;
-
+  if (state.modoRegla || state.unionLinea || state.cortarRuta || state.editandoForma) return;
+  if (trazoLibreActivo) {
+    agregarMuestraTrazo_(puntoTrazoConIman_(e), true);
+    terminarTrazoLibre_();
+    return;
+  }
   trazoLibreActivo = true;
   trazoLibrePuntos = [puntoTrazoConIman_(e)];
-  map.dragging.disable();            // el arrastre movería el mapa en vez de dibujar
-  if (map.boxZoom) map.boxZoom.disable();
-
-  if (tempDibujoLayer) { map.removeLayer(tempDibujoLayer); tempDibujoLayer = null; }
-  tempDibujoLayer = (state.dibujoModo === 'area')
-    ? L.polygon(trazoLibrePuntos, { color: '#7C3AED', weight: 3, fillOpacity: 0.12 }).addTo(map)
-    : L.polyline(trazoLibrePuntos, { color: '#7C3AED', weight: 4 }).addTo(map);
+  map.doubleClickZoom.disable();     // el clic de término no debe hacer zoom
+  pintarTrazoLibre_();
+  actualizarBotonesModoDibujo_();
 }
 
-function continuarTrazoLibre_(e) {
-  if (!trazoLibreActivo) return;
-  // Botón del medio apretado (bit 4): se está desplazando el mapa, no dibujando.
-  if (e.originalEvent && (e.originalEvent.buttons & 4)) return;
+function agregarMuestraTrazo_(punto, forzar) {
   const ultimo = trazoLibrePuntos[trazoLibrePuntos.length - 1];
-  const punto = puntoTrazoConIman_(e);
   // Umbral mínimo entre muestras: evita acumular cientos de puntos pegados.
-  if (ultimo && distanciaHaversine_(ultimo, punto) < 3) return;
+  if (!forzar && ultimo && distanciaHaversine_(ultimo, punto) < 3) return;
   trazoLibrePuntos.push(punto);
-  if (tempDibujoLayer) tempDibujoLayer.setLatLngs(trazoLibrePuntos);
+}
 
+// Vista previa: lo ya dibujado + el tramo en curso, para que se vea continuo.
+function pintarTrazoLibre_() {
+  const puntos = tempDibujoVertices.concat(trazoLibrePuntos);
+  if (tempDibujoLayer) tempDibujoLayer.setLatLngs(puntos);
+  else tempDibujoLayer = (state.dibujoModo === 'area')
+    ? L.polygon(puntos, { color: '#7C3AED', weight: 3, fillOpacity: 0.12 }).addTo(map)
+    : L.polyline(puntos, { color: '#7C3AED', weight: 4 }).addTo(map);
   const caja = document.getElementById('regla-medicion');
   if (caja) {
-    caja.innerHTML = '<div style="font-weight:600;margin-bottom:4px;">✍️ Trazo libre</div>' +
-      '<div><b>Recorrido</b><br>' + formatearDistancia_(longitudTotal_(trazoLibrePuntos, false)) + '</div>' +
-      '<div style="opacity:.7;font-size:11px;">' + trazoLibrePuntos.length + ' muestras</div>';
+    caja.innerHTML = '✍️ <b>' + formatearDistancia_(longitudTotal_(puntos, false)) + '</b>' +
+      ' <span style="opacity:.7;">· tramo ' + formatearDistancia_(longitudTotal_(trazoLibrePuntos, false)) + '</span>';
     caja.style.display = 'block';
   }
 }
 
-function terminarTrazoLibre_(e) {
+function continuarTrazoLibre_(e) {
   if (!trazoLibreActivo) return;
-  // Soltar el botón del medio (fin de un desplazamiento) no corta el trazo.
-  const ev = e && (e.originalEvent || e);
-  if (ev && ev.type === 'mouseup' && ev.button !== 0) return;
+  // Con un botón apretado se está moviendo el mapa: no se dibuja.
+  if (e.originalEvent && e.originalEvent.buttons) return;
+  agregarMuestraTrazo_(puntoTrazoConIman_(e), false);
+  pintarTrazoLibre_();
+}
+
+function descartarTramoLibre_() {
+  if (!trazoLibreActivo) return;
   trazoLibreActivo = false;
-  map.dragging.enable();
-  if (map.boxZoom) map.boxZoom.enable();
+  trazoLibrePuntos = [];
+  map.doubleClickZoom.enable();
+  if (tempDibujoLayer) { map.removeLayer(tempDibujoLayer); tempDibujoLayer = null; }
+  if (tempDibujoVertices.length) {
+    tempDibujoLayer = (state.dibujoModo === 'area')
+      ? L.polygon(tempDibujoVertices, { color: '#7C3AED', weight: 3, dashArray: '8,6', fillOpacity: 0.12 }).addTo(map)
+      : L.polyline(tempDibujoVertices, { color: '#7C3AED', weight: 4, dashArray: '8,6' }).addTo(map);
+  }
+  actualizarBotonesModoDibujo_();
+  mostrarToast_('✍️ Tramo descartado.');
+}
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && trazoLibreActivo) descartarTramoLibre_(); });
+
+function terminarTrazoLibre_() {
+  if (!trazoLibreActivo) return;
+  trazoLibreActivo = false;
+  setTimeout(() => { try { map.doubleClickZoom.enable(); } catch (x) {} }, 400);
 
   const crudos = trazoLibrePuntos.slice();
   trazoLibrePuntos = [];
 
-  const minimo = state.dibujoModo === 'area' ? 3 : 2;
+  const minimo = state.dibujoModo === 'area' && !tempDibujoVertices.length ? 3 : 2;
   if (crudos.length < minimo) {
-    mostrarToast_('✍️ Trazo demasiado corto. Mantén pulsado y arrastra un poco más.');
+    mostrarToast_('✍️ Tramo demasiado corto: tras el primer clic mueve el mouse antes de hacer el segundo.');
     if (tempDibujoLayer) { map.removeLayer(tempDibujoLayer); tempDibujoLayer = null; }
+    if (tempDibujoVertices.length) {
+      tempDibujoLayer = (state.dibujoModo === 'area')
+        ? L.polygon(tempDibujoVertices, { color: '#7C3AED', weight: 3, dashArray: '8,6', fillOpacity: 0.12 }).addTo(map)
+        : L.polyline(tempDibujoVertices, { color: '#7C3AED', weight: 4, dashArray: '8,6' }).addTo(map);
+    }
+    actualizarBotonesModoDibujo_();
     return;
   }
 
@@ -22359,15 +23248,16 @@ function actualizarBotonesModoDibujo_() {
 
   if (enDibujo && state.dibujoLibre) {
     document.getElementById('editor-banner-texto').textContent =
-      (state.dibujoModo === 'area' ? 'Modo área' : 'Modo línea') +
-      ' · ✍️ TRAZO LIBRE — mantén pulsado y arrastra sobre el mapa para trazar de corrido (' +
-      tempDibujoVertices.length + ' vértice(s))';
+      (state.dibujoModo === 'area' ? 'Área' : 'Línea') + ' · ✍️ ' + tempDibujoVertices.length + ' vért. — ' +
+      (trazoLibreActivo
+        ? 'TRAZANDO: mueve el mouse' + (imanActivo_() ? ' (🧲 se pega al camino)' : '') + ' · clic = terminar tramo · arrastrar = mover el mapa · Esc = descartar tramo'
+        : 'clic para EMPEZAR el trazo, mueve el mouse sin apretar y clic otra vez para terminar · luego ✓ Finalizar');
   } else if (state.dibujoModo === 'linea') {
-    document.getElementById('editor-banner-texto').textContent = 'Modo línea — clic para agregar puntos' +
-      (imanActivo_() ? ' · 🧲 imán: cerca de un camino se pega y sigue su curva (Shift = sin imán)' : '') +
-      ' · arrastra un vértice para moverlo · arrastra un punto intermedio para insertar · clic derecho borra (' + tempDibujoVertices.length + ' agregado(s), mín. 2)';
+    document.getElementById('editor-banner-texto').textContent = 'Línea · ' + tempDibujoVertices.length + ' vért. (mín. 2) — clic agrega punto' +
+      (imanActivo_() ? ' · 🧲 se pega al camino (Shift = sin imán)' : '') +
+      ' · arrastra un vértice para moverlo o un punto intermedio para insertar · clic derecho borra';
   } else if (state.dibujoModo === 'area') {
-    document.getElementById('editor-banner-texto').textContent = 'Modo área — clic para agregar vértices · arrastra para mover · arrastra un punto intermedio para insertar · clic derecho borra (' + tempDibujoVertices.length + ' agregado(s), mín. 3)';
+    document.getElementById('editor-banner-texto').textContent = 'Área · ' + tempDibujoVertices.length + ' vért. (mín. 3) — clic agrega vértice · arrastra para mover · punto intermedio = insertar · clic derecho borra';
   } else {
     document.getElementById('editor-banner-texto').textContent = 'Modo edición activo — haz clic en el mapa para posicionar un recurso';
   }
@@ -22404,7 +23294,7 @@ function cancelarDibujo_() {
   if (trazoLibreActivo) {
     trazoLibreActivo = false;
     trazoLibrePuntos = [];
-    try { map.dragging.enable(); if (map.boxZoom) map.boxZoom.enable(); } catch (e) {}
+    try { map.dragging.enable(); if (map.boxZoom) map.boxZoom.enable(); map.doubleClickZoom.enable(); } catch (e) {}
   }
   tempDibujoVertices = [];
   ultimoSnapIman_ = null;
@@ -25481,8 +26371,8 @@ function avisoUnionLinea_(texto) {
   const caja = document.getElementById('regla-medicion');
   if (!caja) return;
   caja.dataset.modoUnion = '1';
-  caja.innerHTML = '<div style="font-weight:600;margin-bottom:4px;">🔗 Unir líneas</div>' +
-                   '<div style="font-size:11.5px;line-height:1.5;">' + texto + '</div>';
+  caja.innerHTML = '<div style="white-space:normal;max-width:260px;"><b>🔗 Unir líneas</b> · ' +
+                   '<span style="font-size:11.5px;">' + texto + '</span></div>';
   caja.style.display = 'block';
 }
 
@@ -25963,7 +26853,7 @@ function semaforoPropagacionHtml_(id, escActual, compacto) {
   const luz = ([e, c]) => '<i title="' + nombreEscenario_(e) + (esc.includes(e) ? ': propagada' : ': falta') + '" style="display:inline-block;width:' + (compacto ? 8 : 11) + 'px;height:' + (compacto ? 8 : 11) +
     'px;border-radius:50%;margin:0 1px;background:' + (esc.includes(e) ? c : '#E2E8F0') + ';border:1.5px solid ' + (esc.includes(e) ? '#fff' : '#94A3B8') + ';' +
     (esc.includes(e) ? 'box-shadow:0 0 5px ' + c + ';' : '') + '"></i>';
-  return '<span style="display:inline-flex;align-items:center;padding:' + (compacto ? '1px 3px' : '2px 5px') + ';border-radius:99px;background:rgba(15,23,42,' + (compacto ? '.78' : '.06') + ');">' +
+  return '<span' + (compacto ? ' class="sem-mapa"' : '') + ' style="display:inline-flex;align-items:center;padding:' + (compacto ? '1px 3px' : '2px 5px') + ';border-radius:99px;background:rgba(15,23,42,' + (compacto ? '.78' : '.06') + ');">' +
     SEM_ESC.map(luz).join('') + '</span>';
 }
 function bloquePropagacion_(id, escActual) {
@@ -26028,16 +26918,31 @@ async function decidirComunaTrazado_(puntosLngLat, tipo) {
 }
 /** 🏘️ Cambiar la comuna de una entidad planificada (y de sus copias en las otras alertas). */
 async function cambiarComunaEntidad_(id) {
-  const opciones = comunasCambioRuta_().filter(c => c.id !== state.activeComunaId)
+  const todas = comunasCambioRuta_().filter(c => c.id !== state.activeComunaId)
     .sort((a, b) => String(a.comuna).localeCompare(String(b.comuna), 'es'));
-  if (!opciones.length) { mostrarToast_('No tienes otras comunas a las que moverla.'); return; }
-  const r = await dialogoBr_(
+  if (!todas.length) { mostrarToast_('No tienes otras comunas a las que moverla.'); return; }
+  // 19-10-2026: por defecto solo las comunas del ÁREA de la comuna actual (p. ej. área Victoria), dentro de las del perfil
+  const porArea = await comunasPorAreaUsuario_();
+  const areasActual = Object.keys(porArea).filter(k => porArea[k].includes(state.activeComunaId));
+  const deArea = new Set(areasActual.flatMap(k => porArea[k]));
+  const delArea = todas.filter(c => deArea.has(c.id));
+  const nomAreas = areasActual.map(k => aTitulo_((state.nombreAreaPorClave || {})[k] || k)).join(' / ');
+  const opciones = lista => lista.map(c => '<option value="' + escapeHtml_(c.id) + '">' + escapeHtml_(c.comuna) + '</option>').join('');
+  const inicial = delArea.length ? delArea : todas;
+  const promesa = dialogoBr_(
     '<h3 style="margin:0 0 6px;">🏘️ Cambiar de comuna</h3>' +
-    '<p style="font-size:12.5px;margin:0 0 10px;">Mueve la entidad desde <b>' + escapeHtml_(nombreComuna_(state.activeComunaId)) + '</b> al plan de la misma alerta en otra comuna.</p>' +
-    '<select data-valor class="admin-search" style="width:100%;min-width:0;margin-bottom:10px;">' + opciones.map(c => '<option value="' + escapeHtml_(c.id) + '">' + escapeHtml_(c.comuna) + '</option>').join('') + '</select>' +
+    '<p style="font-size:12.5px;margin:0 0 10px;">Mueve la entidad desde <b>' + escapeHtml_(nombreComuna_(state.activeComunaId)) + '</b> al plan de la misma alerta en otra comuna' +
+      (delArea.length ? ' del área <b>' + escapeHtml_(nomAreas) + '</b>' : '') + '.</p>' +
+    '<select data-valor class="admin-search" style="width:100%;min-width:0;margin-bottom:8px;">' + opciones(inicial) + '</select>' +
+    (delArea.length && delArea.length < todas.length
+      ? '<label style="display:flex;gap:6px;align-items:center;font-size:12px;margin-bottom:6px;color:var(--text-secondary);"><input type="checkbox" data-todas> Mostrar también comunas de otras áreas (' + (todas.length - delArea.length) + ')</label>' : '') +
     '<label style="display:flex;gap:6px;align-items:center;font-size:12.5px;margin-bottom:12px;"><input type="checkbox" data-chk checked> También sus copias en las otras alertas (Normal / Amarilla / Roja)</label>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn-secondary" data-resp="__no__" style="flex:none;padding:9px 14px;">Cancelar</button>' +
     '<button class="btn-primary" data-resp="__sel__" style="flex:none;padding:9px 14px;">Mover</button></div>');
+  const ov = [...document.querySelectorAll('.br-modal-overlay')].pop();
+  const chkTodas = ov && ov.querySelector('[data-todas]');
+  if (chkTodas) chkTodas.addEventListener('change', () => { ov.querySelector('[data-valor]').innerHTML = opciones(chkTodas.checked ? todas : delArea); });
+  const r = await promesa;
   if (!r || !r.valor) return;
   const { data, error } = await supabaseClient.rpc('mover_entidad_comuna', { p_id: id, p_comuna_id: r.valor, p_familia: !!r.chk });
   if (error) { mostrarToast_('No se pudo cambiar la comuna: ' + error.message + (/function|does not exist/i.test(error.message) ? ' (¿se ejecutó el SQL 117?)' : '')); return; }
@@ -27622,7 +28527,8 @@ async function comunasPorAreaUsuario_(forzar) {
   try {
     const { data } = await supabaseClient.from('v_area_comunas_admin').select('area, id_comuna');
     const slug = {}; (state.comunas || []).forEach(c => { slug[Number(c.id_comuna)] = c.id; });
-    (data || []).forEach(x => { const s = slug[Number(x.id_comuna)]; if (!s) return; const k = SG_KEY(x.area); (mapa[k] = mapa[k] || []); if (!mapa[k].includes(s)) mapa[k].push(s); });
+    state.nombreAreaPorClave = state.nombreAreaPorClave || {};
+    (data || []).forEach(x => { const s = slug[Number(x.id_comuna)]; if (!s) return; const k = SG_KEY(x.area); state.nombreAreaPorClave[k] = x.area; (mapa[k] = mapa[k] || []); if (!mapa[k].includes(s)) mapa[k].push(s); });
   } catch (e) { /* sin SQL 94 */ }
   state.comunasPorAreaUsr = mapa;
   return mapa;
@@ -30017,6 +30923,16 @@ function bindEvents() {
   if (btnResumen) btnResumen.addEventListener('click', (e) => { e.stopPropagation(); toggleResumenAlertas_(); });
   const btnInfl = document.getElementById('btn-influencia');
   if (btnInfl) btnInfl.addEventListener('click', (e) => { e.stopPropagation(); toggleInfluencia_(); });
+  // 🚦 Semáforos de propagación: encender / apagar (se recuerda en este navegador)
+  const btnSem = document.getElementById('btn-semaforos');
+  const aplicarSem = on => { document.body.classList.toggle('sin-semaforos', !on); if (btnSem) btnSem.classList.toggle('active', on); };
+  let semOn = true; try { semOn = localStorage.getItem('ver_semaforos') !== '0'; } catch (e) {}
+  aplicarSem(semOn);
+  if (btnSem) btnSem.addEventListener('click', (e) => {
+    e.stopPropagation(); semOn = !semOn; aplicarSem(semOn);
+    try { localStorage.setItem('ver_semaforos', semOn ? '1' : '0'); } catch (x) {}
+    mostrarToast_(semOn ? '🚦 Semáforos de propagación visibles' : '🚦 Semáforos ocultos');
+  });
   const btnKpiInc = document.getElementById('btn-kpi-incendios');
   if (btnKpiInc) btnKpiInc.addEventListener('click', (e) => { e.stopPropagation(); toggleKpiIncendios_(); });  enlazarModalInforme_();
   // ---- Exportación de planes ----
@@ -30153,11 +31069,11 @@ function bindEvents() {
     }
   });
   document.getElementById('kml-modal-guardar').addEventListener('click', confirmarImportacionKml_);
-  // Trazo a mano alzada: se captura el arrastre sobre el mapa.
-  map.on('mousedown', iniciarTrazoLibre_);
+  // Barra de edición compacta: clic en la ayuda la muestra completa / la vuelve a una línea.
+  document.getElementById('eb-fila').addEventListener('click', () => document.getElementById('eb-fila').classList.toggle('expandida'));
+  // Trazo libre: clic empieza / clic termina; el movimiento del mouse traza (19-10-2026).
+  map.on('click', clicTrazoLibre_);
   map.on('mousemove', continuarTrazoLibre_);
-  map.on('mouseup', terminarTrazoLibre_);
-  map.getContainer().addEventListener('mouseleave', terminarTrazoLibre_);
   document.getElementById('btn-finalizar-dibujo').addEventListener('click', finalizarDibujo_);
   document.getElementById('btn-cancelar-dibujo').addEventListener('click', cancelarDibujo_);
 
