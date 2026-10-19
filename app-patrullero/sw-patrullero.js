@@ -1,6 +1,6 @@
 // Service worker de la App de Patrullaje v2: permite abrir la app sin señal.
 // Solo atiende la app y sus librerías; no toca el sistema web ni las llamadas a Supabase.
-const VERSION = 'patrullero-v2.1.0';
+const VERSION = 'patrullero-v2.2.0';
 const CDN = [
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
@@ -20,10 +20,38 @@ self.addEventListener('activate', e => {
     .then(() => self.clients.claim()));
 });
 
+// Mosaicos del mapa base (Esri): primero la copia guardada → el mapa funciona sin señal.
+// Se piden en modo CORS para no guardar respuestas opacas (ocupan mucho más espacio).
+const CACHE_MOSAICOS = 'mosaicos-v1';
+const MAX_MOSAICOS = 6000;
+let guardados = 0;
+async function recortarMosaicos(c) {
+  const ks = await c.keys();
+  if (ks.length > MAX_MOSAICOS) await Promise.all(ks.slice(0, ks.length - MAX_MOSAICOS + 500).map(k => c.delete(k)));
+}
+async function mosaico(req) {
+  const c = await caches.open(CACHE_MOSAICOS);
+  const guardado = await c.match(req.url);
+  if (guardado) return guardado;
+  try {
+    let res;
+    try { res = await fetch(req.url, { mode: 'cors', credentials: 'omit' }); }
+    catch (e) { res = await fetch(req); }
+    if (res && res.ok) {
+      c.put(req.url, res.clone());
+      if (++guardados % 300 === 0) recortarMosaicos(c);
+    }
+    return res;
+  } catch (e) {
+    return new Response('', { status: 504, statusText: 'Sin conexión' });
+  }
+}
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  if (url.hostname === 'server.arcgisonline.com' && url.pathname.includes('/tile/')) { e.respondWith(mosaico(req)); return; }
   // Librerías: primero la copia guardada
   if (CDN.includes(req.url)) {
     e.respondWith(caches.match(req).then(r => r || fetch(req).then(res => {

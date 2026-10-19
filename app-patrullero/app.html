@@ -209,6 +209,10 @@ textarea.campo:focus{border-color:var(--cobalt);}
 .ruta-op b{display:block;font-size:14px;}
 .ruta-op small{color:var(--muted);font-size:12px;display:block;}
 .ruta-color{width:8px;align-self:stretch;border-radius:4px;flex-shrink:0;}
+.ruta-num{width:28px;height:28px;border-radius:50%;color:#fff;font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+.ruta-num.mapa{width:24px;height:24px;font-size:12px;border:2px solid #fff;}
+.ri-mapa{height:250px;border-radius:14px;overflow:hidden;border:1px solid var(--line);margin:12px 0 6px;}
+.ri-ayuda{font-size:12px;color:var(--muted);margin-bottom:10px;text-align:center;}
 .rg-esc{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:99px;margin-left:6px;vertical-align:middle;}
 .esc-Verde{background:#DCFCE7;color:#166534;}
 .esc-Amarilla{background:#FEF3C7;color:#92400E;}
@@ -330,7 +334,7 @@ textarea.campo:focus{border-color:var(--cobalt);}
 // Los reportes, turnos y puntos GPS se guardan primero en el teléfono (IndexedDB) y se envían cuando hay
 // señal: nada se pierde si se corta la conexión.
 // ════════════════════════════════════════════════════════════════
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.2.0';
 const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -541,6 +545,8 @@ async function cargarRutasPlan() {
     aplicarRutasPlan(r || []);
     renderTurno();
     if (state.mapa) dibujarMapa();
+    // Con las rutas conocidas, baja en segundo plano el mapa de su zona (cada 14 días)
+    setTimeout(() => descargarMapaOffline(false), 4000);
   } catch (e) {
     if (e.sesion) return cerrarSesion('Tu sesión venció. Ingresa nuevamente.');
     console.warn('app_rutas_plan', e);
@@ -828,32 +834,74 @@ function marcarCobertura(p) {
 }
 function coberturaPct() { return state.rutaVertices.length ? Math.round(state.cubiertos.size * 100 / state.rutaVertices.length) : null; }
 
-function opcionRuta(r) {
+// Colores bien distintos para reconocer cada ruta en el mapa del selector
+const PALETA_RUTAS = ['#E11D48', '#2563EB', '#16A34A', '#EA580C', '#7C3AED', '#0891B2', '#CA8A04', '#DB2777', '#4F46E5', '#059669', '#B45309', '#9333EA'];
+function opcionRuta(r, i, color) {
   const esc_ = r.escenario ? `<span class="rg-esc esc-${esc(r.escenario)}">${esc(ESCENARIOS[r.escenario] || r.escenario)}</span>` : '';
-  return `<button class="ruta-op" data-id="${esc(r.id)}"><span class="ruta-color" style="background:${esc(r.color || '#64748B')}"></span><div><b>${esc(r.nombre)}</b>${esc_}<small>${esc([r.origen === 'plan' && !r.propia ? r.institucion : '', r.detalle, r.km ? r.km.toFixed(1) + ' km' : ''].filter(Boolean).join(' · '))}</small></div></button>`;
+  return `<button class="ruta-op" data-id="${esc(r.id)}"><span class="ruta-num" style="background:${color}">${i + 1}</span><div><b>${esc(r.nombre)}</b>${esc_}<small>${esc([r.origen === 'plan' && !r.propia ? r.institucion : '', r.detalle && r.detalle !== r.nombre ? r.detalle : '', r.km ? r.km.toFixed(1) + ' km' : ''].filter(Boolean).join(' · '))}</small></div></button>`;
+}
+// Punto medio de una línea (para el número de la ruta en el mapa)
+function puntoMedio(geom) {
+  const g = geom.type === 'Feature' ? geom.geometry : geom;
+  const l = g.type === 'LineString' ? g.coordinates : g.type === 'MultiLineString' ? g.coordinates.reduce((a, b) => b.length > a.length ? b : a, []) : [];
+  const c = l[Math.floor(l.length / 2)];
+  return c ? [c[1], c[0]] : null;
 }
 function elegirRutaEIniciar() {
   if (!exigirGps()) return;
-  let sel = '', esc0 = 'Verde', todas = false;
+  let sel = '', esc0 = 'Verde', todas = false, lista = [], mm = null, grupo = null, capas = {};
   const h = abrirHoja(`<h3>▶ Iniciar patrullaje</h3>
-    <span class="lbl">Escenario del plan</span>
     <div class="seg" id="ri-esc"><button data-esc="Verde" class="sel">Normal</button><button data-esc="Amarilla">Amarilla</button><button data-esc="Roja">Roja</button></div>
-    <span class="lbl">¿Qué ruta vas a recorrer?</span>
+    <div class="ri-mapa" id="ri-mapa"></div>
+    <div class="ri-ayuda">Toca una ruta en el mapa o en la lista. La elegida se destaca.</div>
     <div id="ri-lista"></div>
     <button class="btn-mini" id="ri-todas" style="width:100%;margin-bottom:10px">Ver rutas de todas las instituciones</button>
     <button class="ruta-op sel" data-id=""><span style="font-size:22px">🧭</span><div><b>Patrullaje libre</b><small>Sin una ruta específica</small></div></button>
-    <div class="hoja-acc"><button class="btn btn-sec" data-cerrar>Cancelar</button><button class="btn btn-ok" id="btn-ini-ok">Iniciar</button></div>`);
-  const enlazar = () => h.querySelectorAll('.ruta-op').forEach(b => b.onclick = () => {
-    h.querySelectorAll('.ruta-op').forEach(x => x.classList.remove('sel'));
-    b.classList.add('sel'); sel = b.dataset.id;
-  });
+    <div class="hoja-acc"><button class="btn btn-sec" data-cerrar>Cancelar</button><button class="btn btn-ok" id="btn-ini-ok">Iniciar patrullaje libre</button></div>`);
+  // Mini mapa con las rutas numeradas
+  mm = L.map(h.querySelector('#ri-mapa'), { zoomControl: false, attributionControl: false }).setView(state.pos ? [state.pos.lat, state.pos.lng] : [-38.6, -72.5], 12);
+  FONDOS.calles().addTo(mm);
+  grupo = L.featureGroup().addTo(mm);
+  if (state.pos) L.marker([state.pos.lat, state.pos.lng], { icon: L.divIcon({ className: '', html: '<div class="me"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }), zIndexOffset: 1000 }).addTo(mm);
+  setTimeout(() => mm.invalidateSize(), 250);
+
+  const marcar = (id, desdeMapa) => {
+    sel = id;
+    h.querySelectorAll('.ruta-op').forEach(x => x.classList.toggle('sel', x.dataset.id === id));
+    Object.entries(capas).forEach(([k, c]) => {
+      const elegida = k === id;
+      c.linea.setStyle({ weight: elegida ? 8 : 4, opacity: id && !elegida ? 0.3 : 0.9 });
+      if (elegida) c.linea.bringToFront();
+    });
+    const r = lista.find(x => String(x.id) === id);
+    h.querySelector('#btn-ini-ok').textContent = r ? '▶ Iniciar: ' + r.nombre.slice(0, 22) : 'Iniciar patrullaje libre';
+    mm.invalidateSize();
+    if (r && capas[id]) {
+      try { mm.fitBounds(capas[id].linea.getBounds(), { padding: [24, 24], maxZoom: 15 }); } catch (e) {}
+      if (desdeMapa) { const b = h.querySelector('.ruta-op[data-id="' + CSS.escape(id) + '"]'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+    } else if (!id && grupo.getLayers().length) {
+      try { mm.fitBounds(grupo.getBounds(), { padding: [20, 20] }); } catch (e) {}
+    }
+  };
   const pintar = () => {
     const plan = state.rutasPlan.filter(r => r.escenario === esc0 && (todas || r.propia));
-    const lista = plan.concat(esc0 === 'Verde' ? state.rutas : []);
-    h.querySelector('#ri-lista').innerHTML = lista.map(opcionRuta).join('') ||
+    lista = plan.concat(esc0 === 'Verde' ? state.rutas : []);
+    h.querySelector('#ri-lista').innerHTML = lista.map((r, i) => opcionRuta(r, i, PALETA_RUTAS[i % PALETA_RUTAS.length])).join('') ||
       `<div class="ubic">No hay rutas ${todas ? '' : 'de tu institución '}en ${esc(ESCENARIOS[esc0])} para tu comuna.</div>`;
     h.querySelector('#ri-todas').textContent = todas ? 'Ver solo las de mi institución' : 'Ver rutas de todas las instituciones';
-    enlazar();
+    grupo.clearLayers(); capas = {};
+    lista.forEach((r, i) => {
+      if (!r.geometry) return;
+      const color = PALETA_RUTAS[i % PALETA_RUTAS.length], id = String(r.id);
+      const linea = L.geoJSON(r.geometry, { style: { color, weight: 4, opacity: 0.9 } }).addTo(grupo);
+      linea.on('click', () => marcar(id, true));
+      const pm = puntoMedio(r.geometry);
+      if (pm) L.marker(pm, { icon: L.divIcon({ className: '', html: `<div class="ruta-num mapa" style="background:${color}">${i + 1}</div>`, iconSize: [24, 24], iconAnchor: [12, 12] }) })
+        .on('click', () => marcar(id, true)).addTo(grupo);
+      capas[id] = { linea };
+    });
+    h.querySelectorAll('.ruta-op').forEach(b => b.onclick = () => marcar(b.dataset.id, false));
+    marcar(lista.some(r => String(r.id) === sel) ? sel : '', false);
   };
   h.querySelectorAll('#ri-esc button').forEach(b => b.addEventListener('click', () => {
     h.querySelectorAll('#ri-esc button').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); esc0 = b.dataset.esc; pintar();
@@ -1171,7 +1219,15 @@ async function renderPerfil() {
   $('pf-comuna').textContent = '📍 ' + (u.comuna || 'Sin comuna') + (u.telefono ? ' · ' + u.telefono : '');
   $('pf-app').innerHTML = `<div class="lin"><span>Versión</span><b>${APP_VERSION}</b></div>
     <div class="lin"><span>Pantalla siempre encendida</span><b>${'wakeLock' in navigator ? 'Disponible' : 'No disponible'}</b></div>
-    <div class="lin"><span>Envíos pendientes</span><b>${state.pendientes}</b></div>`;
+    <div class="lin"><span>Envíos pendientes</span><b>${state.pendientes}</b></div>
+    <div class="lin"><span>🗺️ Mapa sin conexión</span><b id="pf-offline">…</b></div>
+    <button class="btn-mini" id="btn-offline" style="width:100%;margin-top:8px">⬇️ Descargar / actualizar mapa de mis rutas</button>`;
+  const d = state.descargandoMapa, prev = await DB.get('kv', 'mapa_offline');
+  $('pf-offline').textContent = d ? 'Descargando ' + Math.round(d.ok * 100 / Math.max(1, d.total)) + ' %'
+    : prev ? (prev.completo ? '✅ Listo · ' : '⚠️ Parcial · ') + new Date(prev.fecha).toLocaleDateString('es-CL') + ' (hasta zoom ' + prev.zoomMax + ')'
+    : 'No descargado';
+  $('btn-offline').disabled = !!d;
+  $('btn-offline').onclick = () => { if (!navigator.onLine) { toast('Necesitas señal para descargar el mapa.'); return; } toast('⬇️ Descargando el mapa de tus rutas…'); descargarMapaOffline(true); };
 }
 
 async function cargarTurnosPerfil() {
@@ -1197,10 +1253,76 @@ function cambiarVista(v) {
 // ════════════════════════════════════════════════════════════════
 // Mapa
 // ════════════════════════════════════════════════════════════════
+// Mapas base de Esri (como el sistema web). El service worker guarda cada mosaico visto y
+// descargarMapaOffline() baja por adelantado el área de las rutas: el mapa funciona sin señal.
+const ESRI = s => 'https://server.arcgisonline.com/ArcGIS/rest/services/' + s + '/MapServer/tile/{z}/{y}/{x}';
 const FONDOS = {
-  calles: () => L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }),
-  sat: () => L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: '© Esri' })
+  calles: () => L.tileLayer(ESRI('World_Street_Map'), { maxZoom: 19, maxNativeZoom: 17, attribution: 'Tiles © Esri' }),
+  sat: () => L.layerGroup([L.tileLayer(ESRI('World_Imagery'), { maxZoom: 19, maxNativeZoom: 17, attribution: 'Tiles © Esri' }),
+                           L.tileLayer(ESRI('Reference/World_Transportation'), { maxZoom: 19, maxNativeZoom: 17 })])
 };
+// ── Mapa sin conexión: descarga los mosaicos del área de las rutas de la comuna (zoom 10–16, máx. ~2.500)
+const CACHE_MOSAICOS = 'mosaicos-v1';
+const OFFLINE_MAX = 2500, OFFLINE_DIAS = 14;
+function mosaicosDe(bbox, z) {
+  const n = 2 ** z, rad = Math.PI / 180;
+  const x = lng => Math.floor((lng + 180) / 360 * n);
+  const y = lat => Math.floor((1 - Math.log(Math.tan(lat * rad) + 1 / Math.cos(lat * rad)) / Math.PI) / 2 * n);
+  const out = [];
+  for (let i = x(bbox.w); i <= x(bbox.e); i++) for (let j = y(bbox.n); j <= y(bbox.s); j++) out.push([z, i, j]);
+  return out;
+}
+function areaRutas() {
+  let w = 180, e = -180, s = 90, n = -90;
+  const ext = c => { w = Math.min(w, c[0]); e = Math.max(e, c[0]); s = Math.min(s, c[1]); n = Math.max(n, c[1]); };
+  todasRutas().forEach(r => {
+    const g = r.geometry && (r.geometry.type === 'Feature' ? r.geometry.geometry : r.geometry);
+    if (!g) return;
+    (g.type === 'LineString' ? [g.coordinates] : g.type === 'MultiLineString' ? g.coordinates : []).forEach(l => l.forEach(ext));
+  });
+  if (w > e && state.pos) { w = state.pos.lng - 0.08; e = state.pos.lng + 0.08; s = state.pos.lat - 0.06; n = state.pos.lat + 0.06; }
+  if (w > e) return null;
+  return { w: w - 0.02, e: e + 0.02, s: s - 0.02, n: n + 0.02 };
+}
+async function descargarMapaOffline(forzar) {
+  if (state.descargandoMapa || !navigator.onLine || !('caches' in window)) return;
+  const prev = await DB.get('kv', 'mapa_offline');
+  if (!forzar && prev && prev.completo && Date.now() - new Date(prev.fecha) < OFFLINE_DIAS * 864e5) return;
+  const bbox = areaRutas();
+  if (!bbox) { if (forzar) toast('Aún no hay rutas ni posición para saber qué zona descargar.'); return; }
+  // Del zoom 10 hacia arriba mientras quepa en el máximo
+  let lista = [];
+  for (let z = 10; z <= 16; z++) {
+    const t = mosaicosDe(bbox, z);
+    if (lista.length + t.length > OFFLINE_MAX) break;
+    lista = lista.concat(t);
+  }
+  state.descargandoMapa = { total: lista.length, ok: 0 };
+  renderPerfil();
+  const cache = await caches.open(CACHE_MOSAICOS);
+  const url = ([z, x, y]) => ESRI('World_Street_Map').replace('{z}', z).replace('{y}', y).replace('{x}', x);
+  let i = 0, fallos = 0;
+  const trabajador = async () => {
+    while (i < lista.length && navigator.onLine) {
+      const u = url(lista[i++]);
+      try {
+        if (!(await cache.match(u))) {
+          const res = await fetch(u, { mode: 'cors', credentials: 'omit' });
+          if (res.ok) await cache.put(u, res); else fallos++;
+        }
+      } catch (e) { fallos++; }
+      state.descargandoMapa.ok++;
+      if (state.descargandoMapa.ok % 50 === 0 && state.vista === 'perfil') renderPerfil();
+    }
+  };
+  await Promise.all([trabajador(), trabajador(), trabajador(), trabajador()]);
+  const completo = state.descargandoMapa.ok >= lista.length && fallos < lista.length * 0.05;
+  await DB.put('kv', { fecha: new Date().toISOString(), total: lista.length, fallos, completo, zoomMax: lista.length ? lista[lista.length - 1][0] : null }, 'mapa_offline');
+  state.descargandoMapa = null;
+  renderPerfil();
+  if (forzar) toast(completo ? '✅ Mapa sin conexión listo' : '⚠️ Mapa descargado en parte (' + fallos + ' mosaicos fallaron). Reintenta con buena señal.', 3500);
+}
+
 function abrirMapa() {
   if (!state.mapa) {
     state.mapa = L.map('mapa', { zoomControl: false, attributionControl: true }).setView(state.pos ? [state.pos.lat, state.pos.lng] : [-38.74, -72.6], state.pos ? 15 : 9);
@@ -1331,7 +1453,7 @@ $('btn-capa').addEventListener('click', () => {
   state.fondoSat = !state.fondoSat;
   state.mapa.removeLayer(state.capas.fondo);
   state.capas.fondo = (state.fondoSat ? FONDOS.sat() : FONDOS.calles()).addTo(state.mapa);
-  state.capas.fondo.bringToBack();
+  // (los mosaicos van siempre en su propio panel, bajo las rutas)
   $('btn-capa').textContent = state.fondoSat ? '🗺️' : '🛰️';
 });
 // Filtros del mapa: escenario e institución
