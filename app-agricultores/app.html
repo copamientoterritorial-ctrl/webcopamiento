@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Agricultores Malleco</title>
+<meta name="theme-color" content="#14532D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Agricultores">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --bg:#F3F7F2;--card:#FFFFFF;--text:#0F172A;--muted:#64748B;--line:#E2E8F0;
+  --verde:#15803D;--verde-o:#14532D;--azul:#2563EB;--ambar:#D97706;--rojo:#DC2626;
+  --safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:15px;overscroll-behavior:none;}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+input,textarea,select{font:inherit;color:inherit;}
+.hidden{display:none!important;}
+
+/* ── Login */
+#s-login{min-height:100%;display:flex;flex-direction:column;justify-content:center;padding:32px 24px calc(32px + var(--safe-b));background:linear-gradient(160deg,#14532D 0%,#3F6212 100%);color:#fff;}
+#s-login h1{font-size:26px;text-align:center;margin-bottom:4px;}
+#s-login .sub{text-align:center;opacity:.85;margin-bottom:26px;font-size:14px;}
+#s-login .logo{font-size:64px;text-align:center;margin-bottom:8px;}
+.campo{margin-bottom:14px;}
+.campo label{display:block;font-size:13px;font-weight:700;margin-bottom:5px;}
+.campo input,.campo select,.campo textarea{width:100%;padding:12px 13px;border-radius:12px;border:1px solid #CBD5E1;background:#fff;color:var(--text);font-size:16px;}
+#s-login .campo input{border:none;}
+.btn{display:block;width:100%;padding:14px;border-radius:14px;font-weight:800;font-size:16px;text-align:center;}
+.btn-p{background:var(--verde);color:#fff;} .btn-p:disabled{opacity:.6;}
+.btn-b{background:#fff;color:var(--verde-o);}
+.btn-s{background:#EEF2F7;color:var(--text);}
+.btn-mini{padding:8px 12px;border-radius:10px;background:#EEF2F7;font-weight:700;font-size:13px;}
+.err{background:#FEE2E2;color:#991B1B;padding:10px 12px;border-radius:10px;font-size:13px;margin-bottom:12px;}
+#s-login .nota{font-size:12px;opacity:.8;margin-top:16px;text-align:center;line-height:1.5;}
+
+/* ── App */
+#s-app{height:100%;display:flex;flex-direction:column;}
+header{background:var(--verde-o);color:#fff;padding:calc(10px + var(--safe-t)) 14px 10px;display:flex;align-items:center;gap:10px;}
+header .t{flex:1;min-width:0;}
+header b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+header small{opacity:.8;font-size:12px;}
+.chip-sync{padding:6px 10px;border-radius:20px;font-size:12px;font-weight:800;background:rgba(255,255,255,.15);white-space:nowrap;}
+.chip-sync.pend{background:#F59E0B;color:#422006;} .chip-sync.off{background:#475569;}
+.aviso{margin:10px 12px 0;padding:10px 12px;border-radius:12px;font-size:13px;line-height:1.4;}
+.aviso.amb{background:#FEF3C7;color:#78350F;} .aviso.roj{background:#FEE2E2;color:#7F1D1D;}
+main{flex:1;overflow:auto;padding:0 0 calc(76px + var(--safe-b));}
+.vista{padding:12px;}
+.card{background:var(--card);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(15,23,42,.06);}
+.card h3{font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.kpi{background:var(--card);border-radius:16px;padding:12px;box-shadow:0 1px 2px rgba(15,23,42,.06);}
+.kpi b{font-size:24px;display:block;}
+.kpi small{color:var(--muted);font-size:12px;}
+.barra{height:8px;background:#E2E8F0;border-radius:6px;overflow:hidden;margin-top:6px;}
+.barra em{display:block;height:100%;background:var(--verde);}
+.acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.act{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:14px;padding:10px 6px;text-align:center;font-size:11.5px;font-weight:700;line-height:1.25;min-height:84px;}
+.act span{display:block;font-size:26px;margin-bottom:4px;}
+.tarea{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
+.tarea:last-child{border-bottom:none;}
+.tarea .ico{font-size:24px;}
+.tarea .tx{flex:1;min-width:0;}
+.tarea .tx small{color:var(--muted);display:block;font-size:12px;}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:800;}
+.tag.venc{background:#FEE2E2;color:#991B1B;} .tag.hoy{background:#DBEAFE;color:#1E40AF;} .tag.prox{background:#F1F5F9;color:#475569;}
+.tag.pend{background:#FEF3C7;color:#92400E;} .tag.ok{background:#DCFCE7;color:#166534;} .tag.err{background:#FEE2E2;color:#991B1B;}
+.alerta-card{background:linear-gradient(135deg,#7F1D1D,#DC2626);color:#fff;}
+.alerta-card p{font-size:13px;opacity:.9;margin-bottom:10px;line-height:1.4;}
+.vacio{color:var(--muted);text-align:center;padding:18px;font-size:14px;}
+.lin{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px;}
+.lin:last-child{border-bottom:none;}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;padding-bottom:var(--safe-b);z-index:500;}
+.tab{flex:1;padding:8px 0 9px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);}
+.tab span{display:block;font-size:21px;}
+.tab.sel{color:var(--verde);}
+#mapa{height:calc(100vh - 150px);height:calc(100dvh - 150px - var(--safe-b) - var(--safe-t));}
+.seg{display:flex;background:#E2E8F0;border-radius:12px;padding:3px;margin-bottom:10px;}
+.seg button{flex:1;padding:8px;border-radius:10px;font-weight:700;font-size:13px;}
+.seg button.on{background:#fff;color:var(--verde-o);box-shadow:0 1px 2px #0002;}
+
+/* ── Formulario (pantalla completa) */
+#s-form{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;flex-direction:column;}
+#s-form header{background:var(--verde);}
+#f-cuerpo{flex:1;overflow:auto;padding:12px 12px calc(90px + var(--safe-b));}
+#f-pie{position:fixed;left:0;right:0;bottom:0;padding:10px 12px calc(10px + var(--safe-b));background:#fff;border-top:1px solid var(--line);}
+.chk{display:flex;flex-wrap:wrap;gap:8px;}
+.chk label{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #CBD5E1;border-radius:10px;padding:9px 12px;font-weight:600;font-size:14px;}
+.sino{display:flex;gap:8px;}
+.sino button{flex:1;padding:11px;border-radius:10px;border:1px solid #CBD5E1;background:#fff;font-weight:700;}
+.sino button.on{background:var(--verde);color:#fff;border-color:var(--verde);}
+.gps{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #CBD5E1;border-radius:12px;padding:10px 12px;font-size:13px;}
+.gps b{flex:1;}
+#f-mapa{height:240px;border-radius:12px;margin-top:8px;border:1px solid #CBD5E1;}
+.fotos{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.fotos div{position:relative;}
+.fotos img{width:76px;height:76px;object-fit:cover;border-radius:10px;}
+.fotos button{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;background:#DC2626;color:#fff;font-weight:900;font-size:13px;}
+#toast{position:fixed;left:50%;bottom:calc(90px + var(--safe-b));transform:translateX(-50%) translateY(20px);background:#0F172A;color:#fff;padding:11px 16px;border-radius:12px;font-size:14px;opacity:0;transition:.25s;z-index:3000;max-width:90%;text-align:center;pointer-events:none;}
+#toast.ver{opacity:1;transform:translateX(-50%) translateY(0);}
+#modal{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:2000;display:flex;align-items:flex-end;}
+#modal .caja{background:#fff;width:100%;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + var(--safe-b));max-height:85vh;overflow:auto;}
+#modal h3{margin-bottom:10px;}
+</style>
+</head>
+<body>
+
+<!-- ═══ Login: mismo correo y clave del sistema web ═══ -->
+<section id="s-login" class="hidden">
+  <div class="logo">🌾</div>
+  <h1>Agricultores Malleco</h1>
+  <p class="sub">App de terreno · Asociación de Agricultores</p>
+  <div id="lg-error" class="err hidden"></div>
+  <div class="campo"><label for="lg-email">Correo</label><input id="lg-email" type="email" autocomplete="username" inputmode="email"></div>
+  <div class="campo"><label for="lg-clave">Clave</label><input id="lg-clave" type="password" autocomplete="current-password"></div>
+  <button class="btn btn-b" id="lg-btn">Ingresar</button>
+  <p class="nota">Usa el mismo correo y clave del sistema web (copamientoterritorial.cl).<br>Si tu clave es temporal, cámbiala primero en el sistema web.<br>Después de ingresar, la app funciona sin señal: la sesión no se cierra sola.</p>
+</section>
+
+<!-- ═══ App ═══ -->
+<section id="s-app" class="hidden">
+  <header>
+    <div class="t"><b id="h-nombre">—</b><small id="h-sub">—</small></div>
+    <button class="chip-sync" id="h-sync">—</button>
+  </header>
+  <div id="av-sesion" class="aviso roj hidden"></div>
+  <div id="av-offline" class="aviso amb hidden">📴 Sin señal: todo lo que registres queda guardado en el teléfono y se envía solo cuando vuelva la conexión.</div>
+  <main>
+    <div class="vista" id="v-hoy"></div>
+    <div class="vista hidden" id="v-plan"></div>
+    <div class="vista hidden" id="v-mapa" style="padding:0;"><div id="mapa"></div></div>
+    <div class="vista hidden" id="v-registros"></div>
+    <div class="vista hidden" id="v-perfil"></div>
+  </main>
+  <nav class="tabs">
+    <button class="tab sel" data-v="hoy"><span>🏠</span>Hoy</button>
+    <button class="tab" data-v="plan"><span>🗓️</span>Planificar</button>
+    <button class="tab" data-v="mapa"><span>🗺️</span>Mapa</button>
+    <button class="tab" data-v="registros"><span>📝</span>Registros</button>
+    <button class="tab" data-v="perfil"><span>👤</span>Yo</button>
+  </nav>
+</section>
+
+<!-- ═══ Formulario de actividad ═══ -->
+<section id="s-form" class="hidden">
+  <header><button id="f-volver" style="font-size:22px;padding:0 6px;">←</button><div class="t"><b id="f-titulo">Registrar actividad</b><small id="f-sub">Se guarda en el teléfono</small></div></header>
+  <div id="f-cuerpo"></div>
+  <div id="f-pie"><button class="btn btn-p" id="f-guardar">💾 Guardar</button></div>
+</section>
+
+<div id="modal" class="hidden"><div class="caja" id="modal-caja"></div></div>
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// App de terreno «Agricultores Malleco» v1.0 — Copamiento Territorial (SQL 129)
+// · Ingreso con el MISMO usuario de la plataforma (Supabase Auth: correo + clave). La sesión queda guardada en el
+//   teléfono y NO se cierra sola: sin señal se sigue registrando; al volver la señal se sincroniza.
+// · Cada registro (formulario + GPS + fotos) y cada planificación se guarda primero en IndexedDB (cola) y se envía
+//   en orden: el id nace en el teléfono, así reenviar nunca duplica (RPC agr_guardar_registro).
+// · Mapa sin conexión: mosaicos Esri (caché compartida con la App de Patrullaje) + comunas, Red Vial MOP con su rol
+//   y predios (RPC agr_capas_offline).
+// · Día de alerta: «Ir a Patrullaje» abre la App de Patrullaje con una sesión para este mismo usuario (agr_token_patrullaje).
+// ════════════════════════════════════════════════════════════════
+const APP_VERSION = '1.0.0';
+const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
+// Sesión propia de la app (no se cierra al salir del sistema web en el mismo navegador)
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-agr-app', detectSessionInUrl: false } });
+const SYNC_CADA_MS = 30000;
+const MAX_FOTOS = 4;
+
+const FORMULARIOS = {
+  agricultor: { nombre: 'Agricultor / evaluación de riesgo', campos: [
+    { k: 'nombre_agricultor', t: 'Nombre del agricultor', tipo: 'text', req: true },
+    { k: 'fundo', t: 'Nombre del fundo', tipo: 'text' },
+    { k: 'telefono', t: 'Teléfono de contacto', tipo: 'tel' },
+    { k: 'superficie_ha', t: 'Superficie (ha)', tipo: 'number' },
+    { k: 'cultivos', t: 'Tipo de cultivo', tipo: 'multi', op: ['Trigo', 'Avena', 'Raps', 'Otro'] },
+    { k: 'nivel_riesgo', t: 'Nivel de riesgo', tipo: 'select', op: ['alto', 'medio', 'bajo'], req: true },
+    { k: 'recursos_proteccion', t: 'Posee recursos de protección', tipo: 'bool' },
+    { k: 'recursos_detalle', t: '¿Cuáles? (estanque, bomba, maquinaria…)', tipo: 'text' },
+    { k: 'cortafuegos', t: 'Cortafuegos', tipo: 'bool' },
+    { k: 'zona_poblada', t: 'Zona poblada', tipo: 'bool' },
+    { k: 'vinculacion', t: 'Vinculación', tipo: 'select', op: ['directa', 'indirecta'] },
+    { k: 'fecha_cosecha', t: 'Fecha de cosecha aprox.', tipo: 'date' },
+    { k: 'fecha_quema', t: 'Fecha estimada de quema', tipo: 'date' },
+    { k: 'gestor_cmpc', t: 'Gestor CMPC participa', tipo: 'bool' },
+    { k: 'gestor_cmpc_nombre', t: 'Gestor CMPC (nombre)', tipo: 'text' },
+    { k: 'motivo', t: 'Motivo', tipo: 'textarea' },
+    { k: 'observaciones', t: 'Observaciones', tipo: 'textarea' },
+  ] },
+  capacitacion: { nombre: 'Capacitación / charla', campos: [
+    { k: 'organizacion', t: 'Nombre de la organización', tipo: 'text', req: true },
+    { k: 'dirige', t: 'Nombre de quien dirige', tipo: 'text' },
+    { k: 'publico', t: 'Tipo de público', tipo: 'select', op: ['Agricultores', 'Comunidad', 'Junta de vecinos', 'PDTI', 'Organización funcional / territorial', 'Trabajadores agrícolas', 'Escuela', 'Otro'] },
+    { k: 'tema', t: 'Tema', tipo: 'select', op: ['Prevención de incendios', 'Cortafuegos', 'Técnicas de quema', 'Otro'] },
+    { k: 'nivel_riesgo', t: 'Nivel de riesgo (según datos)', tipo: 'select', op: ['alto', 'medio', 'bajo'] },
+    { k: 'zona_poblada', t: 'Zona poblada', tipo: 'bool' },
+    { k: 'vinculacion', t: 'Vinculación', tipo: 'select', op: ['directa', 'indirecta'] },
+    { k: 'participantes', t: 'N° de participantes', tipo: 'number', req: true },
+    { k: 'observaciones', t: 'Observaciones', tipo: 'textarea' },
+  ] },
+  operativo: { nombre: 'Operativo carretero', campos: [
+    { k: 'ruta_rol', t: 'Ruta (rol MOP, ej. R-86)', tipo: 'text', req: true },
+    { k: 'km', t: 'Kilómetro', tipo: 'number' },
+    { k: 'lugar', t: 'Lugar / sector', tipo: 'text' },
+    { k: 'instituciones', t: 'Instituciones participantes', tipo: 'multi', op: ['Carabineros', 'CONAF', 'Municipalidad', 'CMPC', 'Asociación', 'Otra'] },
+    { k: 'vehiculos', t: 'N° de vehículos controlados', tipo: 'number' },
+    { k: 'folletos', t: 'N° de folletos entregados', tipo: 'number' },
+    { k: 'participantes', t: 'N° de personas del operativo', tipo: 'number' },
+    { k: 'incidencias', t: 'Incidencias (quemas, basurales, conductas de riesgo)', tipo: 'textarea' },
+  ] },
+  reunion: { nombre: 'Reunión', campos: [
+    { k: 'tipo_reunion', t: 'Tipo de reunión', tipo: 'select', op: ['Coordinación SG + jefes de área', 'Área comunal', 'Otra'], req: true },
+    { k: 'participantes', t: 'N° de participantes', tipo: 'number' },
+    { k: 'asistentes', t: 'Asistentes', tipo: 'textarea' },
+    { k: 'acuerdos', t: 'Acuerdos', tipo: 'textarea' },
+    { k: 'proxima_fecha', t: 'Próxima reunión', tipo: 'date' },
+  ] },
+};
+const FRECUENCIAS = [['unica', 'Una vez'], ['semanal', 'Semanal'], ['quincenal', 'Quincenal'], ['mensual', 'Mensual']];
+const RIESGO_COLOR = { alto: '#DC2626', medio: '#D97706', bajo: '#16A34A' };
+
+const state = {
+  yo: null, inicio: null, capas: null, pendientes: 0, cola: [], sincronizando: false, ultimaSync: null, necesitaClave: false,
+  vista: 'hoy', planVista: 'semana', mapa: null, capasMapa: {}, form: null, descargandoMapa: null
+};
+
+// ════════════════════════════════════════════════════════════════
+// Utilidades
+// ════════════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function uuid() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
+}
+let toastTimer = null;
+function toast(msg, ms) { const t = $('toast'); t.textContent = msg; t.classList.add('ver'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('ver'), ms || 2600); }
+function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function hoyISO() { return iso(new Date()); }
+function diaDe(ts) { return iso(new Date(ts)); }
+function fecha(isoTxt) { return new Date(String(isoTxt).slice(0, 10) + 'T12:00:00'); }
+function fmtDia(isoTxt) { return fecha(isoTxt).toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' }); }
+function fmtFechaHora(ts) { const d = new Date(ts); return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }) + ' ' + d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }); }
+function esErrorDeRed(e) { return !navigator.onLine || /fetch|network|Failed|Load failed|timeout|NetworkError/i.test(e && (e.message || String(e)) || ''); }
+function esErrorDeSesion(e) { return /JWT|jwt|401|invalid claim|not authenticated|Auth session missing|refresh token/i.test(e && (e.message || String(e)) || ''); }
+function act(id) { return ((state.inicio && state.inicio.actividades) || []).find(a => a.id === id) || { id, nombre: id, icono: '•', formulario: 'reunion' }; }
+function nombreDe(id) { return (state.inicio && state.inicio.nombres && state.inicio.nombres[id]) || (id === (state.yo && state.yo.id) ? state.yo.nombre : 'Gestor'); }
+function modal(html) { $('modal-caja').innerHTML = html; $('modal').classList.remove('hidden'); return $('modal-caja'); }
+function cerrarModal() { $('modal').classList.add('hidden'); $('modal-caja').innerHTML = ''; }
+$('modal').addEventListener('click', e => { if (e.target === $('modal')) cerrarModal(); });
+
+// ════════════════════════════════════════════════════════════════
+// Almacenamiento local (IndexedDB): kv · cola (registros y planificación, en orden) · fotos (blobs)
+// ════════════════════════════════════════════════════════════════
+function abrirIDB(nombre, version, upgrade) {
+  return new Promise((ok, mal) => {
+    const req = indexedDB.open(nombre, version);
+    req.onupgradeneeded = () => upgrade(req.result);
+    req.onsuccess = () => ok(req.result);
+    req.onerror = () => mal(req.error);
+  });
+}
+const DB = {
+  db: null,
+  async abrir() {
+    if (!this.db) this.db = await abrirIDB('agricultores_v1', 1, d => { d.createObjectStore('kv'); d.createObjectStore('cola', { keyPath: 'id' }); d.createObjectStore('fotos'); });
+    return this.db;
+  },
+  async op(store, modo, fn) {
+    const d = await this.abrir();
+    return new Promise((ok, mal) => {
+      const tx = d.transaction(store, modo), r = fn(tx.objectStore(store));
+      tx.oncomplete = () => ok(r && 'result' in r ? r.result : undefined);
+      tx.onerror = () => mal(tx.error); tx.onabort = () => mal(tx.error);
+    });
+  },
+  get(s, k) { return this.op(s, 'readonly', st => st.get(k)); },
+  put(s, v, k) { return this.op(s, 'readwrite', st => k === undefined ? st.put(v) : st.put(v, k)); },
+  del(s, k) { return this.op(s, 'readwrite', st => st.delete(k)); },
+  all(s) { return this.op(s, 'readonly', st => st.getAll()); },
+  clear(s) { return this.op(s, 'readwrite', st => st.clear()); }
+};
+
+// ════════════════════════════════════════════════════════════════
+// Sesión: mismo usuario de la plataforma. Sin señal se usa la identidad guardada; NO se cierra sola.
+// ════════════════════════════════════════════════════════════════
+async function ingresar() {
+  const email = $('lg-email').value.trim().toLowerCase(), clave = $('lg-clave').value;
+  const err = $('lg-error'); err.classList.add('hidden');
+  if (!email || !clave) { err.textContent = 'Ingresa tu correo y tu clave.'; err.classList.remove('hidden'); return; }
+  if (!navigator.onLine) { err.textContent = 'Para el primer ingreso necesitas señal. Después la app funciona sin conexión.'; err.classList.remove('hidden'); return; }
+  const btn = $('lg-btn'); btn.disabled = true; btn.textContent = 'Ingresando…';
+  try {
+    await iniciarSesionSupabase(email, clave);
+    $('lg-clave').value = '';
+    await entrar();
+  } catch (e) {
+    err.textContent = /Invalid login|credentials/i.test(e.message || '') ? 'Correo o clave incorrectos.' : (e.message || 'No se pudo ingresar.');
+    err.classList.remove('hidden');
+  } finally { btn.disabled = false; btn.textContent = 'Ingresar'; }
+}
+/** Inicia sesión y verifica el permiso: Administrador o usuario de la Asociación (perfil_asociacion). */
+async function iniciarSesionSupabase(email, clave) {
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: clave });
+  if (error) throw error;
+  const uid = data.user.id;
+  const [pf, as] = await Promise.all([
+    sb.from('perfiles').select('id, nombre_completo, perfil, estado').eq('id', uid).maybeSingle(),
+    sb.from('perfil_asociacion').select('asociacion').eq('perfil_id', uid).maybeSingle(),
+  ]);
+  if (as.error && /perfil_asociacion|does not exist/i.test(as.error.message)) { await sb.auth.signOut(); throw new Error('El sistema aún no tiene el módulo de Agricultores (falta el SQL 129).'); }
+  const p = pf.data, esAdmin = !!(p && p.perfil === 'Administrador');
+  if (!p || p.estado === 'inactivo' || (!esAdmin && !(as.data && as.data.asociacion))) {
+    await sb.auth.signOut();
+    throw new Error('Tu usuario no tiene acceso a la app de la Asociación de Agricultores. Pide al Administrador el perfil «Asociación de Agricultores».');
+  }
+  state.yo = { id: uid, email, nombre: p.nombre_completo || email, perfil: p.perfil, esAdmin, asociacion: (as.data && as.data.asociacion) || 'MALLECO' };
+  await DB.put('kv', state.yo, 'yo');
+  state.necesitaClave = false;
+}
+async function entrar() {
+  $('s-login').classList.add('hidden'); $('s-app').classList.remove('hidden');
+  $('h-nombre').textContent = state.yo.nombre;
+  $('h-sub').textContent = (state.yo.esAdmin ? 'Administrador · modo Agricultor' : 'Asociación de Agricultores') + ' · ' + (state.yo.asociacion === 'MALLECO' ? 'Malleco' : state.yo.asociacion);
+  state.inicio = (await DB.get('kv', 'inicio')) || null;
+  state.capas = (await DB.get('kv', 'capas')) || null;
+  await contarPendientes();
+  cambiarVista('hoy');
+  if (navigator.onLine) { await cargarInicio().catch(() => {}); sincronizar(); }
+  render();
+}
+async function salir() {
+  if (state.pendientes > 0 && !confirm('Tienes ' + state.pendientes + ' envío(s) pendiente(s). Si cierras la sesión se pierden. ¿Cerrar igual?')) return;
+  if (!confirm('¿Cerrar la sesión en este teléfono?')) return;
+  try { await sb.auth.signOut(); } catch (e) {}
+  await DB.clear('kv'); await DB.clear('cola'); await DB.clear('fotos');
+  state.yo = null; state.inicio = null; state.capas = null;
+  location.reload();
+}
+/** ¿La sesión de Supabase sirve para enviar? (sin señal no se consulta) */
+async function sesionValida() {
+  const { data } = await sb.auth.getSession();
+  if (data && data.session && data.session.user && data.session.user.id === state.yo.id) return true;
+  return false;
+}
+function pedirClave() {
+  state.necesitaClave = true;
+  const av = $('av-sesion');
+  av.innerHTML = '🔑 Tu sesión debe renovarse para enviar lo registrado (sigue guardado en el teléfono). ' +
+    '<div style="display:flex;gap:6px;margin-top:8px;"><input id="rc-clave" type="password" placeholder="Tu clave" style="flex:1;padding:9px;border-radius:9px;border:1px solid #FCA5A5;">' +
+    '<button class="btn-mini" id="rc-btn" style="background:#fff;">Renovar</button></div>';
+  av.classList.remove('hidden');
+  $('rc-btn').onclick = async () => {
+    try { await iniciarSesionSupabase(state.yo.email, $('rc-clave').value); av.classList.add('hidden'); toast('✅ Sesión renovada'); sincronizar(); }
+    catch (e) { toast(/Invalid login|credentials/i.test(e.message || '') ? 'Clave incorrecta' : (e.message || 'No se pudo')); }
+  };
+}
+
+// ════════════════════════════════════════════════════════════════
+// Datos de inicio (se guardan en el teléfono para usarlos sin señal)
+// ════════════════════════════════════════════════════════════════
+async function cargarInicio() {
+  if (!(await sesionValida())) { pedirClave(); return; }
+  const hoy = new Date(), mesIni = iso(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+  const desde = new Date(hoy); desde.setDate(desde.getDate() - 31);
+  const desdeReg = iso(desde) < mesIni ? iso(desde) : mesIni;
+  const hasta = new Date(hoy); hasta.setDate(hasta.getDate() + 62);
+  const hace = new Date(hoy); hace.setDate(hace.getDate() - 14);
+  const [as, ac, me, pl, ag, re, pa] = await Promise.all([
+    sb.from('agr_asociaciones').select('*').eq('id', state.yo.asociacion || 'MALLECO').maybeSingle(),
+    sb.from('agr_actividades').select('*').eq('activo', true).order('orden'),
+    sb.from('agr_metas').select('actividad_id, mes, meta').eq('mes', mesIni),
+    sb.from('agr_planificacion').select('*').gte('fecha', iso(hace)).lte('fecha', iso(hasta)).order('fecha'),
+    sb.from('agr_agricultores').select('id, codigo, nombre, fundo, telefono, superficie_ha, cultivos, nivel_riesgo, recursos_proteccion, recursos_detalle, cortafuegos, zona_poblada, vinculacion, fecha_cosecha, fecha_quema, lat, lng, comuna, visitas').order('nombre'),
+    sb.from('agr_registros').select('id, actividad_id, fecha, usuario_id, lat, lng, comuna, datos, fotos, participantes, agricultor_id').gte('fecha', desdeReg + 'T00:00:00').order('fecha', { ascending: false }),
+    sb.from('perfil_asociacion').select('perfil_id'),
+  ]);
+  const err = [as, ac, me, pl, ag, re].find(r => r.error);
+  if (err) { if (esErrorDeSesion(err.error)) { pedirClave(); return; } throw new Error(err.error.message); }
+  const asoc = as.data || { id: 'MALLECO', comunas: [9211, 9207, 9202] };
+  const gestores = (pa.data || []).map(x => x.perfil_id);
+  const nombres = {};
+  try { const { data } = await sb.rpc('nombres_perfiles', { p_ids: gestores.concat((re.data || []).map(r => r.usuario_id)).filter((v, i, a) => v && a.indexOf(v) === i) }); (data || []).forEach(p => { nombres[p.id] = p.nombre_completo; }); } catch (e) {}
+  nombres[state.yo.id] = state.yo.nombre;
+  let comunas = [];
+  try { const { data } = await sb.from('comunas').select('id, comuna, id_comuna').in('id_comuna', asoc.comunas || []); comunas = (data || []).sort((a, b) => a.comuna.localeCompare(b.comuna, 'es')); } catch (e) {}
+  state.inicio = { fecha: new Date().toISOString(), asoc, comunas, actividades: ac.data || [], metas: me.data || [], mes: mesIni.slice(0, 7), plan: pl.data || [],
+    agricultores: ag.data || [], registros: re.data || [], gestores, nombres };
+  await DB.put('kv', state.inicio, 'inicio');
+  // Capas del mapa sin conexión (una vez por semana o si no están)
+  if (!state.capas || Date.now() - new Date(state.capas.generado || 0) > 7 * 864e5) actualizarCapas().catch(() => {});
+}
+async function actualizarCapas() {
+  const { data, error } = await sb.rpc('agr_capas_offline', { p_asociacion: state.yo.asociacion || 'MALLECO' });
+  if (error) throw error;
+  state.capas = data; await DB.put('kv', data, 'capas');
+  if (state.mapa) pintarCapasMapa();
+}
+
+// ════════════════════════════════════════════════════════════════
+// Cola de envíos y sincronización
+// ════════════════════════════════════════════════════════════════
+async function contarPendientes() {
+  state.cola = ((await DB.all('cola')) || []).sort((a, b) => String(a.creado).localeCompare(String(b.creado)));
+  state.pendientes = state.cola.length;
+  pintarSync();
+}
+function pintarSync() {
+  const c = $('h-sync'); if (!c) return;
+  c.className = 'chip-sync' + (state.pendientes ? ' pend' : '') + (!navigator.onLine ? ' off' : '');
+  c.textContent = state.sincronizando ? '🔄 Enviando…' : !navigator.onLine ? '📴 ' + (state.pendientes ? state.pendientes + ' en cola' : 'Sin señal')
+    : state.pendientes ? '⏳ ' + state.pendientes + ' por enviar' : '✅ Al día';
+  $('av-offline').classList.toggle('hidden', navigator.onLine);
+}
+async function sincronizar() {
+  if (state.sincronizando || !navigator.onLine || !state.yo) { pintarSync(); return; }
+  state.sincronizando = true; pintarSync();
+  let enviados = 0;
+  try {
+    await contarPendientes();
+    if (state.cola.length && !(await sesionValida())) { pedirClave(); return; }
+    for (const item of state.cola) {
+      try {
+        if (item.tipo === 'registro') await enviarRegistro(item);
+        else if (item.tipo === 'plan') await enviarPlan(item);
+        else if (item.tipo === 'plan_estado') await enviarEstadoPlan(item);
+        await DB.del('cola', item.id);
+        enviados++;
+      } catch (e) {
+        if (esErrorDeRed(e)) break;
+        if (esErrorDeSesion(e)) { pedirClave(); break; }
+        item.error = e.message || String(e); item.intentos = (item.intentos || 0) + 1;
+        await DB.put('cola', item);   // queda en la cola con el error visible (Registros)
+      }
+    }
+    await contarPendientes();
+    state.ultimaSync = new Date();
+    if (enviados) { toast('✅ ' + enviados + ' envío(s) sincronizado(s)'); await cargarInicio().catch(() => {}); render(); }
+  } finally { state.sincronizando = false; pintarSync(); }
+}
+async function enviarRegistro(item) {
+  const p = item.payload, fotos = [];
+  for (let i = 0; i < (item.fotos || []).length; i++) {
+    const blob = await DB.get('fotos', item.fotos[i]);
+    if (!blob) continue;
+    const path = p.id + '/' + (i + 1) + '.jpg';
+    const { error } = await sb.storage.from('agr-fotos').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+    if (error && !/exists|Duplicate/i.test(error.message)) throw new Error('Foto: ' + error.message);
+    fotos.push(path);
+  }
+  const { error } = await sb.rpc('agr_guardar_registro', { p: Object.assign({}, p, { fotos }) });
+  if (error) throw new Error(error.message);
+  for (const k of item.fotos || []) await DB.del('fotos', k);
+}
+async function enviarPlan(item) {
+  const { error } = await sb.from('agr_planificacion').upsert(item.filas, { onConflict: 'id' });
+  if (error) throw new Error(error.message);
+}
+async function enviarEstadoPlan(item) {
+  const q = item.eliminar ? sb.from('agr_planificacion').delete().eq('id', item.planId) : sb.from('agr_planificacion').update({ estado: item.estado }).eq('id', item.planId);
+  const { error } = await q;
+  if (error) throw new Error(error.message);
+}
+
+// ════════════════════════════════════════════════════════════════
+// Vistas
+// ════════════════════════════════════════════════════════════════
+function cambiarVista(v) {
+  state.vista = v;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('sel', t.dataset.v === v));
+  ['hoy', 'plan', 'mapa', 'registros', 'perfil'].forEach(x => $('v-' + x).classList.toggle('hidden', x !== v));
+  render();
+}
+function render() {
+  if (!state.yo) return;
+  if (state.vista === 'hoy') renderHoy();
+  else if (state.vista === 'plan') renderPlan();
+  else if (state.vista === 'mapa') abrirMapa();
+  else if (state.vista === 'registros') renderRegistros();
+  else if (state.vista === 'perfil') renderPerfil();
+  pintarSync();
+}
+/** Registros de la cola (pendientes) en el mismo formato que los del servidor. */
+function registrosLocales() { return state.cola.filter(i => i.tipo === 'registro').map(i => Object.assign({ _pend: true, _error: i.error, usuario_id: state.yo.id }, i.payload)); }
+function planLocal() {
+  const base = ((state.inicio && state.inicio.plan) || []).map(p => Object.assign({}, p)), ids = new Set(base.map(p => p.id));
+  state.cola.filter(i => i.tipo === 'plan').forEach(i => i.filas.forEach(f => { if (!ids.has(f.id)) { base.push(Object.assign({ _pend: true }, f)); ids.add(f.id); } }));
+  state.cola.filter(i => i.tipo === 'plan_estado').forEach(i => { const p = base.find(x => x.id === i.planId); if (p) { if (i.eliminar) p._eliminada = true; else p.estado = i.estado; } });
+  // Lo registrado sin enviar ya cuenta como realizada
+  registrosLocales().forEach(r => { const p = base.find(x => x.id === r.planificacion_id); if (p) p.estado = 'realizada'; });
+  return base.filter(p => !p._eliminada).sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
+
+function renderHoy() {
+  const I = state.inicio, cont = $('v-hoy'), hoy = hoyISO();
+  if (!I) { cont.innerHTML = '<div class="card"><div class="vacio">' + (navigator.onLine ? 'Cargando datos…' : 'Conéctate una vez para descargar las actividades y metas.') + '</div></div>'; return; }
+  const regs = I.registros.concat(registrosLocales().filter(r => !I.registros.some(x => x.id === r.id)));
+  const delMes = regs.filter(r => diaDe(r.fecha).slice(0, 7) === I.mes);
+  // Cumplimiento del mes (Asociación, tope 100 % por actividad) y mis registros
+  let meta = 0, ok = 0;
+  I.actividades.forEach(a => { const m = (I.metas.find(x => x.actividad_id === a.id) || {}).meta || 0; const r = delMes.filter(x => x.actividad_id === a.id).length; meta += m; ok += Math.min(m, r); });
+  const pct = meta ? Math.round(ok * 100 / meta) : 0;
+  const mios = delMes.filter(r => r.usuario_id === state.yo.id).length;
+  const plan = planLocal().filter(p => p.estado === 'pendiente' && (!p.responsable || p.responsable === state.yo.id || state.yo.esAdmin));
+  const venc = plan.filter(p => p.fecha < hoy), deHoy = plan.filter(p => p.fecha === hoy);
+  const prox = plan.filter(p => p.fecha > hoy && fecha(p.fecha) - fecha(hoy) <= 7 * 864e5);
+  const tarea = (p, tag) => { const a = act(p.actividad_id); return '<div class="tarea"><span class="ico">' + (a.icono || '•') + '</span><div class="tx"><b>' + esc(p.titulo || a.nombre) + '</b><small>' +
+    tag + ' ' + esc(fmtDia(p.fecha) + ' · ' + a.id + (p.id_comuna ? ' · ' + nombreComuna(p.id_comuna) : '')) + '</small></div><button class="btn-mini" data-reg-plan="' + p.id + '">➕</button></div>'; };
+  const mesTxt = fecha(I.mes + '-01').toLocaleDateString('es-CL', { month: 'long' });
+  cont.innerHTML =
+    '<div class="kpis"><div class="kpi"><small>Asociación · ' + esc(mesTxt) + '</small><b style="color:' + (pct >= 90 ? '#15803D' : pct >= 60 ? '#D97706' : '#DC2626') + '">' + pct + '%</b><small>' + ok + ' de ' + meta + ' metas</small><div class="barra"><em style="width:' + pct + '%"></em></div></div>' +
+      '<div class="kpi"><small>Mis registros · ' + esc(mesTxt) + '</small><b>' + mios + '</b><small>' + delMes.length + ' de toda la Asociación</small></div></div>' +
+    '<div class="card"><h3>➕ Registrar actividad</h3><div class="acts">' + I.actividades.map(a => '<button class="act" data-nuevo="' + a.id + '"><span>' + (a.icono || '•') + '</span>' + esc(a.nombre) + '</button>').join('') + '</div></div>' +
+    '<div class="card"><h3>📌 Mis tareas</h3>' +
+      (venc.length + deHoy.length + prox.length ? venc.map(p => tarea(p, '<span class="tag venc">Vencida</span>')).join('') + deHoy.map(p => tarea(p, '<span class="tag hoy">Hoy</span>')).join('') + prox.map(p => tarea(p, '<span class="tag prox">Próxima</span>')).join('')
+        : '<div class="vacio">No tienes tareas planificadas esta semana.<br><button class="btn-mini" data-ir="plan" style="margin-top:8px;">🗓️ Planificar</button></div>') + '</div>' +
+    '<div class="card alerta-card"><h3>🚨 Día de alerta</h3><p>En días de Alerta Amarilla o Roja también patrullas. Abre la App de Patrullaje con tu mismo usuario (necesita señal solo para activarla).</p><button class="btn btn-b" id="btn-patrullaje">🚓 Ir a Patrullaje</button></div>';
+}
+function nombreComuna(id) { const c = ((state.inicio && state.inicio.comunas) || []).find(x => Number(x.id_comuna) === Number(id)); return c ? c.comuna : 'Comuna ' + id; }
+
+function rangoPlan() {
+  const ref = new Date(), v = state.planVista; let ini, fin;
+  if (v === 'semana') { ini = new Date(ref); ini.setDate(ref.getDate() - ((ref.getDay() + 6) % 7)); fin = new Date(ini); fin.setDate(ini.getDate() + 6); }
+  else if (v === 'quincena') { ini = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() <= 15 ? 1 : 16); fin = ref.getDate() <= 15 ? new Date(ref.getFullYear(), ref.getMonth(), 15) : new Date(ref.getFullYear(), ref.getMonth() + 1, 0); }
+  else { ini = new Date(ref.getFullYear(), ref.getMonth(), 1); fin = new Date(ref.getFullYear(), ref.getMonth() + 1, 0); }
+  return [iso(ini), iso(fin)];
+}
+function renderPlan() {
+  const cont = $('v-plan'), I = state.inicio, hoy = hoyISO();
+  if (!I) { cont.innerHTML = '<div class="card"><div class="vacio">Conéctate una vez para descargar la planificación.</div></div>'; return; }
+  const [a, b] = rangoPlan();
+  const lista = planLocal().filter(p => p.fecha >= a && p.fecha <= b);
+  const vivas = lista.filter(p => p.estado !== 'cancelada'), hechas = vivas.filter(p => p.estado === 'realizada');
+  const pct = vivas.length ? Math.round(hechas.length * 100 / vivas.length) : 0;
+  const porDia = {}; lista.forEach(p => { (porDia[p.fecha] = porDia[p.fecha] || []).push(p); });
+  cont.innerHTML =
+    '<div class="seg">' + [['semana', 'Semanal'], ['quincena', 'Quincenal'], ['mes', 'Mensual']].map(([v, t]) => '<button data-pvista="' + v + '"' + (state.planVista === v ? ' class="on"' : '') + '>' + t + '</button>').join('') + '</div>' +
+    '<div class="kpis"><div class="kpi"><small>Cumplimiento del periodo</small><b>' + pct + '%</b><small>' + hechas.length + ' de ' + vivas.length + ' planificadas</small><div class="barra"><em style="width:' + pct + '%"></em></div></div>' +
+      '<div class="kpi"><small>Vencidas</small><b style="color:#DC2626">' + vivas.filter(p => p.estado === 'pendiente' && p.fecha < hoy).length + '</b><small>sin registrar</small></div></div>' +
+    '<button class="btn btn-p" id="btn-planificar" style="margin-bottom:12px;">➕ Planificar actividad</button>' +
+    (Object.keys(porDia).length ? Object.keys(porDia).sort().map(d => '<div class="card"><h3>' + esc(fmtDia(d)) + (d === hoy ? ' <span class="tag hoy">Hoy</span>' : '') + '</h3>' +
+      porDia[d].map(p => { const x = act(p.actividad_id), venc = p.estado === 'pendiente' && p.fecha < hoy;
+        return '<div class="tarea"><span class="ico">' + (x.icono || '•') + '</span><div class="tx"><b>' + esc(p.titulo || x.nombre) + '</b><small>' +
+          esc(x.id + ' · ' + (FRECUENCIAS.find(f => f[0] === p.frecuencia) || ['', ''])[1] + (p.id_comuna ? ' · ' + nombreComuna(p.id_comuna) : '') + (p.responsable ? ' · ' + nombreDe(p.responsable) : '')) +
+          ' ' + (p.estado === 'realizada' ? '<span class="tag ok">Realizada</span>' : p.estado === 'cancelada' ? '<span class="tag prox">Cancelada</span>' : venc ? '<span class="tag venc">Vencida</span>' : '<span class="tag hoy">Pendiente</span>') +
+          (p._pend ? ' <span class="tag pend">Sin enviar</span>' : '') + '</small></div>' +
+          (p.estado === 'pendiente' ? '<button class="btn-mini" data-plan-menu="' + p.id + '">⋯</button>' : '') + '</div>'; }).join('') + '</div>').join('')
+      : '<div class="card"><div class="vacio">Nada planificado en este periodo.</div></div>');
+}
+
+function renderRegistros() {
+  const cont = $('v-registros'), I = state.inicio;
+  const pend = registrosLocales(), otros = state.cola.filter(i => i.tipo !== 'registro');
+  const mios = ((I && I.registros) || []).filter(r => r.usuario_id === state.yo.id && !pend.some(p => p.id === r.id));
+  const fila = (r, estado) => { const a = act(r.actividad_id), d = r.datos || {};
+    return '<div class="tarea"><span class="ico">' + (a.icono || '•') + '</span><div class="tx"><b>' + esc(d.nombre_agricultor || d.organizacion || d.ruta_rol || d.tipo_reunion || a.nombre) + '</b><small>' +
+      esc(fmtFechaHora(r.fecha) + ' · ' + a.id + ' · ' + (r.comuna || (r.lat != null ? 'con GPS' : 'sin GPS'))) + ' ' + estado + '</small>' +
+      (r._error ? '<small style="color:#B91C1C;">⚠️ ' + esc(r._error) + '</small>' : '') + '</div></div>'; };
+  cont.innerHTML =
+    '<div class="card"><h3>⏳ En el teléfono, por enviar (' + (pend.length + otros.length) + ')</h3>' +
+      (pend.length ? pend.map(r => fila(r, '<span class="tag ' + (r._error ? 'err' : 'pend') + '">' + (r._error ? 'Con error' : 'Pendiente') + '</span>')).join('') : '') +
+      (otros.length ? '<div class="lin"><span>🗓️ Cambios de planificación</span><b>' + otros.length + '</b></div>' : '') +
+      (!pend.length && !otros.length ? '<div class="vacio">Todo enviado ✅</div>' : '<button class="btn btn-p" id="btn-sync" style="margin-top:10px;">🔄 Enviar ahora</button>') + '</div>' +
+    '<div class="card"><h3>✅ Mis registros enviados (últimos 30 días)</h3>' + (mios.length ? mios.map(r => fila(r, '<span class="tag ok">Enviado</span>')).join('') : '<div class="vacio">Aún no hay registros enviados.</div>') + '</div>';
+}
+
+async function renderPerfil() {
+  const cont = $('v-perfil'), I = state.inicio, mo = await DB.get('kv', 'mapa_offline');
+  const d = state.descargandoMapa;
+  cont.innerHTML =
+    '<div class="card"><h3>👤 ' + esc(state.yo.nombre) + '</h3><div class="lin"><span>Correo</span><b>' + esc(state.yo.email) + '</b></div>' +
+      '<div class="lin"><span>Perfil</span><b>' + (state.yo.esAdmin ? 'Administrador (modo Agricultor)' : 'Asociación de Agricultores') + '</b></div>' +
+      '<div class="lin"><span>Datos descargados</span><b>' + (I ? fmtFechaHora(I.fecha) : '—') + '</b></div>' +
+      '<div class="lin"><span>Envíos pendientes</span><b>' + state.pendientes + '</b></div>' +
+      '<div class="lin"><span>Última sincronización</span><b>' + (state.ultimaSync ? fmtFechaHora(state.ultimaSync) : '—') + '</b></div>' +
+      '<button class="btn btn-s" id="btn-actualizar" style="margin-top:10px;">🔄 Actualizar datos</button></div>' +
+    '<div class="card"><h3>🗺️ Mapa sin conexión</h3>' +
+      '<div class="lin"><span>Mosaicos del mapa</span><b>' + (d ? 'Descargando ' + Math.round(d.ok * 100 / Math.max(1, d.total)) + ' %' : mo ? (mo.completo ? '✅ ' : '⚠️ Parcial · ') + new Date(mo.fecha).toLocaleDateString('es-CL') + ' (zoom ' + mo.zoomMax + ')' : 'No descargado') + '</b></div>' +
+      '<div class="lin"><span>Comunas, Red Vial (rol) y predios</span><b>' + (state.capas ? (state.capas.rutas || []).length + ' tramos · ' + (state.capas.predios || []).length + ' predios' : 'No descargado') + '</b></div>' +
+      '<button class="btn btn-p" id="btn-offline" style="margin-top:10px;"' + (d ? ' disabled' : '') + '>⬇️ Descargar mapa de la Asociación</button>' +
+      '<p style="font-size:12px;color:var(--muted);margin-top:8px;">Descárgalo con Wi-Fi antes de salir a terreno (Victoria, Lumaco y Collipulli).</p></div>' +
+    '<div class="card"><div class="lin"><span>Versión</span><b>' + APP_VERSION + '</b></div><button class="btn btn-s" id="btn-salir" style="margin-top:10px;color:#B91C1C;">🚪 Cerrar sesión</button></div>';
+}
+
+// ════════════════════════════════════════════════════════════════
+// Formulario de actividad (GPS + fotos + campos) → cola
+// ════════════════════════════════════════════════════════════════
+function abrirFormulario(op) {
+  const I = state.inicio; if (!I) { toast('Conéctate una vez para descargar las actividades.'); return; }
+  const plan = op.planId ? planLocal().find(p => p.id === op.planId) : null;
+  const actId = (plan && plan.actividad_id) || op.actividad || I.actividades[0].id;
+  state.form = { id: uuid(), actividad: actId, plan: plan ? plan.id : '', agricultor: '', fotos: [], pos: null, datos: {} };
+  $('s-form').classList.remove('hidden');
+  pintarFormulario();
+  tomarGps();
+}
+function pintarFormulario() {
+  const F = state.form, I = state.inicio, a = act(F.actividad), form = FORMULARIOS[a.formulario];
+  $('f-titulo').textContent = (a.icono || '') + ' ' + a.nombre; $('f-sub').textContent = form.nombre;
+  const pend = planLocal().filter(p => p.actividad_id === a.id && p.estado === 'pendiente');
+  const agr = a.formulario === 'agricultor' && F.agricultor ? listaAgricultores().find(x => x.id === F.agricultor) : null;
+  const pre = Object.assign({}, agr ? { nombre_agricultor: agr.nombre, fundo: agr.fundo, telefono: agr.telefono, superficie_ha: agr.superficie_ha, cultivos: agr.cultivos, nivel_riesgo: agr.nivel_riesgo,
+    recursos_proteccion: agr.recursos_proteccion, recursos_detalle: agr.recursos_detalle, cortafuegos: agr.cortafuegos, zona_poblada: agr.zona_poblada, vinculacion: agr.vinculacion,
+    fecha_cosecha: agr.fecha_cosecha, fecha_quema: agr.fecha_quema } : {}, F.datos);
+  $('f-cuerpo').innerHTML =
+    '<div class="campo"><label>Actividad</label><select id="f-act">' + I.actividades.map(x => '<option value="' + x.id + '"' + (x.id === a.id ? ' selected' : '') + '>' + esc((x.icono || '') + ' ' + x.id + ' · ' + x.nombre) + '</option>').join('') + '</select></div>' +
+    '<div class="campo"><label>¿Estaba planificada?</label><select id="f-plan"><option value="">No estaba planificada</option>' + pend.map(p => '<option value="' + p.id + '"' + (p.id === F.plan ? ' selected' : '') + '>' + esc(fmtDia(p.fecha) + (p.titulo ? ' · ' + p.titulo : '')) + '</option>').join('') + '</select></div>' +
+    (a.formulario === 'agricultor' ? '<div class="campo"><label>Agricultor</label><select id="f-agr"><option value="">➕ Agricultor nuevo</option>' + listaAgricultores().map(x => '<option value="' + x.id + '"' + (x.id === F.agricultor ? ' selected' : '') + '>' + esc((x.codigo || 'Nuevo') + ' · ' + x.nombre + (x.fundo ? ' (' + x.fundo + ')' : '')) + '</option>').join('') + '</select></div>' : '') +
+    form.campos.map(c => campoHtml(c, pre[c.k])).join('') +
+    '<div class="campo"><label>📍 Ubicación</label><div class="gps"><b id="f-gps">Buscando GPS…</b><button class="btn-mini" id="f-gps-btn">🎯</button><button class="btn-mini" id="f-gps-mapa">🗺️</button></div><div id="f-mapa" class="hidden"></div></div>' +
+    '<div class="campo"><label>📷 Fotos (hasta ' + MAX_FOTOS + ')</label><input type="file" id="f-foto" accept="image/*" capture="environment" class="hidden"><button class="btn btn-s" id="f-foto-btn">📷 Tomar / elegir foto</button><div class="fotos" id="f-fotos"></div></div>';
+  pintarGps(); pintarFotos();
+}
+function listaAgricultores() {
+  const base = ((state.inicio && state.inicio.agricultores) || []).slice(), ids = new Set(base.map(x => x.id));
+  // Agricultores creados en el teléfono (aún sin enviar): se pueden volver a elegir
+  registrosLocales().forEach(r => { if (r.agricultor_id && !ids.has(r.agricultor_id) && r.datos && r.datos.nombre_agricultor) { ids.add(r.agricultor_id); base.push(Object.assign({ id: r.agricultor_id, codigo: null, nombre: r.datos.nombre_agricultor }, r.datos)); } });
+  return base.sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+}
+function campoHtml(c, v) {
+  const id = 'fc-' + c.k, req = c.req ? ' *' : '';
+  if (c.tipo === 'select') return '<div class="campo"><label>' + esc(c.t) + req + '</label><select id="' + id + '"><option value="">—</option>' + c.op.map(o => '<option value="' + esc(o) + '"' + (v === o ? ' selected' : '') + '>' + esc(o.charAt(0).toUpperCase() + o.slice(1)) + '</option>').join('') + '</select></div>';
+  if (c.tipo === 'multi') return '<div class="campo"><label>' + esc(c.t) + req + '</label><div class="chk" id="' + id + '">' + c.op.map(o => '<label><input type="checkbox" value="' + esc(o) + '"' + ((v || []).includes(o) ? ' checked' : '') + '> ' + esc(o) + '</label>').join('') + '</div></div>';
+  if (c.tipo === 'bool') return '<div class="campo"><label>' + esc(c.t) + '</label><div class="sino" id="' + id + '" data-v="' + (v == null ? '' : v) + '"><button type="button" data-sn="true"' + (v === true ? ' class="on"' : '') + '>Sí</button><button type="button" data-sn="false"' + (v === false ? ' class="on"' : '') + '>No</button></div></div>';
+  if (c.tipo === 'textarea') return '<div class="campo"><label>' + esc(c.t) + req + '</label><textarea id="' + id + '" rows="3">' + esc(v || '') + '</textarea></div>';
+  const tipo = c.tipo === 'number' ? 'number" inputmode="decimal' : c.tipo === 'date' ? 'date' : c.tipo === 'tel' ? 'tel' : 'text';
+  return '<div class="campo"><label>' + esc(c.t) + req + '</label><input id="' + id + '" type="' + tipo + '" value="' + esc(v == null ? '' : v) + '"></div>';
+}
+function leerCampos() {
+  const a = act(state.form.actividad), datos = {}, faltan = [];
+  FORMULARIOS[a.formulario].campos.forEach(c => {
+    const el = $('fc-' + c.k); if (!el) return;
+    let v;
+    if (c.tipo === 'multi') v = [...el.querySelectorAll('input:checked')].map(i => i.value);
+    else if (c.tipo === 'bool') v = el.dataset.v === '' ? null : el.dataset.v === 'true';
+    else if (c.tipo === 'number') v = el.value === '' ? null : Number(el.value);
+    else v = el.value.trim() || null;
+    if (c.req && (v == null || (Array.isArray(v) && !v.length))) faltan.push(c.t);
+    if (v != null && !(Array.isArray(v) && !v.length)) datos[c.k] = v;
+  });
+  return { datos, faltan };
+}
+let gpsWatch = null;
+function tomarGps() {
+  if (!('geolocation' in navigator)) { $('f-gps') && ($('f-gps').textContent = 'GPS no disponible: elige el punto en el mapa'); return; }
+  if (gpsWatch != null) navigator.geolocation.clearWatch(gpsWatch);
+  const fin = Date.now() + 25000;
+  gpsWatch = navigator.geolocation.watchPosition(p => {
+    if (!state.form) return;
+    const c = p.coords, nueva = { lat: c.latitude, lng: c.longitude, precision: Math.round(c.accuracy), manual: false };
+    if (!state.form.pos || state.form.pos.manual === false && nueva.precision <= (state.form.pos.precision || 9999)) { state.form.pos = nueva; pintarGps(); }
+    if (c.accuracy <= 15 || Date.now() > fin) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; }
+  }, () => { if ($('f-gps') && !state.form.pos) $('f-gps').textContent = 'Sin GPS: activa la ubicación o elige en el mapa'; }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 });
+}
+function pintarGps() {
+  const el = $('f-gps'), p = state.form && state.form.pos; if (!el) return;
+  el.textContent = p ? (p.manual ? '🗺️ Punto elegido: ' : '📍 ') + p.lat.toFixed(5) + ', ' + p.lng.toFixed(5) + (p.precision ? ' (±' + p.precision + ' m)' : '') : 'Buscando GPS…';
+  if (state.form && state.form.mapa && p) { if (state.form.marca) state.form.marca.setLatLng([p.lat, p.lng]); else state.form.marca = L.marker([p.lat, p.lng]).addTo(state.form.mapa); }
+}
+function mapaFormulario() {
+  const div = $('f-mapa'); div.classList.remove('hidden');
+  if (state.form.mapa) return;
+  const p = state.form.pos, m = L.map(div).setView(p ? [p.lat, p.lng] : [-38.15, -72.35], p ? 15 : 10);
+  L.tileLayer(ESRI('World_Street_Map'), { maxZoom: 19, maxNativeZoom: 17 }).addTo(m);
+  m.on('click', e => { if (gpsWatch != null) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; } state.form.pos = { lat: e.latlng.lat, lng: e.latlng.lng, precision: null, manual: true }; pintarGps(); });
+  state.form.mapa = m; pintarGps(); setTimeout(() => m.invalidateSize(), 100);
+}
+function comprimirFoto(file) {
+  return new Promise(ok => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, 1600 / Math.max(img.width, img.height)), cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url);
+      cv.toBlob(b => ok(b || file), 'image/jpeg', 0.75);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); ok(file); };
+    img.src = url;
+  });
+}
+function pintarFotos() {
+  const cont = $('f-fotos'); if (!cont) return;
+  cont.innerHTML = state.form.fotos.map((f, i) => '<div><img src="' + f.url + '" alt="Foto ' + (i + 1) + '"><button data-quitar-foto="' + i + '">×</button></div>').join('');
+  $('f-foto-btn').classList.toggle('hidden', state.form.fotos.length >= MAX_FOTOS);
+}
+function cerrarFormulario() {
+  if (gpsWatch != null) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; }
+  if (state.form) { state.form.fotos.forEach(f => URL.revokeObjectURL(f.url)); if (state.form.mapa) state.form.mapa.remove(); }
+  state.form = null; $('s-form').classList.add('hidden'); $('f-cuerpo').innerHTML = '';
+}
+async function guardarFormulario() {
+  const F = state.form, a = act(F.actividad), { datos, faltan } = leerCampos();
+  if (faltan.length) { toast('Completa: ' + faltan.join(', ')); return; }
+  if (!F.pos && !confirm('No hay ubicación (GPS ni punto en el mapa). ¿Guardar igual?')) return;
+  const fotos = [];
+  for (let i = 0; i < F.fotos.length; i++) { const k = F.id + '_' + i; await DB.put('fotos', F.fotos[i].blob, k); fotos.push(k); }
+  const agricultorId = a.formulario === 'agricultor' ? (F.agricultor || uuid()) : null;
+  const item = { id: F.id, tipo: 'registro', creado: new Date().toISOString(), fotos,
+    payload: { id: F.id, actividad_id: a.id, fecha: new Date().toISOString(), lat: F.pos ? F.pos.lat : null, lng: F.pos ? F.pos.lng : null, precision_m: F.pos ? F.pos.precision : null,
+      agricultor_id: agricultorId, planificacion_id: F.plan || null, datos, origen: 'app', dispositivo: navigator.userAgent.slice(0, 180) } };
+  await DB.put('cola', item);
+  cerrarFormulario();
+  await contarPendientes();
+  toast(navigator.onLine ? '💾 Guardado. Enviando…' : '💾 Guardado en el teléfono. Se enviará al haber señal.', 3200);
+  render();
+  sincronizar();
+}
+
+// ════════════════════════════════════════════════════════════════
+// Planificar (con frecuencia) → cola
+// ════════════════════════════════════════════════════════════════
+function abrirPlanificar() {
+  const I = state.inicio; if (!I) return;
+  const fin = String((I.asoc && I.asoc.temporada_fin) || '').slice(0, 10) || hoyISO();
+  const c = modal('<h3>🗓️ Planificar actividad</h3>' +
+    '<div class="campo"><label>Actividad</label><select id="p-act">' + I.actividades.map(a => '<option value="' + a.id + '">' + esc((a.icono || '') + ' ' + a.id + ' · ' + a.nombre) + '</option>').join('') + '</select></div>' +
+    '<div class="campo"><label>Detalle (opcional)</label><input id="p-tit" placeholder="Ej. Visita fundo Las Lomas"></div>' +
+    '<div class="campo"><label>Fecha</label><input type="date" id="p-fecha" value="' + hoyISO() + '"></div>' +
+    '<div class="campo"><label>Frecuencia</label><select id="p-frec">' + FRECUENCIAS.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('') + '</select></div>' +
+    '<div class="campo hidden" id="p-hasta-w"><label>Repetir hasta</label><input type="date" id="p-hasta" value="' + fin + '"></div>' +
+    '<div class="campo"><label>Comuna</label><select id="p-com"><option value="">—</option>' + (I.comunas || []).map(x => '<option value="' + x.id_comuna + '">' + esc(x.comuna) + '</option>').join('') + '</select></div>' +
+    '<p id="p-res" style="font-size:13px;color:var(--muted);margin-bottom:12px;"></p>' +
+    '<button class="btn btn-p" id="p-ok">Planificar</button><button class="btn btn-s" id="p-no" style="margin-top:8px;">Cancelar</button>');
+  const fechas = () => {
+    const f = $('p-frec').value, ini = $('p-fecha').value, hasta = $('p-hasta').value || ini;
+    if (!ini) return [];
+    if (f === 'unica') return [ini];
+    const out = [], d0 = fecha(ini);
+    for (let i = 0; i < 60; i++) {
+      const d = new Date(d0);
+      if (f === 'semanal') d.setDate(d0.getDate() + 7 * i);
+      else if (f === 'quincenal') d.setDate(d0.getDate() + 14 * i);
+      else { d.setDate(1); d.setMonth(d0.getMonth() + i); d.setDate(Math.min(d0.getDate(), new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate())); }
+      const s = iso(d); if (s > hasta) break; out.push(s);
+    }
+    return out;
+  };
+  const res = () => { $('p-hasta-w').classList.toggle('hidden', $('p-frec').value === 'unica'); const fs = fechas(); $('p-res').textContent = fs.length ? 'Se crearán ' + fs.length + ' actividad(es).' : 'Revisa las fechas.'; };
+  ['p-frec', 'p-fecha', 'p-hasta'].forEach(id => $(id).addEventListener('change', res)); res();
+  $('p-no').onclick = cerrarModal;
+  $('p-ok').onclick = async () => {
+    const fs = fechas(); if (!fs.length) return;
+    const frec = $('p-frec').value, serie = fs.length > 1 ? uuid() : null;
+    const filas = fs.map(f => ({ id: uuid(), asociacion: state.yo.asociacion || 'MALLECO', actividad_id: $('p-act').value, titulo: $('p-tit').value.trim() || null, fecha: f, frecuencia: frec,
+      serie_id: serie, id_comuna: Number($('p-com').value) || null, responsable: state.yo.id, estado: 'pendiente', creado_por: state.yo.id }));
+    await DB.put('cola', { id: uuid(), tipo: 'plan', creado: new Date().toISOString(), filas });
+    cerrarModal(); await contarPendientes(); toast('🗓️ ' + filas.length + ' actividad(es) planificada(s)'); render(); sincronizar();
+  };
+}
+function menuTarea(id) {
+  const p = planLocal().find(x => x.id === id); if (!p) return;
+  const a = act(p.actividad_id);
+  modal('<h3>' + (a.icono || '') + ' ' + esc(p.titulo || a.nombre) + '</h3><p style="color:var(--muted);margin-bottom:12px;">' + esc(fmtDia(p.fecha)) + '</p>' +
+    '<button class="btn btn-p" data-t="reg">➕ Registrar ahora</button>' +
+    '<button class="btn btn-s" data-t="cancelada" style="margin-top:8px;">🚫 Cancelar</button>' +
+    '<button class="btn btn-s" data-t="eliminar" style="margin-top:8px;color:#B91C1C;">🗑️ Eliminar</button>' +
+    '<button class="btn btn-s" data-t="no" style="margin-top:8px;">Volver</button>');
+  $('modal-caja').querySelectorAll('[data-t]').forEach(b => b.onclick = async () => {
+    const t = b.dataset.t; cerrarModal();
+    if (t === 'reg') { abrirFormulario({ planId: id }); return; }
+    if (t === 'no') return;
+    // Si aún no se envió la planificación, se corrige en la misma cola
+    const enCola = state.cola.find(i => i.tipo === 'plan' && i.filas.some(f => f.id === id));
+    if (enCola) {
+      if (t === 'eliminar') enCola.filas = enCola.filas.filter(f => f.id !== id); else enCola.filas.forEach(f => { if (f.id === id) f.estado = t; });
+      if (enCola.filas.length) await DB.put('cola', enCola); else await DB.del('cola', enCola.id);
+    } else await DB.put('cola', { id: uuid(), tipo: 'plan_estado', creado: new Date().toISOString(), planId: id, estado: t === 'eliminar' ? null : t, eliminar: t === 'eliminar' });
+    await contarPendientes(); render(); sincronizar();
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// Mapa (mosaicos Esri guardados + capas de la Asociación)
+// ════════════════════════════════════════════════════════════════
+const ESRI = s => 'https://server.arcgisonline.com/ArcGIS/rest/services/' + s + '/MapServer/tile/{z}/{y}/{x}';
+const CACHE_MOSAICOS = 'mosaicos-v1';   // misma caché que la App de Patrullaje
+const OFFLINE_MAX = 4000;
+function abrirMapa() {
+  if (!state.mapa) {
+    state.mapa = L.map('mapa', { zoomControl: true }).setView([-38.05, -72.4], 10);
+    const calles = L.tileLayer(ESRI('World_Street_Map'), { maxZoom: 19, maxNativeZoom: 17, attribution: 'Tiles © Esri' }).addTo(state.mapa);
+    const sat = L.tileLayer(ESRI('World_Imagery'), { maxZoom: 19, maxNativeZoom: 17, attribution: 'Tiles © Esri' });
+    state.capasMapa.control = L.control.layers({ 'Calles': calles, 'Satélite': sat }, {}, { collapsed: true }).addTo(state.mapa);
+    const yo = L.control({ position: 'bottomright' });
+    yo.onAdd = () => { const b = L.DomUtil.create('button', 'btn-mini'); b.textContent = '📍 Yo'; b.style.background = '#fff'; b.style.boxShadow = '0 1px 4px #0004';
+      L.DomEvent.on(b, 'click', e => { L.DomEvent.stop(e); navigator.geolocation && navigator.geolocation.getCurrentPosition(p => { const ll = [p.coords.latitude, p.coords.longitude];
+        if (state.capasMapa.yo) state.capasMapa.yo.setLatLng(ll); else state.capasMapa.yo = L.circleMarker(ll, { radius: 8, color: '#fff', weight: 3, fillColor: '#2563EB', fillOpacity: 1 }).addTo(state.mapa);
+        state.mapa.setView(ll, 15); }, () => toast('Sin GPS'), { enableHighAccuracy: true, timeout: 15000 }); }); return b; };
+    yo.addTo(state.mapa);
+    pintarCapasMapa();
+  } else pintarCapasMapa();
+  setTimeout(() => state.mapa.invalidateSize(), 80);
+}
+function pintarCapasMapa() {
+  const m = state.mapa, C = state.capasMapa; if (!m) return;
+  ['comunas', 'rutas', 'predios', 'agr', 'reg'].forEach(k => { if (C[k]) { C.control.removeLayer(C[k]); m.removeLayer(C[k]); C[k] = null; } });
+  const fc = (arr, props) => ({ type: 'FeatureCollection', features: (arr || []).filter(x => x.geometry).map(x => ({ type: 'Feature', geometry: x.geometry, properties: props(x) })) });
+  if (state.capas) {
+    C.comunas = L.geoJSON(fc(state.capas.comunas, x => x), { style: { color: '#7C3AED', weight: 2, fill: false, dashArray: '6 4' } }).addTo(m);
+    C.rutas = L.geoJSON(fc(state.capas.rutas, x => x), { style: f => ({ color: /nacional|internacional/i.test(f.properties.clasificacion || '') ? '#DC2626' : /regional|principal/i.test(f.properties.clasificacion || '') ? '#EA580C' : '#A16207', weight: 3, opacity: .85 }),
+      onEachFeature: (f, l) => l.bindPopup('<b>' + esc(f.properties.rol_label || f.properties.rol || 'Sin rol') + '</b>' + (f.properties.nombre ? '<br>' + esc(f.properties.nombre) : '') + (f.properties.clasificacion ? '<br><small>' + esc(f.properties.clasificacion) + '</small>' : '')) }).addTo(m);
+    C.predios = L.geoJSON(fc(state.capas.predios, x => x), { style: { color: '#15803D', weight: 1.5, fillOpacity: .15 }, onEachFeature: (f, l) => l.bindPopup('<b>Predio ' + esc(f.properties.codigo || f.properties.id) + '</b>' + (f.properties.nombre ? '<br>' + esc(f.properties.nombre) : '')) });
+    if ((state.capas.predios || []).length) C.predios.addTo(m);
+    C.control.addOverlay(C.comunas, '🏘️ Comunas'); C.control.addOverlay(C.rutas, '🛣️ Red Vial MOP (rol)'); C.control.addOverlay(C.predios, '🌾 Predios');
+  }
+  C.agr = L.layerGroup(listaAgricultores().filter(a => a.lat != null).map(a => L.circleMarker([a.lat, a.lng], { radius: 7, color: '#fff', weight: 2, fillColor: RIESGO_COLOR[a.nivel_riesgo] || '#64748B', fillOpacity: .95 })
+    .bindPopup('<b>' + esc((a.codigo || 'Nuevo') + ' · ' + a.nombre) + '</b><br>' + esc(a.fundo || '') + '<br>Riesgo: ' + esc(a.nivel_riesgo || '—') + (a.fecha_quema ? '<br>🔥 Quema: ' + esc(a.fecha_quema) : '')))).addTo(m);
+  const regs = ((state.inicio && state.inicio.registros) || []).filter(r => r.usuario_id === state.yo.id).concat(registrosLocales());
+  C.reg = L.layerGroup(regs.filter(r => r.lat != null).map(r => { const a = act(r.actividad_id);
+    return L.marker([r.lat, r.lng], { icon: L.divIcon({ className: '', html: '<div style="font-size:20px;line-height:20px;filter:drop-shadow(0 1px 2px #0006);' + (r._pend ? 'opacity:.6;' : '') + '">' + (a.icono || '📍') + '</div>', iconSize: [22, 22], iconAnchor: [11, 11] }) })
+      .bindPopup('<b>' + esc(a.nombre) + '</b><br>' + esc(fmtFechaHora(r.fecha)) + (r._pend ? '<br>⏳ Sin enviar' : '')); })).addTo(m);
+  C.control.addOverlay(C.agr, '👨‍🌾 Agricultores'); C.control.addOverlay(C.reg, '📍 Mis registros');
+}
+function mosaicosDe(bbox, z) {
+  const n = 2 ** z, rad = Math.PI / 180;
+  const x = lng => Math.floor((lng + 180) / 360 * n);
+  const y = lat => Math.floor((1 - Math.log(Math.tan(lat * rad) + 1 / Math.cos(lat * rad)) / Math.PI) / 2 * n);
+  const out = [];
+  for (let i = x(bbox.w); i <= x(bbox.e); i++) for (let j = y(bbox.n); j <= y(bbox.s); j++) out.push([z, i, j]);
+  return out;
+}
+function areaAsociacion() {
+  let w = 180, e = -180, s = 90, n = -90;
+  const ext = c => { w = Math.min(w, c[0]); e = Math.max(e, c[0]); s = Math.min(s, c[1]); n = Math.max(n, c[1]); };
+  const recorrer = g => { if (!g) return; if (typeof g[0] === 'number') ext(g); else g.forEach(recorrer); };
+  ((state.capas && state.capas.comunas) || []).forEach(c => recorrer(c.geometry && c.geometry.coordinates));
+  if (w > e) return { w: -72.95, e: -71.85, s: -38.45, n: -37.7 };   // Victoria, Lumaco, Collipulli (aprox.)
+  return { w: w - 0.01, e: e + 0.01, s: s - 0.01, n: n + 0.01 };
+}
+async function descargarMapaOffline() {
+  if (state.descargandoMapa) return;
+  if (!navigator.onLine) { toast('Necesitas señal (ideal Wi-Fi) para descargar el mapa.'); return; }
+  if (!('caches' in window)) { toast('Este navegador no permite guardar el mapa.'); return; }
+  try { await actualizarCapas(); } catch (e) { toast('No se pudieron bajar las capas: ' + (e.message || e)); }
+  const bbox = areaAsociacion();
+  let lista = [];
+  for (let z = 9; z <= 16; z++) { const t = mosaicosDe(bbox, z); if (lista.length + t.length > OFFLINE_MAX) break; lista = lista.concat(t); }
+  state.descargandoMapa = { total: lista.length, ok: 0 }; renderPerfil();
+  const cache = await caches.open(CACHE_MOSAICOS);
+  const url = ([z, x, y]) => ESRI('World_Street_Map').replace('{z}', z).replace('{y}', y).replace('{x}', x);
+  let i = 0, fallos = 0;
+  const trabajador = async () => {
+    while (i < lista.length && navigator.onLine) {
+      const u = url(lista[i++]);
+      try { if (!(await cache.match(u))) { const res = await fetch(u, { mode: 'cors', credentials: 'omit' }); if (res.ok) await cache.put(u, res); else fallos++; } } catch (e) { fallos++; }
+      state.descargandoMapa.ok++;
+      if (state.descargandoMapa.ok % 60 === 0 && state.vista === 'perfil') renderPerfil();
+    }
+  };
+  await Promise.all([trabajador(), trabajador(), trabajador(), trabajador()]);
+  const completo = state.descargandoMapa.ok >= lista.length && fallos < lista.length * 0.05;
+  await DB.put('kv', { fecha: new Date().toISOString(), total: lista.length, fallos, completo, zoomMax: lista.length ? lista[lista.length - 1][0] : null }, 'mapa_offline');
+  state.descargandoMapa = null; renderPerfil();
+  toast(completo ? '✅ Mapa sin conexión listo' : '⚠️ Mapa descargado en parte. Reintenta con buena señal.', 3500);
+}
+
+// ════════════════════════════════════════════════════════════════
+// Día de alerta → App de Patrullaje con el mismo usuario
+// ════════════════════════════════════════════════════════════════
+function irPatrullaje() {
+  if (!navigator.onLine) { toast('Necesitas señal una vez para activar el patrullaje. Después funciona sin conexión.', 3500); return; }
+  const comunas = (state.inicio && state.inicio.comunas) || [];
+  modal('<h3>🚓 Patrullaje en día de alerta</h3><p style="color:var(--muted);margin-bottom:12px;font-size:14px;">Elige la comuna donde vas a patrullar. Se abrirá la App de Patrullaje con tu usuario.</p>' +
+    '<div class="campo"><label>Comuna</label><select id="pt-com">' + comunas.map(c => '<option value="' + esc(c.id) + '">' + esc(c.comuna) + '</option>').join('') + '</select></div>' +
+    '<button class="btn btn-p" id="pt-ok">Abrir App de Patrullaje</button><button class="btn btn-s" id="pt-no" style="margin-top:8px;">Cancelar</button>');
+  $('pt-no').onclick = cerrarModal;
+  $('pt-ok').onclick = async () => {
+    const b = $('pt-ok'); b.disabled = true; b.textContent = 'Activando…';
+    try {
+      if (!(await sesionValida())) { cerrarModal(); pedirClave(); return; }
+      const { data, error } = await sb.rpc('agr_token_patrullaje', { p_comuna_id: $('pt-com').value || null });
+      if (error) throw new Error(/INACTIVO/.test(error.message) ? 'Tu usuario de patrullaje está desactivado. Habla con el Administrador.' : error.message);
+      // Sesión de la App de Patrullaje (misma base IndexedDB y esquema que app-patrullero/app.html)
+      const pdb = await abrirIDB('patrullero_v2', 1, d => { d.createObjectStore('kv'); d.createObjectStore('cola', { keyPath: 'id' }); d.createObjectStore('gps', { keyPath: 't' }); d.createObjectStore('fotos'); });
+      await new Promise((ok, mal) => { const tx = pdb.transaction('kv', 'readwrite'); tx.objectStore('kv').put({ token: data.token, usuario: data.usuario }, 'sesion'); tx.oncomplete = ok; tx.onerror = () => mal(tx.error); });
+      pdb.close();
+      location.href = '/app-patrullero/app.html';
+    } catch (e) { b.disabled = false; b.textContent = 'Abrir App de Patrullaje'; toast('No se pudo: ' + (e.message || e), 4000); }
+  };
+}
+
+// ════════════════════════════════════════════════════════════════
+// Eventos
+// ════════════════════════════════════════════════════════════════
+$('lg-btn').addEventListener('click', ingresar);
+$('lg-clave').addEventListener('keydown', e => { if (e.key === 'Enter') ingresar(); });
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => cambiarVista(t.dataset.v)));
+$('h-sync').addEventListener('click', () => { if (navigator.onLine) sincronizar(); else toast('Sin señal: se enviará cuando vuelva la conexión.'); });
+document.querySelector('main').addEventListener('click', e => {
+  const t = e.target;
+  const n = t.closest('[data-nuevo]'); if (n) { abrirFormulario({ actividad: n.dataset.nuevo }); return; }
+  const rp = t.closest('[data-reg-plan]'); if (rp) { abrirFormulario({ planId: rp.dataset.regPlan }); return; }
+  const pm = t.closest('[data-plan-menu]'); if (pm) { menuTarea(pm.dataset.planMenu); return; }
+  const pv = t.closest('[data-pvista]'); if (pv) { state.planVista = pv.dataset.pvista; renderPlan(); return; }
+  const ir = t.closest('[data-ir]'); if (ir) { cambiarVista(ir.dataset.ir); return; }
+  if (t.closest('#btn-planificar')) { abrirPlanificar(); return; }
+  if (t.closest('#btn-patrullaje')) { irPatrullaje(); return; }
+  if (t.closest('#btn-sync')) { sincronizar(); return; }
+  if (t.closest('#btn-offline')) { descargarMapaOffline(); return; }
+  if (t.closest('#btn-salir')) { salir(); return; }
+  if (t.closest('#btn-actualizar')) {
+    if (!navigator.onLine) { toast('Sin señal.'); return; }
+    toast('🔄 Actualizando…'); cargarInicio().then(() => { render(); toast('✅ Datos actualizados'); }, err => toast('No se pudo: ' + (err.message || err)));
+  }
+});
+$('f-volver').addEventListener('click', () => { if (confirm('¿Salir sin guardar?')) cerrarFormulario(); });
+$('f-guardar').addEventListener('click', guardarFormulario);
+$('f-cuerpo').addEventListener('change', e => {
+  const t = e.target, F = state.form; if (!F) return;
+  if (t.id === 'f-act' || t.id === 'f-agr') {
+    F.datos = t.id === 'f-agr' ? {} : leerCampos().datos;
+    if (t.id === 'f-act') { F.actividad = t.value; F.plan = ''; F.agricultor = ''; } else {
+      F.agricultor = t.value;
+      const ag = listaAgricultores().find(x => x.id === t.value);
+      if (ag && ag.lat != null && !F.pos) F.pos = { lat: ag.lat, lng: ag.lng, precision: null, manual: true };
+    }
+    pintarFormulario(); return;
+  }
+  if (t.id === 'f-plan') { F.plan = t.value; return; }
+  if (t.id === 'f-foto' && t.files && t.files[0]) {
+    const files = [...t.files].slice(0, MAX_FOTOS - F.fotos.length);
+    Promise.all(files.map(comprimirFoto)).then(blobs => { blobs.forEach(b => F.fotos.push({ blob: b, url: URL.createObjectURL(b) })); pintarFotos(); });
+    t.value = '';
+  }
+});
+$('f-cuerpo').addEventListener('click', e => {
+  const t = e.target, F = state.form; if (!F) return;
+  const sn = t.closest('[data-sn]');
+  if (sn) { const g = sn.parentElement, ya = g.dataset.v === sn.dataset.sn; g.dataset.v = ya ? '' : sn.dataset.sn; g.querySelectorAll('button').forEach(b => b.classList.toggle('on', !ya && b === sn)); return; }
+  const q = t.closest('[data-quitar-foto]'); if (q) { const i = Number(q.dataset.quitarFoto); URL.revokeObjectURL(F.fotos[i].url); F.fotos.splice(i, 1); pintarFotos(); return; }
+  if (t.closest('#f-foto-btn')) { $('f-foto').click(); return; }
+  if (t.closest('#f-gps-btn')) { F.pos = null; pintarGps(); tomarGps(); return; }
+  if (t.closest('#f-gps-mapa')) { mapaFormulario(); return; }
+});
+window.addEventListener('online', () => { pintarSync(); sincronizar(); });
+window.addEventListener('offline', pintarSync);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && navigator.onLine) sincronizar(); });
+setInterval(() => { if (navigator.onLine && state.pendientes) sincronizar(); }, SYNC_CADA_MS);
+
+// ════════════════════════════════════════════════════════════════
+// Arranque: si ya ingresó en este teléfono, entra directo (con o sin señal)
+// ════════════════════════════════════════════════════════════════
+(async function arrancar() {
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw-agricultores.js').catch(() => {});
+  try { state.yo = await DB.get('kv', 'yo'); } catch (e) { state.yo = null; }
+  if (state.yo) { await entrar(); return; }
+  $('s-login').classList.remove('hidden');
+})();
+</script>
+</body>
+</html>

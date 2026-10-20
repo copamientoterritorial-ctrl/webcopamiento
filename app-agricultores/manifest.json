@@ -1,0 +1,19 @@
+{
+  "name": "Agricultores Malleco",
+  "short_name": "Agricultores",
+  "description": "App de terreno de la Asociación de Agricultores Malleco: actividades, agricultores, fotos y planificación sin señal",
+  "id": "./app.html",
+  "start_url": "./app.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#14532D",
+  "theme_color": "#14532D",
+  "orientation": "portrait",
+  "lang": "es-CL",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
