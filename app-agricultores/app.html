@@ -86,6 +86,8 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px s
 .tab span{display:block;font-size:21px;}
 .tab.sel{color:var(--verde);}
 #mapa{height:calc(100vh - 150px);height:calc(100dvh - 150px - var(--safe-b) - var(--safe-t));}
+#mapa .leaflet-top{top:50px;}
+#mapa .leaflet-bottom{bottom:78px;}
 .seg{display:flex;background:#E2E8F0;border-radius:12px;padding:3px;margin-bottom:10px;}
 .seg button{flex:1;padding:8px;border-radius:10px;font-weight:700;font-size:13px;}
 .seg button.on{background:#fff;color:var(--verde-o);box-shadow:0 1px 2px #0002;}
@@ -102,7 +104,28 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px s
 .sino button.on{background:var(--verde);color:#fff;border-color:var(--verde);}
 .gps{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #CBD5E1;border-radius:12px;padding:10px 12px;font-size:13px;}
 .gps b{flex:1;}
-#f-mapa{height:240px;border-radius:12px;margin-top:8px;border:1px solid #CBD5E1;}
+#f-mapa{height:260px;border-radius:14px;margin:4px 0 8px;border:1px solid #CBD5E1;}
+.paso{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px;margin:18px 0 10px;}
+.paso:first-child{margin-top:4px;}
+.paso span{width:26px;height:26px;border-radius:50%;background:var(--verde);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex:none;}
+.ayuda{font-size:13px;color:var(--muted);margin:-4px 0 8px;line-height:1.4;}
+.saludo{padding:4px 2px 12px;}
+.saludo b{display:block;font-size:20px;}
+.saludo small{color:var(--muted);font-size:13px;}
+/* Mapa de gestión: filtros por periodo y resumen */
+#v-mapa{position:relative;}
+.map-filtros{position:absolute;top:10px;left:10px;right:10px;z-index:600;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
+.map-filtros::-webkit-scrollbar{display:none;}
+.map-filtros button{flex:none;padding:8px 13px;border-radius:20px;background:#fff;font-weight:700;font-size:13px;box-shadow:0 1px 4px rgba(15,23,42,.25);color:var(--text);}
+.map-filtros button.on{background:var(--verde-o);color:#fff;}
+.map-resumen{position:absolute;left:10px;right:10px;bottom:10px;z-index:600;background:#fff;border-radius:14px;padding:10px 12px;box-shadow:0 2px 10px rgba(15,23,42,.25);font-size:13px;}
+.map-resumen b{font-size:15px;}
+.map-resumen .ley{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:6px;}
+.map-resumen .ley span{display:inline-flex;align-items:center;gap:5px;font-weight:600;}
+.map-resumen .ley i{width:11px;height:11px;border-radius:50%;display:inline-block;}
+.pin-g{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.35);}
+.pin-g span{transform:rotate(45deg);font-size:15px;line-height:1;}
+.pin-g.pend{opacity:.65;border-style:dashed;}
 .fotos{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
 .fotos div{position:relative;}
 .fotos img{width:76px;height:76px;object-fit:cover;border-radius:10px;}
@@ -139,7 +162,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px s
   <main>
     <div class="vista" id="v-hoy"></div>
     <div class="vista hidden" id="v-plan"></div>
-    <div class="vista hidden" id="v-mapa" style="padding:0;"><div id="mapa"></div></div>
+    <div class="vista hidden" id="v-mapa" style="padding:0;"><div class="map-filtros" id="map-filtros"></div><div id="mapa"></div><div class="map-resumen" id="map-resumen"></div></div>
     <div class="vista hidden" id="v-registros"></div>
     <div class="vista hidden" id="v-perfil"></div>
   </main>
@@ -164,7 +187,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px s
 
 <script>
 // ════════════════════════════════════════════════════════════════
-// App de terreno «Agricultores Malleco» v1.0 — Copamiento Territorial (SQL 129)
+// App de terreno «Agricultores Malleco» v1.1 — Copamiento Territorial (SQL 129)
 // · Ingreso con el MISMO usuario de la plataforma (Supabase Auth: correo + clave). La sesión queda guardada en el
 //   teléfono y NO se cierra sola: sin señal se sigue registrando; al volver la señal se sincroniza.
 // · Cada registro (formulario + GPS + fotos) y cada planificación se guarda primero en IndexedDB (cola) y se envía
@@ -173,13 +196,17 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px s
 //   y predios (RPC agr_capas_offline).
 // · Día de alerta: «Ir a Patrullaje» abre la App de Patrullaje con una sesión para este mismo usuario (agr_token_patrullaje).
 // ════════════════════════════════════════════════════════════════
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 // Sesión propia de la app (no se cierra al salir del sistema web en el mismo navegador)
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-agr-app', detectSessionInUrl: false } });
 const SYNC_CADA_MS = 30000;
 const MAX_FOTOS = 4;
+const MOSTRAR_PATRULLAJE = false;   // 20-10-2026: por ahora solo app de terreno (el enlace a la App de Patrullaje queda listo, oculto)
+// Periodos del mapa de gestión (horas hacia atrás)
+const PERIODOS_MAPA = [['24', 'Hoy (24 h)', 24], ['48', '2 días', 48], ['72', '3 días', 72], ['168', '7 días', 168], ['720', 'Último mes', 720]];
+const COLOR_FORM = { agricultor: '#15803D', capacitacion: '#2563EB', operativo: '#EA580C', reunion: '#7C3AED' };
 
 const FORMULARIOS = {
   agricultor: { nombre: 'Agricultor / evaluación de riesgo', campos: [
@@ -522,13 +549,15 @@ function renderHoy() {
     tag + ' ' + esc(fmtDia(p.fecha) + ' · ' + a.id + (p.id_comuna ? ' · ' + nombreComuna(p.id_comuna) : '')) + '</small></div><button class="btn-mini" data-reg-plan="' + p.id + '">➕</button></div>'; };
   const mesTxt = fecha(I.mes + '-01').toLocaleDateString('es-CL', { month: 'long' });
   cont.innerHTML =
+    '<div class="saludo"><b>' + (new Date().getHours() < 12 ? 'Buenos días' : new Date().getHours() < 20 ? 'Buenas tardes' : 'Buenas noches') + ', ' + esc(String(state.yo.nombre).split(' ')[0]) + ' 👋</b>' +
+      '<small>' + esc(new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase())) + '</small></div>' +
     '<div class="kpis"><div class="kpi"><small>Asociación · ' + esc(mesTxt) + '</small><b style="color:' + (pct >= 90 ? '#15803D' : pct >= 60 ? '#D97706' : '#DC2626') + '">' + pct + '%</b><small>' + ok + ' de ' + meta + ' metas</small><div class="barra"><em style="width:' + pct + '%"></em></div></div>' +
       '<div class="kpi"><small>Mis registros · ' + esc(mesTxt) + '</small><b>' + mios + '</b><small>' + delMes.length + ' de toda la Asociación</small></div></div>' +
-    '<div class="card"><h3>➕ Registrar actividad</h3><div class="acts">' + I.actividades.map(a => '<button class="act" data-nuevo="' + a.id + '"><span>' + (a.icono || '•') + '</span>' + esc(a.nombre) + '</button>').join('') + '</div></div>' +
+    '<div class="card"><h3>➕ ¿Qué actividad vas a registrar?</h3><p class="ayuda">Toca la actividad que realizaste. Funciona aunque no tengas señal.</p><div class="acts">' + I.actividades.map(a => '<button class="act" data-nuevo="' + a.id + '"><span>' + (a.icono || '•') + '</span>' + esc(a.nombre) + '</button>').join('') + '</div></div>' +
     '<div class="card"><h3>📌 Mis tareas</h3>' +
       (venc.length + deHoy.length + prox.length ? venc.map(p => tarea(p, '<span class="tag venc">Vencida</span>')).join('') + deHoy.map(p => tarea(p, '<span class="tag hoy">Hoy</span>')).join('') + prox.map(p => tarea(p, '<span class="tag prox">Próxima</span>')).join('')
         : '<div class="vacio">No tienes tareas planificadas esta semana.<br><button class="btn-mini" data-ir="plan" style="margin-top:8px;">🗓️ Planificar</button></div>') + '</div>' +
-    '<div class="card alerta-card"><h3>🚨 Día de alerta</h3><p>En días de Alerta Amarilla o Roja también patrullas. Abre la App de Patrullaje con tu mismo usuario (necesita señal solo para activarla).</p><button class="btn btn-b" id="btn-patrullaje">🚓 Ir a Patrullaje</button></div>';
+    (MOSTRAR_PATRULLAJE ? '<div class="card alerta-card"><h3>🚨 Día de alerta</h3><p>En días de Alerta Amarilla o Roja también patrullas. Abre la App de Patrullaje con tu mismo usuario (necesita señal solo para activarla).</p><button class="btn btn-b" id="btn-patrullaje">🚓 Ir a Patrullaje</button></div>' : '');
 }
 function nombreComuna(id) { const c = ((state.inicio && state.inicio.comunas) || []).find(x => Number(x.id_comuna) === Number(id)); return c ? c.comuna : 'Comuna ' + id; }
 
@@ -590,7 +619,6 @@ async function renderPerfil() {
       '<button class="btn btn-s" id="btn-actualizar" style="margin-top:10px;">🔄 Actualizar datos</button></div>' +
     '<div class="card"><h3>🗺️ Mapa sin conexión</h3>' +
       '<div class="lin"><span>Mosaicos del mapa</span><b>' + (d ? 'Descargando ' + Math.round(d.ok * 100 / Math.max(1, d.total)) + ' %' : mo ? (mo.completo ? '✅ ' : '⚠️ Parcial · ') + new Date(mo.fecha).toLocaleDateString('es-CL') + ' (zoom ' + mo.zoomMax + ')' : 'No descargado') + '</b></div>' +
-      '<div class="lin"><span>Comunas, Red Vial (rol) y predios</span><b>' + (state.capas ? (state.capas.rutas || []).length + ' tramos · ' + (state.capas.predios || []).length + ' predios' : 'No descargado') + '</b></div>' +
       '<button class="btn btn-p" id="btn-offline" style="margin-top:10px;"' + (d ? ' disabled' : '') + '>⬇️ Descargar mapa de la Asociación</button>' +
       '<p style="font-size:12px;color:var(--muted);margin-top:8px;">Descárgalo con Wi-Fi antes de salir a terreno (Victoria, Lumaco y Collipulli).</p></div>' +
     '<div class="card"><div class="lin"><span>Versión</span><b>' + APP_VERSION + '</b></div><button class="btn btn-s" id="btn-salir" style="margin-top:10px;color:#B91C1C;">🚪 Cerrar sesión</button></div>';
@@ -603,7 +631,8 @@ function abrirFormulario(op) {
   const I = state.inicio; if (!I) { toast('Conéctate una vez para descargar las actividades.'); return; }
   const plan = op.planId ? planLocal().find(p => p.id === op.planId) : null;
   const actId = (plan && plan.actividad_id) || op.actividad || I.actividades[0].id;
-  state.form = { id: uuid(), actividad: actId, plan: plan ? plan.id : '', agricultor: '', fotos: [], pos: null, datos: {} };
+  // gps = lectura real del teléfono (se guarda para control, NO se muestra) · pin = lugar de la actividad (el gestor lo puede mover)
+  state.form = { id: uuid(), actividad: actId, plan: plan ? plan.id : '', agricultor: '', fotos: [], gps: null, pin: null, pinMovido: false, datos: {} };
   $('s-form').classList.remove('hidden');
   pintarFormulario();
   tomarGps();
@@ -616,14 +645,21 @@ function pintarFormulario() {
   const pre = Object.assign({}, agr ? { nombre_agricultor: agr.nombre, fundo: agr.fundo, telefono: agr.telefono, superficie_ha: agr.superficie_ha, cultivos: agr.cultivos, nivel_riesgo: agr.nivel_riesgo,
     recursos_proteccion: agr.recursos_proteccion, recursos_detalle: agr.recursos_detalle, cortafuegos: agr.cortafuegos, zona_poblada: agr.zona_poblada, vinculacion: agr.vinculacion,
     fecha_cosecha: agr.fecha_cosecha, fecha_quema: agr.fecha_quema } : {}, F.datos);
+  if (F.mapa) { F.mapa.remove(); F.mapa = null; F.marca = null; }
   $('f-cuerpo').innerHTML =
-    '<div class="campo"><label>Actividad</label><select id="f-act">' + I.actividades.map(x => '<option value="' + x.id + '"' + (x.id === a.id ? ' selected' : '') + '>' + esc((x.icono || '') + ' ' + x.id + ' · ' + x.nombre) + '</option>').join('') + '</select></div>' +
-    '<div class="campo"><label>¿Estaba planificada?</label><select id="f-plan"><option value="">No estaba planificada</option>' + pend.map(p => '<option value="' + p.id + '"' + (p.id === F.plan ? ' selected' : '') + '>' + esc(fmtDia(p.fecha) + (p.titulo ? ' · ' + p.titulo : '')) + '</option>').join('') + '</select></div>' +
-    (a.formulario === 'agricultor' ? '<div class="campo"><label>Agricultor</label><select id="f-agr"><option value="">➕ Agricultor nuevo</option>' + listaAgricultores().map(x => '<option value="' + x.id + '"' + (x.id === F.agricultor ? ' selected' : '') + '>' + esc((x.codigo || 'Nuevo') + ' · ' + x.nombre + (x.fundo ? ' (' + x.fundo + ')' : '')) + '</option>').join('') + '</select></div>' : '') +
+    '<div class="paso"><span>1</span>¿Qué actividad hiciste?</div>' +
+    '<div class="campo"><select id="f-act">' + I.actividades.map(x => '<option value="' + x.id + '"' + (x.id === a.id ? ' selected' : '') + '>' + esc((x.icono || '') + ' ' + x.nombre) + '</option>').join('') + '</select></div>' +
+    (pend.length ? '<div class="campo"><label>¿Estaba planificada?</label><select id="f-plan"><option value="">No estaba planificada</option>' + pend.map(p => '<option value="' + p.id + '"' + (p.id === F.plan ? ' selected' : '') + '>' + esc(fmtDia(p.fecha) + (p.titulo ? ' · ' + p.titulo : '')) + '</option>').join('') + '</select></div>' : '') +
+    (a.formulario === 'agricultor' ? '<div class="campo"><label>Agricultor</label><select id="f-agr"><option value="">➕ Es un agricultor nuevo</option>' + listaAgricultores().map(x => '<option value="' + x.id + '"' + (x.id === F.agricultor ? ' selected' : '') + '>' + esc(x.nombre + (x.fundo ? ' · ' + x.fundo : '') + (x.codigo ? ' (' + x.codigo + ')' : '')) + '</option>').join('') + '</select></div>' : '') +
+    '<div class="paso"><span>2</span>¿Dónde fue?</div>' +
+    '<p class="ayuda">Arrastra el pincho 📍 hasta el lugar exacto, o toca el mapa.</p>' +
+    '<div id="f-mapa"></div>' +
+    '<div class="gps"><b id="f-gps">📡 Buscando tu ubicación…</b><button class="btn-mini" id="f-gps-btn">🎯 Mi ubicación</button></div>' +
+    '<div class="paso"><span>3</span>Datos de la actividad</div>' +
     form.campos.map(c => campoHtml(c, pre[c.k])).join('') +
-    '<div class="campo"><label>📍 Ubicación</label><div class="gps"><b id="f-gps">Buscando GPS…</b><button class="btn-mini" id="f-gps-btn">🎯</button><button class="btn-mini" id="f-gps-mapa">🗺️</button></div><div id="f-mapa" class="hidden"></div></div>' +
-    '<div class="campo"><label>📷 Fotos (hasta ' + MAX_FOTOS + ')</label><input type="file" id="f-foto" accept="image/*" capture="environment" class="hidden"><button class="btn btn-s" id="f-foto-btn">📷 Tomar / elegir foto</button><div class="fotos" id="f-fotos"></div></div>';
-  pintarGps(); pintarFotos();
+    '<div class="paso"><span>4</span>Fotos <small style="font-weight:600;color:var(--muted);">(opcional, hasta ' + MAX_FOTOS + ')</small></div>' +
+    '<input type="file" id="f-foto" accept="image/*" capture="environment" class="hidden"><button class="btn btn-s" id="f-foto-btn">📷 Tomar o elegir foto</button><div class="fotos" id="f-fotos"></div>';
+  mapaFormulario(); pintarGps(); pintarFotos();
 }
 function listaAgricultores() {
   const base = ((state.inicio && state.inicio.agricultores) || []).slice(), ids = new Set(base.map(x => x.id));
@@ -654,30 +690,46 @@ function leerCampos() {
   });
   return { datos, faltan };
 }
+/* Ubicación: el GPS del teléfono queda guardado aparte (F.gps: la mejor lectura, para control del sistema; no se muestra)
+ * y el pincho (F.pin) sigue al GPS hasta que el gestor lo arrastra o toca el mapa (F.pinMovido). */
 let gpsWatch = null;
 function tomarGps() {
-  if (!('geolocation' in navigator)) { $('f-gps') && ($('f-gps').textContent = 'GPS no disponible: elige el punto en el mapa'); return; }
+  if (!('geolocation' in navigator)) { if ($('f-gps')) $('f-gps').textContent = 'Este teléfono no tiene GPS: marca el lugar en el mapa'; return; }
   if (gpsWatch != null) navigator.geolocation.clearWatch(gpsWatch);
-  const fin = Date.now() + 25000;
+  const fin = Date.now() + 90000;
   gpsWatch = navigator.geolocation.watchPosition(p => {
-    if (!state.form) return;
-    const c = p.coords, nueva = { lat: c.latitude, lng: c.longitude, precision: Math.round(c.accuracy), manual: false };
-    if (!state.form.pos || state.form.pos.manual === false && nueva.precision <= (state.form.pos.precision || 9999)) { state.form.pos = nueva; pintarGps(); }
-    if (c.accuracy <= 15 || Date.now() > fin) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; }
-  }, () => { if ($('f-gps') && !state.form.pos) $('f-gps').textContent = 'Sin GPS: activa la ubicación o elige en el mapa'; }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 });
+    const F = state.form; if (!F) return;
+    const c = p.coords, lectura = { lat: c.latitude, lng: c.longitude, precision: Math.round(c.accuracy), fecha: new Date(p.timestamp || Date.now()).toISOString() };
+    if (!F.gps || lectura.precision <= F.gps.precision || Date.now() - new Date(F.gps.fecha) > 60000) F.gps = lectura;
+    if (!F.pinMovido) { F.pin = { lat: F.gps.lat, lng: F.gps.lng }; centrarPin(true); }
+    pintarGps();
+    if ((c.accuracy <= 8 && F.gps) || Date.now() > fin) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; }
+  }, () => { const F = state.form; if (F && !F.gps && $('f-gps')) $('f-gps').textContent = '⚠️ Sin señal GPS: activa la ubicación o marca el lugar en el mapa'; },
+  { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
 }
 function pintarGps() {
-  const el = $('f-gps'), p = state.form && state.form.pos; if (!el) return;
-  el.textContent = p ? (p.manual ? '🗺️ Punto elegido: ' : '📍 ') + p.lat.toFixed(5) + ', ' + p.lng.toFixed(5) + (p.precision ? ' (±' + p.precision + ' m)' : '') : 'Buscando GPS…';
-  if (state.form && state.form.mapa && p) { if (state.form.marca) state.form.marca.setLatLng([p.lat, p.lng]); else state.form.marca = L.marker([p.lat, p.lng]).addTo(state.form.mapa); }
+  const F = state.form, el = $('f-gps'); if (!F || !el) return;
+  el.textContent = F.pinMovido ? '✋ Lugar marcado por ti' : F.pin ? '✅ Tu ubicación' + (F.gps ? ' (precisión ±' + F.gps.precision + ' m)' : '') : '📡 Buscando tu ubicación…';
+  el.style.color = F.pin ? '#15803D' : '';
+}
+/** Pone (o mueve) el pincho arrastrable en F.pin; centra el mapa si se pide. */
+function centrarPin(centrar) {
+  const F = state.form; if (!F || !F.mapa || !F.pin) return;
+  const ll = [F.pin.lat, F.pin.lng];
+  if (F.marca) F.marca.setLatLng(ll);
+  else {
+    F.marca = L.marker(ll, { draggable: true, autoPan: true }).addTo(F.mapa);
+    F.marca.on('dragend', () => { const p = F.marca.getLatLng(); F.pin = { lat: p.lat, lng: p.lng }; F.pinMovido = true; pintarGps(); });
+  }
+  if (centrar) F.mapa.setView(ll, Math.max(F.mapa.getZoom(), 16));
 }
 function mapaFormulario() {
-  const div = $('f-mapa'); div.classList.remove('hidden');
-  if (state.form.mapa) return;
-  const p = state.form.pos, m = L.map(div).setView(p ? [p.lat, p.lng] : [-38.15, -72.35], p ? 15 : 10);
-  L.tileLayer(ESRI('World_Street_Map'), { maxZoom: 19, maxNativeZoom: 17 }).addTo(m);
-  m.on('click', e => { if (gpsWatch != null) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; } state.form.pos = { lat: e.latlng.lat, lng: e.latlng.lng, precision: null, manual: true }; pintarGps(); });
-  state.form.mapa = m; pintarGps(); setTimeout(() => m.invalidateSize(), 100);
+  const F = state.form, div = $('f-mapa'); if (!F || !div || F.mapa) return;
+  F.mapa = L.map(div, { zoomControl: true, attributionControl: false }).setView(F.pin ? [F.pin.lat, F.pin.lng] : [-38.15, -72.35], F.pin ? 16 : 10);
+  L.tileLayer(ESRI('World_Street_Map'), { maxZoom: 19, maxNativeZoom: 17 }).addTo(F.mapa);
+  F.mapa.on('click', e => { F.pin = { lat: e.latlng.lat, lng: e.latlng.lng }; F.pinMovido = true; centrarPin(false); pintarGps(); });
+  centrarPin(true);
+  setTimeout(() => F.mapa && F.mapa.invalidateSize(), 120);
 }
 function comprimirFoto(file) {
   return new Promise(ok => {
@@ -705,12 +757,15 @@ function cerrarFormulario() {
 async function guardarFormulario() {
   const F = state.form, a = act(F.actividad), { datos, faltan } = leerCampos();
   if (faltan.length) { toast('Completa: ' + faltan.join(', ')); return; }
-  if (!F.pos && !confirm('No hay ubicación (GPS ni punto en el mapa). ¿Guardar igual?')) return;
+  if (!F.pin && !confirm('Aún no hay ubicación. Toca el mapa para marcar el lugar, o guarda sin ubicación. ¿Guardar igual?')) return;
   const fotos = [];
   for (let i = 0; i < F.fotos.length; i++) { const k = F.id + '_' + i; await DB.put('fotos', F.fotos[i].blob, k); fotos.push(k); }
   const agricultorId = a.formulario === 'agricultor' ? (F.agricultor || uuid()) : null;
   const item = { id: F.id, tipo: 'registro', creado: new Date().toISOString(), fotos,
-    payload: { id: F.id, actividad_id: a.id, fecha: new Date().toISOString(), lat: F.pos ? F.pos.lat : null, lng: F.pos ? F.pos.lng : null, precision_m: F.pos ? F.pos.precision : null,
+    payload: { id: F.id, actividad_id: a.id, fecha: new Date().toISOString(),
+      lat: F.pin ? F.pin.lat : null, lng: F.pin ? F.pin.lng : null, precision_m: F.pin && !F.pinMovido && F.gps ? F.gps.precision : null,
+      // Control del sistema (no se muestra en la app): dónde estaba realmente el teléfono al registrar
+      gps_lat: F.gps ? F.gps.lat : null, gps_lng: F.gps ? F.gps.lng : null, gps_precision_m: F.gps ? F.gps.precision : null, gps_fecha: F.gps ? F.gps.fecha : null,
       agricultor_id: agricultorId, planificacion_id: F.plan || null, datos, origen: 'app', dispositivo: navigator.userAgent.slice(0, 180) } };
   await DB.put('cola', item);
   cerrarFormulario();
@@ -805,25 +860,30 @@ function abrirMapa() {
   } else pintarCapasMapa();
   setTimeout(() => state.mapa.invalidateSize(), 80);
 }
+/** Mapa de gestión: solo los pinchos de las actividades registradas por la Asociación (incluye lo aún no enviado),
+ *  filtrados por periodo (Hoy 24 h · 2 días · 3 días · 7 días · Último mes). Por ahora sin rutas ni otras capas. */
 function pintarCapasMapa() {
   const m = state.mapa, C = state.capasMapa; if (!m) return;
-  ['comunas', 'rutas', 'predios', 'agr', 'reg'].forEach(k => { if (C[k]) { C.control.removeLayer(C[k]); m.removeLayer(C[k]); C[k] = null; } });
-  const fc = (arr, props) => ({ type: 'FeatureCollection', features: (arr || []).filter(x => x.geometry).map(x => ({ type: 'Feature', geometry: x.geometry, properties: props(x) })) });
-  if (state.capas) {
-    C.comunas = L.geoJSON(fc(state.capas.comunas, x => x), { style: { color: '#7C3AED', weight: 2, fill: false, dashArray: '6 4' } }).addTo(m);
-    C.rutas = L.geoJSON(fc(state.capas.rutas, x => x), { style: f => ({ color: /nacional|internacional/i.test(f.properties.clasificacion || '') ? '#DC2626' : /regional|principal/i.test(f.properties.clasificacion || '') ? '#EA580C' : '#A16207', weight: 3, opacity: .85 }),
-      onEachFeature: (f, l) => l.bindPopup('<b>' + esc(f.properties.rol_label || f.properties.rol || 'Sin rol') + '</b>' + (f.properties.nombre ? '<br>' + esc(f.properties.nombre) : '') + (f.properties.clasificacion ? '<br><small>' + esc(f.properties.clasificacion) + '</small>' : '')) }).addTo(m);
-    C.predios = L.geoJSON(fc(state.capas.predios, x => x), { style: { color: '#15803D', weight: 1.5, fillOpacity: .15 }, onEachFeature: (f, l) => l.bindPopup('<b>Predio ' + esc(f.properties.codigo || f.properties.id) + '</b>' + (f.properties.nombre ? '<br>' + esc(f.properties.nombre) : '')) });
-    if ((state.capas.predios || []).length) C.predios.addTo(m);
-    C.control.addOverlay(C.comunas, '🏘️ Comunas'); C.control.addOverlay(C.rutas, '🛣️ Red Vial MOP (rol)'); C.control.addOverlay(C.predios, '🌾 Predios');
-  }
-  C.agr = L.layerGroup(listaAgricultores().filter(a => a.lat != null).map(a => L.circleMarker([a.lat, a.lng], { radius: 7, color: '#fff', weight: 2, fillColor: RIESGO_COLOR[a.nivel_riesgo] || '#64748B', fillOpacity: .95 })
-    .bindPopup('<b>' + esc((a.codigo || 'Nuevo') + ' · ' + a.nombre) + '</b><br>' + esc(a.fundo || '') + '<br>Riesgo: ' + esc(a.nivel_riesgo || '—') + (a.fecha_quema ? '<br>🔥 Quema: ' + esc(a.fecha_quema) : '')))).addTo(m);
-  const regs = ((state.inicio && state.inicio.registros) || []).filter(r => r.usuario_id === state.yo.id).concat(registrosLocales());
-  C.reg = L.layerGroup(regs.filter(r => r.lat != null).map(r => { const a = act(r.actividad_id);
-    return L.marker([r.lat, r.lng], { icon: L.divIcon({ className: '', html: '<div style="font-size:20px;line-height:20px;filter:drop-shadow(0 1px 2px #0006);' + (r._pend ? 'opacity:.6;' : '') + '">' + (a.icono || '📍') + '</div>', iconSize: [22, 22], iconAnchor: [11, 11] }) })
-      .bindPopup('<b>' + esc(a.nombre) + '</b><br>' + esc(fmtFechaHora(r.fecha)) + (r._pend ? '<br>⏳ Sin enviar' : '')); })).addTo(m);
-  C.control.addOverlay(C.agr, '👨‍🌾 Agricultores'); C.control.addOverlay(C.reg, '📍 Mis registros');
+  if (!state.periodoMapa) state.periodoMapa = '24';
+  const per = PERIODOS_MAPA.find(p => p[0] === state.periodoMapa) || PERIODOS_MAPA[0];
+  $('map-filtros').innerHTML = PERIODOS_MAPA.map(([k, t]) => '<button data-periodo="' + k + '"' + (k === per[0] ? ' class="on"' : '') + '>' + t + '</button>').join('');
+  if (C.reg) { m.removeLayer(C.reg); C.reg = null; }
+  const desde = Date.now() - per[2] * 3600e3;
+  const base = ((state.inicio && state.inicio.registros) || []).filter(r => !registrosLocales().some(x => x.id === r.id));
+  const regs = base.concat(registrosLocales()).filter(r => r.lat != null && new Date(r.fecha).getTime() >= desde);
+  C.reg = L.featureGroup(regs.map(r => {
+    const a = act(r.actividad_id), d = r.datos || {}, col = COLOR_FORM[a.formulario] || '#475569';
+    const titulo = d.nombre_agricultor || d.organizacion || d.ruta_rol || d.tipo_reunion || '';
+    return L.marker([r.lat, r.lng], { icon: L.divIcon({ className: '', html: '<div class="pin-g' + (r._pend ? ' pend' : '') + '" style="background:' + col + '"><span>' + (a.icono || '📍') + '</span></div>', iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -28] }) })
+      .bindPopup('<b>' + esc(a.nombre) + '</b>' + (titulo ? '<br>' + esc(titulo) : '') + '<br><small>🕒 ' + esc(fmtFechaHora(r.fecha)) + '<br>👤 ' + esc(nombreDe(r.usuario_id)) +
+        (r.comuna ? ' · 📍 ' + esc(r.comuna) : '') + (r.participantes ? '<br>👥 ' + r.participantes + ' participantes' : '') + (r._pend ? '<br>⏳ Aún sin enviar' : '') + '</small>');
+  })).addTo(m);
+  // Resumen: total del periodo y leyenda por tipo de formulario
+  const porForm = {}; regs.forEach(r => { const f = act(r.actividad_id).formulario; porForm[f] = (porForm[f] || 0) + 1; });
+  $('map-resumen').innerHTML = '<b>' + regs.length + '</b> actividad(es) · ' + esc(per[1].toLowerCase()) +
+    (regs.length ? '<div class="ley">' + Object.keys(porForm).map(f => '<span><i style="background:' + (COLOR_FORM[f] || '#475569') + '"></i>' + esc(FORMULARIOS[f] ? FORMULARIOS[f].nombre.split(' /')[0] : f) + ' ' + porForm[f] + '</span>').join('') + '</div>'
+      : '<div style="color:var(--muted);margin-top:3px;">No hay actividades en este periodo. Prueba con un periodo más largo.</div>');
+  if (regs.length) m.fitBounds(C.reg.getBounds(), { padding: [60, 60], maxZoom: 15 });
 }
 function mosaicosDe(bbox, z) {
   const n = 2 ** z, rad = Math.PI / 180;
@@ -906,6 +966,7 @@ document.querySelector('main').addEventListener('click', e => {
   const rp = t.closest('[data-reg-plan]'); if (rp) { abrirFormulario({ planId: rp.dataset.regPlan }); return; }
   const pm = t.closest('[data-plan-menu]'); if (pm) { menuTarea(pm.dataset.planMenu); return; }
   const pv = t.closest('[data-pvista]'); if (pv) { state.planVista = pv.dataset.pvista; renderPlan(); return; }
+  const pm2 = t.closest('[data-periodo]'); if (pm2) { state.periodoMapa = pm2.dataset.periodo; pintarCapasMapa(); return; }
   const ir = t.closest('[data-ir]'); if (ir) { cambiarVista(ir.dataset.ir); return; }
   if (t.closest('#btn-planificar')) { abrirPlanificar(); return; }
   if (t.closest('#btn-patrullaje')) { irPatrullaje(); return; }
@@ -926,7 +987,8 @@ $('f-cuerpo').addEventListener('change', e => {
     if (t.id === 'f-act') { F.actividad = t.value; F.plan = ''; F.agricultor = ''; } else {
       F.agricultor = t.value;
       const ag = listaAgricultores().find(x => x.id === t.value);
-      if (ag && ag.lat != null && !F.pos) F.pos = { lat: ag.lat, lng: ag.lng, precision: null, manual: true };
+      // Agricultor ya ubicado: el pincho parte en su predio (se puede mover)
+      if (ag && ag.lat != null && !F.pinMovido) { F.pin = { lat: ag.lat, lng: ag.lng }; F.pinMovido = true; }
     }
     pintarFormulario(); return;
   }
@@ -943,8 +1005,11 @@ $('f-cuerpo').addEventListener('click', e => {
   if (sn) { const g = sn.parentElement, ya = g.dataset.v === sn.dataset.sn; g.dataset.v = ya ? '' : sn.dataset.sn; g.querySelectorAll('button').forEach(b => b.classList.toggle('on', !ya && b === sn)); return; }
   const q = t.closest('[data-quitar-foto]'); if (q) { const i = Number(q.dataset.quitarFoto); URL.revokeObjectURL(F.fotos[i].url); F.fotos.splice(i, 1); pintarFotos(); return; }
   if (t.closest('#f-foto-btn')) { $('f-foto').click(); return; }
-  if (t.closest('#f-gps-btn')) { F.pos = null; pintarGps(); tomarGps(); return; }
-  if (t.closest('#f-gps-mapa')) { mapaFormulario(); return; }
+  if (t.closest('#f-gps-btn')) {   // volver a la ubicación del GPS
+    F.pinMovido = false;
+    if (F.gps) { F.pin = { lat: F.gps.lat, lng: F.gps.lng }; centrarPin(true); }
+    pintarGps(); tomarGps(); return;
+  }
 });
 window.addEventListener('online', () => { pintarSync(); sincronizar(); });
 window.addEventListener('offline', pintarSync);
