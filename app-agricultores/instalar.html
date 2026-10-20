@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Instalar la app</title>
+<meta name="description" content="Cómo instalar la app de terreno Agricultores Malleco en Android y iPhone">
+<meta name="theme-color" content="#14532D">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<style>
+:root{--bg:#F3F7F2;--card:#fff;--text:#0F172A;--muted:#64748B;--line:#E2E8F0;--verde:#15803D;--verde-o:#14532D;--suave:#F0FDF4;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0B1210;--card:#13201B;--text:#E2E8F0;--muted:#94A3B8;--line:#1F2E28;--suave:#132A1E;}}
+:root[data-theme="dark"]{--bg:#0B1210;--card:#13201B;--text:#E2E8F0;--muted:#94A3B8;--line:#1F2E28;--suave:#132A1E;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:16px;line-height:1.5;}
+header{background:linear-gradient(160deg,#14532D,#3F6212);color:#fff;padding:28px 16px 22px;text-align:center;}
+header img{width:72px;height:72px;border-radius:18px;box-shadow:0 4px 14px rgba(0,0,0,.25);}
+header h1{font-size:22px;margin-top:10px;}
+header p{opacity:.9;font-size:14.5px;margin-top:4px;}
+main{max-width:640px;margin:0 auto;padding:16px 16px 40px;}
+.card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 1px 2px rgba(15,23,42,.06);border:1px solid var(--line);}
+.card h2{font-size:17px;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.card p{font-size:14.5px;color:var(--muted);}
+.seg{display:flex;background:var(--line);border-radius:14px;padding:4px;margin-bottom:14px;gap:4px;}
+.seg button{flex:1;border:none;background:none;padding:11px;border-radius:11px;font:inherit;font-weight:700;color:var(--muted);cursor:pointer;}
+.seg button.on{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12);}
+details{border:1px solid var(--line);border-radius:14px;margin-bottom:10px;background:var(--card);overflow:hidden;}
+summary{list-style:none;cursor:pointer;padding:14px 16px;font-weight:700;display:flex;align-items:center;gap:10px;}
+summary::-webkit-details-marker{display:none;}
+summary .tag{margin-left:auto;font-size:11px;font-weight:800;background:var(--suave);color:var(--verde);padding:3px 8px;border-radius:10px;}
+summary::after{content:'›';font-size:22px;color:var(--muted);transform:rotate(90deg);transition:.2s;margin-left:6px;}
+details[open] summary::after{transform:rotate(-90deg);}
+details:not([open]) summary .tag{margin-left:auto;}
+ol{padding:0 16px 16px 44px;}
+ol li{margin-bottom:9px;font-size:15px;}
+.k{display:inline-block;background:var(--suave);border:1px solid var(--line);border-radius:7px;padding:0 7px;font-weight:700;font-size:14px;white-space:nowrap;}
+.btn{display:block;width:100%;text-align:center;padding:14px;border-radius:14px;font-weight:800;font-size:16px;text-decoration:none;border:none;cursor:pointer;font-family:inherit;}
+.btn-p{background:var(--verde);color:#fff;}
+.btn-s{background:var(--suave);color:var(--verde);margin-top:10px;}
+.pasos{counter-reset:p;list-style:none;padding:0;}
+.pasos li{counter-increment:p;position:relative;padding:0 0 12px 40px;font-size:15px;}
+.pasos li::before{content:counter(p);position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;background:var(--verde);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;}
+.ojo{background:#FEF3C7;color:#78350F;border-radius:12px;padding:12px 14px;font-size:14px;margin-top:10px;}
+.url{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;word-break:break-all;background:var(--suave);padding:8px 10px;border-radius:10px;display:block;margin-top:8px;color:var(--text);}
+footer{text-align:center;color:var(--muted);font-size:12.5px;padding-bottom:30px;}
+</style>
+</head>
+<body>
+<header>
+  <img src="icon-192.png" alt="">
+  <h1>Instalar la app en tu celular</h1>
+  <p>Agricultores Malleco · App de terreno · 2 minutos</p>
+</header>
+<main>
+  <div class="card">
+    <h2>📲 Antes de empezar</h2>
+    <p>La app no se descarga desde Play Store ni App Store: se instala desde el navegador del celular y queda con su ícono, como cualquier aplicación.
+      Hazlo con señal o Wi-Fi; después funciona sin conexión.</p>
+    <span class="url" id="url-app">copamientoterritorial.cl/app-agricultores/app.html</span>
+    <button class="btn btn-p" id="btn-instalar" style="margin-top:12px;display:none;">📲 Instalar ahora</button>
+    <a class="btn btn-s" href="app.html">Abrir la app</a>
+  </div>
+
+  <div class="seg" role="tablist">
+    <button data-so="android" class="on" role="tab">🤖 Android</button>
+    <button data-so="ios" role="tab">🍎 iPhone / iPad</button>
+  </div>
+
+  <!-- ══ ANDROID ══ -->
+  <section data-panel="android">
+    <details open>
+      <summary>🟢 Google Chrome <span class="tag">Recomendado</span></summary>
+      <ol>
+        <li>Abre el enlace de la app en <b>Chrome</b>.</li>
+        <li>Si aparece abajo el aviso <span class="k">Instalar</span> o <span class="k">Agregar a pantalla principal</span>, tócalo.</li>
+        <li>Si no aparece: toca el menú <span class="k">⋮</span> (arriba a la derecha) → <span class="k">Instalar app</span> o <span class="k">Agregar a la pantalla principal</span>.</li>
+        <li>Confirma con <span class="k">Instalar</span>. El ícono 🌾 queda en tu pantalla de inicio.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>🔵 Samsung Internet</summary>
+      <ol>
+        <li>Abre el enlace en <b>Samsung Internet</b>.</li>
+        <li>Toca el ícono <span class="k">⬇ Instalar</span> en la barra de dirección, si aparece.</li>
+        <li>Si no: toca el menú <span class="k">☰</span> (abajo a la derecha) → <span class="k">Agregar página a</span> → <span class="k">Pantalla de inicio</span>.</li>
+        <li>Confirma con <span class="k">Agregar</span>.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>🌀 Microsoft Edge</summary>
+      <ol>
+        <li>Abre el enlace en <b>Edge</b>.</li>
+        <li>Toca el menú <span class="k">⋯</span> (abajo al centro).</li>
+        <li>Elige <span class="k">Agregar al teléfono</span> o <span class="k">Instalar app</span>.</li>
+        <li>Confirma con <span class="k">Instalar</span>.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>🦊 Firefox</summary>
+      <ol>
+        <li>Abre el enlace en <b>Firefox</b>.</li>
+        <li>Toca el menú <span class="k">⋮</span>.</li>
+        <li>Elige <span class="k">Instalar</span> o <span class="k">Agregar a la pantalla de inicio</span>.</li>
+        <li>Confirma con <span class="k">Agregar</span>.</li>
+      </ol>
+    </details>
+    <div class="ojo">💡 Si tu navegador no muestra ninguna de estas opciones, actualízalo o usa <b>Chrome</b>.</div>
+  </section>
+
+  <!-- ══ iPHONE / iPAD ══ -->
+  <section data-panel="ios" hidden>
+    <details open>
+      <summary>🧭 Safari <span class="tag">Recomendado</span></summary>
+      <ol>
+        <li>Abre el enlace de la app en <b>Safari</b>.</li>
+        <li>Toca el botón <span class="k">Compartir</span> (el cuadrado con una flecha hacia arriba, abajo al centro; en iPad, arriba).</li>
+        <li>Baja en la lista y toca <span class="k">Agregar a inicio</span>.</li>
+        <li>Toca <span class="k">Agregar</span> (arriba a la derecha). El ícono 🌾 queda en tu pantalla de inicio.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>🟢 Chrome en iPhone</summary>
+      <ol>
+        <li>Abre el enlace en <b>Chrome</b> (necesita iOS 16.4 o más reciente).</li>
+        <li>Toca el botón <span class="k">Compartir</span> que está en la barra de dirección, arriba a la derecha.</li>
+        <li>Elige <span class="k">Agregar a inicio</span> y luego <span class="k">Agregar</span>.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>🌐 Otros navegadores (Edge, Firefox…)</summary>
+      <ol>
+        <li>Copia el enlace de la app.</li>
+        <li>Ábrelo en <b>Safari</b> y sigue los pasos de Safari.</li>
+      </ol>
+    </details>
+    <div class="ojo">⚠️ En iPhone, <b>no borres los datos de Safari</b> (Ajustes → Safari → Borrar historial y datos) mientras tengas registros sin enviar: se perderían.</div>
+  </section>
+
+  <div class="card" style="margin-top:14px;">
+    <h2>✅ Después de instalar</h2>
+    <ol class="pasos">
+      <li>Abre la app desde su ícono 🌾 <b>con señal</b> e ingresa con tu <b>correo y clave</b> del sistema.</li>
+      <li>Cuando lo pida, <b>permite la ubicación y la cámara</b>: se usan para marcar el lugar y tomar fotos.</li>
+      <li>En la pestaña <span class="k">👤 Yo</span>, toca <span class="k">⬇️ Descargar mapa de la Asociación</span> (ideal con Wi-Fi).</li>
+      <li>Listo: ya puedes registrar en terreno <b>sin señal</b>. Lo registrado se envía solo cuando vuelve la conexión (lo ves arriba a la derecha: <span class="k">✅ Al día</span> o <span class="k">⏳ por enviar</span>).</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>🛟 Problemas frecuentes</h2>
+    <p><b>No aparece «Instalar»:</b> actualiza el navegador o usa Chrome (Android) o Safari (iPhone).</p>
+    <p style="margin-top:8px;"><b>No toma mi ubicación:</b> activa la ubicación del teléfono y revisa que el navegador tenga permiso (Ajustes → Aplicaciones → Chrome/Safari → Ubicación).</p>
+    <p style="margin-top:8px;"><b>¿Se cierra la sesión sin señal?</b> No. La sesión se mantiene; no cierres sesión si tienes envíos pendientes.</p>
+    <p style="margin-top:8px;"><b>¿Cómo se actualiza?</b> Sola: al abrir la app con señal toma la última versión.</p>
+  </div>
+</main>
+<footer>SIG Copamiento Territorial · Asociación de Agricultores Malleco</footer>
+<script>
+// Pestaña según el teléfono (iPhone/iPad → iOS) y botón «Instalar ahora» cuando el navegador lo permite (Android Chrome/Edge/Samsung)
+(function () {
+  var esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  function ver(so) {
+    document.querySelectorAll('[data-so]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-so') === so); });
+    document.querySelectorAll('[data-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-panel') !== so; });
+  }
+  document.querySelectorAll('[data-so]').forEach(function (b) { b.addEventListener('click', function () { ver(b.getAttribute('data-so')); }); });
+  ver(esIOS ? 'ios' : 'android');
+  document.getElementById('url-app').textContent = location.host ? location.host + location.pathname.replace(/instalar\.html$/, 'app.html') : 'copamientoterritorial.cl/app-agricultores/app.html';
+  var evento = null, btn = document.getElementById('btn-instalar');
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); evento = e; btn.style.display = 'block'; });
+  btn.addEventListener('click', function () { if (!evento) return; evento.prompt(); evento.userChoice.then(function () { evento = null; btn.style.display = 'none'; }); });
+  window.addEventListener('appinstalled', function () { btn.style.display = 'none'; });
+})();
+</script>
+</body>
+</html>
