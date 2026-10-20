@@ -5749,6 +5749,9 @@ async function entrarAlSistema() {
         } catch (e) { /* solo sus comunas asignadas */ }
       }
     }
+    // Los menús que dependen de las ÁREAS del usuario (🌾 Agricultores: Jefes y GRT del área Victoria) se recalculan
+    // ahora que perfil_areas ya está cargado: la primera pasada de aplicarPermisosMenu_ corre antes y los dejaba ocultos.
+    aplicarPermisosMenu_();
     poblarSelectorArea_();
     const listaComunas = state.comunas.filter(c => state.misComunaIds.includes(c.id));
     const perfil = state.perfil.perfil;
