@@ -1,0 +1,9 @@
+{
+  "version": "1.3.0",
+  "fecha": "2026-10-20",
+  "notas": [
+    "Actualizador: la app avisa cuando hay una versión nueva y se actualiza con un toque",
+    "Pincho movible para marcar el lugar exacto",
+    "Mapa de gestión con filtro Hoy · 2 · 3 · 7 días · último mes"
+  ]
+}

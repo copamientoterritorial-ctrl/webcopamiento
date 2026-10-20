@@ -87,6 +87,9 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px s
 .tab.sel{color:var(--verde);}
 #mapa{height:calc(100vh - 150px);height:calc(100dvh - 150px - var(--safe-b) - var(--safe-t));}
 #mapa .leaflet-top{top:50px;}
+.leaflet-control-zoom{border:none !important;border-radius:12px !important;overflow:hidden;box-shadow:0 1px 4px rgba(15,23,42,.2) !important;}
+.leaflet-control-zoom a{color:#334155 !important;border:none !important;}
+.leaflet-control-layers{border:none !important;border-radius:12px !important;box-shadow:0 1px 4px rgba(15,23,42,.2) !important;}
 #mapa .leaflet-bottom{bottom:78px;}
 .seg{display:flex;background:#E2E8F0;border-radius:12px;padding:3px;margin-bottom:10px;}
 .seg button{flex:1;padding:8px;border-radius:10px;font-weight:700;font-size:13px;}
@@ -130,6 +133,10 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px s
 .fotos div{position:relative;}
 .fotos img{width:76px;height:76px;object-fit:cover;border-radius:10px;}
 .fotos button{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;background:#DC2626;color:#fff;font-weight:900;font-size:13px;}
+.aviso-version{position:fixed;left:10px;right:10px;bottom:calc(84px + var(--safe-b));z-index:2500;background:#1E3A8A;color:#fff;border-radius:14px;padding:11px 12px;font-size:14px;
+  box-shadow:0 6px 20px rgba(15,23,42,.35);display:flex;align-items:center;flex-wrap:wrap;gap:4px;line-height:1.35;}
+.aviso-version small{opacity:.85;flex-basis:100%;order:2;}
+.aviso-version .btn-mini{color:#1E3A8A;margin-left:auto !important;}
 #toast{position:fixed;left:50%;bottom:calc(90px + var(--safe-b));transform:translateX(-50%) translateY(20px);background:#0F172A;color:#fff;padding:11px 16px;border-radius:12px;font-size:14px;opacity:0;transition:.25s;z-index:3000;max-width:90%;text-align:center;pointer-events:none;}
 #toast.ver{opacity:1;transform:translateX(-50%) translateY(0);}
 #modal{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:2000;display:flex;align-items:flex-end;}
@@ -148,6 +155,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px s
   <div class="campo"><label for="lg-email">Correo</label><input id="lg-email" type="email" autocomplete="username" inputmode="email"></div>
   <div class="campo"><label for="lg-clave">Clave</label><input id="lg-clave" type="password" autocomplete="current-password"></div>
   <button class="btn btn-b" id="lg-btn">Ingresar</button>
+  <a href="instalar.html" class="btn" style="margin-top:12px;background:rgba(255,255,255,.14);color:#fff;text-decoration:none;font-size:15px;">📲 ¿Cómo instalar la app en el celular?</a>
   <p class="nota">Usa el mismo correo y clave del sistema web (copamientoterritorial.cl).<br>Si tu clave es temporal, cámbiala primero en el sistema web.<br>Después de ingresar, la app funciona sin señal: la sesión no se cierra sola.</p>
 </section>
 
@@ -182,6 +190,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px s
   <div id="f-pie"><button class="btn btn-p" id="f-guardar">💾 Guardar</button></div>
 </section>
 
+<div id="av-version" class="aviso-version hidden"></div>
 <div id="modal" class="hidden"><div class="caja" id="modal-caja"></div></div>
 <div id="toast"></div>
 
@@ -196,7 +205,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px s
 //   y predios (RPC agr_capas_offline).
 // · Día de alerta: «Ir a Patrullaje» abre la App de Patrullaje con una sesión para este mismo usuario (agr_token_patrullaje).
 // ════════════════════════════════════════════════════════════════
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.3.0';   // ⚠️ al publicar cambios: subir aquí, en sw-agricultores.js (VERSION) y en version.json
 const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 // Sesión propia de la app (no se cierra al salir del sistema web en el mismo navegador)
@@ -621,7 +630,14 @@ async function renderPerfil() {
       '<div class="lin"><span>Mosaicos del mapa</span><b>' + (d ? 'Descargando ' + Math.round(d.ok * 100 / Math.max(1, d.total)) + ' %' : mo ? (mo.completo ? '✅ ' : '⚠️ Parcial · ') + new Date(mo.fecha).toLocaleDateString('es-CL') + ' (zoom ' + mo.zoomMax + ')' : 'No descargado') + '</b></div>' +
       '<button class="btn btn-p" id="btn-offline" style="margin-top:10px;"' + (d ? ' disabled' : '') + '>⬇️ Descargar mapa de la Asociación</button>' +
       '<p style="font-size:12px;color:var(--muted);margin-top:8px;">Descárgalo con Wi-Fi antes de salir a terreno (Victoria, Lumaco y Collipulli).</p></div>' +
-    '<div class="card"><div class="lin"><span>Versión</span><b>' + APP_VERSION + '</b></div><button class="btn btn-s" id="btn-salir" style="margin-top:10px;color:#B91C1C;">🚪 Cerrar sesión</button></div>';
+    '<div class="card"><h3>📲 Instalar en el celular</h3>' +
+      (window.matchMedia && matchMedia('(display-mode: standalone)').matches ? '<p class="ayuda" style="margin:0;">✅ La app ya está instalada en este teléfono.</p>'
+        : (state.instalarEvt ? '<button class="btn btn-p" id="btn-instalar-app">📲 Instalar ahora</button>' : '') +
+          '<a class="btn btn-s" href="instalar.html" style="margin-top:8px;text-decoration:none;">📖 Ver cómo instalarla (Android y iPhone)</a>') + '</div>' +
+    '<div class="card"><div class="lin"><span>Versión instalada</span><b>' + APP_VERSION + '</b></div>' +
+      (state.versionNueva && versionMayor(state.versionNueva.version, APP_VERSION) ? '<button class="btn btn-p" id="btn-actualizar-app" style="margin-top:10px;">🆕 Actualizar a la versión ' + esc(state.versionNueva.version) + '</button>'
+        : '<button class="btn btn-s" id="btn-buscar-version" style="margin-top:10px;">🔄 Buscar actualización</button>') +
+      '<button class="btn btn-s" id="btn-salir" style="margin-top:10px;color:#B91C1C;">🚪 Cerrar sesión</button></div>';
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -726,7 +742,7 @@ function centrarPin(centrar) {
 function mapaFormulario() {
   const F = state.form, div = $('f-mapa'); if (!F || !div || F.mapa) return;
   F.mapa = L.map(div, { zoomControl: true, attributionControl: false }).setView(F.pin ? [F.pin.lat, F.pin.lng] : [-38.15, -72.35], F.pin ? 16 : 10);
-  L.tileLayer(ESRI('World_Street_Map'), { maxZoom: 19, maxNativeZoom: 17 }).addTo(F.mapa);
+  L.tileLayer(CARTO, { maxZoom: 19, maxNativeZoom: 17 }).addTo(F.mapa);
   F.mapa.on('click', e => { F.pin = { lat: e.latlng.lat, lng: e.latlng.lng }; F.pinMovido = true; centrarPin(false); pintarGps(); });
   centrarPin(true);
   setTimeout(() => F.mapa && F.mapa.invalidateSize(), 120);
@@ -842,14 +858,16 @@ function menuTarea(id) {
 // Mapa (mosaicos Esri guardados + capas de la Asociación)
 // ════════════════════════════════════════════════════════════════
 const ESRI = s => 'https://server.arcgisonline.com/ArcGIS/rest/services/' + s + '/MapServer/tile/{z}/{y}/{x}';
+// Mapa base de calles (Esri): detallado para ubicar el pincho; es el mismo que se descarga para usar sin conexión.
+const CARTO = ESRI('World_Street_Map');
 const CACHE_MOSAICOS = 'mosaicos-v1';   // misma caché que la App de Patrullaje
 const OFFLINE_MAX = 4000;
 function abrirMapa() {
   if (!state.mapa) {
     state.mapa = L.map('mapa', { zoomControl: true }).setView([-38.05, -72.4], 10);
-    const calles = L.tileLayer(ESRI('World_Street_Map'), { maxZoom: 19, maxNativeZoom: 17, attribution: 'Tiles © Esri' }).addTo(state.mapa);
+    const calles = L.tileLayer(CARTO, { maxZoom: 19, maxNativeZoom: 17, attribution: 'Tiles © Esri' }).addTo(state.mapa);
     const sat = L.tileLayer(ESRI('World_Imagery'), { maxZoom: 19, maxNativeZoom: 17, attribution: 'Tiles © Esri' });
-    state.capasMapa.control = L.control.layers({ 'Calles': calles, 'Satélite': sat }, {}, { collapsed: true }).addTo(state.mapa);
+    state.capasMapa.control = L.control.layers({ 'Mapa': calles, 'Satélite': sat }, {}, { collapsed: true }).addTo(state.mapa);
     const yo = L.control({ position: 'bottomright' });
     yo.onAdd = () => { const b = L.DomUtil.create('button', 'btn-mini'); b.textContent = '📍 Yo'; b.style.background = '#fff'; b.style.boxShadow = '0 1px 4px #0004';
       L.DomEvent.on(b, 'click', e => { L.DomEvent.stop(e); navigator.geolocation && navigator.geolocation.getCurrentPosition(p => { const ll = [p.coords.latitude, p.coords.longitude];
@@ -911,7 +929,7 @@ async function descargarMapaOffline() {
   for (let z = 9; z <= 16; z++) { const t = mosaicosDe(bbox, z); if (lista.length + t.length > OFFLINE_MAX) break; lista = lista.concat(t); }
   state.descargandoMapa = { total: lista.length, ok: 0 }; renderPerfil();
   const cache = await caches.open(CACHE_MOSAICOS);
-  const url = ([z, x, y]) => ESRI('World_Street_Map').replace('{z}', z).replace('{y}', y).replace('{x}', x);
+  const url = ([z, x, y]) => CARTO.replace('{z}', z).replace('{x}', x).replace('{y}', y);
   let i = 0, fallos = 0;
   const trabajador = async () => {
     while (i < lista.length && navigator.onLine) {
@@ -973,6 +991,10 @@ document.querySelector('main').addEventListener('click', e => {
   if (t.closest('#btn-sync')) { sincronizar(); return; }
   if (t.closest('#btn-offline')) { descargarMapaOffline(); return; }
   if (t.closest('#btn-salir')) { salir(); return; }
+  if (t.closest('#btn-buscar-version')) { buscarActualizacion(true).then(() => { if (state.vista === 'perfil') renderPerfil(); }); return; }
+  if (t.closest('#btn-instalar-app') && state.instalarEvt) {
+    state.instalarEvt.prompt(); state.instalarEvt.userChoice.then(() => { state.instalarEvt = null; if (state.vista === 'perfil') renderPerfil(); }); return;
+  }
   if (t.closest('#btn-actualizar')) {
     if (!navigator.onLine) { toast('Sin señal.'); return; }
     toast('🔄 Actualizando…'); cargarInicio().then(() => { render(); toast('✅ Datos actualizados'); }, err => toast('No se pudo: ' + (err.message || err)));
@@ -1011,19 +1033,79 @@ $('f-cuerpo').addEventListener('click', e => {
     pintarGps(); tomarGps(); return;
   }
 });
+// Instalación (Android: Chrome / Edge / Samsung ofrecen el aviso nativo; en iPhone se usa «Compartir › Agregar a inicio»)
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); state.instalarEvt = e; if (state.vista === 'perfil' && state.yo) renderPerfil(); });
+window.addEventListener('appinstalled', () => { state.instalarEvt = null; toast('✅ App instalada'); });
 window.addEventListener('online', () => { pintarSync(); sincronizar(); });
 window.addEventListener('offline', pintarSync);
-document.addEventListener('visibilitychange', () => { if (!document.hidden && navigator.onLine) sincronizar(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden || !navigator.onLine) return;
+  sincronizar();
+  // Al volver a la app (el acceso directo suele retomarla desde memoria): revisar si hay versión nueva, máx. cada 10 min
+  if (Date.now() - (state.ultimaRevisionVersion || 0) > 10 * 60000) buscarActualizacion(false);
+});
 setInterval(() => { if (navigator.onLine && state.pendientes) sincronizar(); }, SYNC_CADA_MS);
+setInterval(() => { if (navigator.onLine && !document.hidden) buscarActualizacion(false); }, 30 * 60000);
+
+// ════════════════════════════════════════════════════════════════
+// Actualizador: compara APP_VERSION con version.json del servidor (sin caché). Si hay una más nueva avisa con una franja
+// «Actualizar ahora»; al arrancar la app (sin formulario abierto) se actualiza sola. Lo pendiente de envío está en IndexedDB:
+// actualizar no lo borra. Al publicar una versión: subir APP_VERSION (aquí), VERSION (sw-agricultores.js) y version.json.
+// ════════════════════════════════════════════════════════════════
+function versionMayor(a, b) {
+  const pa = String(a).split('.').map(Number), pb = String(b).split('.').map(Number);
+  for (let i = 0; i < 3; i++) { if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0); }
+  return false;
+}
+async function buscarActualizacion(manual, alArrancar) {
+  if (!navigator.onLine) { if (manual) toast('Sin señal: no se puede revisar la versión ahora.'); return; }
+  state.ultimaRevisionVersion = Date.now();
+  try {
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    if (reg) reg.update().catch(() => {});
+    const res = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const v = await res.json();
+    if (!v || !v.version || !versionMayor(v.version, APP_VERSION)) {
+      $('av-version').classList.add('hidden');
+      if (manual) toast('✅ Tienes la última versión (' + APP_VERSION + ')');
+      return;
+    }
+    state.versionNueva = v;
+    if (alArrancar && !state.form && $('modal').classList.contains('hidden')) { aplicarActualizacion(); return; }
+    const av = $('av-version');
+    av.innerHTML = '🆕 <b>Nueva versión ' + esc(v.version) + '</b> disponible' + (v.notas && v.notas.length ? '<br><small>' + esc(v.notas[0]) + '</small>' : '') +
+      '<button class="btn-mini" id="btn-actualizar-app" style="margin-left:8px;background:#fff;">Actualizar ahora</button>';
+    av.classList.remove('hidden');
+    if (manual) toast('🆕 Hay una versión nueva: ' + v.version);
+  } catch (e) { if (manual) toast('No se pudo revisar la versión: ' + (e.message || e)); }
+}
+async function aplicarActualizacion() {
+  if (state.form && !confirm('Tienes un formulario abierto. Si actualizas ahora se pierde lo que no guardaste. ¿Actualizar igual?')) return;
+  toast('🔄 Actualizando la app…', 4000);
+  try {
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    if (reg) {
+      await reg.update().catch(() => {});
+      if (reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+    }
+    // Se borra solo la copia de la app (no los mosaicos del mapa sin conexión ni los datos)
+    if ('caches' in window) { const ks = await caches.keys(); await Promise.all(ks.filter(k => k.startsWith('agricultores-')).map(k => caches.delete(k))); }
+  } catch (e) { /* igual se recarga */ }
+  const v = state.versionNueva ? state.versionNueva.version : Date.now();
+  setTimeout(() => location.replace(location.pathname + '?v=' + encodeURIComponent(v)), 400);
+}
+document.addEventListener('click', e => { if (e.target.closest('#btn-actualizar-app')) aplicarActualizacion(); });
 
 // ════════════════════════════════════════════════════════════════
 // Arranque: si ya ingresó en este teléfono, entra directo (con o sin señal)
 // ════════════════════════════════════════════════════════════════
 (async function arrancar() {
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw-agricultores.js').catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw-agricultores.js', { updateViaCache: 'none' }).catch(() => {});
   try { state.yo = await DB.get('kv', 'yo'); } catch (e) { state.yo = null; }
-  if (state.yo) { await entrar(); return; }
+  if (state.yo) { await entrar(); buscarActualizacion(false, true); return; }
   $('s-login').classList.remove('hidden');
+  buscarActualizacion(false, true);
 })();
 </script>
 </body>
