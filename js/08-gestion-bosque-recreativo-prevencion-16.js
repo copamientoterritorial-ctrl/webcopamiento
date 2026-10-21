@@ -260,20 +260,30 @@ function renderBrResumen_(lista, cuerpo) {
 /* ── 🗺️ Mapa: ubicación de los bosques (tamaño = visitas de la temporada, color = administración) ── */
 function renderBrMapa_(lista, cuerpo) {
   const T = state.br.temp;
+  state.br.base = state.br.base || 'mapa';
   cuerpo.innerHTML = '<div class="br-mapa-wrap"><div id="br-mapa"></div>' +
+    // Círculo con la vista previa del OTRO mapa base (igual que el Planificador gráfico)
+    (state.br.base === 'satelite'
+      ? '<button class="pl-base-circ br-base-circ" data-br-base="mapa" title="Cambiar a mapa" style="background-image:url(\'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/10/629/305\'),url(\'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/10/629/305\')"><span>Mapa</span></button>'
+      : '<button class="pl-base-circ br-base-circ" data-br-base="satelite" title="Cambiar a satélite" style="background-image:url(\'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/10/629/305\')"><span>Satélite</span></button>') +
     '<div class="br-leyenda"><b>Administración</b>' + Object.values(BR_ADMIN).map(a => '<div><i style="background:' + a.c + '"></i>' + a.ico + ' ' + a.txt + '</div>').join('') +
     '<b style="margin-top:6px;">Tamaño</b><div>visitas · temporada ' + escapeHtml_(T) + '</div><div><i class="anillo"></i> borde rojo: sin acceso / 🔑 con autorización</div></div></div>';
   if (state.br.mapa) { try { state.br.mapa.remove(); } catch (e) {} state.br.mapa = null; }
   const m = state.br.mapa = L.map('br-mapa', { zoomControl: true, attributionControl: false }).setView([-37.5, -72.6], 7);
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 }).addTo(m);
-  m.createPane('brRef'); m.getPane('brRef').style.zIndex = 450; m.getPane('brRef').style.pointerEvents = 'none';
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, pane: 'brRef' }).addTo(m);
+  // Mismo mapa base sobrio que el visor de Agricultores (AGV_BASES: gris claro Esri con nombres / satélite con límites)
+  AGV_BASES[state.br.base]().addTo(m);
+  cuerpo.querySelectorAll('[data-br-base]').forEach(btn => btn.onclick = () => {
+    if (state.br.base === btn.dataset.brBase) return;
+    state.br.base = btn.dataset.brBase;
+    renderBrMapa_(lista, cuerpo);   // redibuja: el borde de los círculos cambia según el fondo
+  });
+  const bordeLibre = state.br.base === 'satelite' ? '#FFFFFF' : '#334155';
   const maxV = Math.max(1, ...lista.map(b => brVisitasTemp_(b, T)));
   const grupo = L.featureGroup().addTo(m);
   lista.filter(b => b.lat != null && b.lng != null).sort((a, b) => brVisitasTemp_(b, T) - brVisitasTemp_(a, T)).forEach(b => {
     const v = brVisitasTemp_(b, T), a = brAdmin_(b), acc = (b.condicion_acceso || '').toUpperCase();
     const radio = 6 + 15 * Math.sqrt(v / maxV);
-    const c = L.circleMarker([b.lat, b.lng], { radius: radio, color: acc === 'SIN ACCESO' ? '#DC2626' : acc.startsWith('AUTORIZ') ? '#F59E0B' : '#FFFFFF',
+    const c = L.circleMarker([b.lat, b.lng], { radius: radio, color: acc === 'SIN ACCESO' ? '#DC2626' : acc.startsWith('AUTORIZ') ? '#F59E0B' : bordeLibre,
       weight: acc === 'LIBRE ACCESO' ? 2 : 4, fillColor: a.c, fillOpacity: 0.85 });
     c.bindTooltip('<b>' + escapeHtml_(b.nombre) + '</b> · ' + escapeHtml_(b.id_br) + '<br>' + a.ico + ' ' + escapeHtml_(a.txt) + ' · ' + brAcceso_(b).ico + ' ' + escapeHtml_(brAcceso_(b).txt) +
       '<br>👥 ' + brNum_(v) + ' visitas (' + escapeHtml_(T) + ')', { direction: 'top', sticky: true });

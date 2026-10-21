@@ -609,9 +609,11 @@ async function abrirResumenPeriodo_(periodoId) {
   document.getElementById('resumen-modal-body').innerHTML = '<div class="wx-loading" style="color:var(--text-tertiary);">Cargando resumen…</div>';
   document.getElementById('resumen-modal-overlay').classList.add('show');
 
-  const [{ data: periodo }, { data, error }] = await Promise.all([
+  // 21-10-2026: el resumen cuenta SOLO los recursos activados en el panel «Recursos de la emergencia» (check «Va», SQL 84),
+  // no toda la plantilla del periodo. Se agrupa aquí por institución + tipo (antes: vista resumen_recursos_por_periodo).
+  const [{ data: periodo }, { data: recs, error }] = await Promise.all([
     supabaseClient.from('config_periodos').select('*').eq('id', periodoId).maybeSingle(),
-    supabaseClient.from('resumen_recursos_por_periodo').select('*').eq('id_periodo', periodoId),
+    supabaseClient.from('copamiento_recursos').select('id, tipo_recurso, institucion_id, instituciones(nombre, color_hex)').eq('id_periodo', periodoId),
   ]);
 
   document.getElementById('resumen-modal-title').textContent = periodo ? periodo.nombre_plan : 'Resumen del periodo';
@@ -621,8 +623,24 @@ async function abrirResumenPeriodo_(periodoId) {
     document.getElementById('resumen-modal-body').innerHTML = '<div class="layer-empty-msg">No se pudo cargar el resumen: ' + error.message + '</div>';
     return;
   }
-
-  const filas = data || [];
+  const todos = recs || [];
+  let activos = [];
+  if (todos.length) {
+    const { data: est, error: errEst } = await supabaseClient.rpc('estado_recursos_emergencia', { p_ids: todos.map(r => String(r.id)) });
+    if (errEst) {
+      document.getElementById('resumen-modal-body').innerHTML = '<div class="layer-empty-msg">No se pudo leer qué recursos están activados: ' + escapeHtml_(errEst.message) + '</div>';
+      return;
+    }
+    const va = new Set((est || []).filter(x => x.va).map(x => String(x.id)));
+    activos = todos.filter(r => va.has(String(r.id)));
+  }
+  const agrupado = {};
+  activos.forEach(r => {
+    const inst = r.instituciones || {}, k = (inst.nombre || 'Sin institución') + '|' + (r.tipo_recurso || 'Sin tipo');
+    const f = agrupado[k] = agrupado[k] || { institucion_nombre: inst.nombre || 'Sin institución', institucion_color: inst.color_hex || '#64748B', tipo_recurso: r.tipo_recurso || 'Sin tipo', cantidad: 0 };
+    f.cantidad++;
+  });
+  const filas = Object.values(agrupado);
   const total = filas.reduce((acc, f) => acc + Number(f.cantidad), 0);
 
   const porTipo = {};
@@ -639,8 +657,14 @@ async function abrirResumenPeriodo_(periodoId) {
   }
 
   const totalEl = document.createElement('div'); totalEl.className = 'resumen-total';
-  totalEl.textContent = total + ' recurso(s) comprometido(s) en total';
+  totalEl.textContent = total + ' recurso(s) activado(s) en la emergencia';
   body.appendChild(totalEl);
+  const notaAct = document.createElement('div');
+  notaAct.style.cssText = 'font-size:11.5px;color:var(--text-tertiary);margin:-4px 0 12px;';
+  notaAct.textContent = todos.length
+    ? 'Solo cuenta lo marcado «Va» en «Recursos de la emergencia» (' + total + ' de ' + todos.length + ' del periodo).'
+    : '';
+  if (notaAct.textContent) body.appendChild(notaAct);
 
   const label1 = document.createElement('p'); label1.className = 'section-label'; label1.textContent = 'Por tipo de recurso';
   body.appendChild(label1);
@@ -653,7 +677,9 @@ async function abrirResumenPeriodo_(periodoId) {
   body.appendChild(label2);
   if (filas.length === 0) {
     const msg = document.createElement('div'); msg.className = 'layer-empty-msg';
-    msg.textContent = 'Este periodo todavía no tiene recursos asociados.';
+    msg.textContent = todos.length
+      ? 'Todavía no hay recursos activados: márcalos en «Recursos de la emergencia» (Modo Emergencia).'
+      : 'Este periodo todavía no tiene recursos asociados.';
     body.appendChild(msg);
   }
   filas.sort((a, b) => Number(b.cantidad) - Number(a.cantidad)).forEach(f => {

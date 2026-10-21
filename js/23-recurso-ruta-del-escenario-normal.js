@@ -30,14 +30,23 @@ async function cargarOpcionesRecursoRef_(prefijo, ctx) {
     if (!res.error) {
       // Una entrada por área (la misma área puede venir con o sin tilde / guiones)
       const areas = new Map(), agregar = a => { if (a) { const k = plNorm_(a).replace(/[^A-Z0-9]/g, ''); if (!areas.has(k)) areas.set(k, a); } };
-      (res.data || []).forEach(r => agregar(r.area));
+      // 20-10-2026: MANDA la asignación ADMINISTRATIVA de la comuna (Administración › Comunas por área, SQL 94). Antes también
+      // se sumaba el área de cualquier recurso ubicado físicamente en la comuna: un recurso de Lumaco cuyo punto cae en Cañete
+      // hacía aparecer TODOS los recursos de Lumaco al planificar Cañete. La ubicación solo se usa si la comuna no tiene área.
       try {
-        // Áreas que administran la comuna (SQL 94: asignación administrativa, reasignable)
         let { data: adm, error: ea } = await supabaseClient.from('v_area_comunas_admin').select('area').eq('id_comuna', ctx.idComuna);
         if (ea) ({ data: adm, error: ea } = await supabaseClient.from('area_comunas_manual').select('area').eq('id_comuna', ctx.idComuna));
         if (!ea) (adm || []).forEach(m => { if (m.area && m.area !== '(sin área)') agregar(m.area); });
-      } catch (e) { /* sin el SQL 93/94: solo las áreas de los recursos de la comuna */ }
+      } catch (e) { /* sin el SQL 93/94: se usan las áreas de los recursos ubicados en la comuna */ }
+      if (!areas.size) (res.data || []).forEach(r => agregar(r.area));
       areasComuna = [...areas.values()];
+      // Comunas compartidas por dos áreas (p. ej. Tirúa, Lumaco): un Jefe / GRT solo ve los recursos de SUS áreas; cada área
+      // administra los suyos aunque sea la misma empresa. El Administrador ve los de todas (con el área en cada opción).
+      if (state.perfil && state.perfil.perfil !== 'Administrador' && (state.misAreasIds || []).length && areasComuna.length > 1) {
+        const mias = new Set(state.misAreasIds.map(a => plNorm_(a).replace(/[^A-Z0-9]/g, '')));
+        const propias = areasComuna.filter(a => mias.has(plNorm_(a).replace(/[^A-Z0-9]/g, '')));
+        if (propias.length) areasComuna = propias;
+      }
       if (areasComuna.length) {
         const resArea = await recursosDeAreas_(areasComuna, 'codigo_ref');
         if (!resArea.error) res = resArea;
@@ -70,6 +79,7 @@ async function cargarOpcionesRecursoRef_(prefijo, ctx) {
     const comunaR = r.comuna || r.comuna_corma || '';
     const texto = (claveRecurso_(r) || 'Sin clave') + (r.codigo_ref && r.codigo_ref !== claveRecurso_(r) ? ' (' + r.codigo_ref + ')' : '') + ' · ' + aTitulo_(r.tipo_recurso || '') + (r.sector ? ' · ' + r.sector : '') +
       (conComuna ? ' · ' + (comunaR ? aTitulo_(comunaR) : 'sin ubicar') : '') +
+      (areasComuna.length > 1 && r.area ? ' · área ' + aTitulo_(r.area) : '') +
       (ocupado ? ' — 🔒 ya tiene ruta' : '');
     return '<option value="' + escapeHtml_(r.id) + '"' + (ocupado ? ' disabled' : '') +
       ((esEsta || r.id === ctx.recursoActual) ? ' selected' : '') +
@@ -473,14 +483,15 @@ async function guardarPeriodoDesdeModal_() {
 }
 
 /* ============ COPIAR PLANIFICACIÓN PREVIA A UN PERIODO RECIÉN CREADO ============ */
-async function ofrecerCopiaPlanificacionPrevia_(comunaId) {
+/** desdePanel = true: «⬇️ Completar desde la planificación» del panel de emergencia (periodo ya existente; solo copia lo que falta). */
+async function ofrecerCopiaPlanificacionPrevia_(comunaId, desdePanel) {
   const { data: planes } = await supabaseClient
     .from('planes_contingencia')
     .select('id, escenario')
     .eq('ambito', 'comuna')
     .eq('comuna_id', comunaId);
 
-  if (!planes || planes.length === 0) return;
+  if (!planes || planes.length === 0) { if (desdePanel) mostrarToast_('Esta comuna no tiene planificación por alerta para copiar.'); return; }
 
   const conteos = await Promise.all(planes.map(async p => {
     const { count } = await supabaseClient.from('planificacion_recursos').select('id', { count: 'exact', head: true }).eq('plan_id', p.id);
@@ -504,6 +515,44 @@ async function ofrecerCopiaPlanificacionPrevia_(comunaId) {
   document.getElementById('copiar-planificacion-overlay').classList.add('show');
 }
 
+/** Vértices [lng, lat] para copiar un área al periodo (crear_recurso_area espera un solo anillo). */
+function puntosCopiaPeriodo_(gj, tipoGeom) {
+  if (!gj || !gj.coordinates) return null;
+  if (tipoGeom === 'area') {
+    if (gj.type === 'MultiPolygon') return (gj.coordinates[0] || [])[0] || null;
+    return gj.coordinates[0] || null;
+  }
+  return gj.type === 'MultiLineString' ? (cadenasLinea_(gj.coordinates)[0] || null) : gj.coordinates;
+}
+/** Tramos de una línea (LineString o MultiLineString) reunidos en CADENAS continuas: se unen solo los tramos cuyos extremos se
+ *  tocan (≤ 30 m, invirtiendo el tramo si hace falta). Tramos separados quedan en cadenas aparte: NUNCA se unen con una recta.
+ *  (21-10-2026: encadenarlos en el orden guardado dibujaba rectas entre tramos lejanos.) */
+function cadenasLinea_(partes, tolM) {
+  const tol = tolM || 30;
+  const dist = (a, b) => { const k = Math.cos(a[1] * Math.PI / 180); return Math.hypot((a[0] - b[0]) * 111320 * k, (a[1] - b[1]) * 110540); };
+  const resto = (partes || []).filter(p => p && p.length >= 2).map(p => p.slice());
+  const cadenas = [];
+  while (resto.length) {
+    let c = resto.shift();
+    for (let unio = true; unio && resto.length; ) {
+      unio = false;
+      for (let i = 0; i < resto.length; i++) {
+        const p = resto[i], ini = c[0], fin = c[c.length - 1];
+        if (dist(fin, p[0]) <= tol) c = c.concat(p.slice(1));
+        else if (dist(fin, p[p.length - 1]) <= tol) c = c.concat(p.slice().reverse().slice(1));
+        else if (dist(ini, p[p.length - 1]) <= tol) c = p.slice(0, -1).concat(c);
+        else if (dist(ini, p[0]) <= tol) c = p.slice().reverse().slice(0, -1).concat(c);
+        else continue;
+        resto.splice(i, 1); unio = true; break;
+      }
+    }
+    cadenas.push(c);
+  }
+  return cadenas;
+}
+/** Compatibilidad: primera cadena continua de una MultiLineString. */
+function lineaEncadenada_(partes) { return cadenasLinea_(partes)[0] || []; }
+
 async function copiarPlanificacionAPeriodo_(planId, escenario) {
   document.getElementById('copiar-planificacion-overlay').classList.remove('show');
   mostrarToast_('Copiando recursos de la planificación ' + etiquetaEscenario_(escenario) + '…');
@@ -515,23 +564,50 @@ async function copiarPlanificacionAPeriodo_(planId, escenario) {
 
   if (error || !recursos) { mostrarToast_('No se pudo leer la planificación: ' + (error ? error.message : '')); return; }
 
-  let copiados = 0, fallidos = 0;
+  // 21-10-2026: se puede volver a copiar sobre el mismo periodo para COMPLETARLO: lo que ya está en el periodo (misma geometría)
+  // se omite, así no se duplica. Y cada falla se informa con su motivo (antes solo «N no se pudieron copiar»).
+  const per = typeof periodoActivoActual_ === 'function' ? periodoActivoActual_() : null;
+  const yaEnPeriodo = new Set();
+  if (per) {
+    const { data: ex } = await supabaseClient.from('copamiento_recursos_geojson').select('tipo_geometria, geom_geojson, lat, lng').eq('id_periodo', per.id);
+    (ex || []).forEach(x => { const k = claveGeomEmergencia_(x.tipo_geometria, x.geom_geojson, x.lat, x.lng); if (k) yaEnPeriodo.add(k); });
+  }
+  let copiados = 0, fallidos = 0, omitidos = 0;
+  const motivos = [];
   for (const r of recursos) {
-    let resultado;
     const periodoTrabajo = 'Jornada completa';
-    if (r.tipo_geometria === 'linea' || r.tipo_geometria === 'area') {
+    // Líneas: una copia por cada CADENA continua de la ruta (una ruta unida con tramos separados genera varias, sin rectas entre ellas)
+    if (r.tipo_geometria === 'linea') {
+      let gj; try { gj = JSON.parse(r.geom_geojson); } catch (e) { fallidos++; motivos.push((r.descripcion || 'Ruta') + ': geometría inválida'); continue; }
+      const cadenas = gj.type === 'MultiLineString' ? cadenasLinea_(gj.coordinates) : [gj.coordinates || []];
+      let nuevas = 0, ya = 0, err = null;
+      for (const c of cadenas) {
+        if (!c || c.length < 2) continue;
+        const kc = claveGeomEmergencia_('linea', { type: 'LineString', coordinates: c });
+        if (kc && yaEnPeriodo.has(kc)) { ya++; continue; }
+        const res = await supabaseClient.rpc('crear_recurso_linea', {
+          p_comuna_id: state.activeComunaId, p_institucion_id: r.institucion_id, p_puntos: c,
+          p_fecha_inicio: null, p_fecha_termino: null, p_descripcion: r.descripcion, p_periodo_trabajo: periodoTrabajo, p_tipo_recurso: r.tipo_recurso,
+        });
+        if (res.error) err = res.error.message; else { nuevas++; if (kc) yaEnPeriodo.add(kc); }
+      }
+      if (err) { fallidos++; motivos.push((r.tipo_recurso || 'Recurso') + ' · ' + (r.descripcion || 'sin descripción') + ': ' + err); }
+      if (nuevas) copiados++; else if (ya && !err) omitidos++;
+      continue;
+    }
+    const k = claveGeomEmergencia_(r.tipo_geometria, r.geom_geojson, r.lat, r.lng);
+    if (k && yaEnPeriodo.has(k)) { omitidos++; continue; }
+    let resultado;
+    if (r.tipo_geometria === 'area') {
       let geojson;
       try { geojson = JSON.parse(r.geom_geojson); } catch (e) { fallidos++; continue; }
-      const puntos = r.tipo_geometria === 'area' ? geojson.coordinates[0] : geojson.coordinates;
-      resultado = r.tipo_geometria === 'area'
-        ? await supabaseClient.rpc('crear_recurso_area', {
-            p_comuna_id: state.activeComunaId, p_institucion_id: r.institucion_id, p_puntos: puntos,
-            p_fecha_inicio: null, p_fecha_termino: null, p_descripcion: r.descripcion, p_periodo_trabajo: periodoTrabajo, p_tipo_recurso: r.tipo_recurso,
-          })
-        : await supabaseClient.rpc('crear_recurso_linea', {
-            p_comuna_id: state.activeComunaId, p_institucion_id: r.institucion_id, p_puntos: puntos,
-            p_fecha_inicio: null, p_fecha_termino: null, p_descripcion: r.descripcion, p_periodo_trabajo: periodoTrabajo, p_tipo_recurso: r.tipo_recurso,
-          });
+      // Áreas múltiples (MultiPolygon) fallaban al copiar (anillos anidados): se copia el primer polígono.
+      const puntos = puntosCopiaPeriodo_(geojson, r.tipo_geometria);
+      if (!puntos || puntos.length < 4) { fallidos++; motivos.push((r.descripcion || 'Área') + ': área sin anillo válido'); continue; }
+      resultado = await supabaseClient.rpc('crear_recurso_area', {
+        p_comuna_id: state.activeComunaId, p_institucion_id: r.institucion_id, p_puntos: puntos,
+        p_fecha_inicio: null, p_fecha_termino: null, p_descripcion: r.descripcion, p_periodo_trabajo: periodoTrabajo, p_tipo_recurso: r.tipo_recurso,
+      });
     } else {
       if (r.lat == null || r.lng == null) { fallidos++; continue; }
       resultado = await supabaseClient.rpc('crear_recurso', {
@@ -539,10 +615,18 @@ async function copiarPlanificacionAPeriodo_(planId, escenario) {
         p_fecha_inicio: null, p_fecha_termino: null, p_descripcion: r.descripcion, p_periodo_trabajo: periodoTrabajo, p_tipo_recurso: r.tipo_recurso,
       });
     }
-    if (resultado && resultado.error) fallidos++; else copiados++;
+    if (resultado && resultado.error) { fallidos++; motivos.push((r.tipo_recurso || 'Recurso') + ' · ' + (r.descripcion || 'sin descripción') + ': ' + resultado.error.message); }
+    else { copiados++; if (k) yaEnPeriodo.add(k); }
   }
 
-  mostrarToast_(copiados + ' recurso(s) copiado(s) al periodo' + (fallidos > 0 ? ' (' + fallidos + ' no se pudieron copiar)' : '') + '. La planificación original sigue intacta.');
+  mostrarToast_(copiados + ' recurso(s) copiado(s) al periodo' + (omitidos ? ' · ' + omitidos + ' ya estaban' : '') +
+    (fallidos > 0 ? ' · ' + fallidos + ' no se pudieron copiar' : '') + '. La planificación original sigue intacta.');
+  if (motivos.length) {
+    console.warn('Copiar planificación al periodo — fallas:', motivos);
+    alert('⚠️ ' + fallidos + ' recurso(s) no se pudieron copiar al periodo:\n\n' + motivos.slice(0, 8).map(m => '• ' + m).join('\n') +
+      (motivos.length > 8 ? '\n… y ' + (motivos.length - 8) + ' más (ver consola).' : ''));
+  }
+  if (per && per.seleccion_guardada && copiados) mostrarToast_('ℹ️ El periodo tiene la selección guardada: lo nuevo queda «no activado». Actívalo en «Recursos de la emergencia».');
   loadRecursos(state.activeComunaId, ++comunaRequestToken);
 }
 

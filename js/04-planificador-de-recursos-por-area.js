@@ -20,7 +20,13 @@ state.pl = { recursos: [], rutas: [], idArea: null, sector: '', tipo: '', q: '',
                       alertaVerde: false, alertaAmarilla: false, alertaRoja: false, incendios: false },
              capasData: { idArea: null, comunas: [], areaRel: [], fundos: [] },
              extra: { idArea: null, info: {}, temporadas: [], incOn: {} },   // datos y estado de esas capas
-             base: (function () { try { return localStorage.getItem('pl_base') || 'positron'; } catch (e) { return 'positron'; } })(),
+             // Clave nueva (20-10-2026): todos parten con el mapa sobrio; luego se recuerda lo que elija cada uno
+             base: (function () { try { return localStorage.getItem('pl_base2') || 'sobrio'; } catch (e) { return 'sobrio'; } })(),
+             // Etiquetas por capa (🏷️ en el panel de capas) y clave radial de los recursos (21-10-2026); se recuerdan por equipo
+             etq: (function () { try { return JSON.parse(localStorage.getItem('pl_etq') || 'null') || { comunas: true }; } catch (e) { return { comunas: true }; } })(),
+             claveRadial: (function () { try { return localStorage.getItem('pl_clave_radial') !== '0'; } catch (e) { return true; } })(),
+             // Opacidad del fondo de la clave radial (0,2–1; 60 % por defecto)
+             claveOp: (function () { try { const v = Number(localStorage.getItem('pl_clave_op')); return v >= 0.2 && v <= 1 ? v : 0.6; } catch (e) { return 0.6; } })(),
              listaOculta: window.innerWidth < 900, ocultarFicha: false,
              nuevo: null };   // { latlng } mientras se crea un recurso
 // Grupos de las capas del Planificador de Alertas dentro del mapa del Planificador
@@ -69,13 +75,17 @@ function plFechaCorta_(iso) {
 function initPlMap_() {
   if (plMap) { setTimeout(() => plMap.invalidateSize(), 60); return; }
   plMap = L.map('pl-map', { zoomControl: true, attributionControl: false, zoomSnap: 0.25 }).setView([-38.0, -72.4], 8);
-  plSetBasemap_(state.pl.base || 'positron');
+  plSetBasemap_(state.pl.base || 'sobrio');
+  if (plMap.zoomControl) agregarLupasZoom_(plMap, plMap.zoomControl.getContainer());   // 🔍 lupas + vista anterior (js/01)
   // Si cambia el espacio del mapa (lista plegada, barra en 2 líneas, ventana), Leaflet se reajusta
   if (window.ResizeObserver) new ResizeObserver(() => plMap.invalidateSize()).observe(document.getElementById('pl-map'));
   [['plComunas', 360], ['plAreaRel', 370], ['plFundos', 380], ['plAsignadas', 405],
    // Capas del Planificador de Alertas (12-10-2026), mismo orden relativo que el mapa principal
    ['plAlertas', 355], ['plRvCmpc', 386], ['plRvBorde', 388], ['plRvRelleno', 389], ['plComites', 392], ['plIncendios', 590],
+   ['plEtq', 595],   // etiquetas de las capas (bajo los íconos de recursos, sin capturar clics)
   ].forEach(([n, z]) => { plMap.createPane(n).style.zIndex = z; });
+  plMap.getPane('plEtq').style.pointerEvents = 'none';
+  document.getElementById('pl-map').style.setProperty('--pl-clave-op', state.pl.claveOp);
   plMap.getPane('plIncendios').style.pointerEvents = 'auto';
   plMap.on('zoomend', () => plRestilarRedVial_());
   let esperaCmpc = null;
@@ -93,17 +103,21 @@ function initPlMap_() {
   crearControlCapasPlanificador_();
 }
 
-/** Mapa base del Planificador (mismas opciones que el mapa principal: BASEMAPS). */
+/** Mapa base del Planificador: los mismos 2 sobrios del mapa principal (BASEMAPS, js/01: gris claro Esri con nombres / satélite
+ *  con límites; 21-10-2026), alternados con el círculo de abajo a la derecha (`.pl-base-circ`). */
+const PL_BASES_SOBRIAS = BASEMAPS;
+function plBasemaps_() { return PL_BASES_SOBRIAS; }
 let plBaseLayer_ = null, plBaseOverlay_ = null;
 function plSetBasemap_(id) {
-  const b = BASEMAPS.find(x => x.id === id) || BASEMAPS[0];
+  const lista = plBasemaps_();
+  const b = lista.find(x => x.id === id) || lista[0];
   if (plBaseLayer_) plMap.removeLayer(plBaseLayer_);
   if (plBaseOverlay_) { plMap.removeLayer(plBaseOverlay_); plBaseOverlay_ = null; }
   plBaseLayer_ = L.tileLayer(b.url, b.options).addTo(plMap);
   plBaseLayer_.bringToBack();
   if (b.overlayUrl) plBaseOverlay_ = L.tileLayer(b.overlayUrl, Object.assign({ pane: 'overlayPane', opacity: 0.85 }, b.overlayOptions || {})).addTo(plMap);
   state.pl.base = b.id;
-  try { localStorage.setItem('pl_base', b.id); } catch (e) {}
+  try { localStorage.setItem('pl_base2', b.id); } catch (e) {}
 }
 
 async function abrirPlanificador_() {
@@ -361,6 +375,7 @@ function renderMapaPlanificador_(lista) {
       const capa = L.geoJSON(g, { pane: 'plAsignadas', style: { color: '#2563EB', weight: 3.5, opacity: 0.7 } });
       capa.bindTooltip('<b>📻 ' + escapeHtml_(claveIdRecurso_(r) || aTitulo_(r.tipo_recurso || 'Recurso')) + '</b><br>' + etiquetaNormal(rn), { sticky: true });
       capa.on('click', () => seleccionarRecursoPlanificador_(r.id));
+      capa._plEtq = rn.descripcion || claveRecurso_(r) || '';
       plAsignadasLayer.addLayer(capa);
     });
   }
@@ -369,6 +384,7 @@ function renderMapaPlanificador_(lista) {
     if (!state.pl.capas.rutas || !ru.geometry) return;
     const capa = L.geoJSON(ru.geometry, { style: { color: '#475569', weight: 3, opacity: 0.55, dashArray: '6,5' } });
     capa.bindTooltip('SIGEI · ' + etiquetaRuta(ru), { sticky: true });
+    capa._plEtq = ru.nombre_ruta || ru.alias || '';
     plRutasLayer.addLayer(capa);
     try { limites.push(capa.getBounds()); } catch (e) {}
   });
@@ -406,6 +422,15 @@ function renderMapaPlanificador_(lista) {
     });
     if (arrastrable) m.on('dragend', () => { const ll = m.getLatLng(); moverPuntoPlanificador_(r.id, ll.lat, ll.lng); });
     plRecursosLayer.addLayer(m);
+    // Clave radial bajo el ícono (fondo negro, letras verdes; se apaga en el panel de capas); sigue al ícono si se arrastra
+    const clave = state.pl.claveRadial ? claveRecurso_(r) : '';
+    if (clave) {
+      const et = L.marker([r.lat, r.lng], { interactive: false, keyboard: false, zIndexOffset: esSel ? 1100 : 100,
+        icon: L.divIcon({ className: 'pl-clave-mapa' + (esSel ? ' sel' : ''), iconSize: [0, 0], iconAnchor: [0, -16],
+          html: '<span>' + escapeHtml_(clave) + '</span>' }) });
+      plRecursosLayer.addLayer(et);
+      if (arrastrable) m.on('drag', () => et.setLatLng(m.getLatLng()));
+    }
     const b = L.latLngBounds([r.lat, r.lng], [r.lat, r.lng]);
     limites.push(b);
     if (esSel) limitesSel.push(b);
@@ -428,6 +453,7 @@ function renderMapaPlanificador_(lista) {
     plMap.fitBounds(unir(limitesSel).pad(0.25), { maxZoom: 14 });
     state.pl.encuadrarSel = false;
   }
+  plRefrescarEtiquetas_();   // rutas redibujadas: rehacer sus etiquetas (js/05)
 }
 
 function renderFichaPlanificador_() {

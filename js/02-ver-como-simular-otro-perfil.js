@@ -271,6 +271,12 @@ async function cargarDashboard_() {
   let qRecursos = supabaseClient.from('copamiento_recursos').select('id, comuna_id, id_periodo, tipo_recurso, institucion_id, instituciones(nombre, color_hex)');
   let qPlanes   = supabaseClient.from('planes_contingencia').select('id, comuna_id, escenario, activo');
   if (comunaId) { qPeriodos = qPeriodos.eq('comuna_id', comunaId); qRecursos = qRecursos.eq('comuna_id', comunaId); qPlanes = qPlanes.eq('comuna_id', comunaId); }
+  else if (state.perfil.perfil !== 'Administrador') {
+    // Vista general (21-10-2026): solo las comunas del usuario (Jefe de Área: las de sus áreas; Subgerente: las de su subgerencia).
+    // Antes no se filtraba y, como el Jefe puede leer los planes de todas las comunas (SQL 97/112), salían todas.
+    const mias = (state.misComunaIds || []).length ? state.misComunaIds : ['__ninguna__'];
+    qPeriodos = qPeriodos.in('comuna_id', mias); qRecursos = qRecursos.in('comuna_id', mias); qPlanes = qPlanes.in('comuna_id', mias);
+  }
   const [{ data: periodos }, { data: recursos }, { data: planes }] = await Promise.all([qPeriodos, qRecursos, qPlanes]);
 
   const periodosActivos = (periodos || []).filter(p => p.estado_periodo === 'activo');

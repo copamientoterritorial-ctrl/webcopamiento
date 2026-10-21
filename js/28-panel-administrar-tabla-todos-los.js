@@ -31,15 +31,8 @@ async function abrirAdminRecursosPlan_() {
     if (grdBloqueaInst_(inst)) { tbody.appendChild(tr); return; }
     tr.querySelector('[data-accion="editar"]').addEventListener('click', () => abrirEditarRecursoPlanificado_(r.id));
     tr.querySelector('[data-accion="eliminar"]').addEventListener('click', async () => {
-      if (!confirm('¿Eliminar este recurso planificado?')) return;
-      const { data: borradas, error: errDel } = await supabaseClient
-        .from('planificacion_recursos').delete().eq('id', r.id).select('id');
-      if (errDel) { mostrarToast_('Error: ' + errDel.message); return; }
-      if (!borradas || borradas.length === 0) {
-        mostrarToast_('🔒 No se eliminó: no tienes permisos sobre ese registro o ya no existe.');
-        return;
-      }
-      mostrarToast_('Eliminado.');
+      if (!confirm('¿Eliminar este recurso planificado?\n\n(Se puede recuperar después con «↶ Deshacer» o con «🗑️ Recuperar».)')) return;
+      if (!(await eliminarEntidadPlanificada_(r.id))) return;   // guarda copia para ↶ Deshacer (SQL 135)
       loadPlanificacionRecursos_(state.activeComunaId);
       abrirAdminRecursosPlan_();
     });

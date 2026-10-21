@@ -279,20 +279,21 @@ function imanActivo_() {
 /** Punto del camino visible más cercano a latlng (dentro de IMAN_PX), o null.
  *  Prioridad: si hay un camino de la Red Vial Chile al alcance, gana aunque un
  *  camino CMPC esté más cerca; la CMPC solo imanta donde no hay ruta chilena. */
-function snapRedVial_(latlng) {
+function snapRedVial_(latlng, radioPx) {
+  const radio = radioPx || IMAN_PX;
   const p = map.latLngToLayerPoint(latlng);
-  const esq = map.layerPointToLatLng(p.add([IMAN_PX, IMAN_PX]));
+  const esq = map.layerPointToLatLng(p.add([radio, radio]));
   const dLat = Math.abs(esq.lat - latlng.lat), dLng = Math.abs(esq.lng - latlng.lng);
   const zona = L.latLngBounds([latlng.lat - dLat, latlng.lng - dLng], [latlng.lat + dLat, latlng.lng + dLng]);
   for (const lista of tramosImantables_()) {
-    const s = snapEnTramos_(lista, p, zona);
+    const s = snapEnTramos_(lista, p, zona, radio);
     if (s) return s;
   }
   return null;
 }
 
-function snapEnTramos_(lista, p, zona) {
-  let mejor = null, mejorD = IMAN_PX;
+function snapEnTramos_(lista, p, zona, radio) {
+  let mejor = null, mejorD = radio || IMAN_PX;
   lista.forEach((t) => {
     if (!t.bounds.intersects(zona)) return;
     t.partes.forEach((parte, pi) => {
@@ -326,6 +327,77 @@ function caminoEntreSnaps_(s1, s2) {
             .map(v => L.latLng(v.lat, v.lng));
 }
 
+/* ── SEGUIR LA RED VIAL (20-10-2026): entre dos puntos pegados al camino, la línea recorre el camino aunque cruce varios
+ * tramos o intersecciones (ruta más corta por la red visible, Dijkstra). Grafo: un nodo por vértice de los tramos imantables
+ * (coordenada redondeada a ~1 m, así los tramos que se tocan quedan conectados), aristas = segmentos con su largo en metros.
+ * Se arma una vez por zona visible (se guarda junto a la caché del imán). */
+const IMAN_PX_SEGUIR = 40;      // en trazo libre, ya pegado a un camino, lo sigue aunque el mouse se aleje hasta esto
+function clavePuntoIman_(ll) { return ll.lat.toFixed(5) + ',' + ll.lng.toFixed(5); }
+function metrosIman_(a, b) {
+  const dy = (b.lat - a.lat) * 110540, dx = (b.lng - a.lng) * 111320 * Math.cos((a.lat + b.lat) * Math.PI / 360);
+  return Math.sqrt(dx * dx + dy * dy);
+}
+function grafoIman_() {
+  const listas = tramosImantables_();
+  if (imanCache_ && imanCache_.grafo) return imanCache_.grafo;
+  const nodos = new Map();   // clave → { ll, ady: [[clave, metros]] }
+  const nodo = ll => { const k = clavePuntoIman_(ll); let n = nodos.get(k); if (!n) { n = { ll, ady: [] }; nodos.set(k, n); } return k; };
+  listas.forEach(lista => lista.forEach(t => t.partes.forEach(parte => {
+    for (let i = 0; i < parte.length - 1; i++) {
+      const a = nodo(parte[i]), b = nodo(parte[i + 1]); if (a === b) continue;
+      const w = metrosIman_(parte[i], parte[i + 1]);
+      nodos.get(a).ady.push([b, w]); nodos.get(b).ady.push([a, w]);
+    }
+  })));
+  const g = { nodos };
+  if (imanCache_) imanCache_.grafo = g;
+  return g;
+}
+/** Vértices del camino entre dos puntos imantados (sin los extremos) recorriendo la red; null si no hay camino razonable. */
+function rutaPorRedVial_(s1, s2) {
+  if (!s1 || !s2) return null;
+  // Mismo tramo: el camino es único y no hace falta buscar
+  if (s1.tramo === s2.tramo && s1.pi === s2.pi) return caminoEntreSnaps_(s1, s2);
+  const { nodos } = grafoIman_();
+  const recto = metrosIman_(s1.punto, s2.punto);
+  const tope = recto * 4 + 500;                       // desvíos mayores = no es «seguir el camino»
+  // Nodos virtuales para los dos puntos (conectados a los extremos de su segmento)
+  const ady = new Map();
+  const conectar = (k, s) => {
+    const parte = s.tramo.partes[s.pi], A = parte[s.si], B = parte[s.si + 1];
+    ady.set(k, [[clavePuntoIman_(A), metrosIman_(s.punto, A)], [clavePuntoIman_(B), metrosIman_(s.punto, B)]]);
+  };
+  conectar('S1', s1); conectar('S2', s2);
+  const vecinos = k => {
+    if (ady.has(k)) return ady.get(k);
+    const n = nodos.get(k); if (!n) return [];
+    // Llegada al destino virtual desde los extremos de su segmento
+    const extra = ady.get('S2').filter(([kk]) => kk === k).map(([, w]) => ['S2', w]);
+    return extra.length ? n.ady.concat(extra) : n.ady;
+  };
+  // Dijkstra con montículo binario
+  const dist = new Map([['S1', 0]]), prev = new Map(), heap = [[0, 'S1']];
+  const push = it => { heap.push(it); let i = heap.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (heap[p][0] <= heap[i][0]) break; [heap[p], heap[i]] = [heap[i], heap[p]]; i = p; } };
+  const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i;
+    if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break; [heap[m], heap[i]] = [heap[i], heap[m]]; i = m; } } return top; };
+  let visitados = 0, encontrado = false;
+  while (heap.length) {
+    const [d, k] = pop();
+    if (d > (dist.get(k) ?? Infinity)) continue;
+    if (k === 'S2') { encontrado = true; break; }
+    if (d > tope || ++visitados > 80000) break;
+    for (const [kk, w] of vecinos(k)) {
+      const nd = d + w;
+      if (nd < (dist.get(kk) ?? Infinity)) { dist.set(kk, nd); prev.set(kk, k); push([nd, kk]); }
+    }
+  }
+  if (!encontrado) return null;
+  const camino = []; let k = prev.get('S2');
+  while (k && k !== 'S1') { const n = nodos.get(k); if (n) camino.push(L.latLng(n.ll.lat, n.ll.lng)); k = prev.get(k); }
+  camino.reverse();
+  return camino.filter(v => metrosIman_(v, s1.punto) > 0.5 && metrosIman_(v, s2.punto) > 0.5);
+}
+
 /** Para el clic en modo línea: devuelve los vértices a agregar (camino + punto) o null si no imanta. */
 function verticesConIman_(latlng, ev) {
   if (!imanActivo_() || (ev && ev.shiftKey)) { ultimoSnapIman_ = null; return null; }
@@ -333,8 +405,26 @@ function verticesConIman_(latlng, ev) {
   if (!s) { ultimoSnapIman_ = null; return null; }
   const previo = tempDibujoVertices[tempDibujoVertices.length - 1];
   const sigue = ultimoSnapIman_ && previo && previo.distanceTo(ultimoSnapIman_.punto) < 0.01;
-  const camino = sigue ? caminoEntreSnaps_(ultimoSnapIman_, s) : [];
+  let camino = [];
+  if (sigue) {
+    const r = rutaPorRedVial_(ultimoSnapIman_, s);
+    if (r) camino = r;
+    else mostrarToast_('🧲 No hay un camino continuo visible entre los dos puntos: se unieron en línea recta (acerca el zoom o enciende la Red Vial CMPC).');
+  }
   ultimoSnapIman_ = s;
+  return camino.concat([s.punto]);
+}
+
+/** Trazo libre con imán «pegajoso»: devuelve los puntos a agregar para esta muestra (camino recorrido + punto), o el punto
+ *  tal cual si no hay camino cerca. Una vez pegado, sigue el camino con un radio mayor (IMAN_PX_SEGUIR). */
+let snapTrazoPrevio_ = null;
+function muestrasTrazoConIman_(latlng, ev) {
+  if (!imanActivo_() || (ev && ev.shiftKey)) { snapTrazoPrevio_ = null; return [latlng]; }
+  const s = snapRedVial_(latlng, snapTrazoPrevio_ ? IMAN_PX_SEGUIR : IMAN_PX);
+  if (!s) { snapTrazoPrevio_ = null; return [latlng]; }
+  let camino = [];
+  if (snapTrazoPrevio_) camino = rutaPorRedVial_(snapTrazoPrevio_, s) || [];
+  snapTrazoPrevio_ = s;
   return camino.concat([s.punto]);
 }
 

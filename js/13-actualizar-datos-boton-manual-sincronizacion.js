@@ -358,6 +358,13 @@ function aplicarModoMapa_(modo) {
     } catch (e) {}
   }
   state.modoMapa = modo;
+  // 🎨 Modo CMPC solo aplica al Planificador de Alertas: al salir de él se apaga (y su interruptor se oculta por CSS)
+  if (modo !== 'planificador' && state.modoCmpc) {
+    state.modoCmpc = false;
+    const chk = document.getElementById('modo-cmpc-chk'); if (chk) chk.checked = false;
+    document.body.classList.remove('modo-cmpc');
+    if (typeof aplicarModoCmpc_ === 'function') aplicarModoCmpc_();
+  }
   document.body.classList.toggle('mapa-visor', modo === 'visor');
   document.body.classList.toggle('mapa-emergencia', modo === 'emergencia');
   actualizarBotonPlanificar_();

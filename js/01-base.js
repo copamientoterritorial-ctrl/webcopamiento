@@ -63,7 +63,7 @@ let state = {
   pendingLineaPuntos: null,
   pendingAreaPuntos: null,
   editingIdPlan: null,
-  activeBasemapId: 'positron',
+  activeBasemapId: 'sobrio',
   activeTab: 'capas',
   areasPobladasInfo: { ok: false, matched: false, count: 0 },
   areasLayersOn: { fundosCmpc: false, areaRelacionamiento: false, recursosDisponibles: false },
@@ -81,27 +81,47 @@ let state = {
   incendiosMatched: true,
 };
 
+/* Mapas base (21-10-2026): solo los 2 sobrios del visor de Agricultores, más livianos y sin tanto detalle. Se alternan con el
+ * círculo de abajo a la izquierda (crearCirculoMapaBase_). Los usa también el Planificador gráfico (PL_BASES_SOBRIAS, js/04). */
 const BASEMAPS = [
-  { id:'positron', nombre:'Calles Chile (Esri)', color:'#EDEAE2',
-    url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-    options:{ attribution:'Tiles &copy; Esri', maxZoom:19 } },
-  { id:'calles_ref', nombre:'Calles + rutas destacadas', color:'#F4F1EA',
+  { id:'sobrio', nombre:'Mapa sobrio (gris claro)', color:'#E5E7EB',
     url:'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-    options:{ attribution:'Tiles &copy; Esri', maxZoom:16 },
-    overlayUrl:'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
-    overlayOptions:{ maxZoom:19 } },
-  { id:'calles', nombre:'Calles (Esri)', color:'#E8E4D8',
-    url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-    options:{ attribution:'Tiles &copy; Esri', maxZoom:19 } },
-  { id:'satellite', nombre:'Satélite + calles', color:'#3A4A2E',
+    options:{ attribution:'Tiles &copy; Esri', maxZoom:19, maxNativeZoom:16 },
+    overlayUrl:'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+    overlayOptions:{ maxZoom:19, maxNativeZoom:16, opacity:1 } },
+  { id:'sat_sobrio', nombre:'Satélite con nombres', color:'#3A4A2E',
     url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    options:{ attribution:'Tiles &copy; Esri', maxZoom:19 },
-    overlayUrl:'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
-    overlayOptions:{ maxZoom:19 } },
-  { id:'gris', nombre:'Gris oscuro (Esri)', color:'#4B5563',
-    url:'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-    options:{ attribution:'Tiles &copy; Esri', maxZoom:16 } },
+    options:{ attribution:'Imágenes &copy; Esri', maxZoom:19, maxNativeZoom:18 },
+    overlayUrl:'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    overlayOptions:{ maxZoom:19, maxNativeZoom:18, opacity:1 } },
 ];
+/** Vista previa (mosaico de La Araucanía) de un mapa base, para los círculos de cambio de mapa. */
+function fondoVistaPreviaBase_(b) {
+  const tile = u => u.replace('{z}/{y}/{x}', '10/629/305');
+  return (b.overlayUrl ? 'url("' + tile(b.overlayUrl) + '"), ' : '') + 'url("' + tile(b.url) + '")';
+}
+/** Círculo del mapa principal: muestra el OTRO mapa base y cambia con un clic. Desde 21-10-2026 va arriba a la derecha, en la
+ *  columna de controles bajo el zoom (antes abajo a la izquierda, junto al panel lateral y la barra de dibujo). */
+function crearCirculoMapaBase_() {
+  const Ctrl = L.Control.extend({
+    options: { position: 'topright' },
+    onAdd() {
+      const b = L.DomUtil.create('button', 'pl-base-circ base-circ-principal');
+      b.id = 'base-circ'; b.type = 'button';
+      L.DomEvent.disableClickPropagation(b);
+      b.addEventListener('click', () => setBasemap(state.activeBasemapId === 'sat_sobrio' ? 'sobrio' : 'sat_sobrio'));
+      return b;
+    },
+  });
+  new Ctrl().addTo(map);
+}
+function renderCirculoMapaBase_() {
+  const c = document.getElementById('base-circ'); if (!c) return;
+  const otro = BASEMAPS.find(x => x.id !== state.activeBasemapId) || BASEMAPS[0];
+  c.style.backgroundImage = fondoVistaPreviaBase_(otro);
+  c.title = 'Cambiar a ' + (otro.id === 'sat_sobrio' ? 'satélite' : 'mapa');
+  c.innerHTML = '<span>' + (otro.id === 'sat_sobrio' ? 'Satélite' : 'Mapa') + '</span>';
+}
 
 /* ============ MAPA ============ */
 /* Zoom fino.
@@ -132,6 +152,95 @@ const controlZoomMapa = L.control.zoom({ position:'topright' }).addTo(map);   //
   L.DomEvent.disableClickPropagation(btn);
   L.DomEvent.on(btn, 'click', (ev) => { L.DomEvent.preventDefault(ev); restablecerZoomMapa_(); });
 })();
+/* 🔍 Lupas y vista anterior (21-10-2026), en la barra + / − de un mapa:
+ *   · Lupa + : clic = acercar en ese punto; arrastrar = acercar al rectángulo dibujado.
+ *   · Lupa − : clic = alejar en ese punto; arrastrar = la vista actual cabe dentro del rectángulo (cuanto más chico, más se aleja).
+ *   · ↶ Vista anterior: vuelve a los encuadres previos (hasta 30).
+ * La lupa queda activa hasta otro clic en ella o Esc; mientras está activa, el mapa no se arrastra y los clics no llegan a las
+ * herramientas del mapa (dibujo, fichas). */
+function agregarLupasZoom_(m, barra) {
+  const L_ = { modo: null, hist: [], navegando: false, ini: null, caja: null };
+  m._lupas = L_;
+  const svgLupa = signo => '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="vertical-align:middle;">' +
+    '<circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/><line x1="7.5" y1="10.5" x2="13.5" y2="10.5"/>' +
+    (signo === '+' ? '<line x1="10.5" y1="7.5" x2="10.5" y2="13.5"/>' : '') + '</svg>';
+  const boton = (clase, titulo, html, fn) => {
+    const b = L.DomUtil.create('a', 'leaflet-control-zoom-lupa ' + clase, barra);
+    b.href = '#'; b.title = titulo; b.setAttribute('role', 'button'); b.setAttribute('aria-label', titulo); b.innerHTML = html;
+    L.DomEvent.disableClickPropagation(b);
+    L.DomEvent.on(b, 'click', ev => { L.DomEvent.preventDefault(ev); fn(); });
+    return b;
+  };
+  const bIn = boton('lupa-mas', 'Lupa para acercar: clic en un punto o arrastra un rectángulo (Esc para salir)', svgLupa('+'), () => activar('in'));
+  const bOut = boton('lupa-menos', 'Lupa para alejar: clic en un punto o arrastra un rectángulo (Esc para salir)', svgLupa('-'), () => activar('out'));
+  const bAtras = boton('lupa-atras', 'Vista anterior', '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>', vistaAnterior);
+  const cont = m.getContainer();
+  function activar(modo) {
+    const antes = L_.modo;
+    L_.modo = L_.modo === modo ? null : modo;
+    if (!antes && L_.modo) L_.arrastreAntes = m.dragging.enabled();   // se devuelve tal cual al salir de la lupa
+    cont.classList.toggle('modo-lupa-in', L_.modo === 'in');
+    cont.classList.toggle('modo-lupa-out', L_.modo === 'out');
+    bIn.classList.toggle('activa', L_.modo === 'in'); bOut.classList.toggle('activa', L_.modo === 'out');
+    if (L_.modo) m.dragging.disable(); else if (L_.arrastreAntes !== false) m.dragging.enable();
+  }
+  function actualizarAtras() { bAtras.classList.toggle('deshab', L_.hist.length < 2); }
+  function vistaAnterior() {
+    if (L_.hist.length < 2) return;
+    L_.hist.pop();
+    const v = L_.hist[L_.hist.length - 1];
+    L_.navegando = true;
+    m.flyTo(v.c, v.z, { duration: 0.45 });
+    actualizarAtras();
+  }
+  m.on('moveend', () => {
+    if (L_.navegando) { L_.navegando = false; return; }
+    const v = { c: m.getCenter(), z: m.getZoom() }, u = L_.hist[L_.hist.length - 1];
+    if (u && u.z === v.z && u.c.distanceTo(v.c) < 1) return;
+    L_.hist.push(v); if (L_.hist.length > 30) L_.hist.shift();
+    actualizarAtras();
+  });
+  actualizarAtras();
+  const enControl = e => !!(e.target.closest && e.target.closest('.leaflet-control, .leaflet-popup'));
+  // Fase de captura: la lupa toma el clic antes que Leaflet y las herramientas del mapa
+  cont.addEventListener('mousedown', e => {
+    if (!L_.modo || e.button !== 0 || enControl(e)) return;
+    e.stopPropagation(); e.preventDefault();
+    L_.ini = m.mouseEventToContainerPoint(e);
+    L_.caja = L.DomUtil.create('div', 'lupa-caja ' + (L_.modo === 'out' ? 'alejar' : ''), cont);
+    Object.assign(L_.caja.style, { left: L_.ini.x + 'px', top: L_.ini.y + 'px', width: '0px', height: '0px' });
+  }, true);
+  cont.addEventListener('mousemove', e => {
+    if (!L_.ini) return;
+    e.stopPropagation();
+    const p = m.mouseEventToContainerPoint(e);
+    Object.assign(L_.caja.style, { left: Math.min(p.x, L_.ini.x) + 'px', top: Math.min(p.y, L_.ini.y) + 'px',
+      width: Math.abs(p.x - L_.ini.x) + 'px', height: Math.abs(p.y - L_.ini.y) + 'px' });
+  }, true);
+  const terminar = e => {
+    if (!L_.ini) return;
+    e.stopPropagation();
+    const p = m.mouseEventToContainerPoint(e), a = L_.ini;
+    L_.ini = null; if (L_.caja) { L_.caja.remove(); L_.caja = null; }
+    const w = Math.abs(p.x - a.x), h = Math.abs(p.y - a.y);
+    if (w < 8 && h < 8) {   // clic: un nivel en ese punto
+      m.setZoomAround(m.containerPointToLatLng(p), m.getZoom() + (L_.modo === 'out' ? -1 : 1));
+      return;
+    }
+    const caja = L.latLngBounds(m.containerPointToLatLng(L.point(Math.min(a.x, p.x), Math.max(a.y, p.y))),
+                                m.containerPointToLatLng(L.point(Math.max(a.x, p.x), Math.min(a.y, p.y))));
+    if (L_.modo === 'in') { m.fitBounds(caja); return; }
+    const t = m.getSize(), escala = Math.min(t.x / w, t.y / h);
+    m.setView(caja.getCenter(), Math.max(m.getMinZoom(), m.getZoom() - Math.log2(escala)));
+  };
+  cont.addEventListener('mouseup', terminar, true);
+  cont.addEventListener('mouseleave', e => { if (L_.ini) terminar(e); });
+  // El clic que sigue al mouseup no debe llegar a las herramientas del mapa
+  cont.addEventListener('click', e => { if (L_.modo && !enControl(e)) { e.stopPropagation(); e.preventDefault(); } }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && L_.modo) activar(L_.modo); });
+}
+agregarLupasZoom_(map, controlZoomMapa.getContainer());
+
 function restablecerZoomMapa_() {
   let b = null;
   const sumar = (capa) => {
@@ -158,8 +267,9 @@ function setBasemap(basemapId) {
     window.currentBaseOverlay = L.tileLayer(cfg.overlayUrl, cfg.overlayOptions || cfg.options).addTo(map);
     window.currentBaseOverlay.bringToFront();
   }
-  state.activeBasemapId = basemapId;
+  state.activeBasemapId = cfg.id;
   renderBasemapPanel();
+  renderCirculoMapaBase_();
 }
 
 // Pane propio para los límites comunales: SIEMPRE al fondo de todas las capas
@@ -201,7 +311,8 @@ const periodoFeatureLayers = {}; // { [periodoId]: [{layer, nombre}] } — para 
 
 /* ============ ARRANQUE ============ */
 window.addEventListener('load', async () => {
-  setBasemap('positron');
+  crearCirculoMapaBase_();
+  setBasemap('sobrio');
   bindEvents();
 
   const { data: { session } } = await supabaseClient.auth.getSession();
@@ -414,7 +525,19 @@ function perfilArranqueMinimo_() {
   return state.perfil && (state.perfil.perfil === 'GRD' || state.perfil.perfil === 'Jefe de Área Relacionamiento');
 }
 
+/* Arranque sin parpadeo (21-10-2026): el aviso «Cargando…» queda puesto hasta que la vista inicial (Dashboard, Seguimiento o
+ * Agricultores) ya está armada. Antes se quitaba al principio y, mientras se leían perfil, permisos y comunas, se veía el mapa. */
 async function entrarAlSistema() {
+  showLoading('Preparando tu tablero…');
+  try {
+    await entrarAlSistemaInterno_();
+  } finally {
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('force-password-overlay').style.display = 'none';
+    document.getElementById('login-overlay').style.display = 'none';
+  }
+}
+async function entrarAlSistemaInterno_() {
   // Registro de actividad: marcar el acceso (login) y arrancar el heartbeat.
   try { supabaseClient.rpc('registrar_acceso', { p_tipo: 'login' }); } catch (e) {}
   iniciarCierreInactividad_();   // ⏳ 30 min sin actividad → cierre de sesión
@@ -434,7 +557,6 @@ async function entrarAlSistema() {
       if (state.sesionUsoId) try { supabaseClient.rpc('latido_sesion_uso', { p_id: state.sesionUsoId, p_vista: state.vistaActual || null }); } catch (e) {}
     });
   }
-  document.getElementById('loading-overlay').style.display = 'none';
   document.getElementById('force-password-overlay').style.display = 'none';
   document.getElementById('login-overlay').style.display = 'none';
 

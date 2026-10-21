@@ -308,6 +308,7 @@ function bindEvents() {
   map.on('mousemove', continuarTrazoLibre_);
   document.getElementById('btn-finalizar-dibujo').addEventListener('click', finalizarDibujo_);
   document.getElementById('btn-deshacer-dibujo').addEventListener('click', () => deshacerDibujo_(false));
+  document.getElementById('btn-papelera').addEventListener('click', abrirPapelera_);   // 🗑️ Recuperar eliminados (SQL 135)
   document.getElementById('btn-deshacer-forma').addEventListener('click', () => deshacerDibujo_(false));
   document.getElementById('btn-cancelar-dibujo').addEventListener('click', cancelarDibujo_);
 

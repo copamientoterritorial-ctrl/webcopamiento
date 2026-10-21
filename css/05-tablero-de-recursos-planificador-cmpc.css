@@ -126,6 +126,25 @@ body.tema-oscuro #planificador-panel .pat-toolbar .pl-filtro.activo{background-c
 .pl-export-menu button{display:block;width:100%;text-align:left;border:none;background:none;padding:8px 10px;border-radius:7px;font:600 12.5px Inter,sans-serif;color:var(--text-primary);cursor:pointer;}
 .pl-export-menu button:hover{background:var(--bg-light);}
 .pl-clave{font-weight:800;}
+/* Etiqueta permanente de la clave radial bajo cada recurso del Planificador gráfico (20-10-2026) */
+.pl-clave-mapa{background:transparent;border:0;pointer-events:none;}
+/* Fondo negro con opacidad regulable (--pl-clave-op, 60 % por defecto; barra en el panel de capas); letras siempre opacas */
+.pl-clave-mapa span{position:absolute;left:50%;top:0;transform:translateX(-50%);white-space:nowrap;
+  background:rgba(0,0,0,var(--pl-clave-op,.6));color:#39FF14;
+  font:700 12px/1 ui-monospace,Consolas,monospace;letter-spacing:.3px;padding:3px 8px;border-radius:999px;
+  border:1px solid rgba(57,255,20,.7);text-shadow:0 0 2px #000;}
+.pl-clave-mapa.sel span{font-size:13px;border-color:#39FF14;}
+.pl-clave-op{display:flex;align-items:center;gap:7px;padding:2px 0 4px 22px;font-size:10.5px;color:var(--text-secondary);}
+.pl-clave-op input{flex:1;accent-color:var(--cobalt);}
+/* 🏷️ Etiquetas por capa (panel de capas) */
+.pl-capa-fila-w{display:flex;align-items:center;gap:4px;}
+.pl-capa-fila-w .pl-capa-fila{flex:1;min-width:0;}
+.pl-etq-btn{border:1px solid transparent;background:none;border-radius:6px;padding:1px 4px;font-size:12px;cursor:pointer;opacity:.35;filter:grayscale(1);}
+.pl-etq-btn:hover{opacity:.8;}
+.pl-etq-btn.on{opacity:1;filter:none;border-color:var(--cobalt);background:rgba(37,99,235,.08);}
+.pl-etq{background:none;border:0;}
+.pl-etq span{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font:600 10.5px/1.1 Inter,sans-serif;color:#1E293B;
+  text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff,0 0 4px #fff;}
 .pl-id{font-size:10.5px;font-weight:600;color:var(--text-tertiary);margin-left:2px;}
 .pl-tag.mal{color:#B91C1C;border-color:#FCA5A5;background:#FEF2F2;}
 .pl-tam{display:flex;align-items:center;gap:6px;padding:4px 10px 6px;border-top:1px solid var(--border);font-size:10.5px;color:var(--text-secondary);}
@@ -153,6 +172,48 @@ body.tema-oscuro #planificador-panel .pat-toolbar .pl-filtro.activo{background-c
 .pl-capas-btn{display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:10px;border:1px solid var(--border);
   background:var(--white);box-shadow:var(--shadow-soft);font:700 12px Inter,sans-serif;color:var(--text-primary);cursor:pointer;}
 .pl-capas-btn.abierto{background:var(--cobalt);color:#fff;border-color:var(--cobalt);}
+.pl-capas-ctrl{display:flex;flex-direction:column;align-items:flex-end;}
+#pl-capas-btn{width:38px;height:38px;padding:0;justify-content:center;}
+/* Círculo Sobrio ↔ Satélite (abajo a la derecha): vista previa del otro mapa base */
+.pl-base-circ{width:62px;height:62px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.3);cursor:pointer;padding:0;
+  background-color:#E5E7EB;background-size:cover;background-position:center;position:relative;overflow:hidden;transition:transform .15s;}
+.pl-base-circ:hover{transform:scale(1.06);}
+/* 🔍 Lupas y vista anterior en la barra + / − (agregarLupasZoom_, js/01) */
+.leaflet-control-zoom a.leaflet-control-zoom-lupa{display:flex;align-items:center;justify-content:center;color:#334155;}
+.leaflet-control-zoom a.leaflet-control-zoom-lupa.activa{background:#2563EB;color:#fff;}
+.leaflet-control-zoom a.leaflet-control-zoom-lupa.deshab{opacity:.35;pointer-events:none;}
+.modo-lupa-in, .modo-lupa-in .leaflet-interactive{cursor:zoom-in !important;}
+.modo-lupa-out, .modo-lupa-out .leaflet-interactive{cursor:zoom-out !important;}
+.lupa-caja{position:absolute;z-index:1000;pointer-events:none;border:2px dashed #2563EB;background:rgba(37,99,235,.12);border-radius:3px;}
+.lupa-caja.alejar{border-color:#DC2626;background:rgba(220,38,38,.10);}
+/* 🎨 Modo CMPC (interruptor bajo la barra de zoom del mapa principal; aplicarModoCmpc_, js/26) */
+.modo-cmpc-ctrl{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+.modo-cmpc-sw{display:flex;align-items:center;gap:6px;background:var(--white,#fff);border:1px solid var(--border,#E2E8F0);border-radius:999px;
+  padding:4px 9px 4px 5px;box-shadow:0 1px 5px rgba(0,0,0,.18);cursor:pointer;user-select:none;font:800 10.5px Inter,sans-serif;color:#334155;}
+.modo-cmpc-sw input{display:none;}
+.modo-cmpc-sw .sl{position:relative;width:28px;height:16px;border-radius:999px;background:#CBD5E1;transition:background .15s;}
+.modo-cmpc-sw .sl::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:left .15s;}
+.modo-cmpc-sw input:checked + .sl{background:#16A34A;}
+.modo-cmpc-sw input:checked + .sl::after{left:14px;}
+.modo-cmpc-sw input:checked ~ b{color:#15803D;}
+.modo-cmpc-ley{background:var(--white,#fff);border:1px solid var(--border,#E2E8F0);border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.18);
+  padding:6px 9px;min-width:190px;max-height:40vh;overflow:auto;font-size:11px;color:var(--text-primary,#0F172A);}
+.mcl-tit{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--text-tertiary,#64748B);margin-bottom:4px;}
+.mcl-fila{display:flex;align-items:center;gap:6px;padding:2px 0;}
+.mcl-fila i{width:16px;height:4px;border-radius:2px;flex:none;}
+.mcl-fila span{flex:1;}
+.mcl-fila small{color:var(--text-tertiary,#64748B);font-size:10px;}
+.mcl-vacio{color:var(--text-tertiary,#64748B);}
+path.modo-cmpc-atenuada, .leaflet-marker-icon.modo-cmpc-atenuada{opacity:.22 !important;}
+.leaflet-marker-icon.modo-cmpc-pt{filter:drop-shadow(0 0 0 var(--cmpc-c)) drop-shadow(0 0 3px var(--cmpc-c)) drop-shadow(0 0 2px var(--cmpc-c));}
+body.tema-oscuro .modo-cmpc-sw, body.tema-oscuro .modo-cmpc-ley{background:#1E293B;border-color:#334155;color:#E2E8F0;}
+/* Mismo círculo en el mapa principal (abajo a la izquierda; js/01 lo corre a la derecha del panel lateral si está abierto) */
+.leaflet-control.base-circ-principal{width:46px;height:46px;border-width:2px;}
+.base-circ-principal span{font-size:8.5px;padding:2px 0 4px;}
+/* Modo CMPC solo en el Planificador de Alertas (no aplica en Modo Emergencia ni en el visor) */
+body.mapa-emergencia .modo-cmpc-ctrl, body.mapa-visor .modo-cmpc-ctrl{display:none !important;}
+.pl-base-circ span{position:absolute;left:0;right:0;bottom:0;padding:3px 0 5px;background:linear-gradient(transparent,rgba(0,0,0,.65));
+  color:#fff;font:700 10px Inter,sans-serif;text-align:center;}
 .pl-capas-panel{display:none;margin-top:6px;width:290px;max-height:calc(100vh - 230px);overflow-y:auto;background:var(--white);
   border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lift);padding:4px 12px 10px;font-size:11.5px;color:var(--text-primary);}
 .pl-capas-panel.show{display:block;}

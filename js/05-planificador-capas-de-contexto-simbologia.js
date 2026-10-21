@@ -24,17 +24,37 @@ function crearControlCapasPlanificador_() {
     options: { position: 'topright' },
     onAdd() {
       const div = L.DomUtil.create('div', 'pl-capas-ctrl');
-      div.innerHTML = '<button class="pl-capas-btn" id="pl-capas-btn" title="Capas y mapa base">🗂️ Capas</button><div class="pl-capas-panel" id="pl-capas"></div>';
+      div.innerHTML = '<button class="pl-capas-btn" id="pl-capas-btn" title="Capas" aria-label="Capas">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>' +
+        '</button><div class="pl-capas-panel" id="pl-capas"></div>';
       L.DomEvent.disableClickPropagation(div);
       L.DomEvent.disableScrollPropagation(div);
+      // Opacidad del fondo de la clave radial: en vivo, sin redibujar los recursos
+      div.addEventListener('input', (e) => {
+        if (e.target.id !== 'pl-clave-op') return;
+        state.pl.claveOp = Number(e.target.value);
+        document.getElementById('pl-map').style.setProperty('--pl-clave-op', state.pl.claveOp);
+        const tx = document.getElementById('pl-clave-op-txt'); if (tx) tx.textContent = Math.round(state.pl.claveOp * 100) + '%';
+        try { localStorage.setItem('pl_clave_op', String(state.pl.claveOp)); } catch (err) {}
+      });
       div.addEventListener('change', (e) => {
+        if (e.target.id === 'pl-clave-op') return;
         const t = e.target;
         if (t.dataset.plinc) {   // una temporada de incendios
           state.pl.extra.incOn[t.dataset.plinc] = t.checked; plMostrarIncendios_(); return;
         }
+        if (t.dataset.plopt === 'claveRadial') {
+          state.pl.claveRadial = t.checked;
+          try { localStorage.setItem('pl_clave_radial', t.checked ? '1' : '0'); } catch (err) {}
+          renderMapaPlanificador_(plRecursosFiltrados_()); renderControlCapasPlanificador_(); return;
+        }
         const k = t.dataset.plcapa;
         if (!k) return;
         state.pl.capas[k] = t.checked;
+        // Las capas que se cargan por área quedan encendidas y se cargan al elegir el área (antes el casillero salía bloqueado)
+        if (t.checked && state.pl.idArea == null && PL_CAPAS_POR_AREA.includes(k)) {
+          mostrarToast_('Elige un área en el filtro 🧭 de arriba: la capa quedó encendida y se carga al elegirla.');
+        }
         plAplicarCapa_(k);
       });
       div.addEventListener('click', (e) => {
@@ -44,10 +64,33 @@ function crearControlCapasPlanificador_() {
           div.querySelector('#pl-capas-btn').classList.toggle('abierto', p.classList.contains('show'));
           return;
         }
-        const b = e.target.closest('[data-plbase]');
-        if (b) { plSetBasemap_(b.dataset.plbase); renderControlCapasPlanificador_(); }
+        const be = e.target.closest('[data-pletq]');
+        if (be) {
+          const k = be.dataset.pletq;
+          state.pl.etq[k] = !state.pl.etq[k];
+          try { localStorage.setItem('pl_etq', JSON.stringify(state.pl.etq)); } catch (err) {}
+          if (state.pl.etq[k] && !state.pl.capas[k]) {   // encender la etiqueta enciende también la capa
+            state.pl.capas[k] = true; plAplicarCapa_(k);
+          }
+          if (k === 'comunas') renderCapasPlanificador_(); else renderControlCapasPlanificador_();
+          plRefrescarEtiquetas_();
+        }
       });
       return div;
+    },
+  });
+  // Círculo abajo a la derecha: muestra la vista previa del OTRO mapa base (Sobrio ↔ Satélite) y cambia con un clic
+  const BaseCirculo = L.Control.extend({
+    options: { position: 'bottomright' },
+    onAdd() {
+      const b = L.DomUtil.create('button', 'pl-base-circ');
+      b.id = 'pl-base-circ'; b.type = 'button';
+      L.DomEvent.disableClickPropagation(b);
+      b.addEventListener('click', () => {
+        plSetBasemap_(state.pl.base === 'sat_sobrio' ? 'sobrio' : 'sat_sobrio');
+        renderBaseCirculoPlanificador_();
+      });
+      return b;
     },
   });
   const Leyenda = L.Control.extend({
@@ -71,7 +114,75 @@ function crearControlCapasPlanificador_() {
   });
   new Capas().addTo(plMap);
   new Leyenda().addTo(plMap);
+  new BaseCirculo().addTo(plMap);
+  // Con muchos elementos solo se etiqueta lo visible: rehacer al terminar de mover / acercar
+  plMap.on('moveend', () => { if (Object.values(state.pl.etq || {}).some(Boolean)) plRefrescarEtiquetas_(); });
   renderControlCapasPlanificador_();
+  renderBaseCirculoPlanificador_();
+}
+/* ── 🏷️ Etiquetas por capa (21-10-2026) ──
+ * Cada capa guarda en sus elementos `_plEtq` (texto corto). Las etiquetas van en un grupo aparte por capa (pane plEtq, sin clics),
+ * así no tocan los tooltips/popups. Con muchos elementos solo se etiqueta lo que está en pantalla (se rehace al mover el mapa). */
+const plEtqLayers = {};
+const PL_ETQ_MAX = 300;
+function plGrupoCapa_(k) {
+  const propias = { areaRel: plAreaRelLayer, fundos: plFundosLayer, asignadas: plAsignadasLayer, rutas: plRutasLayer };
+  return propias[k] || plExtraLayers[k] || null;
+}
+/** Posición de la etiqueta: punto, centro del polígono o vértice del medio de la línea más larga. */
+function plPosEtiqueta_(l) {
+  if (l.getLatLng) return l.getLatLng();
+  const hojas = [];
+  (function rec(x) { if (x.getLayers) x.getLayers().forEach(rec); else hojas.push(x); })(l);
+  if (!hojas.length) return null;
+  if (hojas[0].getLatLng) return hojas[0].getLatLng();
+  if (hojas.some(h => h instanceof L.Polygon)) { try { return l.getBounds().getCenter(); } catch (e) { return null; } }
+  let mejor = [];
+  hojas.forEach(h => { const pts = (h.getLatLngs ? h.getLatLngs() : []).flat(3); if (pts.length > mejor.length) mejor = pts; });
+  return mejor.length ? mejor[Math.floor(mejor.length / 2)] : null;
+}
+let plEtqEspera_ = null;
+function plRefrescarEtiquetas_() {
+  clearTimeout(plEtqEspera_);
+  plEtqEspera_ = setTimeout(plDibujarEtiquetas_, 60);
+}
+function plDibujarEtiquetas_() {
+  if (!plMap) return;
+  const vista = plMap.getBounds().pad(0.15);
+  Object.keys(plEtqLayers).forEach(k => plEtqLayers[k].clearLayers());
+  Object.keys(state.pl.etq || {}).forEach(k => {
+    if (!state.pl.etq[k] || k === 'comunas' || !state.pl.capas[k]) return;
+    const g = plGrupoCapa_(k);
+    if (!g || !plMap.hasLayer(g)) return;
+    const items = [];
+    g.eachLayer(l => {
+      const txt = String(l._plEtq || '').trim();
+      if (!txt) return;
+      const p = plPosEtiqueta_(l);
+      if (p) items.push([p, txt.length > 38 ? txt.slice(0, 36) + '…' : txt]);
+    });
+    const lista = items.length > PL_ETQ_MAX ? items.filter(([p]) => vista.contains(p)).slice(0, PL_ETQ_MAX) : items;
+    const eg = plEtqLayers[k] || (plEtqLayers[k] = L.layerGroup().addTo(plMap));
+    if (!plMap.hasLayer(eg)) eg.addTo(plMap);
+    const vistos = new Set();
+    lista.forEach(([p, txt]) => {
+      const llave = txt + '|' + p.lat.toFixed(4) + '|' + p.lng.toFixed(4);
+      if (vistos.has(llave)) return; vistos.add(llave);
+      L.marker(p, { pane: 'plEtq', interactive: false, keyboard: false,
+        icon: L.divIcon({ className: 'pl-etq', iconSize: [0, 0], html: '<span>' + escapeHtml_(txt) + '</span>' }) }).addTo(eg);
+    });
+  });
+}
+
+/** Capas que se cargan por área (necesitan un área elegida para traer datos). */
+const PL_CAPAS_POR_AREA = ['fundosArauco', 'redVial', 'redVialCmpc', 'comites', 'alertaVerde', 'alertaAmarilla', 'alertaRoja', 'incendios'];
+function renderBaseCirculoPlanificador_() {
+  const b = document.getElementById('pl-base-circ'); if (!b) return;
+  const otro = plBasemaps_().find(x => x.id !== state.pl.base) || plBasemaps_()[0];
+  const tile = u => u.replace('{z}/{y}/{x}', '10/629/305');
+  b.style.backgroundImage = (otro.overlayUrl ? 'url("' + tile(otro.overlayUrl) + '"), ' : '') + 'url("' + tile(otro.url) + '")';
+  b.title = 'Cambiar a ' + (otro.id === 'sat_sobrio' ? 'satélite' : 'mapa');
+  b.innerHTML = '<span>' + (otro.id === 'sat_sobrio' ? 'Satélite' : 'Mapa') + '</span>';
 }
 
 function renderControlCapasPlanificador_() {
@@ -88,21 +199,26 @@ function renderControlCapasPlanificador_() {
     if (i && i.n != null) return '<span class="pl-capa-n">' + i.n.toLocaleString('es-CL') + '</span>';
     return '';
   };
-  const fila = (k, color, texto, v, estilo, deshab) =>
-    '<label class="pl-capa-fila"' + (deshab ? ' style="opacity:.5;" title="' + deshab + '"' : '') + '><input type="checkbox" data-plcapa="' + k + '"' +
-    (c[k] ? ' checked' : '') + (deshab ? ' disabled' : '') + '>' +
-    '<span class="pl-capa-muestra" style="' + estilo.replace(/\$c/g, color) + '"></span>' + texto + n(k, v) + '</label>';
+  // Sin área elegida, las capas por área se pueden encender igual (quedan a la espera); se avisa en la fila
+  // 🏷️ a la derecha de cada fila: etiquetas de esa capa (nombre del fundo, sector, ruta, rol del camino…)
+  const fila = (k, color, texto, v, estilo, sinAreaTxt) =>
+    '<div class="pl-capa-fila-w"><label class="pl-capa-fila"' + (sinAreaTxt ? ' title="Se carga al elegir un área"' : '') + '><input type="checkbox" data-plcapa="' + k + '"' +
+    (c[k] ? ' checked' : '') + '>' +
+    '<span class="pl-capa-muestra" style="' + estilo.replace(/\$c/g, color) + '"></span>' + texto +
+    (sinAreaTxt ? '<span class="pl-capa-n" style="color:var(--text-tertiary);">' + (c[k] ? 'elige un área' : '') + '</span>' : n(k, v)) + '</label>' +
+    (k === 'incendios' ? '' : '<button type="button" class="pl-etq-btn' + (state.pl.etq[k] ? ' on' : '') + '" data-pletq="' + k + '" title="' +
+      (state.pl.etq[k] ? 'Ocultar' : 'Mostrar') + ' etiquetas de esta capa">🏷️</button>') + '</div>';
   const sinArea = state.pl.idArea == null ? 'Elige un área' : '';
   const asignadas = plRecursosDelArea_().filter(r => plRutaNormal_(r)).length;
   const linea = 'border-top:3px solid $c;height:0;margin-top:6px';
   const temporadas = state.pl.extra.temporadas || [];
 
   div.innerHTML =
-    '<div class="pl-grupo-tit">Mapa base</div><div class="pl-bases">' +
-      BASEMAPS.map(b => '<button class="pl-base' + (state.pl.base === b.id ? ' sel' : '') + '" data-plbase="' + b.id + '" title="' + escapeHtml_(b.nombre) + '">' +
-        '<img src="' + b.url.replace('{z}/{y}/{x}', '7/78/38') + '" alt="" loading="lazy"><span>' +
-        escapeHtml_({ positron: 'Topográfico', calles_ref: 'Rutas', calles: 'Calles', satellite: 'Satélite', gris: 'Oscuro' }[b.id] || b.nombre) + '</span></button>').join('') +
-    '</div>' +
+    '<div class="pl-grupo-tit">Recursos</div>' +
+      '<label class="pl-capa-fila"><input type="checkbox" data-plopt="claveRadial"' + (state.pl.claveRadial ? ' checked' : '') + '>' +
+        '<span class="pl-capa-muestra" style="background:rgba(0,0,0,.6);border:1px solid #39FF14;border-radius:999px;width:18px;height:9px;"></span>Clave radial de los recursos</label>' +
+      (state.pl.claveRadial ? '<div class="pl-clave-op" title="Opacidad del fondo de la etiqueta">Fondo<input type="range" id="pl-clave-op" min="0.2" max="1" step="0.05" value="' + state.pl.claveOp + '">' +
+        '<span id="pl-clave-op-txt">' + Math.round(state.pl.claveOp * 100) + '%</span></div>' : '') +
     '<div class="pl-grupo-tit">Área</div>' +
       fila('comunas', '#94A3B8', 'Límites comunales', d.comunas.length || null, 'border:1px dashed $c;background:rgba(148,163,184,.12)') +
       fila('areaRel', '#7C3AED', 'Áreas de Relacionamiento', d.areaRel.length || null, 'border:1.5px solid $c;background:rgba(196,181,253,.35)') +
@@ -150,6 +266,7 @@ function renderControlCapasPlanificador_() {
       '<div class="pl-tam" title="Tamaño de los íconos de recursos en el mapa">🔍<input type="range" id="pl-tam" min="0.5" max="2" step="0.1" value="' + (state.escalaIconos || 1) + '">' +
         '<span id="pl-tam-txt">' + Math.round((state.escalaIconos || 1) * 100) + '%</span></div>';
   }
+  plRefrescarEtiquetas_();   // capas encendidas/apagadas o recién cargadas
 }
 
 /* ── Capas del Planificador de Alertas en el mapa del Planificador ──────────── */
@@ -221,7 +338,7 @@ async function plCargarCapaExtra_(k, forzar) {
         if (!f.geometry) return;
         L.geoJSON(f.geometry, { pane: 'plFundos', style: { color: '#B45309', weight: 1.3, fillColor: '#FBBF24', fillOpacity: 0.18 } })
           .bindTooltip('<b>' + escapeHtml_(f.nombre_fundo || 'Fundo') + '</b>' + (f.sup_ha ? '<br>' + Number(f.sup_ha).toFixed(1) + ' ha' : '') + '<br>Arauco', { sticky: true })
-          .addTo(g);
+          .addTo(g)._plEtq = f.nombre_fundo || '';
       });
       info[k] = { n: (data || []).length };
 
@@ -233,7 +350,7 @@ async function plCargarCapaExtra_(k, forzar) {
       (data || []).forEach(r => {
         const popup = '<div class="popup-title">🖐️ ' + escapeHtml_(r.nombre_comite || 'Comité') + '</div><div class="popup-row">Red de Prevención · Comité N° ' +
           (r.num_comite || r.comite_id) + (r.sector ? ' · ' + escapeHtml_(r.sector) : '') + '</div>';
-        if (r.area_geom) L.geoJSON(r.area_geom, { pane: 'plComites', style: { color: '#EA580C', weight: 1.5, fillColor: '#FDBA74', fillOpacity: 0.2 } }).bindPopup(popup).addTo(g);
+        if (r.area_geom) L.geoJSON(r.area_geom, { pane: 'plComites', style: { color: '#EA580C', weight: 1.5, fillColor: '#FDBA74', fillOpacity: 0.2 } }).bindPopup(popup).addTo(g)._plEtq = r.nombre_comite || '';
         if (r.lat != null && r.lng != null) L.marker([r.lat, r.lng], { icon: iconoManito, pane: 'plIncendios' }).bindPopup(popup).addTo(g);
       });
       info[k] = { n: (data || []).length };
@@ -263,6 +380,7 @@ async function plCargarCapaExtra_(k, forzar) {
         fill.bindPopup('<div class="popup-title">🛣️ ' + escapeHtml_(r.rol || r.rol_label || 'Camino') + '</div>' +
           (r.nombre_camino ? '<div class="popup-row">' + escapeHtml_(r.nombre_camino) + '</div>' : '') +
           '<div class="popup-row">🏷️ ' + escapeHtml_(r.clasificacion || '—') + ' · ' + escapeHtml_(r.carpeta || '—') + '</div>');
+        fill._plEtq = r.rol || r.rol_label || r.nombre_camino || '';
         casing.addTo(g); fill.addTo(g);
         ex.rv.push({ cat, casing, fill });
       });
@@ -293,7 +411,7 @@ async function plCargarCapaExtra_(k, forzar) {
           .bindPopup('<div class="popup-title">🌲 Camino CMPC' + (r.c_codigo ? ' · ' + escapeHtml_(r.c_codigo) : '') + '</div>' +
             (r.c_nombre ? '<div class="popup-row">' + escapeHtml_(r.c_nombre) + '</div>' : '') +
             '<div class="popup-row">🧱 ' + RED_VIAL_CMPC_CATEGORIAS[cat].nombre + '</div>')
-          .addTo(g);
+          .addTo(g)._plEtq = r.c_codigo || r.c_nombre || '';
       });
       info[k] = { texto: (data || []).length.toLocaleString('es-CL') + ' en pantalla' };
 
@@ -373,7 +491,7 @@ async function plCargarAlertas_(vigente) {
       const col = colorEsc(z.escenario);
       L.geoJSON(gj, { pane: 'plAlertas', style: { color: col, weight: 3, fillColor: col, fillOpacity: 0.12 } })
         .bindPopup('<div class="popup-title">' + etiquetaEscenario_(z.escenario) + '</div><div class="popup-row">' + escapeHtml_(z.comuna_nombre || '') + '</div>')
-        .addTo(grupos[z.escenario]);
+        .addTo(grupos[z.escenario])._plEtq = z.comuna_nombre || '';
     });
     // Lo planificado: color de la institución (misma simbología del Planificador de Alertas)
     recursos.slice().sort((a, b) => rangoInstitucionCapa_((b.instituciones || {}).nombre) - rangoInstitucionCapa_((a.instituciones || {}).nombre)).forEach(r => {
@@ -384,8 +502,9 @@ async function plCargarAlertas_(vigente) {
       const popup = '<div class="popup-title"><span style="display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;background:' + inst.color_hex + ';"></span>' +
         escapeHtml_(inst.nombre) + '</div><div class="popup-row">' + etiquetaEscenario_(esc) + ' · ' + escapeHtml_(r.tipo_recurso || '') + '</div>' +
         (r.descripcion ? '<div class="popup-row">' + escapeHtml_(r.descripcion) + '</div>' : '');
-      if (gj.type === 'Point') L.marker([gj.coordinates[1], gj.coordinates[0]], { icon: pinDivIcon(inst.color_hex, false, inst.logo_url), pane: 'plIncendios' }).bindPopup(popup).addTo(grupos[esc]);
-      else L.geoJSON(gj, { pane: 'plAlertas', style: { color: inst.color_hex, weight: r.tipo_geometria === 'linea' ? 4 : 2, fillColor: inst.color_hex, fillOpacity: 0.22 } }).bindPopup(popup).addTo(grupos[esc]);
+      const etq = r.descripcion || r.recurso_ref_clave || r.tipo_recurso || inst.nombre;
+      if (gj.type === 'Point') L.marker([gj.coordinates[1], gj.coordinates[0]], { icon: pinDivIcon(inst.color_hex, false, inst.logo_url), pane: 'plIncendios' }).bindPopup(popup).addTo(grupos[esc])._plEtq = etq;
+      else L.geoJSON(gj, { pane: 'plAlertas', style: { color: inst.color_hex, weight: r.tipo_geometria === 'linea' ? 4 : 2, fillColor: inst.color_hex, fillOpacity: 0.22 } }).bindPopup(popup).addTo(grupos[esc])._plEtq = etq;
       cuenta[esc]++;
     });
     info.alertaVerde = { n: cuenta.Verde }; info.alertaAmarilla = { n: cuenta.Amarilla }; info.alertaRoja = { n: cuenta.Roja };
@@ -449,12 +568,13 @@ function renderCapasPlanificador_() {
   plComunasLayer.clearLayers(); plAreaRelLayer.clearLayers(); plFundosLayer.clearLayers();
   const c = state.pl.capas, d = state.pl.capasData;
 
+  const etqComunas = !!state.pl.etq.comunas;
   if (c.comunas) d.comunas.forEach(cm => {
     if (!cm.geometry) return;
     const capa = L.geoJSON(cm.geometry, { pane: 'plComunas', interactive: false,
       style: { color: '#64748B', weight: 1.2, opacity: 0.55, dashArray: '4,4', fillColor: '#94A3B8', fillOpacity: 0.04 } });
     plComunasLayer.addLayer(capa);
-    try {
+    if (etqComunas) try {
       L.marker(capa.getBounds().getCenter(), { pane: 'plComunas', interactive: false,
         icon: L.divIcon({ className: 'pl-comuna-label', iconSize: null, html: '<span>' + escapeHtml_(cm.comuna) + '</span>' }) })
         .addTo(plComunasLayer);
@@ -466,6 +586,7 @@ function renderCapasPlanificador_() {
     const capa = L.geoJSON(f, { pane: 'plAreaRel',
       style: { color: '#7C3AED', weight: 1.5, fillColor: '#C4B5FD', fillOpacity: 0.14 } });
     capa.bindTooltip('Sector ' + escapeHtml_(p.SECTOR || '—'), { sticky: true });
+    capa._plEtq = p.SECTOR ? 'Sector ' + p.SECTOR : '';
     plAreaRelLayer.addLayer(capa);
   });
 
@@ -475,6 +596,7 @@ function renderCapasPlanificador_() {
       style: { color: '#059669', weight: 1.2, fillColor: '#34D399', fillOpacity: 0.16 } });
     capa.bindTooltip('<b>' + escapeHtml_(f.nombre_fundo || 'Fundo') + '</b>' +
       (f.sup_ha ? '<br>' + Number(f.sup_ha).toFixed(1) + ' ha' : '') + (f.sector ? '<br>' + escapeHtml_(f.sector) : ''), { sticky: true });
+    capa._plEtq = f.nombre_fundo || '';
     plFundosLayer.addLayer(capa);
   });
 

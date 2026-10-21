@@ -117,6 +117,21 @@ function anilloComite_(geom) {
   });
   return mejor && mejor.length >= 4 ? mejor.map(c => [c[0], c[1]]) : null;
 }
+/** Plan de la comuna activa para un escenario; si no existe se CREA (21-10-2026, obtener_o_crear_plan_contingencia, SQL 99).
+ *  Devuelve { plan } o { error }. Antes, sin plan de Amarilla/Roja, el comité o la ruta no se sumaban («Sin plan en …»). */
+async function planEscenarioTraspaso_(planes, esc) {
+  const ya = (planes || []).find(p => p.escenario === esc);
+  if (ya) return { plan: ya };
+  const { data, error } = await supabaseClient.rpc('obtener_o_crear_plan_contingencia', {
+    p_ambito: 'comuna', p_comuna_id: state.activeComunaId, p_area: null, p_escenario: esc });
+  const p = Array.isArray(data) ? data[0] : data;
+  if (error || !p || !p.id) return { error: (error && error.message) || 'no se pudo crear el plan' };
+  const plan = { id: p.id, escenario: esc, creado: true };
+  if (planes) planes.push(plan);
+  return { plan };
+}
+/** Nombre del comité para la descripción y para el Modo Emergencia. */
+function nombreComite_(r) { return String(r.nombre_comite || '').trim() || ('Comité N° ' + (r.num_comite || r.comite_id)); }
 function abrirTraspasoComite_(comiteId) {
   const reg = (window.comitesPorId || {})[comiteId];
   const r = reg && reg.datos;
@@ -156,15 +171,19 @@ async function confirmarTraspasoComite_() {
   const anillo = anilloComite_(t.geom);
   const institucionId = document.getElementById('ruta-traspaso-institucion').value;
   const tipoRecurso = document.getElementById('ruta-traspaso-tipo').value;
-  const descripcion = 'Comité Red de Prevención: ' + (r.nombre_comite || ('N° ' + (r.num_comite || r.comite_id))) + ' (N° ' + (r.num_comite || r.comite_id) + ')';
+  // La descripción lleva el NOMBRE del comité (se ve en el mapa, en el Periodo Crítico y en el Modo Emergencia)
+  const descripcion = 'Comité Red de Prevención: ' + nombreComite_(r) + ' (N° ' + (r.num_comite || r.comite_id) + ')';
   const btn = document.getElementById('ruta-traspaso-guardar');
   btn.disabled = true;
   const { data: planes, error: errPlanes } = await supabaseClient.from('planes_contingencia').select('id, escenario').eq('ambito', 'comuna').eq('comuna_id', state.activeComunaId);
   if (errPlanes) { err.textContent = 'No se pudieron leer los planes: ' + errPlanes.message; err.classList.add('show'); btn.disabled = false; return; }
-  let creadas = 0; const faltan = [], fallos = [], ids = [], yaEstaban = [];
+  let creadas = 0; const faltan = [], fallos = [], ids = [], yaEstaban = [], planesNuevos = [];
   for (const esc of escenarios) {
-    const plan = (planes || []).find(p => p.escenario === esc);
-    if (!plan) { faltan.push(esc); continue; }
+    btn.textContent = 'Preparando ' + etiquetaEscenario_(esc) + '…';
+    const pe = await planEscenarioTraspaso_(planes, esc);
+    if (pe.error) { faltan.push(esc); fallos.push(nombreEscenario_(esc) + ': ' + pe.error); continue; }
+    const plan = pe.plan;
+    if (plan.creado) planesNuevos.push(nombreEscenario_(esc));
     btn.textContent = 'Revisando ' + etiquetaEscenario_(esc) + '…';
     // ¿Ya está el comité en este escenario? (misma descripción) → no se duplica
     const ya = await supabaseClient.from('planificacion_recursos').select('id').eq('plan_id', plan.id).eq('descripcion', descripcion).limit(1);
@@ -187,10 +206,10 @@ async function confirmarTraspasoComite_() {
   document.getElementById('ruta-traspaso-overlay').classList.remove('show');
   state.rutaTraspaso = null; state.traspasoModo = null;
   const avisoYa = yaEstaban.length ? ' · Ya estaba en ' + yaEstaban.join(' y ') + ' (no se duplicó).' : '';
-  const avisoFalta = faltan.length ? ' · Sin plan en ' + faltan.map(nombreEscenario_).join(' y ') + '.' : '';
+  const avisoNuevo = planesNuevos.length ? ' · Se creó el escenario ' + planesNuevos.join(' y ') + '.' : '';
   if (fallos.length) mostrarToast_('⚠️ ' + creadas + ' copia(s) creadas · falló: ' + fallos[0] + avisoYa);
-  else if (!creadas) mostrarToast_(yaEstaban.length ? 'ℹ️ El comité ya estaba en ' + yaEstaban.join(' y ') + '.' : '⚠️ No se creó ninguna copia.' + avisoFalta);
-  else mostrarToast_('⏫ Comité sumado al copamiento en ' + creadas + ' escenario(s).' + avisoYa + avisoFalta);
+  else if (!creadas) mostrarToast_(yaEstaban.length ? 'ℹ️ El comité ya estaba en ' + yaEstaban.join(' y ') + '.' : '⚠️ No se creó ninguna copia.');
+  else mostrarToast_('⏫ Comité «' + nombreComite_(r) + '» sumado al copamiento en ' + creadas + ' escenario(s).' + avisoNuevo + avisoYa);
   if (state.activeComunaId) loadPlanificacionRecursos_(state.activeComunaId);
 }
 
@@ -315,8 +334,10 @@ async function confirmarTraspasoRuta_() {
     : { type: 'LineString', coordinates: tramos[0] };
 
   for (const esc of escenarios) {
-    const plan = (planes || []).find(p => p.escenario === esc);
-    if (!plan) { faltan.push(esc); continue; }
+    // Si la comuna aún no tiene el escenario, se crea (21-10-2026)
+    const pe = await planEscenarioTraspaso_(planes, esc);
+    if (pe.error) { faltan.push(esc); fallos.push(esc + ': ' + pe.error); continue; }
+    const plan = pe.plan;
 
     btn.textContent = 'Revisando ' + etiquetaEscenario_(esc) + '…';
     // ¿Ya hay en ese escenario una línea que coincide (≥ 90 %)? Entonces no se crea otra.

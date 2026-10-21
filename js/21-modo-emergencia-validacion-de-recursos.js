@@ -26,6 +26,102 @@ async function cargarValidacionEmergencia_(recs, clave) {
   }
   if (state.modoMapa === 'emergencia') renderPanelEmergencia_();
 }
+/* ── CMPC por tipo de recurso (21-10-2026) ──
+ * Los recursos del periodo se copian de la planificación sin guardar el recurso enlazado; para mostrar la CLAVE RADIAL y el TURNO
+ * se reconoce cada uno por su geometría frente a la planificación de la comuna (líneas con recurso asociado, SQL 79/91) y luego
+ * se lee v_planificador_recursos (alias = clave radial, en_turno_hoy). Filtro Todos / En turno / Libre (por defecto Todos). */
+state.peRef = {};            // id recurso del periodo → { clave, refId, enTurno }
+state.peRefClave = null;
+state.peTurnoFiltro = state.peTurnoFiltro || 'todos';
+function claveGeomEmergencia_(tipoGeom, gjTxt, lat, lng) {
+  const r5 = v => Number(v).toFixed(5);
+  if (tipoGeom === 'linea' || tipoGeom === 'area') {
+    let gj; try { gj = typeof gjTxt === 'string' ? JSON.parse(gjTxt) : gjTxt; } catch (e) { return null; }
+    if (!gj || !gj.coordinates) return null;
+    const pts = tipoGeom === 'area'
+      ? (gj.type === 'MultiPolygon' ? (gj.coordinates[0] || [])[0] : gj.coordinates[0])
+      : (gj.type === 'MultiLineString' ? lineaEncadenada_(gj.coordinates) : gj.coordinates);
+    if (!pts || !pts.length) return null;
+    return tipoGeom + ':' + pts.length + ':' + r5(pts[0][0]) + ',' + r5(pts[0][1]) + ':' + r5(pts[pts.length - 1][0]) + ',' + r5(pts[pts.length - 1][1]);
+  }
+  return lat == null || lng == null ? null : 'punto:' + r5(lng) + ',' + r5(lat);
+}
+async function cargarRefRecursosEmergencia_(recs, clave) {
+  state.peRefClave = clave;
+  try {
+    const { data: planes } = await supabaseClient.from('planes_contingencia').select('id').eq('ambito', 'comuna').eq('comuna_id', state.activeComunaId);
+    const ids = (planes || []).map(p => p.id);
+    if (!ids.length) return;
+    const { data: pl } = await supabaseClient.from('planificacion_recursos_geojson')
+      .select('recurso_ref_id, recurso_ref_clave, tipo_geometria, geom_geojson, lat, lng').in('plan_id', ids).not('recurso_ref_id', 'is', null);
+    const porGeom = {};
+    (pl || []).forEach(p => {
+      // Rutas de varios tramos: al periodo se copia una línea por cadena continua → se reconoce cualquiera de ellas
+      let gj = null; try { gj = typeof p.geom_geojson === 'string' ? JSON.parse(p.geom_geojson) : p.geom_geojson; } catch (e) {}
+      if (p.tipo_geometria === 'linea' && gj && gj.type === 'MultiLineString') {
+        cadenasLinea_(gj.coordinates).forEach(c => { const k = claveGeomEmergencia_('linea', { type: 'LineString', coordinates: c }); if (k) porGeom[k] = p; });
+        return;
+      }
+      const k = claveGeomEmergencia_(p.tipo_geometria, p.geom_geojson, p.lat, p.lng); if (k) porGeom[k] = p;
+    });
+    const refIds = [...new Set((pl || []).map(p => p.recurso_ref_id))];
+    const info = {};
+    for (let i = 0; i < refIds.length; i += 150) {
+      const { data: v } = await supabaseClient.from('v_planificador_recursos').select('id, alias, codigo_ref, en_turno_hoy').in('id', refIds.slice(i, i + 150));
+      (v || []).forEach(x => { info[x.id] = x; });
+    }
+    if (state.peRefClave !== clave) return;
+    state.peRef = {};
+    recs.forEach(r => {
+      const p = porGeom[claveGeomEmergencia_(r.tipo_geometria, r.geom_geojson, r.lat, r.lng)];
+      if (!p) return;
+      const x = info[p.recurso_ref_id] || {};
+      state.peRef[String(r.id)] = { refId: p.recurso_ref_id, clave: x.alias || p.recurso_ref_clave || x.codigo_ref || '',
+        enTurno: x.en_turno_hoy == null ? null : !!x.en_turno_hoy };
+    });
+  } catch (e) { /* sin enlace: se muestra la descripción */ }
+  if (state.modoMapa === 'emergencia') renderPanelEmergencia_();
+}
+/** Nombre del comité si la descripción es la de un comité sumado al copamiento («Comité Red de Prevención: <nombre> (N° x)»), o ''. */
+function nombreComiteDeDescripcion_(desc) {
+  const m = /^Comit[ée] Red de Prevenci[óo]n:\s*(.+?)(?:\s*\(N°\s*[^)]*\))?\s*$/i.exec(String(desc || '').trim());
+  return m ? m[1] : '';
+}
+function htmlCmpcPorTipoEmergencia_(g, vaDe, editable, ICO) {
+  const f = state.peTurnoFiltro || 'todos';
+  const pasa = r => { if (f === 'todos') return true; const t = (state.peRef[String(r.id)] || {}).enTurno; return f === 'turno' ? t === true : t === false; };
+  const porTipo = {};
+  g.recs.forEach(r => { (porTipo[r.tipo_recurso || 'Sin tipo'] = porTipo[r.tipo_recurso || 'Sin tipo'] || []).push(r); });
+  const nTurno = g.recs.filter(r => (state.peRef[String(r.id)] || {}).enTurno === true).length;
+  const nLibre = g.recs.filter(r => (state.peRef[String(r.id)] || {}).enTurno === false).length;
+  const filtro = '<div class="pe-turno-sw" title="Filtrar por el turno de hoy (Calendario de Turnos)">' +
+    [['todos', 'Todos', g.recs.length], ['turno', '🟢 En turno', nTurno], ['libre', '⚪ Libre', nLibre]]
+      .map(([k, tx, n]) => '<button data-pe-turno="' + k + '"' + (f === k ? ' class="on"' : '') + '>' + tx + ' <small>' + n + '</small></button>').join('') + '</div>';
+  const tipos = Object.keys(porTipo).sort(compararTipoRecurso_);
+  return filtro + tipos.map(t => {
+    const lista = porTipo[t].filter(pasa);
+    const llave = g.id + '|' + t, abierto = !!(state.peTipoAbierto && state.peTipoAbierto[llave]);
+    const nVa = porTipo[t].filter(vaDe).length;
+    const color = typeof colorTipoModoCmpc_ === 'function' ? colorTipoModoCmpc_(t) : '#64748B';
+    return '<div class="pe-tipo' + (abierto ? ' abierto' : '') + '">' +
+      '<button class="pe-tipo-cab" data-pe-tipo="' + escapeHtml_(llave) + '"><i style="background:' + color + '"></i><b>' + escapeHtml_(aTitulo_(t)) + '</b>' +
+        '<span class="pe-cont' + (nVa === porTipo[t].length ? ' completo' : '') + '">' + nVa + ' / ' + porTipo[t].length + '</span>' +
+        (editable && !recursosEmergencia_().per.seleccion_guardada ? '<span class="pe-tipo-todos" data-pe-tipo-todos="' + (nVa === porTipo[t].length ? '0' : '1') + '" data-ids="' +
+          escapeHtml_(porTipo[t].map(r => String(r.id)).join(',')) + '" title="' + (nVa === porTipo[t].length ? 'Desmarcar' : 'Marcar') + ' todo este tipo">' + (nVa === porTipo[t].length ? '✕' : '✓ todos') + '</span>' : '') +
+        '<span class="pe-caret">▼</span></button>' +
+      '<div class="pe-tipo-lista">' + (lista.length ? lista.map(r => {
+        const va = vaDe(r), ref = state.peRef[String(r.id)] || {}, info = state.vaEmergencia[String(r.id)] || {};
+        const turno = ref.enTurno === true ? '<span class="pe-turno si">En turno</span>' : ref.enTurno === false ? '<span class="pe-turno no">Libre</span>' : '';
+        const det = [ref.clave ? r.descripcion : '', va && info.por ? 'Validó ' + info.por : ''].filter(Boolean).join(' · ');
+        return '<label class="pe-rec' + (va ? ' va' : '') + '">' +
+          '<input type="checkbox" data-rec="' + escapeHtml_(String(r.id)) + '"' + (va ? ' checked' : '') + (editable ? '' : ' disabled') + '>' +
+          '<span class="pe-rec-txt" data-ver="' + escapeHtml_(String(r.id)) + '"><b>' + (ICO[r.tipo_geometria] || '📍') + ' ' +
+            (ref.clave ? '<span class="pe-clave">📻 ' + escapeHtml_(ref.clave) + '</span>' : escapeHtml_(r.descripcion || 'Sin clave radial')) + turno + '</b>' +
+          (det ? '<small>' + escapeHtml_(det) + '</small>' : '') + '</span></label>';
+      }).join('') : '<div class="pe-vacio" style="padding:4px 2px;">Ninguno con ese turno.</div>') + '</div></div>';
+  }).join('');
+}
+
 function renderPanelEmergencia_() {
   const cuerpo = document.getElementById('pe-cuerpo');
   if (!cuerpo) return;
@@ -39,6 +135,7 @@ function renderPanelEmergencia_() {
   }
   const clave = per.id + ':' + recs.map(r => r.id).join(',');
   if (state.vaEmergenciaClave !== clave) { cargarValidacionEmergencia_(recs, clave); }
+  if (state.peRefClave !== clave) cargarRefRecursosEmergencia_(recs.concat(state.recursosNoActivos || []), clave);
   const vaDe = r => !!(state.vaEmergencia[String(r.id)] && state.vaEmergencia[String(r.id)].va);
   const nVa = recs.filter(vaDe).length;
   // 💾 Selección guardada (SQL 96): recs = solo los activos; los no activados quedan en state.recursosNoActivos
@@ -55,7 +152,9 @@ function renderPanelEmergencia_() {
     : (puede && recs.length ? '<button class="pe-guardar" data-pe-sel="guardar"' + (nVa ? '' : ' disabled') + ' title="' + (nVa ? 'Guardar: desde ahora solo se ve lo seleccionado' : 'Marca primero lo que se dispone') + '">💾 Guardar selección (' + nVa + ' de ' + recs.length + ')</button>' +
         '<div class="pe-ayuda">Marca por institución lo que se dispone y guarda: el resto se oculta en todo el sistema, sin borrarse.</div>' : '');
   if (!recs.length && !noActivos.length) {
-    cuerpo.innerHTML = '<div class="pe-vacio">El periodo todavía no tiene recursos. Agrégalos con ✏️ ▸ Editar Periodo Crítico.</div>';
+    cuerpo.innerHTML = '<div class="pe-vacio">El periodo todavía no tiene recursos. Agrégalos con ✏️ ▸ Editar Periodo Crítico o cópialos de la planificación.</div>' +
+      (puede ? '<button class="pe-completar" data-pe-completar="1">⬇️ Copiar desde la planificación</button>' : '');
+    cuerpo.querySelectorAll('[data-pe-completar]').forEach(b => b.addEventListener('click', () => ofrecerCopiaPlanificacionPrevia_(state.activeComunaId, true)));
     return;
   }
   // Agrupar por institución (orden de capas del sistema): activos + no activados
@@ -75,6 +174,7 @@ function renderPanelEmergencia_() {
     (state.vaEmergenciaError ? '<div class="pe-vacio" style="color:#B45309;">No se pudo leer la validación: ' + escapeHtml_(state.vaEmergenciaError) + '<br>¿Ya se ejecutó <b>84_validacion_recursos_emergencia.sql</b>?</div>' : '') +
     (!puedeValidarEmergencia_() ? '<div class="pe-vacio" style="padding:8px 6px 0;">👁️ Solo lectura: tu usuario no puede validar recursos.</div>' : '') +
     barraSel +
+    (puede ? '<button class="pe-completar" data-pe-completar="1" title="Copia al periodo lo que falte de la planificación Normal / Amarilla / Roja de la comuna (lo que ya está no se duplica)">⬇️ Completar desde la planificación</button>' : '') +
     '<div class="pe-vista"><span>En el mapa:</span><button data-ver-todas="1">👁 Ver todas</button><button data-ver-todas="0">Ocultar todas</button></div>' +
     lista.map(g => {
       const n = g.recs.filter(vaDe).length;
@@ -93,27 +193,31 @@ function renderPanelEmergencia_() {
         '<div class="pe-lista">' +
           (editable && !guardada ? '<div class="pe-todos"><button data-todos="1">✓ Todos van</button><button data-todos="0">✕ Ninguno</button></div>' : '') +
           (!g.recs.length && guardada ? '<div class="pe-vacio" style="padding:4px 2px;">Ninguno activo en esta institución.</div>' : '') +
-          g.recs.map(r => {
+          (esInstitucionCmpc_({ nombre: g.nombre }) ? htmlCmpcPorTipoEmergencia_(g, vaDe, editable, ICO) : g.recs.map(r => {
             const va = vaDe(r), info = state.vaEmergencia[String(r.id)] || {};
-            const det = [r.descripcion, va && info.por ? 'Validó ' + info.por : ''].filter(Boolean).join(' · ');
+            // Comités de la Red de Prevención: se muestra el NOMBRE del comité (viene en la descripción) para saber cuál se activa
+            const comite = nombreComiteDeDescripcion_(r.descripcion);
+            const det = [comite ? (r.tipo_recurso || '') : r.descripcion, va && info.por ? 'Validó ' + info.por : ''].filter(Boolean).join(' · ');
             return '<label class="pe-rec' + (va ? ' va' : '') + '" title="' + (va ? 'Va en la emergencia' : 'Pendiente') + '">' +
               '<input type="checkbox" data-rec="' + escapeHtml_(String(r.id)) + '"' + (va ? ' checked' : '') + (editable ? '' : ' disabled') + '>' +
-              '<span class="pe-rec-txt" data-ver="' + escapeHtml_(String(r.id)) + '"><b>' + (ICO[r.tipo_geometria] || '📍') + ' ' + escapeHtml_(r.tipo_recurso || 'Recurso') + '</b>' +
+              '<span class="pe-rec-txt" data-ver="' + escapeHtml_(String(r.id)) + '"><b>' + (comite ? '🖐️ ' + escapeHtml_(comite) : (ICO[r.tipo_geometria] || '📍') + ' ' + escapeHtml_(r.tipo_recurso || 'Recurso')) + '</b>' +
               '<small>' + escapeHtml_(det || 'Sin descripción') + '</small></span></label>';
-          }).join('') +
+          }).join('')) +
           // No activados de la plantilla: se pueden volver a activar
           (g.inactivos.length
             ? '<button class="pe-na-btn" data-na="' + escapeHtml_(g.id) + '">' + (abiertoNA ? '− Ocultar' : '＋ Ver') + ' ' + g.inactivos.length + ' no activada(s)</button>' +
               (abiertoNA ? '<div class="pe-na-lista">' + g.inactivos.map(r =>
                 '<label class="pe-rec pe-rec-na" title="No activado: márcalo para volver a activarlo">' +
                   '<input type="checkbox" data-reactivar="' + escapeHtml_(String(r.id)) + '"' + (editable ? '' : ' disabled') + '>' +
-                  '<span class="pe-rec-txt"><b>' + (ICO[r.tipo_geometria] || '📍') + ' ' + escapeHtml_(r.tipo_recurso || 'Recurso') + '</b>' +
+                  '<span class="pe-rec-txt"><b>' + (nombreComiteDeDescripcion_(r.descripcion) ? '🖐️ ' + escapeHtml_(nombreComiteDeDescripcion_(r.descripcion)) : (ICO[r.tipo_geometria] || '📍') + ' ' + escapeHtml_(r.tipo_recurso || 'Recurso')) + '</b>' +
                   '<small>' + escapeHtml_(r.descripcion || 'Sin descripción') + '</small></span></label>').join('') +
                 (editable && g.inactivos.length > 1 ? '<button class="pe-na-todas" data-reactivar-todas="' + escapeHtml_(g.id) + '">✓ Activar las ' + g.inactivos.length + '</button>' : '') + '</div>' : '')
             : '') +
         '</div></div>';
     }).join('');
 
+  // ⬇️ Completar el periodo con lo que falte de la planificación (no duplica: compara geometrías)
+  cuerpo.querySelectorAll('[data-pe-completar]').forEach(b => b.addEventListener('click', () => ofrecerCopiaPlanificacionPrevia_(state.activeComunaId, true)));
   // 💾 Guardar / ✏️ Modificar la selección
   cuerpo.querySelectorAll('[data-pe-sel]').forEach(b => b.addEventListener('click', () => guardarSeleccionPeriodo_(b.dataset.peSel === 'guardar')));
   // No activadas: abrir / reactivar
@@ -144,6 +248,19 @@ function renderPanelEmergencia_() {
     const id = chk.dataset.rec, activar = chk.checked;
     marcarRecursosEmergencia_([id], activar);
     if (activar) ubicarRecursoEmergencia_(id);
+  }));
+  // CMPC por tipo de recurso: abrir / cerrar cada tipo, marcar todo el tipo y filtro de turno
+  cuerpo.querySelectorAll('[data-pe-tipo]').forEach(b => b.addEventListener('click', () => {
+    state.peTipoAbierto = state.peTipoAbierto || {};
+    state.peTipoAbierto[b.dataset.peTipo] = !state.peTipoAbierto[b.dataset.peTipo];
+    b.parentElement.classList.toggle('abierto', !!state.peTipoAbierto[b.dataset.peTipo]);
+  }));
+  cuerpo.querySelectorAll('[data-pe-tipo-todos]').forEach(b => b.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    marcarRecursosEmergencia_(String(b.dataset.ids || '').split(',').filter(Boolean), b.dataset.peTipoTodos === '1');
+  }));
+  cuerpo.querySelectorAll('[data-pe-turno]').forEach(b => b.addEventListener('click', () => {
+    state.peTurnoFiltro = b.dataset.peTurno; renderPanelEmergencia_();
   }));
   // Clic en el nombre: ubica el recurso en el mapa
   cuerpo.querySelectorAll('[data-ver]').forEach(t => t.addEventListener('click', (ev) => {

@@ -563,12 +563,13 @@ function clicTrazoLibre_(e) {
   if (!state.editorMode && !state.modoPlanificacion) return;
   if (state.modoRegla || state.unionLinea || state.cortarRuta || state.editandoForma) return;
   if (trazoLibreActivo) {
-    agregarMuestraTrazo_(puntoTrazoConIman_(e), true);
+    muestrasTrazoConIman_(e.latlng, e.originalEvent).forEach(p => agregarMuestraTrazo_(p, true));
     terminarTrazoLibre_();
     return;
   }
   trazoLibreActivo = true;
-  trazoLibrePuntos = [puntoTrazoConIman_(e)];
+  snapTrazoPrevio_ = null;   // el imán «pegajoso» parte de cero en cada tramo
+  trazoLibrePuntos = muestrasTrazoConIman_(e.latlng, e.originalEvent);
   map.doubleClickZoom.disable();     // el clic de término no debe hacer zoom
   pintarTrazoLibre_();
   actualizarBotonesModoDibujo_();
@@ -600,7 +601,9 @@ function continuarTrazoLibre_(e) {
   if (!trazoLibreActivo) return;
   // Con un botón apretado se está moviendo el mapa: no se dibuja.
   if (e.originalEvent && e.originalEvent.buttons) return;
-  agregarMuestraTrazo_(puntoTrazoConIman_(e), false);
+  // Con imán: el camino recorrido desde la muestra anterior (sigue curvas e intersecciones) + el punto pegado
+  const ms = muestrasTrazoConIman_(e.latlng, e.originalEvent);
+  ms.forEach((p, i) => agregarMuestraTrazo_(p, i < ms.length - 1));
   pintarTrazoLibre_();
 }
 
@@ -608,6 +611,7 @@ function descartarTramoLibre_() {
   if (!trazoLibreActivo) return;
   trazoLibreActivo = false;
   trazoLibrePuntos = [];
+  snapTrazoPrevio_ = null;
   map.doubleClickZoom.enable();
   if (tempDibujoLayer) { map.removeLayer(tempDibujoLayer); tempDibujoLayer = null; }
   if (tempDibujoVertices.length) {
@@ -641,7 +645,9 @@ function terminarTrazoLibre_() {
     return;
   }
 
-  const simplificados = simplificarTrazo_(crudos, toleranciaSegunZoom_());
+  snapTrazoPrevio_ = null;
+  // Con el imán el trazo ya va sobre el camino: simplificar casi nada (~0,5 m), si no se «comen» las curvas y se despega
+  const simplificados = simplificarTrazo_(crudos, imanActivo_() ? Math.min(toleranciaSegunZoom_(), 0.000005) : toleranciaSegunZoom_());
   const puntos = simplificados.length >= minimo ? simplificados : crudos;
 
   // Los vértices del trazo se AÑADEN a lo que ya hubiera dibujado, así se
@@ -743,6 +749,7 @@ function actualizarBotonesModoDibujo_() {
   // Regla de medición: se actualiza en cada cambio de la geometría.
   actualizarReglaMedicion_();
   actualizarBotonDeshacer_();
+  if (typeof actualizarBotonPapelera_ === 'function') actualizarBotonPapelera_();
 }
 
 function setModoDibujo_(modo) {
