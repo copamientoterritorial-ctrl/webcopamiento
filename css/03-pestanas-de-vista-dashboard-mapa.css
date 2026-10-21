@@ -1,0 +1,380 @@
+/* ===== Pestañas de vista (Dashboard | Mapa) ===== */
+.vista-tabs{
+  display:flex;
+  align-items:center;
+  gap:2px;
+  background:transparent;
+  border:none;
+  padding:0;
+}
+/* NAVBAR — bloques izquierdo y derecho */
+.navbar__left{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+.navbar__right{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.brand-col .brand-pill{align-self:stretch;}
+/* Logo municipal grande bajo el brand (solo imagen; solo en Dashboard).
+   El ancho se iguala por JS al del bloque "SIG Copamiento Territorial". */
+#logo-municipal-grande{
+  position:absolute;top:70px;left:16px;z-index:400;width:200px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--white);border:1px solid var(--border);
+  border-radius:16px;padding:12px;box-shadow:var(--shadow-soft);pointer-events:auto;
+  max-height:calc(100vh - 90px);overflow-y:auto;
+}
+#logo-municipal-grande img{width:100%;height:auto;max-height:180px;border-radius:12px;object-fit:contain;background:#fff;}
+/* Lista de logos (varias comunas): el activo resaltado */
+.logos-lista{display:flex;flex-direction:column;gap:5px;width:100%;max-height:calc(100vh - 180px);overflow-y:auto;padding-right:2px;}
+.logos-lista::-webkit-scrollbar{width:5px;} .logos-lista::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px;}
+.logo-item{
+  display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:10px;border:2px solid transparent;background:#F8FAFC;
+  font-family:inherit;text-align:left;width:100%;
+}
+.logo-item.activo{background:#EFF4FF;border-color:var(--cobalt);box-shadow:0 0 0 3px rgba(37,99,235,0.15);}
+.logo-item img{width:40px;height:40px;border-radius:8px;object-fit:contain;background:#fff;flex-shrink:0;}
+.logo-item.activo img{width:52px;height:52px;}
+.logo-item span{font-size:11.5px;font-weight:700;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.logo-item.activo span{color:var(--cobalt-dark);font-weight:800;}
+/* En modo Dashboard: ocultar todos los controles del mapa; solo queda el usuario */
+body.modo-dashboard .topbar-right > *:not(#user-wrap){display:none !important;}
+body.modo-dashboard #simbologia-flotante,
+body.modo-dashboard #asignacion-barra,
+body.modo-dashboard #asignacion-panel,
+body.modo-dashboard #editor-banner,
+body.modo-dashboard #editar-forma-banner{display:none !important;}
+.vista-tab{
+  display:flex;align-items:center;gap:5px;
+  padding:8px 14px;border-radius:9px;border:none;
+  background:transparent;font-family:inherit;font-size:12.5px;font-weight:700;
+  color:var(--text-secondary);cursor:pointer;transition:background .15s ease,color .15s ease;
+  white-space:nowrap;
+}
+.vista-tab:hover{background:#F1F5F9;color:var(--text-primary);}
+.vista-tab.active{background:var(--navy-deep);color:#fff;}
+
+/* ===== MENÚ SUPERIOR COMPACTO (05-10-2026) =====
+ * Las pestañas van en un control segmentado. Al achicarse la pantalla se
+ * compactan por etapas en vez de desbordar:
+ *   ≤1700px  pestañas no activas solo ícono (nombre en el tooltip)
+ *   ≤1400px  el bloque de marca muestra solo el logo
+ *   ≤1150px  también la pestaña activa queda solo ícono
+ *   ≤600px   menú hamburguesa (bloque móvil más abajo)
+ * Tema y pantalla completa se movieron al menú del usuario. */
+.navbar__left{flex:1 1 auto;}
+.navbar__right{flex-shrink:0;}
+.vista-tabs{
+  background:#F1F5F9;border:1px solid var(--border);border-radius:12px;padding:3px;gap:2px;
+  min-width:0;overflow-x:auto;scrollbar-width:none;
+}
+.vista-tabs::-webkit-scrollbar{display:none;}
+.vista-tab{padding:7px 12px;flex-shrink:0;}
+.vista-tab:hover{background:#fff;}
+.vista-tab.active{box-shadow:0 1px 3px rgba(15,23,42,0.25);}
+/* Pestaña activa con el mouse encima: fondo oscuro y texto blanco (antes quedaba blanco sobre blanco) */
+.vista-tab.active:hover{background:#1E293B;color:#fff;}
+.vista-tab .vt-ico{font-size:14px;line-height:1;}
+.comuna-select{max-width:240px;text-overflow:ellipsis;}
+.dropdown-item .di-ico{width:18px;text-align:center;}
+@media (max-width:1700px){
+  .vista-tab:not(.active) .vt-txt{display:none;}
+  .vista-tab:not(.active){padding:7px 10px;}
+}
+@media (max-width:1400px){
+  .brand-pill .brand-text{display:none;}
+  .brand-pill{padding:8px;}
+  .comuna-select{max-width:200px;}
+}
+@media (max-width:1150px){
+  .vista-tab .vt-txt{display:none;}
+  .vista-tab{padding:7px 10px;}
+  .comuna-select{max-width:170px;}
+}
+/* Compactación AUTOMÁTICA según el espacio real (20-10-2026, ajustarMenuCompacto_): si las pestañas no caben junto a
+ * los selectores de comuna/área, se compacta por etapas hasta que quepan (los anchos fijos de arriba no bastaban). */
+body.nav-c1 .vista-tab:not(.active) .vt-txt{display:none;}
+body.nav-c1 .vista-tab:not(.active){padding:7px 9px;}
+body.nav-c2 .vista-tab .vt-txt{display:none;}
+body.nav-c2 .vista-tab{padding:7px 9px;}
+body.nav-c3 .brand-pill .brand-text{display:none;}
+body.nav-c3 .brand-pill{padding:8px;}
+body.nav-c3 .comuna-select{max-width:160px;padding:8px 9px;}
+body.nav-c3 .vista-tab .vt-caret{display:none;}
+body.nav-c4 .comuna-select{max-width:118px;font-size:12px;}
+body.nav-c4 .vista-tab{padding:6px 7px;}
+body.nav-c4 .vista-tabs{gap:0;}
+body.nav-c4 .navbar__right{gap:3px;}
+/* ===== Submenús del menú superior (11-10-2026) ===== */
+.vista-grupo{position:relative;display:flex;flex-shrink:0;}
+.vista-tab .vt-caret{font-size:9px;opacity:.7;margin-left:1px;}
+.vista-submenu{
+  display:none;position:fixed;z-index:3000;min-width:290px;padding:6px;
+  background:var(--white);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-lift);
+}
+.vista-grupo.abierto .vista-submenu{display:block;}
+.vista-subitem{
+  display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:none;border-radius:9px;
+  background:transparent;font-family:inherit;text-align:left;cursor:pointer;color:var(--text-primary);
+}
+.vista-subitem:hover{background:#F1F5F9;}
+.vista-subitem.active{background:#EFF4FF;}
+.vista-subitem .vs-ico{font-size:17px;width:24px;text-align:center;flex-shrink:0;}
+.vista-subitem b{display:block;font-size:12.5px;font-weight:700;}
+.vista-subitem small{display:block;font-size:10.5px;color:var(--text-tertiary);font-weight:500;margin-top:1px;}
+.vista-subitem.active b{color:var(--cobalt);}
+.vista-subitem.active{box-shadow:inset 3px 0 0 var(--cobalt);}
+.vista-subsep{height:1px;background:var(--border);margin:5px 6px;}
+body.tema-oscuro .vista-submenu{background:#0F172A;border-color:#1E293B;}
+body.tema-oscuro .vista-subitem{color:#E2E8F0;}
+body.tema-oscuro .vista-subitem:hover{background:#1E293B;}
+body.tema-oscuro .vista-subitem.active{background:#1E3A8A;}
+body.tema-oscuro .vista-subitem.active b{color:#BFDBFE;}
+/* El informe ahora se abre desde Gestión SIG ▸ Generar informe de copamiento, y solo con comuna activa */
+#rail-informe{display:none !important;}
+body:not(.con-comuna) #sub-informe{display:none !important;}
+
+/* ===== Mapa (11-10-2026): íconos que despliegan el panel HACIA ABAJO =====
+ * 🗂️ Capas (siempre) y 📍 Copamiento (solo en planificación). El panel cae bajo
+ * los íconos, sin la franja oscura del rail, y se cierra al apretar de nuevo. */
+.btn-panel-mapa{
+  display:none;position:absolute;top:72px;left:16px;z-index:405;
+  align-items:center;justify-content:center;width:42px;height:42px;padding:0;border-radius:12px;border:1px solid var(--border);
+  background:var(--white);color:var(--navy);box-shadow:var(--shadow-lift);cursor:pointer;
+}
+.btn-panel-mapa:hover{background:#F1F5F9;}
+#btn-copamiento-mapa{left:66px;}
+body.con-comuna:not(.modo-dashboard) #btn-capas-visor{display:flex;}
+body.con-comuna.mapa-emergencia:not(.modo-dashboard) #btn-copamiento-mapa{display:flex;}
+/* Modo Emergencia: sin información de copamiento, sin selector Normal / Amarilla / Roja
+   y sin simbología (la reemplaza el panel de validación por institución) */
+body.mapa-emergencia #escenario-switcher,
+body.mapa-emergencia #resumen-alertas,
+body.mapa-emergencia #simbologia-flotante{display:none !important;}
+
+/* ===== Panel de validación de recursos (Modo Emergencia, 11-10-2026) ===== */
+#panel-emergencia{
+  display:none;position:absolute;top:72px;right:60px;z-index:450;width:340px;max-height:calc(100vh - 100px);
+  flex-direction:column;background:var(--white);border:1px solid var(--border);border-radius:14px;
+  box-shadow:var(--shadow-lift);overflow:hidden;
+}
+body.mapa-emergencia.con-comuna:not(.modo-dashboard) #panel-emergencia{display:flex;}
+#panel-emergencia.plegado .pe-cuerpo, #panel-emergencia.plegado .pe-progreso{display:none;}
+.pe-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:12px 14px 6px;}
+.pe-titulo{font-size:13.5px;font-weight:800;color:var(--text-primary);}
+.pe-sub{font-size:11px;color:var(--text-tertiary);margin-top:2px;}
+.pe-colapsar{border:none;background:#F1F5F9;border-radius:8px;width:26px;height:26px;cursor:pointer;color:var(--text-secondary);flex-shrink:0;}
+#panel-emergencia.plegado .pe-colapsar{transform:rotate(-90deg);}
+.pe-progreso{display:flex;align-items:center;gap:8px;padding:0 14px 10px;font-size:11.5px;font-weight:700;color:var(--text-secondary);}
+.pe-barra{flex:1;height:8px;border-radius:99px;background:#E2E8F0;overflow:hidden;}
+.pe-barra span{display:block;height:100%;width:0;background:#16A34A;border-radius:99px;transition:width .2s;}
+.pe-cuerpo{overflow-y:auto;padding:0 10px 10px;border-top:1px solid var(--border);}
+.pe-vacio{padding:14px 6px;font-size:12px;color:var(--text-tertiary);line-height:1.5;}
+.pe-inst{margin-top:8px;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.pe-vista{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--text-tertiary);font-weight:600;}
+/* 💾 Selección del Periodo Crítico (14-10-2026, SQL 96) */
+.pe-guardar{display:block;width:100%;margin-top:8px;padding:8px 10px;border-radius:9px;border:0;background:#16A34A;color:#fff;font:800 12.5px inherit;font-family:inherit;cursor:pointer;box-shadow:0 2px 6px rgba(22,163,74,.3);}
+.pe-guardar:hover{background:#15803D;}
+.pe-guardar:disabled{background:#94A3B8;box-shadow:none;cursor:default;}
+.pe-ayuda{font-size:10.5px;color:var(--text-tertiary);margin-top:4px;line-height:1.35;}
+.pe-guardada{display:flex;align-items:center;gap:8px;margin-top:8px;padding:7px 9px;border-radius:9px;background:#F0FDF4;border:1px solid #86EFAC;}
+.pe-guardada div{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3;}
+.pe-guardada b{font-size:12px;color:#166534;} .pe-guardada small{font-size:10.5px;color:#166534;opacity:.85;}
+.pe-guardada button{border:1px solid #86EFAC;background:#fff;color:#166534;border-radius:7px;padding:4px 8px;font:700 11px inherit;font-family:inherit;cursor:pointer;white-space:nowrap;}
+.pe-na-btn{display:block;width:100%;margin-top:6px;padding:5px 8px;border-radius:8px;border:1.5px dashed #CBD5E1;background:transparent;color:#475569;font:700 11px inherit;font-family:inherit;cursor:pointer;text-align:left;}
+.pe-na-btn:hover{border-color:#16A34A;color:#166534;}
+.pe-na-lista{margin-top:4px;padding:4px;border-radius:8px;background:#F8FAFC;display:flex;flex-direction:column;gap:2px;}
+.pe-rec-na{opacity:.75;}
+.pe-na-todas{margin-top:3px;border:1px solid #86EFAC;background:#F0FDF4;color:#166534;border-radius:7px;padding:4px 8px;font:700 11px inherit;font-family:inherit;cursor:pointer;}
+body.tema-oscuro .pe-guardada, body.tema-oscuro .pe-na-lista{background:#0F2A1A;}
+.pe-vista button{flex:1;font-size:10.5px;font-weight:700;padding:5px 6px;border-radius:7px;border:1px solid var(--border);background:var(--white);cursor:pointer;font-family:inherit;color:var(--text-secondary);}
+.pe-vista button:hover{background:#F1F5F9;}
+.pe-inst-fila{display:flex;align-items:stretch;}
+.pe-ojo{width:38px;flex-shrink:0;border:none;border-right:1px solid var(--border);background:#F8FAFC;cursor:pointer;font-size:15px;}
+.pe-ojo:hover{background:#EFF4FF;}
+.pe-inst.oculta .pe-inst-btn{opacity:.45;}
+.pe-inst.oculta .pe-ojo{background:#FEF2F2;}
+.pe-inst-btn{display:flex;align-items:center;gap:10px;flex:1;min-width:0;width:100%;padding:10px 12px;border:none;background:var(--white);cursor:pointer;font-family:inherit;text-align:left;}
+.pe-inst-btn:hover{background:#F8FAFC;}
+.pe-inst-btn .pe-logo{width:30px;height:30px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#F1F5F9;border:2px solid;overflow:hidden;}
+.pe-inst-btn .pe-logo img{width:24px;height:24px;object-fit:contain;}
+.pe-inst-btn b{flex:1;min-width:0;font-size:12.5px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pe-cont{font-size:11px;font-weight:800;padding:3px 8px;border-radius:99px;background:#F1F5F9;color:var(--text-secondary);white-space:nowrap;}
+.pe-cont.completo{background:#DCFCE7;color:#15803D;}
+.pe-caret{font-size:10px;color:var(--text-tertiary);transition:transform .15s;}
+.pe-inst.abierta .pe-caret{transform:rotate(180deg);}
+.pe-lista{display:none;padding:4px 10px 10px;background:#F8FAFC;border-top:1px solid var(--border);}
+.pe-inst.abierta .pe-lista{display:block;}
+.pe-todos{display:flex;gap:6px;margin:4px 0 6px;}
+.pe-todos button{flex:1;font-size:10.5px;font-weight:700;padding:5px 6px;border-radius:7px;border:1px solid var(--border);background:var(--white);cursor:pointer;font-family:inherit;color:var(--text-secondary);}
+.pe-rec{display:flex;align-items:center;gap:9px;padding:7px 4px;border-bottom:1px solid #EEF2F7;font-size:12px;}
+.pe-rec:last-child{border-bottom:none;}
+.pe-rec input{width:18px;height:18px;accent-color:#16A34A;cursor:pointer;flex-shrink:0;}
+.pe-rec input:disabled{cursor:not-allowed;}
+.pe-rec .pe-rec-txt{flex:1;min-width:0;cursor:pointer;}
+.pe-rec .pe-rec-txt b{display:block;font-size:12px;color:var(--text-primary);}
+.pe-rec .pe-rec-txt small{display:block;font-size:10.5px;color:var(--text-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pe-rec.va .pe-rec-txt b{color:#15803D;}
+body.tema-oscuro #panel-emergencia,body.tema-oscuro .pe-inst-btn{background:#0F172A;color:#E2E8F0;}
+/* Resalte del recurso recién activado (anillo que late y se retira solo) */
+.resalte-emergencia{animation:resalteEmerg 1.1s ease-in-out infinite;transform-origin:center;transform-box:fill-box;}
+@keyframes resalteEmerg{0%,100%{stroke-opacity:1;stroke-width:4;}50%{stroke-opacity:.35;stroke-width:9;}}
+body.tema-oscuro .pe-lista{background:#111827;}
+@media (max-width:600px){ #panel-emergencia{right:8px;left:8px;width:auto;top:118px;max-height:45vh;} }
+/* Modo Emergencia: botón para crear un Periodo Crítico dentro del mapa */
+#btn-crear-periodo-mapa{
+  display:none;position:absolute;top:72px;left:116px;z-index:405;height:42px;padding:0 16px;
+  align-items:center;gap:6px;border-radius:12px;border:1px solid #B91C1C;
+  background:#DC2626;color:#fff;font-family:inherit;font-size:12.5px;font-weight:700;
+  box-shadow:var(--shadow-lift);cursor:pointer;white-space:nowrap;
+}
+#btn-crear-periodo-mapa:hover{background:#B91C1C;}
+body.con-comuna.mapa-emergencia.puede-crear-periodo:not(.modo-dashboard) #btn-crear-periodo-mapa{display:flex;}
+@media (max-width:600px){ #btn-crear-periodo-mapa{left:16px;top:70px;} }
+.btn-panel-mapa.activo{background:var(--navy-deep);color:#fff;border-color:var(--navy-deep);}
+@media (min-width:601px){
+  #sidebar{
+    top:122px;left:16px;bottom:auto;max-height:calc(100vh - 140px);width:310px;
+    transition:opacity .18s ease, transform .18s ease;transform:none;
+  }
+  #sidebar.collapsed{transform:translateY(-8px);opacity:0;visibility:hidden;pointer-events:none;}
+  #sidebar .sidebar-rail{display:none !important;}
+  #sidebar .sidebar-body{width:100%;max-height:calc(100vh - 140px);}
+  #sidebar .sidebar-content{min-height:0;}
+  #collapse-toggle{display:none !important;}
+}
+/* Celular: sigue la hoja inferior con su botón propio (btn-capas-movil) */
+@media (max-width:600px){ .btn-panel-mapa{display:none !important;} }
+body.mapa-visor #wrap-planificar,
+body.mapa-visor #indicador-edicion,
+body.mapa-visor #editor-banner{display:none !important;}
+body.tema-oscuro .btn-panel-mapa:not(.activo){background:#0F172A;color:#E2E8F0;border-color:#1E293B;}
+
+/* ===== Asistente Periodo Crítico (11-10-2026) ===== */
+.pca-pasos{display:flex;align-items:center;gap:6px;}
+.pca-paso{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--text-tertiary);white-space:nowrap;}
+.pca-paso span{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#E2E8F0;color:#64748B;font-size:11px;}
+.pca-paso.actual{color:var(--navy);} .pca-paso.actual span{background:#DC2626;color:#fff;}
+.pca-paso.hecho span{background:#16A34A;color:#fff;}
+.pca-linea{flex:1;height:2px;background:#E2E8F0;min-width:14px;}
+.pca-chips{display:flex;flex-wrap:wrap;gap:6px;margin:-4px 0 12px;}
+.pca-chip{padding:5px 10px;border-radius:999px;border:1px solid var(--border);background:#F8FAFC;font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--text-secondary);}
+.pca-chip:hover{background:#EFF4FF;border-color:var(--cobalt);color:var(--cobalt);}
+.pca-opciones{display:flex;flex-direction:column;gap:8px;margin:6px 0 4px;}
+.pca-opcion{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:2px solid var(--border);background:var(--white);cursor:pointer;font-family:inherit;text-align:left;}
+.pca-opcion:hover{border-color:#94A3B8;}
+.pca-opcion.sel{border-color:var(--cobalt);background:#EFF4FF;box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+.pca-opcion[disabled]{opacity:.45;cursor:not-allowed;}
+.pca-opcion .po-ico{font-size:22px;width:30px;text-align:center;}
+.pca-opcion b{display:block;font-size:13px;color:var(--text-primary);}
+.pca-opcion small{display:block;font-size:11px;color:var(--text-tertiary);margin-top:2px;}
+.pca-resumen{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin:6px 0 10px;}
+.pca-resumen div{display:flex;gap:10px;padding:9px 12px;font-size:12.5px;border-bottom:1px solid var(--border);}
+.pca-resumen div:last-child{border-bottom:none;}
+.pca-resumen span{width:140px;flex-shrink:0;color:var(--text-tertiary);font-weight:600;}
+.pca-aviso{padding:10px 12px;border-radius:10px;background:#FEF3C7;color:#92400E;font-size:12px;line-height:1.45;}
+
+/* ===== Permisos por usuario (11-10-2026) ===== */
+.perm-tabla{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:14px;}
+.perm-tabla th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-tertiary);padding:6px 8px;border-bottom:1px solid var(--border);}
+.perm-tabla td{padding:7px 8px;border-bottom:1px solid #F1F5F9;}
+.perm-tabla td.c{text-align:center;width:78px;}
+.perm-tabla input[type=radio]{accent-color:var(--cobalt);width:16px;height:16px;cursor:pointer;}
+.perm-tabla input[disabled]{cursor:not-allowed;opacity:.35;}
+.perm-capas{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12.5px;}
+.perm-capas label{display:flex;align-items:flex-start;gap:7px;cursor:pointer;}
+.perm-capas input{accent-color:var(--cobalt);margin-top:2px;}
+@media (max-width:600px){ .perm-capas{grid-template-columns:1fr;} }
+
+/* ===== Dashboard ===== */
+#dashboard{position:absolute;top:60px;left:0;right:0;bottom:0;z-index:350;background:var(--bg-light);overflow-y:auto;display:none;}
+/* 🤝 Carrusel de municipalidades (17-10-2026) */
+.munis-wrap{margin-top:22px;padding:14px 0 6px;border-top:1px solid var(--border);}
+.munis-tit{font-size:12px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;text-align:center;margin-bottom:10px;}
+.munis-tit small{font-weight:600;text-transform:none;letter-spacing:0;color:var(--text-tertiary);}
+.munis-carrusel{position:relative;overflow:hidden;padding:4px 0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);}
+.munis-pista{display:flex;gap:18px;width:max-content;animation:munis-desplazar var(--dur,60s) linear infinite;}
+.munis-carrusel:hover .munis-pista{animation-play-state:paused;}
+@keyframes munis-desplazar{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+.muni-item{display:flex;flex-direction:column;align-items:center;gap:6px;width:128px;flex:none;padding:8px 6px 7px;border-radius:12px;background:var(--white);border:1px solid var(--border);}
+.muni-item .muni-etq{display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 9px;border-radius:999px;background:color-mix(in srgb,#15803D 10%,var(--white));border:1px solid color-mix(in srgb,#15803D 28%,transparent);color:#166534;font-size:11px;font-weight:800;line-height:1.15;max-width:100%;}
+.muni-item .muni-etq small{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:color-mix(in srgb,#166534 70%,var(--text-tertiary));}
+body.tema-oscuro .muni-item .muni-etq{color:#86EFAC;}
+.muni-item img{height:58px;width:96px;object-fit:contain;filter:saturate(.9);transition:transform .2s,filter .2s;}
+.muni-item:hover img{transform:scale(1.07);filter:none;}
+.muni-item span{font-size:10.5px;font-weight:700;color:var(--text-secondary);text-align:center;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+@media (prefers-reduced-motion: reduce){ .munis-pista{animation:none;flex-wrap:wrap;width:auto;justify-content:center;} .munis-carrusel{-webkit-mask-image:none;mask-image:none;} }
+#dashboard.show{display:block;}
+.dash-inner{max-width:1280px;margin:0 auto;padding:24px 24px 32px;}
+.dash-header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap;}
+.dash-header h1{margin:0;font-size:22px;font-weight:800;}
+.dash-sub{margin:4px 0 0;font-size:12.5px;color:var(--text-secondary);}
+.dash-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-tertiary);display:block;margin-bottom:4px;}
+.dash-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px;}
+.dash-kpi{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow-soft);}
+.dash-kpi .k-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-tertiary);}
+.dash-kpi .k-value{font-size:26px;font-weight:800;margin-top:4px;line-height:1.1;}
+.dash-kpi .k-foot{font-size:11px;color:var(--text-secondary);margin-top:4px;}
+.dash-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+.dash-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow-soft);}
+.dash-card-wide{grid-column:1/-1;}
+.dash-card-title{font-size:13px;font-weight:800;margin-bottom:12px;}
+.dash-chart{height:240px;}
+.dash-fuente{font-size:10.5px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.3px;}
+@media (max-width:900px){ .dash-grid{grid-template-columns:1fr;} }
+/* Subgerente de Relacionamiento: sin reportes meteorológicos (15-10-2026) */
+body.es-subgerente .dash-meteo, body.es-subgerente #btn-meteo-horaria, body.es-subgerente #btn-windy-toolbar{display:none !important;}
+/* Copamiento planificado por alerta (15-10-2026) */
+#dash-esc-card{margin-bottom:16px;}
+.desc-frase{font-size:13px;line-height:1.55;color:var(--text-secondary);margin:-4px 0 12px;padding:10px 12px;border-radius:10px;background:var(--bg-light);border-left:4px solid #2563EB;}
+.desc-frase:empty{display:none;}
+.desc-frase b{color:var(--text-primary);}
+.desc-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.desc-col{border-radius:14px;padding:14px;border:1.5px solid var(--c);background:color-mix(in srgb,var(--c) 6%,var(--white));display:flex;flex-direction:column;gap:10px;}
+.desc-col-cab{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.desc-col-cab b{font-size:14px;color:var(--c);}
+.desc-col-cab span{font-size:10.5px;font-weight:700;color:var(--text-tertiary);}
+.desc-pct{display:flex;align-items:baseline;gap:6px;}
+.desc-pct .v{font-size:34px;font-weight:900;line-height:1;color:var(--c);font-variant-numeric:tabular-nums;}
+.desc-pct .t{font-size:11px;color:var(--text-secondary);line-height:1.3;}
+.desc-barra{height:8px;border-radius:5px;background:color-mix(in srgb,var(--c) 15%,transparent);overflow:hidden;}
+.desc-barra i{display:block;height:100%;background:var(--c);border-radius:5px;}
+.desc-met{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.desc-met div{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:7px 9px;}
+.desc-met b{display:block;font-size:18px;font-weight:800;color:var(--text-primary);font-variant-numeric:tabular-nums;}
+.desc-met small{font-size:10.5px;color:var(--text-tertiary);}
+.desc-delta{font-size:11.5px;font-weight:700;padding:5px 8px;border-radius:8px;background:var(--white);border:1px dashed var(--c);color:var(--c);}
+.desc-chips{display:flex;flex-wrap:wrap;gap:4px;}
+.desc-chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--white);border:1px solid var(--border);}
+.desc-chip i{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.desc-bajo{display:grid;grid-template-columns:1.1fr 1fr;gap:14px;margin-top:14px;}
+.desc-sub{font-size:12px;font-weight:800;margin-bottom:8px;} .desc-sub small{font-weight:600;color:var(--text-tertiary);}
+.desc-tabla{width:100%;border-collapse:collapse;font-size:12px;}
+.desc-tabla th,.desc-tabla td{padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;}
+.desc-tabla th{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-tertiary);}
+.desc-tabla td.n{text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.desc-tabla td.n b{display:block;font-size:12.5px;}
+.desc-tabla td.n small{color:var(--text-tertiary);font-size:10px;}
+.desc-tabla td.no{color:#CBD5E1;text-align:center;}
+@media (max-width:900px){ .desc-cols,.desc-bajo{grid-template-columns:1fr;} }
+/* Red de Prevención en el dashboard */
+.red-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;}
+.red-comuna{border:1px solid var(--border);border-radius:12px;padding:14px;background:#FFFBF7;}
+.red-comuna-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.red-comuna-nombre{font-size:14px;font-weight:800;}
+.red-comuna-badge{font-size:10px;font-weight:800;padding:3px 10px;border-radius:12px;background:#FED7AA;color:#7C2D12;}
+.red-metricas{display:flex;gap:12px;align-items:flex-end;}
+.red-metrica{flex:1;}
+.red-metrica .rm-val{font-size:26px;font-weight:800;line-height:1;}
+.red-metrica .rm-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-tertiary);margin-top:3px;}
+.red-barra{height:8px;border-radius:5px;background:#FEE2D6;overflow:hidden;margin-top:8px;}
+.red-barra-fill{height:100%;background:linear-gradient(90deg,#F59E0B,#EA580C);border-radius:5px;transition:width .4s ease;}
+.red-presencia-txt{font-size:10.5px;color:var(--text-secondary);margin-top:5px;}
+

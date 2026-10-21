@@ -1,0 +1,2 @@
+Coloca aquí tus imágenes (manito_red_prevencion.png, icono_patrullero.png, etc.).
+La app las referencia como iconos/NOMBRE.png

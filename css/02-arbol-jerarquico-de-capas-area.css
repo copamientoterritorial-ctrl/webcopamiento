@@ -1,0 +1,570 @@
+/* ===== Árbol jerárquico de capas (Área → Sector) ===== */
+.tree-node{border-bottom:1px solid #F1F5F9;}
+.tree-row{display:flex;align-items:center;gap:6px;padding:5px 2px;cursor:default;}
+.tree-row .tree-caret{
+  width:14px;height:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--text-tertiary);font-size:9px;transition:transform .15s ease;user-select:none;
+}
+.tree-row .tree-caret.collapsed{transform:rotate(-90deg);}
+.tree-row .tree-caret.leaf{visibility:hidden;}
+.tree-check{
+  width:16px;height:16px;border-radius:4px;background:#fff;border:2px solid #CBD5E1;position:relative;
+  cursor:pointer;flex-shrink:0;transition:background .15s,border-color .15s;
+}
+.tree-check:hover{border-color:var(--cobalt);}
+.tree-check.on{background:var(--cobalt);border-color:var(--cobalt);}
+.tree-check.on::after{
+  content:'';position:absolute;left:3.5px;top:0.5px;width:5px;height:8.5px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);
+}
+.tree-check.partial{background:var(--cobalt);border-color:var(--cobalt);}
+.tree-check.partial::after{
+  content:'';position:absolute;left:2.5px;top:6px;width:8px;height:0;border-top:2px solid #fff;
+}
+.tree-label{flex:1;min-width:0;font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tree-count{font-size:9.5px;color:var(--text-tertiary);flex-shrink:0;}
+.tree-children{padding-left:18px;}
+.tree-children.collapsed{display:none;}
+.tree-node.sector .tree-label{font-weight:500;color:var(--text-secondary);font-size:10.5px;}
+
+.layer-empty-msg{
+  font-size:11.5px;color:var(--text-tertiary);text-align:center;padding:14px 8px;
+  background:#F8FAFC;border-radius:10px;border:1px dashed var(--border);margin-top:8px;
+}
+.editor-note{
+  background:var(--cobalt-soft);border:1px solid #BFDBFE;border-radius:10px;padding:11px 12px;
+  font-size:12px;color:#1E40AF;margin-bottom:14px;line-height:1.45;
+}
+.viewer-note{
+  background:#FEF3C7;border:1px solid #FDE68A;border-radius:10px;padding:11px 12px;
+  font-size:12px;color:#92400E;margin-bottom:14px;line-height:1.45;
+}
+.recurso-card{
+  border:1px solid var(--border);border-radius:12px;padding:12px 13px;margin-bottom:10px;cursor:pointer;
+}
+.recurso-card:hover{border-color:var(--cobalt);}
+.recurso-card .rc-inst{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;margin-bottom:4px;}
+.recurso-card .rc-sw{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.recurso-card .rc-row{font-size:11.5px;color:var(--text-secondary);margin-bottom:2px;}
+.recurso-card .rc-desc{font-size:12px;color:var(--text-primary);margin-top:5px;}
+
+/* ---- dropdowns ---- */
+.dropdown-wrap{position:relative;}
+.dropdown-panel{
+  display:none;position:absolute;top:calc(100% + 8px);right:0;z-index:700;min-width:200px;
+  background:var(--white);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lift);
+  padding:6px;
+}
+.dropdown-panel.show{display:block;}
+.dropdown-item{
+  width:100%;text-align:left;padding:9px 12px;border:none;background:none;border-radius:8px;cursor:pointer;
+  font-family:inherit;font-size:12.5px;font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:8px;
+}
+.dropdown-item:hover{background:#F1F5F9;}
+.dropdown-item.danger{color:#DC2626;}
+.basemap-option{
+  width:100%;text-align:left;padding:9px 12px;border:none;background:none;border-radius:8px;cursor:pointer;
+  font-family:inherit;font-size:12.5px;font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:9px;
+}
+.basemap-option:hover{background:#F1F5F9;}
+.basemap-option.active{background:var(--cobalt-soft);color:var(--cobalt-dark);}
+.basemap-swatch{width:16px;height:16px;border-radius:5px;flex-shrink:0;border:1px solid rgba(0,0,0,0.1);}
+
+/* ---- popup de recursos ---- */
+.leaflet-popup-content-wrapper{border-radius:12px;box-shadow:var(--shadow-lift);}
+.leaflet-popup-content{margin:14px 16px;font-family:'Inter',sans-serif;}
+.popup-title{font-size:13px;font-weight:700;margin-bottom:4px;}
+.popup-row{font-size:11.5px;color:var(--text-secondary);margin-bottom:2px;}
+.expiry-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;display:inline-block;margin-top:4px;}
+.expiry-ok{background:#DCFCE7;color:#166534;}
+.expiry-soon{background:#FEF3C7;color:#92400E;}
+.popup-traza{margin-top:7px;padding-top:6px;border-top:1px dashed var(--border);font-size:10.5px;color:var(--text-secondary);line-height:1.6;}
+.popup-traza b{color:var(--text-primary);font-weight:700;}
+.traza-perfil{font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:#EFF4FF;color:var(--cobalt-dark);text-transform:uppercase;letter-spacing:0.2px;}
+.custom-pin{filter:drop-shadow(0 3px 6px rgba(0,0,0,0.35));transition:transform .15s ease;}
+.custom-pin:hover{transform:scale(1.12) translateY(-2px);}
+
+/* ---- etiquetas con halo sobre el mapa ---- */
+.map-label{
+  font-family:'Inter',sans-serif !important;
+  font-weight:700 !important;
+  font-size:11px !important;
+  color:#0F172A !important;
+  text-shadow:-1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff, 0 0 5px #fff, 0 0 5px #fff !important;
+  white-space:nowrap;
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+  padding:0 !important;
+}
+.map-label::before{display:none !important;}
+.map-label.label-areas{color:#6D28D9 !important;}
+.map-label.label-fundo{color:#047857 !important;font-size:9px !important;}
+.map-label.label-arearel{color:#6D28D9 !important;font-size:9px !important;}
+.map-label.label-recurso{color:#0F172A !important;}
+/* Recursos disponibles: «ID · Clave radial» y debajo la persona a cargo (15-10-2026) */
+.map-label .lbl-persona{display:inline-block;margin-top:1px;font-weight:600;font-size:10px;color:#475569;}
+.map-label:has(.lbl-persona){text-align:center;line-height:1.25;}
+/* Sin marco negro al pasar el cursor o al hacer clic.
+   El navegador dibuja un contorno de foco sobre los elementos SVG y los
+   marcadores de Leaflet, que en el mapa se ve como un recuadro negro
+   rodeando la figura. Se desactiva en todos los elementos interactivos. */
+.leaflet-container a,
+.leaflet-container svg,
+.leaflet-container path,
+.leaflet-interactive,
+.leaflet-marker-icon,
+.leaflet-popup,
+.leaflet-tooltip,
+.leaflet-container .leaflet-interactive:focus,
+.leaflet-container .leaflet-interactive:focus-visible,
+.leaflet-marker-icon:focus,
+.leaflet-marker-icon:focus-visible,
+.leaflet-container svg:focus,
+.leaflet-container path:focus{
+  outline:none !important;
+  -webkit-tap-highlight-color:transparent !important;
+}
+.leaflet-interactive:active,
+.leaflet-marker-icon:active{outline:none !important;}
+/* Detalle al pasar el cursor: se sale del estilo "texto sobre el mapa" y pasa
+   a tarjeta oscura, porque el texto largo con sombra blanca es ilegible. */
+/* Mientras se dibuja o se edita una forma, las etiquetas y tarjetas de hover
+   dejan de capturar el puntero: si lo hacen, el clic que debería agregar un
+   vértice se lo come la etiqueta y el polígono no avanza. */
+#map.modo-dibujo .leaflet-tooltip,
+#map.modo-dibujo .map-label,
+#map.modo-dibujo .map-label-detalle{
+  pointer-events:none !important;
+}
+.map-label.map-label-detalle,
+.leaflet-tooltip.map-label-detalle{
+  background:rgba(15,23,42,0.94) !important;
+  color:#fff !important;
+  text-shadow:none !important;
+  font-weight:400 !important;
+  font-size:11.5px !important;
+  white-space:nowrap !important;
+  padding:6px 11px !important;
+  border-radius:7px !important;
+  box-shadow:0 4px 14px rgba(0,0,0,0.35) !important;
+  max-width:420px !important;
+  z-index:1000 !important;
+}
+.map-label.map-label-detalle::before,
+.leaflet-tooltip.map-label-detalle::before{display:none !important;}
+/* Punto neón de las rutas CMPC del escenario Normal: verde = con recurso asociado, rojo = sin recurso */
+.punto-neon{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle;position:relative;top:-1px;}
+.punto-neon.con{background:#22C55E;box-shadow:0 0 4px #22C55E,0 0 9px #4ADE80,0 0 14px rgba(74,222,128,.8);animation:puntoNeonCon 1.8s ease-in-out infinite;}
+.punto-neon.sin{background:#EF4444;box-shadow:0 0 4px #EF4444,0 0 9px #F87171,0 0 14px rgba(248,113,113,.85);animation:puntoNeonSin 1.1s ease-in-out infinite;}
+@keyframes puntoNeonCon{0%,100%{box-shadow:0 0 3px #22C55E,0 0 7px #4ADE80,0 0 11px rgba(74,222,128,.6);}50%{box-shadow:0 0 6px #22C55E,0 0 13px #4ADE80,0 0 20px rgba(74,222,128,.95);}}
+@keyframes puntoNeonSin{0%,100%{box-shadow:0 0 3px #EF4444,0 0 7px #F87171,0 0 11px rgba(248,113,113,.6);transform:scale(1);}50%{box-shadow:0 0 7px #EF4444,0 0 15px #F87171,0 0 22px rgba(248,113,113,1);transform:scale(1.15);}}
+@media (prefers-reduced-motion:reduce){.punto-neon{animation:none !important;}}
+.flame-marker{filter:drop-shadow(0 2px 3px rgba(0,0,0,0.45));}
+
+/* ---- modal windy ---- */
+.wx-close{background:none;border:none;color:#fff;cursor:pointer;font-size:16px;padding:4px;}
+.windy-card{
+  width:min(1100px,95vw);height:min(760px,90vh);background:var(--white);border-radius:16px;overflow:hidden;
+  box-shadow:0 30px 80px rgba(0,0,0,0.35);display:flex;flex-direction:column;
+}
+.windy-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;background:var(--navy-deep);color:#fff;font-size:12.5px;font-weight:700;
+}
+#windy-iframe{flex:1;width:100%;border:none;}
+.popup-actions{
+  display:flex;gap:5px;margin-top:9px;
+  flex-wrap:wrap;              /* los botones bajan de fila en vez de desbordar */
+  max-width:100%;
+}
+.popup-btn{
+  flex:1 1 auto;min-width:0;   /* pueden encogerse: antes forzaban el ancho */
+  padding:6px 7px;border-radius:7px;border:1px solid var(--border);background:#F8FAFC;
+  font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;color:var(--text-primary);
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  white-space:nowrap;
+}
+.leaflet-popup-content{max-width:330px;overflow-wrap:anywhere;}
+.leaflet-popup-content .popup-row{overflow-wrap:anywhere;}
+.popup-btn:hover{background:#EFF4FF;border-color:var(--cobalt);color:var(--cobalt-dark);}
+
+/* ---- modo edición ---- */
+/* Modo edición activo */
+#map.editing-mode,
+#map.editing-mode .leaflet-container{ cursor:crosshair !important; }
+/* Modo edición: capas de REFERENCIA no capturan eventos (cursor crosshair limpio) */
+#map.editing-mode .leaflet-overlay-pane path{
+  cursor:crosshair !important;
+  pointer-events:none !important;
+}
+/* Capas editables (recursos del periodo, planificación, alertas): SÍ clickeables */
+#map.editing-mode .leaflet-interactive.recurso-editable,
+#map.editing-mode .leaflet-interactive.plan-editable,
+#map.editing-mode .leaflet-marker-icon{
+  pointer-events:all !important;
+  z-index:1000 !important;
+}
+#map.editing-mode .leaflet-interactive.recurso-editable{ cursor:pointer !important; }
+#map.editing-mode .leaflet-marker-icon{ cursor:grab !important; }
+#map.editing-mode .leaflet-marker-icon:active{ cursor:grabbing !important; }
+/* Sin modo edición: comportamiento normal */
+#map:not(.editing-mode) .leaflet-marker-icon{ cursor:pointer; }
+.editor-mode-banner{
+  position:absolute;bottom:20px;left:50%;transform:translateX(-50%);z-index:500;
+  background:var(--navy-deep);color:#fff;padding:10px 20px;border-radius:30px;font-size:12px;font-weight:600;
+  box-shadow:var(--shadow-lift);display:none;align-items:center;gap:8px;max-width:92vw;flex-wrap:wrap;justify-content:center;
+}
+.editor-mode-banner .popup-btn{background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.2);color:#fff;}
+.editor-mode-banner .popup-btn.active{background:var(--cobalt);border-color:var(--cobalt);}
+.editor-mode-banner .popup-btn:hover{background:rgba(255,255,255,0.22);color:#fff;}
+.editor-mode-banner.show{display:flex;}
+/* Barra compacta (19-10-2026): ayuda en una línea + botones chicos */
+.editor-mode-banner{flex-direction:column;align-items:stretch;gap:5px;padding:6px 10px 7px;border-radius:14px;bottom:12px;max-width:min(94vw,860px);}
+.editor-mode-banner .eb-fila{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;cursor:pointer;min-width:0;padding:0 2px;}
+.editor-mode-banner #editor-banner-texto{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.editor-mode-banner .eb-fila.expandida #editor-banner-texto{white-space:normal;}
+.editor-mode-banner .eb-mas{opacity:.7;font-size:12px;flex-shrink:0;}
+.editor-mode-banner .eb-botones{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;}
+.editor-mode-banner .popup-btn{padding:4px 9px;font-size:11.5px;border-radius:8px;line-height:1.3;}
+.editor-mode-banner .pulse{width:7px;height:7px;border-radius:50%;background:var(--amber);animation:pulse 1.4s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+/* ---- loading ---- */
+#loading-overlay{
+  position:absolute;inset:0;z-index:1200;background:var(--navy-deep);
+  display:flex;align-items:center;justify-content:center;
+}
+.loading-box{text-align:center;color:#fff;}
+.spinner{
+  width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,0.15);
+  border-top-color:var(--cobalt);margin:0 auto 16px;animation:spin 0.8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+#map.pan-boton-medio, #map.pan-boton-medio *{cursor:grabbing !important;}
+#btn-actualizar-datos.girando svg{animation:spin 0.9s linear infinite;}
+#btn-actualizar-datos:disabled{opacity:.6;cursor:wait;}
+/* Red Vial: etiquetas tipo Google (escudo = ruta nacional, placa = rol regional) */
+.rv-etiqueta{background:none;border:none;}
+.rv-etiqueta span{
+  position:absolute;left:0;top:0;transform:translate(-50%,-50%);white-space:nowrap;pointer-events:none;
+  font:700 10.5px/1 Roboto,'Segoe UI',Arial,sans-serif;letter-spacing:.2px;
+}
+/* Rol regional como en Google Maps (Chile): placa verde, texto blanco y filete blanco interior */
+.rv-placa{
+  background:#3E8E3B;color:#fff;border-radius:3px;padding:2px 4px;font-size:10px !important;
+  box-shadow:inset 0 0 0 1px #fff, 0 0 0 1px #2E6B2B, 0 1px 2px rgba(0,0,0,.3);
+}
+/* Escudo SVG de ruta nacional (svgEscudoRuta_): sin caja, solo la silueta con sombra */
+.rv-escudo{line-height:0;filter:drop-shadow(0 0 1px rgba(0,0,0,.35));}
+.rv-escudo svg{display:block;}
+/* Indicador de escala + zoom: al pie de la columna derecha, DEBAJO de la
+   simbología y con su mismo ancho (alinearResumenConSimbologia_ apila
+   escala → simbología → nivel de copamiento). */
+#escala-zoom{
+  position:absolute;right:16px;bottom:16px;z-index:450;box-sizing:border-box;
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:3px 8px;white-space:nowrap;
+  background:rgba(255,255,255,0.94);border:1px solid var(--border);border-radius:10px;
+  padding:4px 9px;box-shadow:var(--shadow-lift);backdrop-filter:blur(3px);
+  font-size:10.5px;font-weight:600;color:var(--text-primary);font-variant-numeric:tabular-nums;
+}
+#escala-zoom .ez-fila{display:flex;align-items:center;gap:7px;}
+#escala-zoom .leaflet-control-scale{margin:0 !important;float:none;}
+#escala-zoom .leaflet-control-scale-line{
+  background:transparent;border-color:#334155;color:#334155;font-size:10px;line-height:1.3;padding:0 4px;
+}
+#escala-zoom .ez-sep{width:1px;height:14px;background:var(--border);display:inline-block;}
+#escala-zoom .ez-ratio{color:var(--text-secondary);font-weight:500;}
+#escala-zoom .ez-rv{display:inline-flex;align-items:center;gap:6px;width:100%;justify-content:space-between;
+  border-top:1px solid var(--border);padding-top:3px;}
+#escala-zoom select{
+  font:inherit;font-size:11px;padding:1px 3px;border:1px solid var(--border);border-radius:5px;
+  background:var(--white);color:var(--text-primary);cursor:pointer;
+}
+#escala-zoom .ez-estado{font-size:10px;font-weight:600;color:#94A3B8;}
+#escala-zoom .ez-estado.on{color:#16A34A;}
+body.tema-oscuro #escala-zoom{background:rgba(30,41,59,0.92);border-color:#334155;color:#F1F5F9;}
+body.tema-oscuro #escala-zoom .leaflet-control-scale-line{border-color:#CBD5E1;color:#CBD5E1;}
+body.tema-oscuro #escala-zoom select{background:#0F172A;color:#F1F5F9;border-color:#334155;}
+@media (max-width:600px){
+  #escala-zoom{right:8px;bottom:80px;font-size:10px;}
+  #escala-zoom .ez-ratio{display:none;}
+}
+.rv-leyenda{display:flex;flex-wrap:wrap;gap:4px 10px;padding:2px 0 6px 34px;font-size:10px;color:var(--text-secondary);}
+.rv-leyenda i{display:inline-block;width:18px;height:5px;border-radius:3px;vertical-align:middle;margin-right:4px;}
+.loading-box p{font-size:12.5px;color:#94A3B8;margin:0;}
+
+/* ---- login / force-password ---- */
+/* ===== LOGIN REDISEÑADO: split screen con fondo vectorial de Chile ===== */
+#login-overlay{
+  position:fixed;inset:0;z-index:2000;
+  display:flex;align-items:center;justify-content:center;
+  background:#0d1b2e;
+  overflow:hidden;
+}
+#login-overlay .login-bg-svg{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;opacity:1;
+}
+/* Force-password: modal simple centrado, sin split screen */
+#force-password-overlay{
+  position:fixed;inset:0;z-index:2000;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(15,23,42,0.85);backdrop-filter:blur(4px);
+}
+#force-password-overlay .login-card{
+  display:block;width:420px;max-width:94vw;min-height:0;
+  border-radius:20px;overflow:visible;
+  box-shadow:0 0 0 1px rgba(99,179,237,0.3),0 0 30px rgba(99,179,237,0.12),0 24px 60px rgba(0,0,0,0.4);
+}
+#force-password-overlay .login-panel-der{
+  width:100%;padding:36px 34px 30px;border-radius:20px;
+}
+#force-password-overlay .login-panel-izq{ display:none; }
+.login-card{
+  display:flex;width:820px;max-width:96vw;min-height:490px;
+  border-radius:24px;overflow:hidden;position:relative;z-index:1;
+  box-shadow:
+    0 32px 80px rgba(4,10,22,0.7),
+    0 0 0 1px rgba(99,179,237,0.45),
+    0 0 20px rgba(99,179,237,0.28),
+    0 0 55px rgba(99,179,237,0.14),
+    0 0 90px rgba(99,179,237,0.06);
+}
+.login-panel-izq{
+  flex:1;position:relative;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-end;padding:36px 28px;
+  background:var(--navy-deep);overflow:hidden;min-width:0;
+}
+.login-panel-izq::before{
+  content:'';position:absolute;inset:0;z-index:0;
+  background-image:url('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=-73.8,-39.5,-70.8,-37.2&bboxSR=4326&size=540,700&format=png&f=image');
+  background-size:cover;background-position:center;opacity:0.88;
+}
+.login-panel-izq::after{
+  content:'';position:absolute;inset:0;z-index:1;
+  background:linear-gradient(to bottom, rgba(15,23,42,0.05) 0%, rgba(15,23,42,0.55) 100%);
+}
+
+.login-map-svg{
+  position:absolute;inset:0;z-index:0;width:100%;height:100%;
+}
+.login-izq-content{position:relative;z-index:2;text-align:center;color:#fff;}
+.login-izq-logo{
+  width:52px;height:52px;border-radius:14px;
+  background:linear-gradient(135deg,var(--cobalt),#7C3AED);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 14px;box-shadow:0 4px 20px rgba(37,99,235,0.45);
+}
+.login-izq-titulo{font-size:24px;font-weight:900;line-height:1.2;margin:0 0 10px;letter-spacing:-0.3px;}
+.login-izq-sub{font-size:12.5px;color:rgba(255,255,255,0.7);line-height:1.6;margin:0 0 18px;}
+.login-izq-quote{font-size:11.5px;color:rgba(255,255,255,0.5);font-style:italic;border-top:1px solid rgba(255,255,255,0.15);padding-top:14px;}
+.login-panel-der{
+  width:330px;flex-shrink:0;background:var(--white);
+  display:flex;flex-direction:column;justify-content:center;padding:40px 34px;
+}
+.login-panel-der h1{font-size:20px;margin:0 0 4px;font-weight:900;color:var(--text-primary);}
+.login-panel-der p.sub{font-size:12.5px;color:var(--text-secondary);margin:0 0 22px;line-height:1.5;}
+.login-logo{display:none;}
+.login-card h1{font-size:19px;margin:0 0 4px;font-weight:800;}
+.login-card p.sub{font-size:12.5px;color:var(--text-secondary);margin:0 0 24px;line-height:1.5;}
+@media(max-width:600px){
+  .login-panel-izq{display:none;}
+  .login-panel-der{width:100%;padding:32px 24px;}
+  .login-card{width:94vw;border-radius:20px;min-height:0;}
+}
+.form-group{margin-bottom:14px;}
+.form-group label{font-size:11.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:0.3px;}
+.form-group select,.form-group input,.form-group textarea{
+  width:100%;padding:10px 12px;border-radius:9px;border:1.5px solid var(--border);font-size:13px;
+  font-family:inherit;color:var(--text-primary);
+}
+.form-group select:focus,.form-group input:focus,.form-group textarea:focus{outline:none;border-color:var(--cobalt);}
+.remember-row{
+  display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary);
+  margin:-4px 0 18px;cursor:pointer;user-select:none;
+}
+.remember-row input{width:14px;height:14px;accent-color:var(--cobalt);}
+.login-btn{
+  width:100%;padding:13px;border-radius:10px;border:none;background:var(--cobalt);color:#fff;
+  font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;transition:background .15s ease;
+}
+.login-btn:hover{background:var(--cobalt-dark);}
+.login-btn:disabled{opacity:0.6;cursor:default;}
+.login-foot{margin-top:16px;font-size:10.5px;color:var(--text-tertiary);text-align:center;line-height:1.5;}
+.form-error{
+  display:none;color:#DC2626;font-size:12px;margin-top:12px;text-align:center;line-height:1.5;
+  background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:9px 10px;
+}
+.form-error.show{display:block;}
+.required-mark{color:#DC2626;}
+
+/* ---- modal cambio de contraseña (self-service) ---- */
+.modal-overlay{
+  position:absolute;inset:0;z-index:900;background:rgba(15,23,42,0.62);backdrop-filter:blur(5px);
+  display:none;align-items:center;justify-content:center;
+}
+.modal-overlay.show{display:flex;}
+/* Caja base de los modales. No existía como regla propia: los modales
+   nuevos quedaban transparentes y se veía el mapa a través de ellos. */
+.modal{
+  width:100%;max-width:520px;max-height:88vh;overflow-y:auto;
+  background:var(--white);color:var(--text-primary);
+  border-radius:18px;border:1px solid var(--border);
+  box-shadow:0 30px 80px rgba(15,23,42,0.38);
+  padding:24px 26px 20px;
+}
+body.tema-oscuro .modal{ background:#0F172A;border-color:#1E293B; }
+.modal .modal-title{font-size:16px;font-weight:800;margin-bottom:14px;}
+.modal-card{
+  width:420px;max-height:88vh;overflow-y:auto;background:var(--white);border-radius:18px;
+  box-shadow:0 30px 80px rgba(0,0,0,0.35);padding:26px 26px 22px;
+}
+.modal-card h3{margin:0 0 3px;font-size:16.5px;font-weight:800;}
+.modal-card .coords{font-size:11px;color:var(--text-tertiary);margin:0 0 20px;font-weight:600;}
+.modal-actions{display:flex;gap:10px;margin-top:6px;}
+.btn-secondary{
+  flex:1;padding:11px;border-radius:9px;border:1.5px solid var(--border);background:#fff;
+  font-family:inherit;font-size:13px;font-weight:700;color:var(--text-secondary);cursor:pointer;
+}
+.btn-primary{
+  flex:1.4;padding:11px;border-radius:9px;border:none;background:var(--cobalt);color:#fff;
+  font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;
+}
+.btn-primary:hover{background:var(--cobalt-dark);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.comunas-checklist{
+  max-height:220px;overflow-y:auto;border:1.5px solid var(--border);border-radius:9px;padding:8px 10px;
+}
+.comunas-checklist .region-label{font-size:10.5px;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;margin:8px 0 4px;}
+.comunas-checklist .region-label:first-child{margin-top:0;}
+.comunas-checklist label{
+  display:flex;align-items:center;gap:8px;font-size:12.5px;padding:4px 2px;cursor:pointer;font-weight:500;
+}
+.comunas-checklist input{width:14px;height:14px;accent-color:var(--cobalt);}
+/* Modal Editar / Nuevo usuario (13-10-2026): ancho, 2 columnas, cabecera y botones fijos */
+.modal-card.user-modal{width:min(980px,96vw);max-height:92vh;padding:0;overflow:hidden;display:flex;flex-direction:column;}
+.user-modal .um-cab{padding:20px 26px 0;flex:none;}
+.user-modal .um-cab .coords{margin-bottom:12px;}
+.user-modal .um-cuerpo{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:300px minmax(0,1fr);gap:22px;padding:4px 26px 12px;}
+.user-modal .um-col-asig{display:flex;flex-direction:column;gap:12px;min-height:0;}
+.user-modal .um-bloque{margin:0;display:flex;flex-direction:column;flex:none;}
+.user-modal .um-tit{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px;}
+.user-modal .um-tit label{margin:0;}
+.user-modal .um-cuenta{font-size:11px;font-weight:700;color:var(--cobalt);white-space:nowrap;}
+.user-modal .um-herr{display:flex;gap:10px;align-items:center;margin-bottom:8px;}
+.user-modal .um-herr input[type=text]{flex:1;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:12.5px;font-family:inherit;background:var(--white);color:var(--text-primary);}
+.user-modal .um-solo{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text-secondary);white-space:nowrap;cursor:pointer;margin:0;text-transform:none;letter-spacing:0;}
+.user-modal .um-comunas{max-height:none;height:min(52vh,460px);padding:0 10px 8px;}
+.user-modal .um-comunas .region-label{position:sticky;top:0;z-index:1;background:var(--white);display:flex;justify-content:space-between;align-items:center;
+  margin:0 -10px 4px;padding:8px 10px 6px;border-bottom:1px solid var(--border);}
+.user-modal .um-reg-btn{border:1px solid var(--border);background:var(--bg-light);color:var(--text-secondary);border-radius:6px;font-size:10.5px;font-weight:700;padding:2px 8px;cursor:pointer;text-transform:none;font-family:inherit;}
+.user-modal .um-reg-btn:hover{border-color:var(--cobalt);color:var(--cobalt);}
+.user-modal .um-reg-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));column-gap:8px;margin-bottom:6px;}
+.user-modal .comunas-checklist label{border-radius:6px;padding:5px 6px;}
+.user-modal .comunas-checklist label:hover{background:var(--bg-light);}
+.user-modal .comunas-checklist label.sel{background:color-mix(in srgb,var(--cobalt) 10%,transparent);color:var(--cobalt);font-weight:700;}
+.user-modal .um-zonas{max-height:none;overflow:visible;flex:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));column-gap:8px;}
+.user-modal .um-resumen{font-size:11.5px;color:var(--text-secondary);background:var(--bg-light);border-radius:10px;padding:10px 12px;line-height:1.5;}
+.user-modal .um-resumen:empty{display:none;}
+.user-modal .um-pie{flex:none;border-top:1px solid var(--border);padding:12px 26px 16px;background:var(--white);}
+.user-modal .um-pie .form-error{margin:0 0 10px;}
+.user-modal .um-pie .modal-actions{margin:0;justify-content:flex-end;}
+.user-modal .um-pie .btn-secondary,.user-modal .um-pie .btn-primary{flex:none;min-width:150px;}
+body.tema-oscuro .user-modal .um-pie, body.tema-oscuro .user-modal .um-comunas .region-label{background:#0F172A;}
+@media (max-width:760px){
+  .user-modal .um-cuerpo{grid-template-columns:1fr;}
+  .user-modal .um-comunas{height:45vh;}
+  .user-modal .um-pie .btn-secondary,.user-modal .um-pie .btn-primary{flex:1;min-width:0;}
+}
+.user-card{border:1px solid var(--border);border-radius:12px;padding:12px 13px;margin-bottom:10px;}
+.user-card .uc-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.user-card .uc-name{font-size:12.5px;font-weight:700;}
+.user-card .uc-email{font-size:11px;color:var(--text-secondary);margin-bottom:6px;}
+.uc-badge{font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.3px;}
+.uc-badge.perfil-Administrador{background:#EDE9FE;color:#5B21B6;}
+.uc-badge.perfil-GRD{background:#DBEAFE;color:#1E40AF;}
+.uc-badge.perfil-Visor{background:#F1F5F9;color:#475569;}
+.uc-badge.estado-inactivo{background:#FEE2E2;color:#991B1B;}
+.uc-comunas{font-size:11px;color:var(--text-tertiary);margin-bottom:8px;line-height:1.5;}
+.uc-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.periodo-group{border:1.5px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;box-shadow:0 2px 8px rgba(15,23,42,0.05);transition:box-shadow .15s ease, border-color .15s ease;}
+.periodo-group:hover{box-shadow:0 4px 14px rgba(15,23,42,0.1);border-color:#CBD5E1;}
+.btn-resumen-periodo{
+  flex:1 1 auto;min-width:0;white-space:nowrap;padding:8px 10px;border-radius:8px;border:none;
+  background:var(--cobalt);color:#fff;font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;
+}
+.btn-resumen-periodo:hover{background:var(--cobalt-dark);}
+.periodo-head{display:flex;align-items:center;justify-content:space-between;padding:12px 13px;background:#F8FAFC;}
+.periodo-head .ph-left{display:flex;align-items:center;gap:10px;min-width:0;}
+.periodo-head .ph-name{font-size:12.5px;font-weight:700;}
+.periodo-head .ph-fechas{font-size:10.5px;color:var(--text-secondary);}
+.periodo-body{padding:10px 13px 12px;display:flex;flex-direction:column;align-items:stretch;gap:8px;}
+.periodo-body .periodo-actions-row{display:flex;flex-wrap:wrap;gap:6px;}
+.periodo-body .periodo-actions-row .popup-btn{flex:1 1 auto;min-width:0;white-space:nowrap;}
+.periodo-count{font-size:11px;color:var(--text-secondary);}
+.periodo-badge{font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;}
+.periodo-badge.activo{background:#DCFCE7;color:#166534;}
+.periodo-badge.cerrado{background:#F1F5F9;color:#64748B;}
+.resumen-row{display:flex;align-items:center;justify-content:space-between;padding:8px 2px;border-bottom:1px solid #F1F5F9;font-size:12.5px;}
+.resumen-row:last-child{border-bottom:none;}
+.resumen-row .rr-left{display:flex;align-items:center;gap:8px;}
+.resumen-row .rr-sw{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
+.resumen-total{font-size:12.5px;font-weight:700;color:var(--text-primary);margin-bottom:10px;text-align:right;}
+.comuna-resumen-card{border:1px solid var(--border);border-radius:12px;padding:13px 14px;margin-bottom:10px;cursor:pointer;transition:border-color .15s ease;}
+.comuna-resumen-card:hover{border-color:var(--cobalt);}
+.comuna-resumen-card .crc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.comuna-resumen-card .crc-nombre{font-size:13.5px;font-weight:700;}
+.comuna-resumen-card .crc-region{font-size:11px;color:var(--text-secondary);}
+.comuna-resumen-card .crc-stats{display:flex;gap:14px;font-size:11.5px;color:var(--text-secondary);}
+.comuna-resumen-card .crc-stats b{color:var(--text-primary);}
+.plan-contingencia-card{border:1.5px solid var(--border);border-radius:12px;padding:13px 14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(15,23,42,0.05);}
+.plan-contingencia-card.activo-amarilla{border-color:#F59E0B;background:#FFFBEB;}
+.plan-contingencia-card.activo-roja{border-color:#EF4444;background:#FEF2F2;}
+.plan-contingencia-card .pcc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.plan-contingencia-card .pcc-nombre{font-size:13px;font-weight:700;}
+.propuesta-row{display:flex;align-items:center;justify-content:space-between;padding:8px 2px;border-bottom:1px solid #F1F5F9;gap:10px;}
+.propuesta-row:last-child{border-bottom:none;}
+.propuesta-row .pr-left{display:flex;align-items:center;gap:8px;font-size:12.5px;min-width:0;}
+.propuesta-row .pr-sw{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
+.propuesta-row input{width:64px;padding:6px 8px;border-radius:7px;border:1.5px solid var(--border);font-size:12.5px;font-family:inherit;text-align:center;}
+.propuesta-comparativo{font-size:11px;color:var(--text-tertiary);}
+.propuesta-comparativo b{color:var(--text-primary);}
+.propuesta-comparativo.deficit{color:#DC2626;font-weight:700;}
+.plan-marker-icon{filter:drop-shadow(0 2px 4px rgba(0,0,0,0.35));}
+#ra-tabla-body tr{border-bottom:1px solid #F1F5F9;}
+#ra-tabla-body td{padding:9px 6px;vertical-align:middle;}
+#ra-tabla-body .ra-swatch{width:9px;height:9px;border-radius:3px;display:inline-block;margin-right:6px;vertical-align:middle;}
+.credential-box{display:flex;gap:8px;margin:8px 0 6px;}
+.credential-box input{
+  flex:1;padding:11px 12px;border-radius:9px;border:1.5px solid var(--border);font-size:14px;
+  font-family:'SF Mono',Consolas,monospace;font-weight:700;letter-spacing:0.3px;color:var(--text-primary);
+  background:#F8FAFC;
+}
+.credential-copy-btn{
+  padding:0 16px;border-radius:9px;border:none;background:var(--cobalt);color:#fff;font-family:inherit;
+  font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;
+}
+.credential-copy-btn:hover{background:var(--cobalt-dark);}
+.credential-copy-btn.copied{background:#16A34A;}
+.btn-primary:hover{background:var(--cobalt-dark);}
+
+/* ---- banner de diagnóstico temporal ---- */
+.debug-toast{
+  position:absolute;top:80px;left:50%;transform:translateX(-50%);z-index:2000;
+  background:var(--navy-deep);color:#fff;padding:10px 18px;border-radius:10px;font-size:12px;font-weight:600;
+  box-shadow:var(--shadow-lift);max-width:520px;text-align:center;line-height:1.5;
+  display:none;
+}
+.debug-toast.show{display:block;}
+#sin-comuna-overlay{
+  position:absolute;inset:0;z-index:300;display:none;align-items:center;justify-content:center;
+  background:rgba(248,250,252,0.85);
+}
+.sin-comuna-card{
+  background:#fff;border-radius:16px;padding:32px 36px;box-shadow:var(--shadow-lift);
+  text-align:center;max-width:320px;
+}
+.sin-comuna-card h3{margin:0 0 8px;font-size:15px;font-weight:800;}
+.sin-comuna-card p{margin:0;font-size:12.5px;color:var(--text-secondary);line-height:1.5;}
+

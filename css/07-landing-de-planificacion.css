@@ -1,0 +1,416 @@
+/* ===== Landing de planificación ===== */
+#landing-planificacion{
+  position:fixed;inset:0;z-index:9000;
+  background:rgba(15,23,42,0.82);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;flex-direction:column;gap:20px;
+}
+#landing-planificacion.show{ display:flex; }
+.landing-card{
+  background:var(--white);border-radius:20px;padding:36px 44px;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,0.3);max-width:420px;width:90vw;
+}
+.landing-escenario-ico{ font-size:48px;margin-bottom:8px; }
+.landing-titulo{ font-size:17px;font-weight:800;color:var(--text-primary);margin:0 0 6px; }
+.landing-sub{ font-size:12.5px;color:var(--text-secondary);margin:0 0 22px; }
+.landing-steps{ list-style:none;padding:0;margin:0 0 22px;text-align:left;display:flex;flex-direction:column;gap:10px; }
+.landing-step{ display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text-secondary); }
+.landing-step-ico{ width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0; }
+.landing-step.done .landing-step-ico{ background:#DCFCE7; }
+.landing-step.loading .landing-step-ico{ background:#EFF4FF; animation:pulse-landing 1s ease-in-out infinite; }
+.landing-step.pending .landing-step-ico{ background:#F1F5F9; opacity:.5; }
+@keyframes pulse-landing{ 0%,100%{opacity:1} 50%{opacity:.4} }
+.landing-barra{ height:4px;border-radius:2px;background:#E2E8F0;overflow:hidden;margin-top:4px; }
+.landing-barra-fill{ height:100%;border-radius:2px;background:linear-gradient(90deg,#2563EB,#7C3AED);transition:width .6s ease; }
+
+/* ===== Indicador modo edición en la barra ===== */
+#indicador-edicion{
+  display:none; align-items:center; gap:7px;
+  background:#DC2626; color:#fff;
+  padding:7px 14px; border-radius:20px; font-size:12px; font-weight:800;
+  cursor:pointer; border:none; font-family:inherit;
+  box-shadow:0 2px 12px rgba(220,38,38,0.45);
+  animation:pulse-edit 1.6s ease-in-out infinite;
+  white-space:nowrap; flex-shrink:0;
+}
+#indicador-edicion.show{ display:flex; }
+#indicador-edicion:hover{ background:#B91C1C; }
+#indicador-edicion .edit-pulse{
+  width:7px; height:7px; border-radius:50%; background:#FCA5A5;
+  animation:pulse 1.4s infinite;
+}
+@keyframes pulse-edit{ 0%,100%{box-shadow:0 2px 12px rgba(220,38,38,0.45);} 50%{box-shadow:0 2px 20px rgba(220,38,38,0.75);} }
+
+/* ===== BOTONES FLOTANTES DE ESCENARIO (inferior del mapa) ===== */
+#escenario-switcher{
+  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+  z-index:500;display:none;align-items:center;gap:7px;
+  background:rgba(15,23,42,0.72);backdrop-filter:blur(8px);
+  border-radius:30px;padding:5px 9px;
+  box-shadow:0 4px 24px rgba(0,0,0,0.3);
+  border:1px solid rgba(255,255,255,0.08);
+}
+#escenario-switcher.show{ display:flex; }
+.esc-btn{
+  display:flex;align-items:center;gap:7px;padding:5px 13px;border-radius:24px;
+  border:none;cursor:pointer;font-size:11.5px;font-weight:700;letter-spacing:.2px;
+  transition:all .18s ease;color:#fff;line-height:1.2;
+}
+.esc-btn:not(.active){ background:rgba(255,255,255,0.1); }
+.esc-btn:hover:not(.active){ background:rgba(255,255,255,0.18); }
+.esc-btn.verde{ }
+.esc-btn.verde.active{ background:#16A34A;box-shadow:0 0 16px rgba(22,163,74,0.5); }
+.esc-btn.amarilla{ }
+.esc-btn.amarilla.active{ background:#D97706;box-shadow:0 0 16px rgba(217,119,6,0.5); }
+.esc-btn.roja{ }
+.esc-btn.roja.active{ background:#DC2626;box-shadow:0 0 16px rgba(220,38,38,0.5); }
+/* Un solo punto por escenario. Al estar activo emite un anillo tipo radar
+   que se expande y se desvanece, en lugar del parpadeo anterior. */
+.esc-btn .esc-dot{
+  position:relative;width:8px;height:8px;border-radius:50%;flex-shrink:0;
+}
+.esc-btn.verde  .esc-dot{ background:#4ADE80; }
+.esc-btn.amarilla .esc-dot{ background:#FCD34D; }
+.esc-btn.roja   .esc-dot{ background:#FCA5A5; }
+.esc-btn.active .esc-dot{ background:#fff; }
+.esc-btn.active .esc-dot::before,
+.esc-btn.active .esc-dot::after{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  border:1.5px solid rgba(255,255,255,0.9);
+  animation:radarPing 1.8s cubic-bezier(0,0,0.2,1) infinite;
+}
+.esc-btn.active .esc-dot::after{ animation-delay:.9s; }
+/* Radar del resumen: hereda el color del escenario mediante currentColor,
+   así el mismo bloque sirve para verde, amarillo y rojo. */
+.res-radar{ position:relative;display:inline-block;width:8px;height:8px;border-radius:50%;
+  background:currentColor;flex-shrink:0; }
+.res-radar::before,
+.res-radar::after{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  border:1.5px solid currentColor;
+  animation:radarPing 1.8s cubic-bezier(0,0,0.2,1) infinite;
+}
+.res-radar::after{ animation-delay:.9s; }
+/* Botones de cálculo bajo el título del "Nivel de copamiento" */
+#resumen-alertas .ra-botones{ display:flex;gap:6px;padding:0 10px 7px; }
+#resumen-alertas .ra-botones button{
+  flex:1;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);color:#fff;
+  cursor:pointer;font-size:10px;font-weight:600;padding:4px 6px;border-radius:6px;white-space:nowrap;
+}
+#resumen-alertas .ra-botones button:hover{ background:rgba(255,255,255,0.18); }
+/* 🚦 Semáforos de propagación en el mapa: se pueden ocultar (19-10-2026) */
+body.sin-semaforos .sem-mapa{ display:none !important; }
+#resumen-alertas .ra-botones{ flex-wrap:wrap; }
+#resumen-alertas .ra-botones #btn-semaforos{ flex:0 0 auto; padding:4px 8px; font-size:12px; }
+#resumen-alertas .ra-botones #btn-semaforos:not(.active){ opacity:.45; filter:grayscale(1); }
+/* Fila del escenario encendido en la tabla de incendios: resaltada */
+.kpi-inc-fila{ border-radius:6px;padding:2px 3px;margin:2px -3px 0; }
+.kpi-inc-fila.activa{ background:rgba(255,255,255,0.10);box-shadow:inset 3px 0 0 var(--fila-color); }
+.kpi-inc-fila.activa .kpi-inc-nombre{ font-weight:800;opacity:1 !important; }
+#btn-influencia.active{ background:rgba(56,189,248,0.28) !important; border-color:#38BDF8 !important; }
+/* Botones de la cabecera del informe: sobre fondo oscuro, no sirven los
+   estilos claros del resto de modales. */
+.informe-btn{
+  flex-shrink:0;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.20);
+  color:#fff;font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer;
+  padding:7px 12px;border-radius:8px;transition:background .15s ease;white-space:nowrap;
+}
+.informe-btn:hover{background:rgba(255,255,255,0.22);}
+.informe-btn-cerrar{padding:7px 10px;font-size:13px;line-height:1;}
+.informe-btn-cerrar:hover{background:rgba(239,68,68,0.55);border-color:rgba(239,68,68,0.8);}
+/* Modal de traspaso de rutas */
+/* Cada alerta y su opacidad forman un solo bloque visual. */
+.alerta-bloque{border-bottom:1px solid var(--border);padding-bottom:7px;margin-bottom:2px;}
+.alerta-bloque:last-of-type{border-bottom:none;}
+.alerta-opacidad{display:flex;align-items:center;gap:7px;padding:0 10px 0 38px;margin-top:-2px;}
+.ao-icono{font-size:10px;opacity:.45;flex-shrink:0;}
+.ao-valor{font-size:10px;opacity:.6;width:32px;text-align:right;flex-shrink:0;
+  font-variant-numeric:tabular-nums;}
+.alerta-opacidad input[type=range]{height:3px;}
+
+/* ===== PANEL DE CAPAS COMPACTO (06-10-2026) =====
+ * Solo CSS (pisa las reglas anteriores; no cambia la lógica):
+ *   · nombre y detalle de cada capa en UNA línea (el detalle a la derecha, recortado)
+ *   · filas, márgenes y botones 🏷️ más bajos
+ *   · títulos de sección fijos arriba al hacer scroll (se sabe en qué grupo se está)
+ *   · el deslizador de opacidad de una alerta solo aparece si la alerta está encendida */
+.sidebar-header{padding:11px 16px 8px;}
+.sidebar-header h2{font-size:14px;}
+.sidebar-header p{font-size:10.5px;margin-top:1px;}
+.sidebar-content{padding:4px 12px 14px;}
+.sidebar-content .section-label{
+  margin:8px 0 2px !important;padding:6px 2px 3px;font-size:9.5px;letter-spacing:.5px;
+  position:sticky;top:-4px;z-index:3;background:var(--white);border-bottom:1px solid var(--border);
+}
+body.tema-oscuro .sidebar-content .section-label{background:#0F172A;border-bottom-color:#1E293B;}
+.layer-row, .tree-row{padding:3px 2px;gap:5px;min-height:24px;}
+.layer-left{gap:6px;}
+.layer-left > div{display:flex;align-items:baseline;gap:6px;min-width:0;flex:1;}
+.layer-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:1;min-width:0;}
+.layer-count{margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:2;min-width:0;text-align:right;}
+.layer-row .icon-btn, .tree-row .icon-btn{width:22px !important;height:22px !important;font-size:11px !important;border-radius:6px;}
+.tree-children{padding-left:15px;}
+.tree-node.sector .tree-row{min-height:21px;padding:2px 2px;}
+.alerta-bloque{padding-bottom:3px;margin-bottom:0;}
+.alerta-bloque .layer-row{padding-bottom:1px !important;}
+.alerta-opacidad{padding:0 6px 2px 40px;margin-top:-1px;}
+.alerta-bloque:has(.toggle:not(.on)) .alerta-opacidad{display:none;}
+.layer-empty-msg{padding:7px 8px;margin-top:4px;font-size:10.5px;border-radius:8px;}
+.rv-leyenda{padding:0 0 4px 30px;gap:2px 8px;font-size:9.5px;}
+.rt-cabecera{display:flex;align-items:center;gap:13px;padding:18px 22px;
+  background:linear-gradient(135deg,#312E81 0%,#4338CA 55%,#6D28D9 130%);color:#fff;}
+.rt-icono{width:40px;height:40px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:19px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.2);}
+.rt-titulo{font-size:15.5px;font-weight:700;letter-spacing:-.2px;line-height:1.25;}
+.rt-subtitulo{font-size:11px;opacity:.72;margin-top:2px;}
+.rt-modal{background:var(--white);}
+body.tema-oscuro .rt-modal{background:#0F172A;}
+.rt-cuerpo{padding:18px 22px 4px;background:var(--white);}
+body.tema-oscuro .rt-cuerpo{background:#0F172A;}
+.rt-ruta{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:11px;
+  background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.18);margin-bottom:16px;}
+.rt-ruta-icono{font-size:19px;flex-shrink:0;}
+.rt-ruta-nombre{font-weight:700;font-size:13.5px;letter-spacing:-.1px;}
+.rt-ruta-meta{font-size:11px;opacity:.68;margin-top:2px;}
+.rt-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;opacity:.6;
+  font-weight:700;margin-bottom:7px;}
+.rt-presets{display:flex;gap:6px;margin-bottom:10px;}
+.rt-presets button{flex:1;font-family:inherit;font-size:10.5px;font-weight:600;padding:6px 4px;
+  border-radius:8px;border:1px solid var(--border);background:transparent;color:inherit;
+  cursor:pointer;transition:all .13s ease;}
+.rt-presets button:hover{background:rgba(99,102,241,0.09);border-color:#A5B4FC;}
+.rt-escenarios{display:flex;flex-direction:column;gap:6px;}
+.rt-esc{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;
+  border:1.5px solid var(--border);cursor:pointer;transition:all .14s ease;position:relative;}
+.rt-esc input{position:absolute;opacity:0;pointer-events:none;}
+.rt-esc-punto{width:11px;height:11px;border-radius:50%;flex-shrink:0;background:#CBD5E1;transition:background .14s;}
+.rt-esc-nombre{flex:1;font-size:12.5px;font-weight:600;}
+.rt-esc-check{opacity:0;font-size:13px;font-weight:800;transition:opacity .14s;}
+.rt-esc-conteo{font-size:10.5px;opacity:.6;font-variant-numeric:tabular-nums;margin-right:4px;}
+.rt-esc:hover{border-color:#CBD5E1;}
+.rt-esc-verde:has(input:checked){border-color:#16A34A;background:rgba(22,163,74,0.08);}
+.rt-esc-verde:has(input:checked) .rt-esc-punto{background:#16A34A;}
+.rt-esc-verde:has(input:checked) .rt-esc-check{opacity:1;color:#16A34A;}
+.rt-esc-amarilla:has(input:checked){border-color:#F59E0B;background:rgba(245,158,11,0.09);}
+.rt-esc-amarilla:has(input:checked) .rt-esc-punto{background:#F59E0B;}
+.rt-esc-amarilla:has(input:checked) .rt-esc-check{opacity:1;color:#B45309;}
+.rt-esc-roja:has(input:checked){border-color:#EF4444;background:rgba(239,68,68,0.08);}
+.rt-esc-roja:has(input:checked) .rt-esc-punto{background:#EF4444;}
+.rt-esc-roja:has(input:checked) .rt-esc-check{opacity:1;color:#DC2626;}
+.rt-aviso{display:flex;gap:8px;align-items:flex-start;font-size:11px;line-height:1.5;
+  opacity:.75;margin-top:14px;padding:10px 12px;border-radius:9px;background:rgba(127,127,127,0.07);}
+.rt-pie{display:flex;gap:9px;justify-content:flex-end;padding:14px 22px 18px;
+  background:var(--white);border-top:1px solid var(--border);}
+body.tema-oscuro .rt-pie{background:#0F172A;border-top-color:#1E293B;}
+/* Los dos botones del pie comparten alto, tipografía y radio: el de
+   cancelar quedaba más pequeño y desalineado. */
+.rt-pie .btn-primary,
+.rt-pie .btn-ghost{
+  font-family:inherit;font-size:13px;font-weight:700;
+  padding:11px 20px;border-radius:10px;cursor:pointer;line-height:1.2;
+}
+.rt-pie .btn-ghost{
+  flex:0 0 auto;min-width:110px;
+  border:1px solid var(--border);background:transparent;color:var(--text-secondary);
+}
+.rt-pie .btn-ghost:hover{background:rgba(127,127,127,0.08);color:var(--text-primary);}
+.rt-pie .btn-primary{flex:1;max-width:240px;}
+.informe-chip{
+  display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;
+  background:rgba(255,255,255,0.14);font-weight:600;font-size:10.5px;
+}
+#btn-kpi-incendios.active{ background:rgba(249,115,22,0.30) !important; border-color:#F97316 !important; }
+.res-punto{ display:inline-block;width:8px;height:8px;border-radius:50%;
+  background:currentColor;opacity:.45;flex-shrink:0; }
+@keyframes radarPing{
+  0%   { transform:scale(1);   opacity:.9; }
+  70%  { transform:scale(3.2); opacity:0; }
+  100% { transform:scale(3.2); opacity:0; }
+}
+
+
+/* ===== ETIQUETAS PERIODO — control por CSS ===== */
+/* regla obsoleta eliminada */
+
+
+/* ===== RENDIMIENTO (20-10-2026): los brillos y latidos animan filter / stroke en CADA ruta, ameba y marcador (el navegador
+ * redibuja el SVG del mapa ~60 veces por segundo). Se detienen mientras se edita o dibuja (body.editando-mapa), mientras se
+ * mueve o hace zoom el mapa (.map-moviendo: quedan congelados) y siempre si el usuario las apaga (body.sin-animaciones). */
+body.editando-mapa .ruta-alerta-amarilla, body.editando-mapa .ruta-alerta-roja, body.editando-mapa .recurso-activo-glow,
+body.editando-mapa .ruta-asignada-glow, body.editando-mapa path.ameba-n1, body.editando-mapa path.ameba-n3, body.editando-mapa path.ameba-n5,
+body.editando-mapa .flama-pulso, body.editando-mapa .ameba-latido,
+body.sin-animaciones .ruta-alerta-amarilla, body.sin-animaciones .ruta-alerta-roja, body.sin-animaciones .recurso-activo-glow,
+body.sin-animaciones .ruta-asignada-glow, body.sin-animaciones path.ameba-n1, body.sin-animaciones path.ameba-n3, body.sin-animaciones path.ameba-n5,
+body.sin-animaciones .flama-pulso, body.sin-animaciones .ameba-latido, body.sin-animaciones .neon-hover-amarilla, body.sin-animaciones .neon-hover-roja,
+body.sin-animaciones .neon-hover-verde, body.sin-animaciones .ruta-seleccionada-neon { animation: none !important; filter: none !important; }
+body.editando-mapa .flama-svg, body.sin-animaciones .flama-svg { filter: none !important; }
+.map-moviendo .ruta-alerta-amarilla, .map-moviendo .ruta-alerta-roja, .map-moviendo .recurso-activo-glow, .map-moviendo .ruta-asignada-glow,
+.map-moviendo path.ameba-n1, .map-moviendo path.ameba-n3, .map-moviendo path.ameba-n5, .map-moviendo .flama-pulso { animation-play-state: paused !important; }
+@media (prefers-reduced-motion: reduce) {
+  .ruta-alerta-amarilla, .ruta-alerta-roja, .recurso-activo-glow, .ruta-asignada-glow, path.ameba-n1, path.ameba-n3, path.ameba-n5, .flama-pulso { animation: none !important; }
+}
+
+/* ===== EFECTO LATIDO AMEBAS DE INCENDIOS (por temporada) ===== */
+/* Latido del relleno + borde para distinguir de las áreas de rutas */
+@keyframes amebaLatido1 {
+  0%, 100% { fill-opacity: 0.10; stroke-opacity: 0.7; stroke-width: 1.5; }
+  50%      { fill-opacity: 0.30; stroke-opacity: 1;   stroke-width: 3; }
+}
+@keyframes amebaLatido3 {
+  0%, 100% { fill-opacity: 0.14; stroke-opacity: 0.75; stroke-width: 2; }
+  50%      { fill-opacity: 0.38; stroke-opacity: 1;    stroke-width: 3.5; }
+}
+@keyframes amebaLatido5 {
+  0%, 100% { fill-opacity: 0.18; stroke-opacity: 0.8; stroke-width: 2.5; }
+  50%      { fill-opacity: 0.46; stroke-opacity: 1;   stroke-width: 4.5; }
+}
+/* Cada nivel late a distinta velocidad para diferenciarse entre sí */
+path.ameba-n1 { animation: amebaLatido1 2.4s ease-in-out infinite; }
+path.ameba-n3 { animation: amebaLatido3 1.8s ease-in-out infinite; }
+path.ameba-n5 { animation: amebaLatido5 1.3s ease-in-out infinite; }
+
+/* ===== EFECTO LATIDO MARCADOR DE INCENDIO ===== */
+@keyframes flamaPulso {
+  0%   { transform: scale(0.5); opacity: 0.85; }
+  80%  { transform: scale(2.6); opacity: 0; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+.flama-wrap { position: relative; width: 15px; height: 19px; }
+.flama-pulso {
+  position: absolute; left: 50%; bottom: 3px; margin-left: -6px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: radial-gradient(circle, var(--fire-c,#EA580C) 0%, transparent 70%);
+  animation: flamaPulso 1.6s ease-out infinite; pointer-events: none;
+}
+.flama-svg { position: relative; z-index: 2; filter: drop-shadow(0 0 3px var(--fire-c,#EA580C)); }
+
+/* ════════ CALENDARIO DE TURNOS v2 ════════ */
+#turnos-panel{display:none;position:fixed;inset:60px 0 0 0;background:var(--bg-light);overflow:auto;z-index:30;color:var(--text-primary);}
+.turnos-wrap{padding:18px 22px 28px;max-width:1500px;margin:0 auto;}
+.turnos-head{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px;}
+.turnos-head h2{margin:0;font-size:19px;font-weight:800;letter-spacing:-0.2px;}
+.turnos-head p{margin:3px 0 0;font-size:12.5px;color:var(--text-secondary);max-width:70ch;}
+.turnos-estado{font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:20px;background:var(--white);border:1px solid var(--border);color:var(--text-secondary);white-space:nowrap;}
+.turnos-estado.guardando{color:#B45309;border-color:#FCD34D;background:#FFFBEB;}
+.turnos-estado.ok{color:#166534;border-color:#86EFAC;background:#F0FDF4;}
+.turnos-estado.error{color:#B91C1C;border-color:#FCA5A5;background:#FEF2F2;}
+.turnos-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--white);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:12px;}
+.turnos-toolbar select,.turnos-toolbar input[type="search"]{height:34px;border:1.5px solid var(--border);border-radius:8px;padding:0 10px;font-family:inherit;font-size:12.5px;background:var(--white);color:var(--text-primary);}
+.turnos-toolbar input[type="search"]{min-width:170px;}
+.turnos-toolbar .sep{flex:1 1 auto;}
+.turnos-seg{display:flex;background:var(--bg-light);border:1px solid var(--border);border-radius:9px;padding:2px;}
+.turnos-seg button{padding:6px 14px;border:none;background:none;border-radius:7px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;color:var(--text-secondary);}
+.turnos-seg button.active{background:var(--cobalt);color:#fff;box-shadow:0 1px 3px rgba(37,99,235,0.35);}
+.turnos-nav{display:flex;align-items:center;gap:4px;}
+.turnos-nav button{height:34px;min-width:34px;border:1.5px solid var(--border);border-radius:8px;background:var(--white);color:var(--text-primary);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:0 10px;}
+.turnos-nav button:hover,.turnos-btn:hover{border-color:var(--cobalt);color:var(--cobalt);}
+.turnos-nav .lbl{font-size:13px;font-weight:800;min-width:170px;text-align:center;}
+.turnos-btn{height:34px;border:1.5px solid var(--border);border-radius:8px;background:var(--white);color:var(--text-primary);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:0 12px;white-space:nowrap;}
+.turnos-btn:disabled{opacity:.45;cursor:not-allowed;}
+.turnos-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px;}
+.turnos-kpi{background:var(--white);border:1px solid var(--border);border-radius:11px;padding:10px 13px;}
+.turnos-kpi .v{font-size:21px;font-weight:800;line-height:1.1;}
+.turnos-kpi .l{font-size:11.5px;color:var(--text-secondary);margin-top:2px;}
+.turnos-kpi.verde .v{color:#16A34A;}
+.turnos-kpi.ambar .v{color:#D97706;}
+.turnos-kpi.azul .v{color:var(--cobalt);}
+.turnos-grid-wrap{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:auto;max-height:calc(100vh - 330px);min-height:220px;}
+.turnos-vacio{padding:44px 20px;text-align:center;color:var(--text-tertiary);font-size:13px;}
+.turnos-tabla{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;}
+.turnos-tabla th,.turnos-tabla td{border-bottom:1px solid var(--border);}
+.turnos-tabla thead th{position:sticky;top:0;z-index:3;background:var(--white);}
+.turnos-tabla tfoot td{position:sticky;bottom:0;z-index:3;background:var(--bg-light);border-top:2px solid var(--border);border-bottom:none;font-weight:800;text-align:center;font-size:11.5px;padding:6px 2px;}
+.turnos-tabla .col-rec{position:sticky;left:0;z-index:2;background:var(--white);text-align:left;min-width:250px;max-width:300px;padding:4px 8px;border-right:1px solid var(--border);}
+/* Fila compacta + avance (14-10-2026) */
+.turnos-rec-compacta{display:flex;align-items:center;gap:6px;}
+.turnos-rec-txt{flex:1;min-width:0;}
+.turnos-rec-compacta .turnos-rec-clave{font-size:12.5px;}
+.turnos-rec-compacta .turnos-rec-sub{max-width:150px;font-size:10px;margin-left:16px;}
+.turnos-rec-compacta .turnos-fila-acc{margin-left:0;flex-shrink:0;}
+.turnos-fila-acc button.aviso{border-color:#FCD34D;background:#FFFBEB;color:#B45309;}
+.tt-avance{min-width:74px;padding:0 6px;}
+.tt-num{display:flex;align-items:baseline;justify-content:center;gap:1px;font-variant-numeric:tabular-nums;}
+.tt-num b{font-size:13px;color:var(--text-primary);} .tt-num small{font-size:10px;color:var(--text-tertiary);font-weight:700;}
+.tt-num span{font-size:10.5px;font-weight:800;margin-left:5px;}
+.tt-bar{height:4px;border-radius:99px;background:#E2E8F0;overflow:hidden;margin-top:2px;}
+.tt-bar i{display:block;height:100%;border-radius:99px;}
+.tt-na{color:var(--text-tertiary);}
+.turnos-tabla thead .col-rec{z-index:4;}
+.turnos-tabla tfoot .col-rec{z-index:4;background:var(--bg-light);text-align:left;padding:6px 10px;}
+.turnos-tabla .col-total{text-align:center;min-width:48px;font-weight:800;border-left:1px solid var(--border);color:var(--text-secondary);}
+.turnos-dia-th{padding:5px 1px;text-align:center;min-width:32px;cursor:pointer;user-select:none;}
+.turnos-dia-th:hover{background:var(--cobalt-soft) !important;}
+.turnos-dia-th .ds{font-size:9.5px;color:var(--text-tertiary);font-weight:700;}
+.turnos-dia-th .dn{font-size:12.5px;font-weight:700;}
+.turnos-dia-th.finde{background:var(--bg-light);}
+.turnos-dia-th.hoy .dn{color:var(--cobalt);font-weight:900;}
+.turnos-dia-th.hoy{box-shadow:inset 0 -3px 0 var(--cobalt);}
+.turnos-rec-top{display:flex;align-items:center;gap:7px;}
+.turnos-swatch{width:9px;height:9px;border-radius:50%;flex:0 0 9px;}
+.turnos-rec-tipo{font-weight:800;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.turnos-rec-nombre{font-size:10.5px;color:var(--text-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:1px 0 4px 16px;}
+.turnos-rec-bottom{display:flex;align-items:center;gap:5px;margin-left:16px;flex-wrap:wrap;}
+.turnos-chip-inicio{border:1px solid var(--border);background:var(--bg-light);color:var(--text-secondary);border-radius:20px;padding:2px 9px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;}
+.turnos-chip-inicio:hover{border-color:var(--cobalt);color:var(--cobalt);}
+.turnos-chip-inicio.sin{background:#FFFBEB;border-color:#FCD34D;color:#B45309;}
+.turnos-chip-inicio.futura{background:var(--cobalt-soft);border-color:#BFDBFE;color:var(--cobalt-dark);}
+.turnos-fila-acc{display:inline-flex;gap:3px;margin-left:auto;}
+.turnos-fila-acc button{width:24px;height:22px;border:1px solid var(--border);background:var(--white);border-radius:6px;font-size:11px;cursor:pointer;color:var(--text-secondary);padding:0;}
+.turnos-fila-acc button:hover{border-color:var(--cobalt);color:var(--cobalt);}
+.turno-celda{padding:0;text-align:center;cursor:pointer;touch-action:none;user-select:none;}
+.turno-celda.finde{background:var(--bg-light);}
+.turno-celda.hoy{box-shadow:inset 2px 0 0 rgba(37,99,235,0.35),inset -2px 0 0 rgba(37,99,235,0.35);}
+.turno-celda .tc{width:26px;height:26px;margin:3px auto;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;background:#EEF2F7;color:transparent;transition:background .08s,transform .08s;}
+.turno-celda:hover .tc{outline:2px solid var(--cobalt);outline-offset:0;}
+.turno-celda.activo .tc{background:#22C55E;color:#fff;}
+/* Día libre (sin turno, permitido): amarillo con "L" (13-10-2026) */
+.turnos-pano-menu{display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:50;min-width:230px;background:var(--white);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,.18);padding:4px;flex-direction:column;}
+.turnos-pano-menu.show{display:flex;}
+.turnos-pano-menu button{border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:7px;font:inherit;font-size:12.5px;font-weight:600;color:var(--text-primary);cursor:pointer;}
+.turnos-pano-menu button:hover{background:var(--bg-light);}
+.turnos-pano-menu small{font-weight:500;color:var(--text-tertiary);}
+.turno-celda.libre .tc{background:#FDE68A;color:#92400E;font-size:11px;}
+.turno-celda.libre.finde .tc{background:#FCD34D;}
+body.tema-oscuro .turno-celda.libre .tc{background:#713F12;color:#FDE68A;}
+/* Recurso = su clave radial como etiqueta principal */
+.turnos-rec-clave{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:800;color:var(--text-primary);white-space:nowrap;}
+.turnos-rec-clave small{font-size:10px;font-weight:600;color:var(--text-tertiary);}
+.turnos-rec-sub{font-size:10.5px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;}
+/* Seguimiento de actualización del calendario */
+.seg-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:10px 0 14px;}
+.seg-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:14px;}
+.seg-card h3{margin:0 0 8px;font-size:13.5px;font-weight:800;}
+.seg-tabla{width:100%;border-collapse:collapse;font-size:12px;}
+.seg-tabla th,.seg-tabla td{padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+.seg-tabla th{font-size:10.5px;color:var(--text-secondary);font-weight:700;background:var(--bg-light);position:sticky;top:0;}
+.seg-tabla td.num{text-align:center;font-weight:700;font-variant-numeric:tabular-nums;}
+.seg-tabla tr.clic{cursor:pointer;}
+.seg-tabla tr.clic:hover td{background:var(--cobalt-soft);}
+.seg-tabla tr.sel td{background:var(--cobalt-soft);}
+.seg-barra{width:120px;height:8px;border-radius:99px;background:#FEE2E2;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px;}
+.seg-barra i{display:block;height:100%;background:#16A34A;}
+.seg-est{display:inline-block;padding:1px 8px;border-radius:99px;font-size:10.5px;font-weight:700;}
+.seg-est.pendiente{background:#FEE2E2;color:#991B1B;} .seg-est.al_dia{background:#DCFCE7;color:#166534;}
+.seg-est.sin_inicio{background:#E2E8F0;color:#475569;} .seg-est.no_inicia{background:#FEF3C7;color:#92400E;}
+.seg-scroll{max-height:420px;overflow:auto;}
+@media (max-width:900px){ .seg-kpis{grid-template-columns:repeat(2,minmax(0,1fr));} }
+.turno-celda.pasado .tc{opacity:.6;}
+.turno-celda.inicio .tc{box-shadow:inset 3px 0 0 var(--cobalt);}
+.turno-celda.bloqueado{cursor:not-allowed;}
+.turno-celda.bloqueado .tc{background:repeating-linear-gradient(135deg,transparent 0 4px,rgba(148,163,184,0.35) 4px 6px);color:transparent;}
+.turno-celda.bloqueado:hover .tc{outline:none;}
+.turnos-leyenda{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:10px;font-size:11.5px;color:var(--text-secondary);}
+.turnos-leyenda .lg{display:inline-flex;align-items:center;gap:6px;}
+.turnos-leyenda .mx{width:15px;height:15px;border-radius:4px;display:inline-block;}
+#turnos-inicio-overlay{position:fixed;z-index:1000;}
+body.tema-oscuro .turno-celda .tc{background:#1E293B;}
+body.tema-oscuro .turno-celda.activo .tc{background:#16A34A;}
+body.tema-oscuro .turnos-estado.guardando{background:#3B2A0A;}
+body.tema-oscuro .turnos-estado.ok{background:#0B2A17;}
+body.tema-oscuro .turnos-estado.error{background:#3A0F12;}
+body.tema-oscuro .turnos-chip-inicio.sin{background:#3B2A0A;border-color:#92400E;color:#FCD34D;}
+@media (max-width:700px){
+  .turnos-wrap{padding:12px 10px 20px;}
+  .turnos-tabla .col-rec{min-width:170px;max-width:190px;}
+  .turnos-nav .lbl{min-width:120px;font-size:12px;}
+  .turnos-grid-wrap{max-height:none;}
+}

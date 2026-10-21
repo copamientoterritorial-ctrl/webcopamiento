@@ -1,0 +1,321 @@
+/* ===== Mantenedores mejorados: KPIs, avatares, badges, grupos, densidad ===== */
+.adm-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px;}
+.adm-kpi{background:#fff;border:1px solid var(--border);border-radius:12px;padding:11px 13px;box-shadow:var(--shadow-soft);display:flex;align-items:center;gap:10px;}
+.adm-kpi .ak-ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.adm-kpi .ak-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-tertiary);}
+.adm-kpi .ak-value{font-size:20px;font-weight:800;line-height:1.1;}
+.adm-kpi.clickable{cursor:pointer;transition:border-color .15s;} .adm-kpi.clickable:hover{border-color:var(--cobalt);}
+.adm-kpi.activo{border-color:var(--cobalt);background:#F5F8FF;}
+/* Avatar con iniciales */
+.avatar{width:32px;height:32px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;}
+.avatar.sm{width:26px;height:26px;font-size:9.5px;border-radius:7px;}
+.cell-persona{display:flex;align-items:center;gap:10px;min-width:0;}
+.cell-persona .cp-nombre{font-weight:700;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cell-persona .cp-sub{font-size:10.5px;color:var(--text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* Badges */
+.bdg{display:inline-block;font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:12px;text-transform:uppercase;letter-spacing:0.2px;white-space:nowrap;}
+.bdg-admin{background:#EDE9FE;color:#5B21B6;} .bdg-grd{background:#DBEAFE;color:#1E40AF;} .bdg-visor{background:#F1F5F9;color:#475569;} .bdg-jefe{background:#FEF3C7;color:#92400E;} .bdg-subg{background:#CCFBF1;color:#115E59;}
+.bdg-ok{background:#DCFCE7;color:#166534;} .bdg-off{background:#FEE2E2;color:#991B1B;} .bdg-neutral{background:#F1F5F9;color:#475569;}
+.bdg-si{background:#DCFCE7;color:#166534;} .bdg-no{background:#F1F5F9;color:#94A3B8;}
+.swatch-lg{width:22px;height:22px;border-radius:6px;display:inline-block;vertical-align:middle;border:1px solid rgba(0,0,0,0.08);}
+.logo-cell{width:30px;height:30px;border-radius:50%;object-fit:contain;border:1px solid var(--border);background:#fff;vertical-align:middle;}
+.logo-cell.sq{border-radius:7px;}
+.logo-empty{width:30px;height:30px;border-radius:50%;border:1.5px dashed #CBD5E1;display:inline-flex;align-items:center;justify-content:center;font-size:12px;color:#CBD5E1;vertical-align:middle;}
+/* Filas de grupo (agrupación) */
+.admin-table tbody tr.grupo-row td{background:#F1F5F9;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);padding:7px 12px;border-bottom:1px solid var(--border);}
+.admin-table tbody tr.grupo-row td .g-count{font-weight:600;color:var(--text-tertiary);margin-left:6px;text-transform:none;letter-spacing:0;}
+/* Densidad ajustable */
+.dens-toggle{display:flex;gap:2px;background:#F1F5F9;border-radius:8px;padding:2px;}
+.dens-btn{border:none;background:transparent;font-family:inherit;font-size:10.5px;font-weight:700;padding:5px 9px;border-radius:6px;cursor:pointer;color:var(--text-secondary);}
+.dens-btn.active{background:#fff;color:var(--text-primary);box-shadow:0 1px 2px rgba(0,0,0,0.08);}
+.admin-table.dens-compacta tbody td{padding:5px 12px;font-size:11px;} .admin-table.dens-compacta .avatar{width:24px;height:24px;font-size:9px;}
+.admin-table.dens-normal tbody td{padding:9px 12px;}
+.admin-table.dens-amplia tbody td{padding:14px 12px;font-size:12.5px;}
+.acciones-cell{white-space:nowrap;text-align:right;}
+.acciones-cell .popup-btn{padding:4px 9px;font-size:10.5px;}
+/* Botones de acción compactos (íconos en horizontal) */
+.act-btns{display:inline-flex;gap:3px;align-items:center;}
+.act-btn{
+  width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:#fff;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;font-size:13px;line-height:1;padding:0;
+  transition:all .12s ease;color:var(--text-secondary);
+}
+.act-btn:hover{border-color:var(--cobalt);background:#EFF4FF;transform:translateY(-1px);}
+.act-btn.danger:hover{border-color:#DC2626;background:#FEF2F2;}
+.act-btn.warn:hover{border-color:#F59E0B;background:#FFFBEB;}
+.act-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+/* Meteo */
+.meteo-actual{display:flex;gap:14px;flex-wrap:wrap;align-items:stretch;margin-bottom:14px;}
+.meteo-box{flex:1;min-width:130px;background:#F8FAFC;border:1px solid var(--border);border-radius:12px;padding:12px 14px;}
+.meteo-box .m-label{font-size:10.5px;font-weight:700;text-transform:uppercase;color:var(--text-tertiary);letter-spacing:0.3px;}
+.meteo-box .m-value{font-size:22px;font-weight:800;margin-top:2px;}
+.meteo-box .m-unit{font-size:12px;color:var(--text-secondary);font-weight:600;}
+.riesgo-badge{display:inline-block;padding:6px 12px;border-radius:20px;font-weight:800;font-size:12px;color:#fff;}
+.riesgo-bajo{background:#16A34A;} .riesgo-moderado{background:#F59E0B;} .riesgo-alto{background:#EA580C;} .riesgo-extremo{background:#DC2626;}
+.meteo-dias{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:12px;}
+.meteo-dia{background:#F8FAFC;border:1px solid var(--border);border-radius:10px;padding:10px 8px;text-align:center;}
+.meteo-dia .d-nombre{font-size:10.5px;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;}
+.meteo-dia .d-temp{font-size:14px;font-weight:800;margin:4px 0 2px;}
+.meteo-dia .d-det{font-size:10px;color:var(--text-secondary);line-height:1.5;}
+.meteo-analisis{margin-top:12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:12px 14px;font-size:12.5px;color:#78350F;line-height:1.55;}
+@media (max-width:900px){ .meteo-dias{grid-template-columns:repeat(4,1fr);} }
+/* Ventanas de peligro (viento / heladas) */
+.criterio-badge{font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:6px;background:#FFF7ED;color:#C2410C;border:1px solid #FED7AA;text-transform:uppercase;letter-spacing:0.2px;}
+.ventanas-lista{max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;}
+.ventana-item{border:1px solid var(--border);border-left:4px solid #EA580C;border-radius:10px;padding:10px 12px;background:#FFFBF7;}
+.ventana-item.helada{border-left-color:#3B82F6;background:#F5F9FF;}
+.ventana-item.helada.severa{border-left-color:#7C3AED;background:#F8F5FF;}
+.ventana-item .v-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:800;margin-bottom:6px;}
+.ventana-item .v-tag{font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:12px;background:#FED7AA;color:#7C2D12;}
+.ventana-item.helada .v-tag{background:#DBEAFE;color:#1E3A8A;}
+.ventana-item .v-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.ventana-item .v-cell{background:#fff;border:1px solid var(--border);border-radius:7px;padding:6px 8px;}
+.ventana-item .v-cell .vl{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-tertiary);letter-spacing:0.3px;}
+.ventana-item .v-cell .vv{font-size:13px;font-weight:800;margin-top:1px;}
+.ventana-item .v-cell .vv.warn{color:#EA580C;} .ventana-item .v-cell .vv.cold{color:#2563EB;}
+.comp-chip{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:4px 8px;border-radius:14px;background:#fff;border:1.5px solid var(--border);}
+.comp-chip .cc-dot{width:9px;height:9px;border-radius:50%;}
+.comp-chip button{border:none;background:none;cursor:pointer;color:var(--text-tertiary);font-size:12px;padding:0;line-height:1;}
+
+/* ===== Simbología flotante ===== */
+#simbologia-flotante{
+  /* Esquina inferior derecha: arriba chocaba con los controles del mapa y
+     con la barra de escenarios. */
+  position:absolute;bottom:16px;right:16px;z-index:450;background:var(--white);border:1px solid var(--border);
+  border-radius:14px;box-shadow:var(--shadow-lift);display:flex;flex-direction:column;overflow:hidden;
+  transition:width .15s ease;max-height:52vh;
+}
+#simbologia-flotante .sf-body{overflow-y:auto;}
+#simbologia-flotante.sf-size-s{width:190px;}
+#simbologia-flotante.sf-size-m{width:240px;}
+#simbologia-flotante.sf-size-l{width:300px;}
+.sf-header{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:8px 10px;background:var(--navy-deep);color:#fff;
+}
+.sf-title{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sf-controls{display:flex;gap:3px;flex-shrink:0;}
+.sf-btn{
+  width:22px;height:22px;border-radius:5px;border:none;background:rgba(255,255,255,0.15);color:#fff;
+  cursor:pointer;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;
+}
+.sf-btn:hover{background:rgba(255,255,255,0.3);}
+.sf-body{padding:4px 10px 8px;max-height:52vh;overflow-y:auto;font-size:10.5px;}
+#simbologia-flotante.sf-collapsed .sf-body{display:none;}
+#simbologia-flotante.sf-collapsed #sf-colapsar{transform:rotate(180deg);}
+.sf-size-s .sf-body{font-size:9.5px;}
+.sf-size-m .sf-body{font-size:10.5px;}
+.sf-size-l .sf-body{font-size:12px;}
+.sf-row{display:flex;align-items:center;justify-content:space-between;padding:5px 2px;border-bottom:1px solid #F1F5F9;}
+.sf-row:last-child{border-bottom:none;}
+.sf-row-left{display:flex;align-items:center;gap:7px;min-width:0;}
+.sf-dot{width:9px;height:9px;border-radius:2.5px;flex-shrink:0;}
+.sf-logo{width:18px;height:18px;border-radius:50%;object-fit:contain;background:#fff;border:1.5px solid #CBD5E1;flex-shrink:0;}
+.sf-size-l .sf-logo{width:22px;height:22px;}
+.sf-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sf-size-l .sf-dot{width:11px;height:11px;}
+
+/* ===== Efecto "luciérnaga": glow pulsante para capas de alerta y recursos activos ===== */
+@keyframes glow-amarilla {
+  0%,100% { filter: drop-shadow(0 0 2px #F59E0B) drop-shadow(0 0 4px rgba(245,158,11,0.5)); }
+  50%     { filter: drop-shadow(0 0 8px #F59E0B) drop-shadow(0 0 16px rgba(245,158,11,0.95)); }
+}
+@keyframes glow-roja {
+  0%,100% { filter: drop-shadow(0 0 2px #EF4444) drop-shadow(0 0 4px rgba(239,68,68,0.5)); }
+  50%     { filter: drop-shadow(0 0 9px #EF4444) drop-shadow(0 0 18px rgba(239,68,68,0.95)); }
+}
+@keyframes glow-recurso {
+  0%,100% { filter: drop-shadow(0 0 2px var(--glow-c)) drop-shadow(0 0 4px var(--glow-c)); }
+  50%     { filter: drop-shadow(0 0 8px var(--glow-c)) drop-shadow(0 0 15px var(--glow-c)); }
+}
+.ruta-alerta-amarilla { animation: glow-amarilla 1.6s ease-in-out infinite; }
+.ruta-alerta-roja     { animation: glow-roja 1.4s ease-in-out infinite; }
+.recurso-activo-glow  { animation: glow-recurso 1.8s ease-in-out infinite; }
+@keyframes glow-asignada {
+  0%,100% { filter: drop-shadow(0 0 2px #16A34A) drop-shadow(0 0 4px rgba(22,163,74,0.5)); }
+  50%     { filter: drop-shadow(0 0 8px #16A34A) drop-shadow(0 0 15px rgba(22,163,74,0.95)); }
+}
+.ruta-asignada-glow { animation: glow-asignada 1.7s ease-in-out infinite; }
+/* Ruta seleccionada en el panel de asignación: neón pulsante intenso */
+@keyframes neon-ruta-sel {
+  0%,100% { filter: drop-shadow(0 0 3px #06B6D4) drop-shadow(0 0 8px #06B6D4); }
+  50%     { filter: drop-shadow(0 0 8px #22D3EE) drop-shadow(0 0 20px #06B6D4) drop-shadow(0 0 30px #06B6D4); }
+}
+.ruta-seleccionada-neon { animation: neon-ruta-sel 1s ease-in-out infinite; outline:none !important; }
+/* Refuerzo: sobre las rutas el navegador dibujaba un recuadro de foco al
+   pasar el cursor o hacer clic. Se elimina en todos sus estados. */
+.leaflet-container path.leaflet-interactive:hover,
+.leaflet-container path.leaflet-interactive:focus,
+.leaflet-container path.leaflet-interactive:focus-visible,
+.leaflet-container path.leaflet-interactive:active{ outline:none !important; }
+
+/* Hover neón en polígonos de planificación (alerta) y resaltado en periodo crítico */
+@keyframes neon-amarilla-hover {
+  0%,100% { filter: drop-shadow(0 0 4px #F59E0B) drop-shadow(0 0 10px #F59E0B); }
+  50%     { filter: drop-shadow(0 0 10px #FBBF24) drop-shadow(0 0 22px #F59E0B); }
+}
+@keyframes neon-roja-hover {
+  0%,100% { filter: drop-shadow(0 0 4px #EF4444) drop-shadow(0 0 10px #EF4444); }
+  50%     { filter: drop-shadow(0 0 10px #F87171) drop-shadow(0 0 22px #EF4444); }
+}
+.neon-hover-amarilla { animation: neon-amarilla-hover 0.9s ease-in-out infinite; }
+.neon-hover-roja     { animation: neon-roja-hover 0.9s ease-in-out infinite; }
+/* Faltaba la variante verde: se referenciaba en el código pero no existía en
+   el CSS, así que las entidades de Alerta Verde no brillaban al pasar el mouse. */
+@keyframes neon-verde-hover {
+  0%,100% { filter: drop-shadow(0 0 4px #16A34A) drop-shadow(0 0 10px #16A34A); }
+  50%     { filter: drop-shadow(0 0 10px #4ADE80) drop-shadow(0 0 22px #16A34A); }
+}
+.neon-hover-verde { animation: neon-verde-hover 0.9s ease-in-out infinite; }
+/* Variante genérica: toma el color de la variable --glow-c, para usarla en
+   cualquier entidad (puntos, líneas y áreas de cualquier capa). */
+@keyframes neon-generico-hover {
+  0%,100% { filter: drop-shadow(0 0 4px var(--glow-c,#2563EB)) drop-shadow(0 0 9px var(--glow-c,#2563EB)); }
+  50%     { filter: drop-shadow(0 0 9px var(--glow-c,#2563EB)) drop-shadow(0 0 20px var(--glow-c,#2563EB)); }
+}
+.neon-hover { animation: neon-generico-hover 0.9s ease-in-out infinite; }
+.periodo-hover-resalte { filter: drop-shadow(0 0 6px var(--glow-c, #2563EB)) drop-shadow(0 0 14px var(--glow-c, #2563EB)) brightness(1.15); }
+/* Tooltip de longitud al hacer hover en una ruta */
+.ruta-hover-tip{ background:rgba(17,24,39,0.92); color:#fff; border:none; font-size:11px; font-weight:700; padding:3px 7px; border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+.ruta-hover-tip::before{ display:none; }
+/* =========================================================================
+   OPTIMIZACIÓN MÓVIL — todo dentro de este media query, no afecta escritorio
+   ========================================================================= */
+@media (max-width: 600px) {
+  /* --- Barra superior: hamburguesa + compacta --- */
+  #topbar{ height:56px; padding:0 8px; gap:8px; }
+  #map, #dashboard, #patrullajes-panel, #planificador-panel, #prioridad-panel, #tablero-panel, #gestion-panel, #riesgo-panel, #appreportes-panel, #implementacion-panel, #seguimiento-panel, #bosques-panel, #agricultores-panel, #turnosgestor-panel{ top:56px; }
+  #admin-panel{ top:56px; }
+  #simbologia-flotante{ top:auto; }
+  #btn-hamburguesa{
+    display:flex !important; align-items:center; justify-content:center;
+    width:44px; height:44px; flex-shrink:0; border-radius:12px; border:1px solid var(--border);
+    background:var(--navy-deep); color:#fff; font-size:20px; cursor:pointer; box-shadow:var(--shadow-soft); pointer-events:auto;
+  }
+  .brand-pill{ padding:8px 10px; }
+  .brand-pill .brand-text b{ font-size:12px; }
+  .brand-pill .brand-text span{ font-size:9px; }
+  /* Las pestañas se ocultan tras el hamburguesa y se despliegan como panel;
+     a la derecha quedan solo comuna, actualizar y usuario. */
+  .navbar__left{ flex:0 0 auto; }
+  .brand-pill .brand-text{ display:none; }
+  .vista-tabs{ display:none; }
+  body.menu-movil-abierto .vista-tabs{
+    display:flex; flex-direction:column; align-items:stretch; gap:4px;
+    position:absolute; top:56px; left:8px; right:8px; padding:8px; overflow:visible;
+    background:var(--white); border-radius:14px; box-shadow:var(--shadow-lift); border:1px solid var(--border); z-index:600;
+  }
+  body.menu-movil-abierto .vista-tab{ justify-content:flex-start; padding:11px 12px; font-size:13px; }
+  /* Móvil: los submenús se despliegan dentro del panel, bajo su grupo */
+  body.menu-movil-abierto .vista-grupo{ flex-direction:column; }
+  body.menu-movil-abierto .vista-submenu{ position:static; box-shadow:none; border:none; padding:2px 0 4px 14px; min-width:0; }
+  .vista-tabs .vista-tab .vt-txt{ display:inline !important; }
+  .navbar__right{ gap:4px; min-width:0; }
+  #btn-meteo-horaria, #btn-windy-toolbar, #btn-logo-municipal, #btn-fav-comuna{ display:none !important; }
+  .comuna-select{ max-width:46vw; }
+  .brand-col{ flex-direction:column; align-items:stretch; gap:8px; width:100%; }
+  #logo-municipal-grande{ display:none !important; } /* el logo grande no en móvil */
+
+  /* --- Panel de capas como BOTTOM SHEET --- */
+  #sidebar{
+    top:auto; left:0; right:0; bottom:0; width:100%; max-height:72vh; border-radius:18px 18px 0 0;
+    transform:translateY(0); flex-direction:column-reverse;
+  }
+  #sidebar.collapsed{ transform:translateY(calc(100% - 0px)); display:none; }
+  .sidebar-rail{ width:100%; flex-direction:row; justify-content:space-around; padding:8px 0; gap:4px; overflow-x:auto; }
+  .sidebar-content-wrap, #sidebar > div:not(.sidebar-rail){ width:100% !important; }
+  #collapse-toggle{ display:none !important; }
+  /* Handle visual del bottom sheet */
+  #sidebar::before{ content:''; position:absolute; top:6px; left:50%; transform:translateX(-50%); width:40px; height:4px; border-radius:2px; background:#CBD5E1; z-index:5; }
+
+  /* --- Simbología flotante más compacta --- */
+  #simbologia-flotante{ right:8px; top:auto; bottom:80px; max-width:60vw; }
+  #simbologia-flotante.sf-size-m, #simbologia-flotante.sf-size-l{ width:200px; }
+
+  /* --- Dashboard --- */
+  .dash-inner{ padding:64px 12px 24px; }
+  .dash-header h1{ font-size:18px; }
+  .dash-grid{ grid-template-columns:1fr; }
+  .dash-kpis{ grid-template-columns:1fr 1fr; }
+  .dash-chart{ height:200px; }
+  .meteo-actual{ gap:8px; }
+  .meteo-box{ min-width:calc(50% - 8px); }
+  .meteo-dias{ grid-template-columns:repeat(3,1fr); }
+
+  /* --- Panel de Administración --- */
+  .admin-inner{ flex-direction:column; padding-top:60px; }
+  .admin-menu{ width:100%; flex-direction:row; overflow-x:auto; padding:8px; gap:6px; }
+  .admin-menu-title, .admin-menu-group{ display:none; }
+  .admin-menu-item{ white-space:nowrap; flex-shrink:0; font-size:11.5px; padding:8px 10px; }
+  .admin-content{ padding:14px 12px; }
+  .admin-head{ flex-direction:column; align-items:stretch; }
+  .admin-search{ min-width:0; width:100%; }
+  .adm-kpis{ grid-template-columns:1fr 1fr; }
+  .admin-table{ font-size:11px; }
+  .admin-table thead th, .admin-table tbody td{ padding:7px 8px; }
+
+  /* --- Gestión de Patrullajes: mapa arriba, panel abajo --- */
+  .pat-body{ flex-direction:column; }
+  #pat-map{ height:45vh; }
+  .pat-side{ width:100%; border-left:none; border-top:1px solid var(--border); max-height:45vh; }
+  /* --- Planificador: mapa arriba, lista y ficha abajo --- */
+  #planificador-panel{ overflow-y:auto; }
+  .pl-body{ flex-direction:column; flex:none; }
+  #pl-map{ height:62vh; flex:none; }
+  .pl-col-lista{ width:100%; border-right:none; max-height:40vh; order:2; }
+  #pl-map{ order:1; }
+  .pl-modal{ position:fixed; padding:8px; }
+  .pl-capas-panel{ width:250px; max-height:50vh; }
+  .pl-leyenda{ width:190px; }
+  .pat-toolbar{ flex-direction:column; align-items:stretch; }
+  .pat-toolbar-left{ flex-direction:column; align-items:stretch; }
+  .pat-toolbar .admin-search{ width:100%; }
+
+  /* --- Modales y overlays --- */
+  .modal-card, .login-card{ width:94vw !important; max-width:94vw !important; }
+  #login-overlay .login-card{ width:94vw; }
+
+  /* --- Toasts y elementos flotantes --- */
+  .debug-toast{ left:8px; right:8px; bottom:8px; max-width:none; }
+
+  /* --- Botón flotante de capas (solo en vista Mapa) --- */
+  #btn-capas-movil{
+    display:flex !important; align-items:center; gap:6px; position:absolute; bottom:16px; left:50%;
+    transform:translateX(-50%); z-index:390; background:var(--navy-deep); color:#fff; border:none;
+    padding:12px 20px; border-radius:24px; font-family:inherit; font-size:13px; font-weight:700;
+    box-shadow:var(--shadow-lift); cursor:pointer;
+  }
+  body.modo-dashboard #btn-capas-movil{ display:none !important; } /* solo en Mapa */
+  body.sheet-abierto #btn-capas-movil{ display:none !important; }
+}
+@media (min-width: 769px){ #btn-capas-movil{ display:none !important; } }
+
+/* Pantallas muy pequeñas (teléfonos angostos) */
+@media (max-width: 400px) {
+  .dash-kpis, .adm-kpis{ grid-template-columns:1fr; }
+  .vista-tab{ font-size:11px; padding:7px 8px; }
+}
+
+/* ===== Menú de planificación unificado (compacto) ===== */
+.planificar-panel{ min-width:248px; padding:0; overflow:hidden; }
+.planificar-header{
+  padding:7px 12px 6px; font-size:9.5px; font-weight:800; text-transform:uppercase;
+  letter-spacing:.5px; color:var(--text-tertiary); border-bottom:1px solid var(--border);
+}
+.planificar-item{
+  display:flex; align-items:center; gap:9px; width:100%; padding:8px 12px;
+  background:none; border:none; cursor:pointer; text-align:left;
+  transition:background .14s ease; border-bottom:1px solid var(--border);
+}
+.planificar-item:last-child{ border-bottom:none; }
+.planificar-item:hover{ background:var(--hover); }
+.plan-icon{
+  width:27px; height:27px; border-radius:7px; display:flex; align-items:center;
+  justify-content:center; font-size:14px; flex-shrink:0;
+}
+.plan-label{ font-size:12px; font-weight:700; color:var(--text-primary); line-height:1.2; }
+.plan-sub{ font-size:10px; color:var(--text-secondary); margin-top:1px; line-height:1.2; }
+body.tema-oscuro .planificar-item:hover{ background:#1E293B; }
+body.tema-oscuro .planificar-header{ border-color:#334155; }
+body.tema-oscuro .planificar-item{ border-color:#334155; }
+
