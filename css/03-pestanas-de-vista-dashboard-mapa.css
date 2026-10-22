@@ -353,7 +353,8 @@ body.tema-oscuro .muni-item .muni-etq{color:#86EFAC;}
 .dash-fuente{font-size:10.5px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.3px;}
 @media (max-width:900px){ .dash-grid{grid-template-columns:1fr;} }
 /* Subgerente de Relacionamiento: sin reportes meteorológicos (15-10-2026) */
-body.es-subgerente .dash-meteo, body.es-subgerente #btn-meteo-horaria, body.es-subgerente #btn-windy-toolbar{display:none !important;}
+.dash-grid-meteo{margin-bottom:16px;}
+body.es-subgerente .dash-grid-meteo, body.es-subgerente .dash-meteo, body.es-subgerente #btn-meteo-horaria, body.es-subgerente #btn-windy-toolbar{display:none !important;}
 /* Copamiento planificado por alerta (15-10-2026) */
 #dash-esc-card{margin-bottom:16px;}
 .desc-frase{font-size:13px;line-height:1.55;color:var(--text-secondary);margin:-4px 0 12px;padding:10px 12px;border-radius:10px;background:var(--bg-light);border-left:4px solid #2563EB;}

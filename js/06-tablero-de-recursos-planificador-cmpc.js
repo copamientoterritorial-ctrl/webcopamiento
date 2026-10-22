@@ -33,6 +33,7 @@ async function abrirTablero_(forzar) {
 }
 
 function iniciarListenersTablero_() {
+  selMultiple_('tb-tipo', 'tipos');   // ☑️ varios tipos a la vez (22-10-2026)
   ['tb-subg', 'tb-area', 'tb-tipo', 'tb-movil', 'tb-estado'].forEach(id => document.getElementById(id).addEventListener('change', () => {
     if (id === 'tb-subg') poblarFiltrosTablero_();
     state.tb.quincena = null;
@@ -48,8 +49,9 @@ function iniciarListenersTablero_() {
   document.getElementById('tb-cuerpo').addEventListener('click', (e) => {
     const t = e.target.closest('[data-tb-tipo]');
     if (t) {
-      const sel = document.getElementById('tb-tipo');
-      sel.value = sel.value === t.dataset.tbTipo ? '' : t.dataset.tbTipo;
+      // Clic en una tarjeta: suma o quita ese tipo de la selección (selector múltiple)
+      const vs = valoresSel_('tb-tipo'), tt = t.dataset.tbTipo;
+      fijarValoresSel_('tb-tipo', vs.includes(tt) ? vs.filter(x => x !== tt) : vs.concat(tt));
       state.tb.quincena = null; renderTablero_(); return;
     }
     const q = e.target.closest('[data-tb-q]');
@@ -78,7 +80,7 @@ function poblarFiltrosTablero_() {
     const el = document.getElementById(sel), actual = el.value;
     el.innerHTML = '<option value="">' + todos + '</option>' + valores.map(v =>
       '<option value="' + escapeHtml_(v) + '">' + escapeHtml_(etiqueta ? etiqueta(v) : v) + '</option>').join('');
-    el.value = valores.includes(actual) ? actual : '';
+    if (el._msel) actualizarSel_(el); else el.value = valores.includes(actual) ? actual : '';
   };
   const uniq = arr => [...new Set(arr.filter(v => v != null && v !== ''))].sort((a, b) => String(a).localeCompare(String(b), 'es'));
   opts('tb-subg', uniq(base.map(r => r.subgerencia)), 'Todas las subgerencias', v => 'Subgerencia ' + v);
@@ -147,7 +149,7 @@ function tbFiltrados_() {
   const subg = f('tb-subg'), area = f('tb-area'), tipo = f('tb-tipo'), movil = f('tb-movil'), estado = f('tb-estado');
   const hoy = tbHoyISO_();
   return tbBase_().filter(r => (!subg || r.subgerencia === subg) && (!area || r.area === area) &&
-    (!tipo || r.tipo_recurso === tipo) && (!movil || tbMovil_(r) === movil) && (!estado || tbEstado_(r, hoy) === estado));
+    pasaSel_('tb-tipo', r.tipo_recurso) && (!movil || tbMovil_(r) === movil) && (!estado || tbEstado_(r, hoy) === estado));
 }
 
 function renderTablero_() {
@@ -219,11 +221,11 @@ function renderTablero_() {
     o.personas += Number(tbExtra_(r).n_personas) || 0;
   });
   const tipos = Object.keys(porTipo).sort(compararTipoRecurso_);   // orden de tipos del sistema
-  const tipoSel = document.getElementById('tb-tipo').value;
+  const tiposSel = valoresSel_('tb-tipo');
   html += '<div class="tb-fila2 tb-graf-ancho"><div class="tb-card"><h3>🧩 Recursos por tipo</h3><p class="tb-sub">Clic en un tipo para filtrar el tablero · barra: activos (sólido) y por activar (tenue)</p><div class="tb-tipos">' +
     tipos.map(t => {
       const o = porTipo[t];
-      return '<div class="tb-tipo' + (tipoSel === t ? ' sel' : '') + '" data-tb-tipo="' + esc(t) + '" style="--c:' + plColorTipo_(t) + '" title="' + esc(aTitulo_(t)) + '">' +
+      return '<div class="tb-tipo' + (tiposSel.includes(t) ? ' sel' : '') + '" data-tb-tipo="' + esc(t) + '" style="--c:' + plColorTipo_(t) + '" title="' + esc(aTitulo_(t)) + '">' +
         tbIcono_(t, 36) + '<div class="tb-n">' + fmt(o.n) + '</div><div class="tb-nom">' + esc(aTitulo_(t)) + '</div>' +
         '<div class="tb-barra"><i style="width:' + (100 * o.activo / o.n) + '%"></i><i class="prox" style="width:' + (100 * o.prox / o.n) + '%"></i></div>' +
         '<div class="tb-det">' + o.activo + ' activos · ' + o.prox + ' por activar' + (o.personas ? '<br>' + o.personas + ' personas' : '') + '</div></div>';
@@ -613,7 +615,8 @@ function poblarFiltrosGestion_() {
   selA.innerHTML = '<option value="">Todas las áreas</option>' + areas.map(a => '<option>' + escapeHtml_(a) + '</option>').join('');
   selA.value = areas.includes(vA) ? vA : (areas.length === 1 ? areas[0] : '');
   // Sector: los de la subgerencia / área elegidas (con su cantidad de recursos)
-  const selSe = document.getElementById('gr-sector'), vSe = selSe.value;
+  // 22-10-2026: sector, tipo y empresa admiten VARIOS valores (selMultiple_, js/01). Lo elegido que ya no está se descarta solo.
+  const selSe = document.getElementById('gr-sector');
   const enAlcance = rs.filter(r => (!selS.value || r.subgerencia === selS.value) && (!selA.value || r.area === selA.value));
   const cuenta = {}; enAlcance.forEach(r => { const s = r.sector || ''; if (s) cuenta[s] = (cuenta[s] || 0) + 1; });
   const sectores = Object.keys(cuenta).sort((a, b) => a.localeCompare(b, 'es'));
@@ -621,28 +624,30 @@ function poblarFiltrosGestion_() {
   selSe.innerHTML = '<option value="">Todos los sectores (' + sectores.length + ')</option>' +
     sectores.map(s => '<option value="' + escapeHtml_(s) + '">' + escapeHtml_(s) + ' (' + cuenta[s] + ')</option>').join('') +
     (sinSector ? '<option value="__sin__">— Sin sector (' + sinSector + ')</option>' : '');
-  selSe.value = (sectores.includes(vSe) || (vSe === '__sin__' && sinSector)) ? vSe : '';
-  selSe.classList.toggle('activo', !!selSe.value);
-  // Tipo de recurso: los de la subgerencia / área / sector elegidos (con su cantidad)
-  const selT = document.getElementById('gr-tipo'), vT = selT.value;
-  const enSector = enAlcance.filter(r => !selSe.value || (selSe.value === '__sin__' ? !r.sector : r.sector === selSe.value));
+  actualizarSel_(selSe);
+  // Tipo de recurso: los de la subgerencia / área / sector(es) elegidos (con su cantidad)
+  const selT = document.getElementById('gr-tipo');
+  const enSector = enAlcance.filter(r => grPasaConSin_('gr-sector', r.sector));
   const porTipo = {}; enSector.forEach(r => { const t = r.tipo_recurso || ''; if (t) porTipo[t] = (porTipo[t] || 0) + 1; });
   const tipos = Object.keys(porTipo).sort(compararTipoRecurso_);
   selT.innerHTML = '<option value="">Todos los tipos (' + tipos.length + ')</option>' +
     tipos.map(t => '<option value="' + escapeHtml_(t) + '">' + escapeHtml_(aTitulo_(t)) + ' (' + porTipo[t] + ')</option>').join('');
-  selT.value = tipos.includes(vT) ? vT : '';
-  selT.classList.toggle('activo', !!selT.value);
-  // Empresa: las de la subgerencia / área / sector / tipo elegidos (con su cantidad)
-  const selE = document.getElementById('gr-empresa'), vE = selE.value;
-  const enTipo = enSector.filter(r => !selT.value || r.tipo_recurso === selT.value);
+  actualizarSel_(selT);
+  // Empresa: las de la subgerencia / área / sector(es) / tipo(s) elegidos (con su cantidad)
+  const selE = document.getElementById('gr-empresa');
+  const enTipo = enSector.filter(r => pasaSel_('gr-tipo', r.tipo_recurso));
   const porEmp = {}; enTipo.forEach(r => { const e = (r.empresa || '').trim(); if (e) porEmp[e] = (porEmp[e] || 0) + 1; });
   const emps = Object.keys(porEmp).sort((a, b) => a.localeCompare(b, 'es'));
   const sinEmp = enTipo.filter(r => !(r.empresa || '').trim()).length;
   selE.innerHTML = '<option value="">Todas las empresas (' + emps.length + ')</option>' +
     emps.map(e => '<option value="' + escapeHtml_(e) + '">' + escapeHtml_(e) + ' (' + porEmp[e] + ')</option>').join('') +
     (sinEmp ? '<option value="__sin__">— Sin empresa (' + sinEmp + ')</option>' : '');
-  selE.value = (emps.includes(vE) || (vE === '__sin__' && sinEmp)) ? vE : '';
-  selE.classList.toggle('activo', !!selE.value);
+  actualizarSel_(selE);
+}
+/** Filtro múltiple con la opción «— Sin …» (__sin__): pasa si no hay nada elegido, si se eligió su valor o si va vacío y se eligió «Sin». */
+function grPasaConSin_(id, v) {
+  const vs = valoresSel_(id); v = (v || '').trim();
+  return !vs.length || (v ? vs.includes(v) : vs.includes('__sin__'));
 }
 
 function grContactoCompleto_(r) { return GR_CONTACTO.every(k => grValor_(r, k) !== ''); }
@@ -650,15 +655,12 @@ function grFiltrados_() {
   const q = normalizarBusqueda_(document.getElementById('gr-buscar').value || '');
   const fS = document.getElementById('gr-subg').value, fA = document.getElementById('gr-area').value;
   const fC = document.getElementById('gr-contacto').value;
-  const fSe = document.getElementById('gr-sector').value, fT = document.getElementById('gr-tipo').value;
-  const fE = document.getElementById('gr-empresa').value;
   return state.gr.recursos.filter(r => {
-    if (fT && r.tipo_recurso !== fT) return false;   // tipo guardado del recurso
-    const emp = (r.empresa || '').trim();             // empresa guardada del recurso
-    if (fE === '__sin__' ? !!emp : (fE && emp !== fE)) return false;
+    if (!pasaSel_('gr-tipo', r.tipo_recurso)) return false;         // tipo(s) guardado(s) del recurso
+    if (!grPasaConSin_('gr-empresa', r.empresa)) return false;      // empresa(s), o «Sin empresa»
     if (fS && r.subgerencia !== fS) return false;
     if (fA && r.area !== fA) return false;
-    if (fSe === '__sin__' ? !!r.sector : (fSe && r.sector !== fSe)) return false;   // sector guardado del recurso
+    if (!grPasaConSin_('gr-sector', r.sector)) return false;        // sector(es), o «Sin sector»
     if (fC === 'completo' && !grContactoCompleto_(r)) return false;
     if (fC === 'incompleto' && grContactoCompleto_(r)) return false;
     if (fC === 'modificado' && !state.gr.cambios[r.id]) return false;
@@ -1351,6 +1353,7 @@ async function aplicarCargaGestion_() {
 }
 
 function iniciarListenersGestion_() {
+  selMultiple_('gr-sector', 'sectores'); selMultiple_('gr-tipo', 'tipos'); selMultiple_('gr-empresa', 'empresas');   // ☑️ varios a la vez
   let tBuscar = null;
   document.getElementById('gr-buscar').addEventListener('input', () => { clearTimeout(tBuscar); tBuscar = setTimeout(renderGestion_, 200); });
   document.getElementById('gr-subg').addEventListener('change', () => { poblarFiltrosGestion_(); renderGestion_(); });
@@ -1359,7 +1362,7 @@ function iniciarListenersGestion_() {
   document.getElementById('gr-tipo').addEventListener('change', () => { poblarFiltrosGestion_(); renderGestion_(); });   // repuebla las empresas del tipo
   document.getElementById('gr-contacto').addEventListener('change', renderGestion_);
   document.getElementById('gr-tabla').addEventListener('change', e => { if (e.target.matches('input[data-gr-id], select[data-gr-id]')) grRegistrarCambio_(e.target); });
-  document.getElementById('gr-empresa').addEventListener('change', e => { e.target.classList.toggle('activo', !!e.target.value); renderGestion_(); });
+  document.getElementById('gr-empresa').addEventListener('change', () => renderGestion_());
   document.getElementById('gr-empresas').addEventListener('click', abrirEmpresasGestion_);
   // 🧩 Columnas visibles
   const pop = document.getElementById('gr-cols-pop');

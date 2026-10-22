@@ -190,8 +190,9 @@ function toggleMeteoAmpliar_() {
 async function fetchMeteo_(lat, lng) {
   const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lng +
     '&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,precipitation' +
-    '&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m' +
-    '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,relative_humidity_2m_max,relative_humidity_2m_min,wind_direction_10m_dominant' +
+    // 21-10-2026: + weather_code, cape, lifted_index y precipitation_probability para la probabilidad de tormentas eléctricas
+    '&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code,cape,lifted_index,precipitation_probability,precipitation' +
+    '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,relative_humidity_2m_max,relative_humidity_2m_min,wind_direction_10m_dominant,weather_code,precipitation_probability_max' +
     '&timezone=America%2FSantiago&forecast_days=14';
   const r = await fetch(url); if (!r.ok) throw new Error('Open-Meteo HTTP ' + r.status);
   return r.json();
@@ -254,14 +255,10 @@ async function cargarMeteoDashboard_(cfg) {
     const dP = datos[0]; const cur = dP.current || {};
     document.getElementById('dash-meteo-actualizado').textContent = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
 
-    // ---- Cabecera: condiciones actuales + riesgo ----
-    const riesgo = riesgoIncendio_(cur.temperature_2m, cur.relative_humidity_2m, cur.wind_speed_10m);
-    cont.innerHTML = '<div class="meteo-actual">' +
-      mbox_('Temperatura', cur.temperature_2m, '°C') + mbox_('Humedad', cur.relative_humidity_2m, '%') +
-      mbox_('Viento', cur.wind_speed_10m, 'km/h') + mbox_('Ráfagas', cur.wind_gusts_10m, 'km/h') +
-      '<div class="meteo-box"><div class="m-label">Dirección</div><div class="m-value">' + dirCardinal_(cur.wind_direction_10m) + '</div></div>' +
-      '<div class="meteo-box" style="display:flex;flex-direction:column;justify-content:center;"><div class="m-label">Riesgo de incendio</div><div style="margin-top:6px;"><span class="riesgo-badge riesgo-' + riesgo.nivel + '">' + riesgo.etiqueta + '</span></div></div>' +
-      '</div><div class="meteo-analisis"><b>Análisis de contexto (' + escapeHtml_(principal.comuna) + '):</b> ' + riesgo.analisis + ' ' + analisisSemana_(dP.daily) + '</div>';
+    // ---- Resumen para autoridades (22-10-2026): hoy, próximos días y qué hacer, en lenguaje simple ----
+    cont.innerHTML = renderResumenMeteo_(dP, principal.comuna);
+    document.getElementById('meteo-puelche').innerHTML = renderPuelcheDetalle_(dP);
+    prepararDetalleMeteo_();
 
     const labels = (dP.daily.time || []).map(etiquetaDia_);
     const opciones = (yTitle, extra) => Object.assign({ responsive: true, maintainAspectRatio: false,
@@ -335,6 +332,9 @@ async function cargarMeteoDashboard_(cfg) {
     }
     document.getElementById('meteo-combinado-analisis').innerHTML = txtC;
 
+    // ---- 4c) ⚡ Tormentas eléctricas: probabilidad diaria (máximo horario) y tormentas secas ----
+    renderTormentasMeteo_(dP, labels, principal.comuna);
+
     // ---- 5) Precipitación acumulada (barras; comparadas agrupadas) ----
     destruirChartMeteo_('precip');
     const dsP = series.map(s => ({ label: s.comuna, data: s.d.daily.precipitation_sum, backgroundColor: s.color }));
@@ -356,6 +356,213 @@ async function cargarMeteoDashboard_(cfg) {
   } catch (e) {
     cont.innerHTML = '<div class="layer-empty-msg">No se pudo obtener el pronóstico (' + escapeHtml_(e.message) + ').</div>';
   }
+}
+
+/* 🌤️ RESUMEN METEOROLÓGICO PARA AUTORIDADES (22-10-2026) ───────────────────────────────────────────────────────────────────
+ * Una lectura simple, sin tecnicismos: cómo será HOY (semáforo de riesgo de incendio, hora más crítica, viento, puelche,
+ * lluvia y rayos), los PRÓXIMOS 5 DÍAS (una línea por día) y QUÉ HACER. El detalle técnico va en «📊 Análisis detallado».
+ *   · Riesgo de incendio por hora: riesgoIncendio_ (T°, humedad, viento) — inspirado en la regla 30-30-30.
+ *   · Puelche: viento desde la cordillera (dirección 45°–135°, NE-E-SE) ≥ 12 km/h con humedad ≤ 45 % (cálido y seco). */
+const PUELCHE = { dirMin: 45, dirMax: 135, vMin: 12, humMax: 45 };
+function esPuelcheHora_(h, j) {
+  const d = h.wind_direction_10m[j], v = h.wind_speed_10m[j] || 0, hum = h.relative_humidity_2m[j];
+  return d != null && d >= PUELCHE.dirMin && d <= PUELCHE.dirMax && v >= PUELCHE.vMin && hum != null && hum <= PUELCHE.humMax;
+}
+const NIVEL_ORDEN = { bajo: 0, moderado: 1, alto: 2, extremo: 3 };
+function cieloDe_(wc) {
+  if (wc == null) return ['🌤️', 'variable'];
+  if (wc >= 95) return ['⛈️', 'con tormentas'];
+  if (wc >= 85 || (wc >= 71 && wc <= 77)) return ['🌨️', 'con nieve'];
+  if (wc >= 80) return ['🌦️', 'con chubascos'];
+  if (wc >= 61) return ['🌧️', 'lluvioso'];
+  if (wc >= 51) return ['🌦️', 'con llovizna'];
+  if (wc >= 45) return ['🌫️', 'con niebla'];
+  if (wc === 3) return ['🌥️', 'nublado'];
+  if (wc >= 1) return ['🌤️', 'parcialmente nublado'];
+  return ['☀️', 'despejado'];
+}
+/** Análisis de UN día a partir de las horas: riesgo por hora, hora y franja más crítica, viento, puelche. */
+function analisisDiaMeteo_(d, i) {
+  const h = d.hourly, dia = d.daily.time[i], horas = [];
+  h.time.forEach((t, j) => { if (t.slice(0, 10) === dia) horas.push(j); });
+  let peor = null, maxR = -1, franja = [], vMax = 0, hV = null, rMax = 0, pue = [];
+  horas.forEach(j => {
+    const r = riesgoIncendio_(h.temperature_2m[j], h.relative_humidity_2m[j], h.wind_speed_10m[j]);
+    const k = NIVEL_ORDEN[r.nivel] * 100 + (h.temperature_2m[j] || 0) + (h.wind_speed_10m[j] || 0) - (h.relative_humidity_2m[j] || 0) / 2;
+    if (k > maxR) { maxR = k; peor = { j, r }; }
+    if (r.nivel === 'alto' || r.nivel === 'extremo') franja.push(j);
+    if ((h.wind_speed_10m[j] || 0) > vMax) { vMax = h.wind_speed_10m[j] || 0; hV = j; }
+    rMax = Math.max(rMax, h.wind_gusts_10m[j] || 0);
+    if (esPuelcheHora_(h, j)) pue.push(j);
+  });
+  const hora = j => h.time[j].slice(11, 13) + ':00';
+  const rango = js => js.length ? hora(js[0]) + ' a ' + String((parseInt(h.time[js[js.length - 1]].slice(11, 13), 10) + 1) % 24).padStart(2, '0') + ':00' : '';
+  const puePico = pue.length ? pue.reduce((a, b) => ((h.wind_speed_10m[b] || 0) > (h.wind_speed_10m[a] || 0) ? b : a)) : null;
+  const dd = d.daily;
+  return {
+    dia, riesgo: peor ? peor.r : riesgoIncendio_(dd.temperature_2m_max[i], dd.relative_humidity_2m_min[i], dd.wind_speed_10m_max[i]),
+    horaCritica: peor ? hora(peor.j) : '', franjaCritica: rango(franja),
+    tMax: dd.temperature_2m_max[i], tMin: dd.temperature_2m_min[i], humMin: dd.relative_humidity_2m_min[i],
+    vMax: Math.max(vMax, dd.wind_speed_10m_max[i] || 0), horaViento: hV != null ? hora(hV) : '', rMax: Math.max(rMax, dd.wind_gusts_10m_max[i] || 0),
+    dirViento: dirCardinal_(dd.wind_direction_10m_dominant[i]),
+    lluvia: dd.precipitation_sum[i] || 0, probLluvia: dd.precipitation_probability_max ? dd.precipitation_probability_max[i] : null,
+    cielo: cieloDe_(dd.weather_code ? dd.weather_code[i] : null),
+    puelche: pue.length ? { horas: pue.length, franja: rango(pue), pico: hora(puePico), v: Math.round(h.wind_speed_10m[puePico] || 0), hum: Math.round(h.relative_humidity_2m[puePico] || 0) } : null,
+  };
+}
+const mm1_ = v => Number(v || 0).toLocaleString('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+function renderResumenMeteo_(d, comuna) {
+  if (!d || !d.daily || !d.hourly) return '<div class="layer-empty-msg">Sin datos del pronóstico.</div>';
+  const T = tormentasPorDia_(d);
+  const dias = d.daily.time.slice(0, 6).map((_, i) => Object.assign(analisisDiaMeteo_(d, i), { rayos: T[i] || { prob: 0 } }));
+  const hoy = dias[0], r0 = Math.round;
+  const colorR = { bajo: '#16A34A', moderado: '#F59E0B', alto: '#EA580C', extremo: '#DC2626' };
+  // Frase principal de hoy, en lenguaje simple
+  const calor = hoy.tMax >= 30 ? 'muy caluroso' : hoy.tMax >= 25 ? 'caluroso' : hoy.tMax >= 18 ? 'templado' : 'fresco';
+  const seco = hoy.humMin <= 30 ? ' y muy seco' : hoy.humMin <= 40 ? ' y seco' : '';
+  const viento = hoy.vMax >= 30 ? 'viento fuerte' : hoy.vMax >= 20 ? 'viento moderado' : 'viento suave';
+  const frases = [
+    'Hoy será un día <b>' + calor + seco + '</b> y ' + hoy.cielo[1] + '. Máxima de <b>' + r0(hoy.tMax) + ' °C</b> y mínima de ' + r0(hoy.tMin) + ' °C.',
+    'Habrá <b>' + viento + '</b> (hasta ' + r0(hoy.vMax) + ' km/h' + (hoy.horaViento ? ', más intenso cerca de las <b>' + hoy.horaViento + '</b>' : '') + ') con ráfagas de ' + r0(hoy.rMax) + ' km/h.',
+    hoy.puelche ? '🌬️ <b>Se espera puelche</b> (viento cálido y seco desde la cordillera) entre las <b>' + hoy.puelche.franja + '</b>, más fuerte cerca de las ' + hoy.puelche.pico + '.' : '',
+    hoy.lluvia >= 1 ? '🌧️ Se esperan <b>' + mm1_(hoy.lluvia) + ' mm</b> de lluvia' + (hoy.probLluvia != null ? ' (probabilidad ' + hoy.probLluvia + ' %)' : '') + ', lo que ayuda a bajar el riesgo.' : '',
+    hoy.rayos.prob >= 30 ? '⚡ Hay <b>' + hoy.rayos.prob + ' % de probabilidad de tormenta eléctrica</b>' + (hoy.rayos.seca ? ', <b style="color:#B91C1C;">con poca lluvia: los rayos podrían iniciar incendios</b>' : '') + '.' : '',
+  ].filter(Boolean).join(' ');
+  // Qué hacer (recomendaciones prácticas, máximo 4)
+  const hacer = [];
+  if (hoy.riesgo.nivel === 'extremo' || hoy.riesgo.nivel === 'alto') hacer.push('Reforzar el patrullaje y la vigilancia' + (hoy.franjaCritica ? ' entre las <b>' + hoy.franjaCritica + '</b>' : '') + ', que es la franja de mayor riesgo.');
+  if (hoy.puelche) hacer.push('Atención al puelche entre las ' + hoy.puelche.franja + ': seca la vegetación y empuja el fuego hacia el poniente. Evitar quemas y faenas con chispa.');
+  if (hoy.rayos.seca) hacer.push('Tormenta seca probable: mantener torres y vigías atentos a columnas de humo después de los rayos.');
+  if (hoy.rayos.prob >= 50 && !hoy.rayos.seca) hacer.push('Tormenta eléctrica probable: resguardar al personal en terreno (cerros, torres y zonas abiertas) mientras dure.');
+  if (hoy.vMax >= 30 || hoy.rMax >= 50) hacer.push('Viento fuerte: un foco puede crecer muy rápido; priorizar el primer ataque y la detección temprana.');
+  if (!hacer.length) hacer.push(hoy.lluvia >= 1 ? 'Día con lluvia: buena oportunidad para mantención de cortafuegos y capacitación.' : 'Condiciones favorables: mantener el plan normal de copamiento y vigilancia.');
+  const semana = dias.slice(1).filter(x => x.riesgo.nivel === 'alto' || x.riesgo.nivel === 'extremo');
+  // Lo que viene: 5 días
+  const tarjetas = dias.slice(1, 6).map(x => {
+    const linea = [x.riesgo.nivel === 'extremo' || x.riesgo.nivel === 'alto' ? '🔥 riesgo ' + x.riesgo.etiqueta.toLowerCase() : '',
+      x.puelche ? '🌬️ puelche ' + x.puelche.franja : '', x.vMax >= 25 ? '💨 viento ' + r0(x.vMax) + ' km/h' : '',
+      x.lluvia >= 1 ? '🌧️ ' + mm1_(x.lluvia) + ' mm' : '', x.rayos.prob >= 30 ? '⚡ rayos ' + x.rayos.prob + ' %' : ''].filter(Boolean).slice(0, 3).join(' · ') || 'sin alertas';
+    return '<div class="mr-dia"><div class="mr-dia-top"><b>' + etiquetaDia_(x.dia) + '</b><span style="font-size:22px;">' + x.cielo[0] + '</span></div>' +
+      '<div class="mr-temp"><b>' + r0(x.tMax) + '°</b> / ' + r0(x.tMin) + '°</div>' +
+      '<span class="mr-semaforo" style="background:' + colorR[x.riesgo.nivel] + ';">' + x.riesgo.etiqueta + '</span>' +
+      '<div class="mr-linea">' + linea + '</div></div>';
+  }).join('');
+  const chip = (ico, tit, val, sub, color) => '<div class="mr-chip"><span class="mr-ico">' + ico + '</span><div><small>' + tit + '</small><b' + (color ? ' style="color:' + color + ';"' : '') + '>' + val + '</b>' + (sub ? '<em>' + sub + '</em>' : '') + '</div></div>';
+  const nvR = nivelTormenta_(hoy.rayos.prob);
+  return '<div class="mr-hoy" style="--rc:' + colorR[hoy.riesgo.nivel] + ';">' +
+      '<div class="mr-semaforo-grande"><small>Riesgo de incendio hoy</small><b>' + hoy.riesgo.etiqueta + '</b>' +
+        (hoy.horaCritica ? '<em>Hora más crítica: ' + hoy.horaCritica + '</em>' : '') + '</div>' +
+      '<div class="mr-texto"><h4>' + hoy.cielo[0] + ' Hoy en ' + escapeHtml_(comuna) + '</h4><p>' + frases + '</p></div>' +
+    '</div>' +
+    '<div class="mr-chips">' +
+      chip('🌡️', 'Temperatura', r0(hoy.tMax) + '° / ' + r0(hoy.tMin) + '°', 'máxima / mínima') +
+      chip('💧', 'Humedad mínima', r0(hoy.humMin) + ' %', hoy.humMin <= 30 ? 'muy seco' : hoy.humMin <= 40 ? 'seco' : 'normal', hoy.humMin <= 30 ? '#DC2626' : null) +
+      chip('💨', 'Viento máximo', r0(hoy.vMax) + ' km/h', 'ráfagas ' + r0(hoy.rMax) + (hoy.horaViento ? ' · ' + hoy.horaViento : ''), hoy.vMax >= 30 ? '#EA580C' : null) +
+      chip('🌬️', 'Puelche', hoy.puelche ? 'Sí' : 'No', hoy.puelche ? hoy.puelche.franja : 'sin viento de la cordillera', hoy.puelche ? '#B45309' : null) +
+      chip('🌧️', 'Lluvia', mm1_(hoy.lluvia) + ' mm', hoy.probLluvia != null ? 'probabilidad ' + hoy.probLluvia + ' %' : '') +
+      chip('⚡', 'Rayos', hoy.rayos.prob + ' %', nvR[1].toLowerCase() + (hoy.rayos.seca ? ' · tormenta seca' : ''), hoy.rayos.prob >= 30 ? nvR[2] : null) +
+    '</div>' +
+    '<div class="mr-cols">' +
+      '<div class="mr-bloque"><h5>📅 Lo que viene</h5><div class="mr-dias">' + tarjetas + '</div>' +
+        '<p class="mr-nota">' + (semana.length ? '⚠️ Días de mayor riesgo de incendio: <b>' + semana.map(x => etiquetaDia_(x.dia)).join(', ') + '</b>.' : '✅ Los próximos días no muestran riesgo alto de incendio.') + '</p></div>' +
+      '<div class="mr-bloque mr-hacer"><h5>✅ Qué hacer hoy</h5><ul>' + hacer.slice(0, 4).map(x => '<li>' + x + '</li>').join('') + '</ul>' +
+        '<p class="mr-nota">El riesgo considera temperatura, humedad y viento (mientras más calor, menos humedad y más viento, mayor riesgo). Más detalle en <b>📊 Análisis meteorológico detallado</b>.</p></div>' +
+    '</div>';
+}
+/** Pestaña «Viento y puelche»: las franjas de puelche de los próximos días. */
+function renderPuelcheDetalle_(d) {
+  const items = d.daily.time.slice(0, 7).map((_, i) => analisisDiaMeteo_(d, i)).filter(x => x.puelche);
+  if (!items.length) return '<div class="layer-empty-msg">✅ No se espera puelche en los próximos 7 días.</div>';
+  return items.map(x => '<div class="ventana-item"><div class="v-head"><span>' + etiquetaDia_(x.dia) + '</span><span class="v-tag">' + x.puelche.horas + ' h de puelche</span></div>' +
+    '<div class="v-grid"><div class="v-cell"><div class="vl">Franja</div><div class="vv">' + x.puelche.franja + ' hrs</div></div>' +
+    '<div class="v-cell"><div class="vl">Hora más fuerte</div><div class="vv warn">' + x.puelche.pico + ' · ' + x.puelche.v + ' km/h</div></div>' +
+    '<div class="v-cell"><div class="vl">Humedad en esa hora</div><div class="vv">' + x.puelche.hum + ' %</div></div></div></div>').join('');
+}
+/** Botón «Ver análisis detallado» y pestañas (se enlazan una vez). Los gráficos se reajustan al mostrarse. */
+function prepararDetalleMeteo_() {
+  const btn = document.getElementById('meteo-det-toggle'), cuerpo = document.getElementById('meteo-det-cuerpo');
+  if (!btn || btn._listo) return;
+  btn._listo = true;
+  const reajustar = () => setTimeout(() => Object.values(meteoCharts).forEach(c => { try { c.resize(); } catch (e) {} }), 60);
+  btn.addEventListener('click', () => {
+    cuerpo.hidden = !cuerpo.hidden;
+    btn.setAttribute('aria-expanded', String(!cuerpo.hidden));
+    btn.textContent = cuerpo.hidden ? 'Ver análisis detallado ▾' : 'Ocultar análisis detallado ▴';
+    reajustar();
+  });
+  document.getElementById('meteo-tabs').addEventListener('click', e => {
+    const b = e.target.closest('[data-mtab]'); if (!b) return;
+    document.querySelectorAll('#meteo-tabs [data-mtab]').forEach(x => x.classList.toggle('on', x === b));
+    document.querySelectorAll('#meteo-det-cuerpo .meteo-panel').forEach(p => p.classList.toggle('on', p.dataset.mpanel === b.dataset.mtab));
+    reajustar();
+  });
+}
+
+/* ⚡ TORMENTAS ELÉCTRICAS (21-10-2026) ────────────────────────────────────────────────────────────────────────────────────
+ * Open-Meteo no entrega una «probabilidad de rayos» para Chile; se ESTIMA por hora con lo que sí entrega:
+ *   · weather_code 95 / 96 / 99 = el modelo pronostica tormenta (con o sin granizo) → 70 % / 85 %;
+ *   · si no, la energía para convección (CAPE, J/kg) ajustada por el índice de levantamiento (LI: más negativo = más inestable)
+ *     y por la probabilidad de lluvia (sin humedad no hay disparo de la tormenta).
+ * La probabilidad del día es la de su hora más alta. «Tormenta seca»: probabilidad ≥ 30 % con < 2 mm de lluvia en el día →
+ * rayos que pueden iniciar incendios sin lluvia que los apague (lo más relevante para el copamiento). */
+const TORMENTA_NIVELES = [[70, 'Muy alta', '#7C3AED'], [50, 'Alta', '#DC2626'], [30, 'Moderada', '#F59E0B'], [15, 'Baja', '#FACC15'], [0, 'Muy baja', '#CBD5E1']];
+function nivelTormenta_(p) { return TORMENTA_NIVELES.find(([min]) => p >= min) || TORMENTA_NIVELES[TORMENTA_NIVELES.length - 1]; }
+function probTormentaHora_(wc, cape, li, pp) {
+  if (wc === 96 || wc === 99) return 85;
+  if (wc === 95) return 70;
+  cape = cape || 0;
+  const fCape = cape >= 2000 ? 0.75 : cape >= 1000 ? 0.55 : cape >= 500 ? 0.35 : cape >= 250 ? 0.2 : cape >= 100 ? 0.1 : 0;
+  if (!fCape) return 0;
+  const fLi = li == null ? 0.8 : li <= -4 ? 1.2 : li <= -2 ? 1 : li <= 0 ? 0.7 : 0.35;
+  const fLluvia = Math.max(pp == null ? 30 : pp, 20) / 100;
+  return Math.min(65, Math.round(100 * fCape * fLi * (0.4 + 0.6 * fLluvia)));   // sin tormenta pronosticada, tope 65 %
+}
+/** Probabilidad diaria de tormenta eléctrica: [{ dia, prob, horas, desde, hasta, lluvia, seca, capeMax }]. */
+function tormentasPorDia_(d) {
+  const h = d.hourly || {}, dias = (d.daily && d.daily.time) || [];
+  return dias.map((dia, i) => {
+    let prob = 0, horas = 0, desde = null, hasta = null, capeMax = 0;
+    (h.time || []).forEach((t, j) => {
+      if (t.slice(0, 10) !== dia) return;
+      const p = probTormentaHora_(h.weather_code && h.weather_code[j], h.cape && h.cape[j], h.lifted_index && h.lifted_index[j], h.precipitation_probability && h.precipitation_probability[j]);
+      capeMax = Math.max(capeMax, (h.cape && h.cape[j]) || 0);
+      if (p >= 30) { horas++; if (!desde) desde = t.slice(11, 16); hasta = t.slice(11, 16); }
+      prob = Math.max(prob, p);
+    });
+    const dwc = d.daily.weather_code && d.daily.weather_code[i];
+    if (dwc >= 95) prob = Math.max(prob, dwc === 95 ? 70 : 85);
+    const lluvia = (d.daily.precipitation_sum && d.daily.precipitation_sum[i]) || 0;
+    return { dia, prob, horas, desde, hasta, lluvia, capeMax, seca: prob >= 30 && lluvia < 2 };
+  });
+}
+function renderTormentasMeteo_(dP, labels, comuna) {
+  const T = tormentasPorDia_(dP);
+  destruirChartMeteo_('tormentas');
+  const cv = document.getElementById('ch-meteo-tormentas');
+  if (cv) meteoCharts.tormentas = new Chart(cv, {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Probabilidad de tormenta eléctrica (%)', data: T.map(t => t.prob),
+      backgroundColor: T.map(t => nivelTormenta_(t.prob)[2]), borderColor: T.map(t => t.seca ? '#7F1D1D' : 'transparent'), borderWidth: T.map(t => t.seca ? 2 : 0), borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => { const t = T[c.dataIndex]; return ' ' + t.prob + '% · ' + nivelTormenta_(t.prob)[1] + (t.seca ? ' · ⚠️ tormenta seca' : '') + ' · lluvia ' + t.lluvia.toFixed(1) + ' mm'; } } } },
+      scales: { y: { min: 0, max: 100, title: { display: true, text: '%' } }, x: { ticks: { font: { size: 10 }, maxRotation: 0 } } } },
+  });
+  const hoy = T[0] || { prob: 0 }, riesgosos = T.filter(t => t.prob >= 30), secas = T.filter(t => t.seca);
+  const nv = nivelTormenta_(hoy.prob);
+  document.getElementById('meteo-tormentas-analisis').innerHTML =
+    '<b>⚡ ' + escapeHtml_(comuna) + ':</b> hoy la probabilidad de tormenta eléctrica es <b style="color:' + nv[2] + ';">' + hoy.prob + '% (' + nv[1].toLowerCase() + ')</b>. ' +
+    (riesgosos.length
+      ? 'En los próximos 14 días hay <b>' + riesgosos.length + ' día(s)</b> con probabilidad moderada o mayor: ' + riesgosos.map(t => etiquetaDia_(t.dia) + ' (' + t.prob + '%)').join(', ') + '. ' +
+        (secas.length ? '<b style="color:#B91C1C;">' + secas.length + ' podrían ser tormentas secas</b> (rayos con menos de 2 mm de lluvia): riesgo de incendios por rayo; conviene reforzar la vigilancia y la detección temprana esos días.' : 'Vienen con lluvia, lo que reduce el riesgo de incendio por rayo.')
+      : 'No se proyectan días con probabilidad moderada o mayor en los próximos 14 días.') +
+    ' <span style="color:var(--text-tertiary);">Colores: ' + TORMENTA_NIVELES.slice().reverse().map(([m, n, c]) => '<span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:' + c + ';"></span> ' + n).join(' · ') + ' · borde rojo = tormenta seca.</span>';
+  document.getElementById('meteo-ventanas-tormentas').innerHTML = riesgosos.slice(0, 8).map(t => {
+    const n = nivelTormenta_(t.prob);
+    return '<div class="ventana-item' + (t.seca ? ' severa' : '') + '"><div class="v-head"><span>' + etiquetaDia_(t.dia) + '</span><span class="v-tag" style="background:' + n[2] + ';color:#fff;">⚡ ' + t.prob + '% · ' + n[1] + '</span></div>' +
+      '<div class="v-grid"><div class="v-cell"><div class="vl">Ventana probable</div><div class="vv">' + (t.desde ? t.desde + ' a ' + String((parseInt(t.hasta.slice(0, 2), 10) + 1) % 24).padStart(2, '0') + ':00 hrs' : '—') + '</div></div>' +
+      '<div class="v-cell"><div class="vl">Lluvia del día</div><div class="vv' + (t.seca ? ' warn' : '') + '">' + t.lluvia.toFixed(1) + ' mm' + (t.seca ? ' · seca' : '') + '</div></div>' +
+      '<div class="v-cell"><div class="vl">Energía convectiva (CAPE)</div><div class="vv">' + Math.round(t.capeMax) + ' J/kg</div></div></div></div>';
+  }).join('');
 }
 
 // Ventanas de peligro de viento: agrupa horas consecutivas con viento ≥25 km/h o ráfagas ≥40.

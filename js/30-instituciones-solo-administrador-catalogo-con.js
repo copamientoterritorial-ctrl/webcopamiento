@@ -260,6 +260,13 @@ function abrirModalUsuario_(usuario) {
   document.getElementById('u-email').value = usuario ? usuario.email : '';
   document.getElementById('u-email').disabled = !!usuario;
   document.getElementById('u-cargo').value = usuario ? (usuario.cargo || '') : '';
+  // Teléfono opcional (SQL 137): se lee de perfiles (la lista de usuarios de la Edge Function no lo trae)
+  const tel = document.getElementById('u-telefono');
+  tel.value = usuario && usuario.telefono ? usuario.telefono : '';
+  if (usuario && !usuario.telefono) {
+    supabaseClient.from('perfiles').select('telefono').eq('id', usuario.id).maybeSingle()
+      .then(({ data }) => { if (data && data.telefono && editingUsuarioId === usuario.id) tel.value = data.telefono; }, () => {});
+  }
   document.getElementById('u-perfil').value = usuario ? usuario.perfil : 'Visor';
   document.getElementById('u-subg').dataset.valor = (usuario && usuario.subgerencia) || '';
   poblarComunasChecklist_(usuario ? usuario.comuna_ids : []);
@@ -305,6 +312,11 @@ async function guardarUsuarioDesdeModal_() {
   }
 
   if (!nombre) { errEl.textContent = 'El nombre es obligatorio.'; errEl.classList.add('show'); return; }
+  const telefono = document.getElementById('u-telefono').value.trim();
+  if (telefono && (!/^\+?[0-9 ()-]+$/.test(telefono) || telefono.replace(/\D/g, '').length < 8 || telefono.replace(/\D/g, '').length > 15)) {
+    errEl.textContent = 'Teléfono no válido: usa solo números (8 a 15 dígitos), por ejemplo +56 9 1234 5678. Puedes dejarlo vacío.';
+    errEl.classList.add('show'); return;
+  }
   if (!editingUsuarioId && !email) { errEl.textContent = 'El correo es obligatorio.'; errEl.classList.add('show'); return; }
   if (perfil !== 'Administrador' && perfil !== 'Jefe de Área Relacionamiento' && comunaIds.length === 0) { errEl.textContent = 'Selecciona al menos una comuna.'; errEl.classList.add('show'); return; }
   if (perfil === 'Jefe de Área Relacionamiento' && areaIds.length === 0) { errEl.textContent = 'Selecciona al menos una zona de relacionamiento.'; errEl.classList.add('show'); return; }
@@ -331,10 +343,18 @@ async function guardarUsuarioDesdeModal_() {
   const eraSubg = !!(editingUsuarioId && state.subgPorPerfil && state.subgPorPerfil[editingUsuarioId]);
   const eraGRT = !!(editingUsuarioId && state.grtPorPerfil && state.grtPorPerfil[editingUsuarioId]);
   const eraAsoc = !!(editingUsuarioId && state.asocPorPerfil && state.asocPorPerfil[editingUsuarioId]);
-  if ((esGRT || eraGRT || esAsoc || eraAsoc) && !idUsuario && email) {
+  if ((esGRT || eraGRT || esAsoc || eraAsoc || telefono) && !idUsuario && email) {
     const { data: l } = await supabaseClient.functions.invoke('admin-usuarios', { body: { action: 'listar' } });
     const u = l && (l.usuarios || []).find(x => String(x.email).toLowerCase() === email.toLowerCase());
     idUsuario = u ? u.id : null;
+  }
+  // Teléfono opcional (SQL 137): al crear solo si se escribió; al editar siempre (vacío = se borra)
+  if (telefono || editingUsuarioId) {
+    if (idUsuario) {
+      const { error: eT } = await supabaseClient.rpc('asignar_telefono_perfil', { p_perfil: idUsuario, p_telefono: telefono || null });
+      if (eT && (telefono || !/function|does not exist/i.test(eT.message))) alert('⚠️ Usuario guardado, pero NO se pudo guardar el teléfono: ' + eT.message +
+        (/function|does not exist/i.test(eT.message) ? '\n(¿Se ejecutó el SQL 137?)' : ''));
+    } else alert('⚠️ Usuario guardado, pero no se encontró su cuenta para guardar el teléfono: edítalo y vuelve a escribirlo.');
   }
   if (esGRT || eraGRT) {
     if (idUsuario) {

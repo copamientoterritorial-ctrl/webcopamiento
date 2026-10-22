@@ -17,10 +17,13 @@
  */
 const BUFFER_AMEBA_M = 500;    // radio alrededor de cada foco
 
+/* 21-10-2026 · UN SOLO CÁLCULO: el copamiento sobre incendios se calcula SOLO sobre el TRIENIO (últimas 3 temporadas) y
+ * siempre con la función de la base kpi_copamiento_ameba(comuna, 3, 500) — la que aplica la REGLA A (SQL 133: ameba tocada
+ * ≥ 30 % = copada completa). Es la misma que usan Comunas Prioritarias, el Dashboard, el Seguimiento, el informe y el PDF
+ * (resumen_comunas_prevencion), así el % es idéntico en todo el sistema. Se quitaron las ventanas de 1 y 5 temporadas y el
+ * recálculo por entidades visibles (kpi_ameba_ids), que no aplicaba la regla y daba otro número. */
 const NIVELES_AMEBA = [
-  { id: 'n1', temporadas: 1, etiqueta: 'Ameba 1 temporada',   color: '#F97316' },
-  { id: 'n2', temporadas: 3, etiqueta: 'Ameba 3 temporadas',  color: '#DC2626' },
-  { id: 'n3', temporadas: 5, etiqueta: 'Ameba 5 temporadas',  color: '#7F1D1D' },
+  { id: 'n2', temporadas: 3, etiqueta: 'Zona de incendios · trienio', color: '#DC2626' },
 ];
 
 const amebaLayers = { n1: L.layerGroup(), n2: L.layerGroup(), n3: L.layerGroup() };
@@ -209,8 +212,7 @@ function nivelATemporadas_(nivel) {
  *   · áreas de influencia de los recursos, por escenario (500 m)
  *   · amebas de ocurrencia de incendios, por ventana histórica (500 m)
  *
- * Se presenta como una matriz de 3 escenarios por 3 ventanas: última
- * temporada, tres temporadas y quinquenio.
+ * Se presenta por escenario (Normal / Amarilla / Roja) sobre el TRIENIO (21-10-2026: antes también 1 y 5 temporadas).
  */
 state.kpiIncendiosVisible = state.kpiIncendiosVisible || false;
 state.kpiIncendiosCargando = false;
@@ -221,14 +223,17 @@ async function cargarKpiIncendios_() {
   renderKpiIncendios_();
 
   try {
-    // Cada ameba se asegura primero: si ya está guardada en la base, la
-    // llamada es inmediata; si no, se calcula una vez y queda persistida.
+    // La ameba del trienio se asegura primero (si está guardada en la base, es inmediata). El KPI se vuelve a pedir
+    // SIEMPRE a kpi_copamiento_ameba (la planificación cambia): misma función y mismo número que el resto del sistema.
     for (const cfg of NIVELES_AMEBA) {
       if (!state.amebaDatos[cfg.id] || !state.amebaKpi[cfg.id]) {
         await cargarAmeba_(cfg.id);
       } else {
-        // La ameba no cambia, pero la planificación sí: el KPI se refresca.
-        await recalcularKpiAmebaVisible_(cfg);
+        const kpi = await supabaseClient.rpc('kpi_copamiento_ameba', {
+          p_comuna_id: String(state.activeComunaId), p_nivel: cfg.temporadas, p_buffer_influencia_m: BUFFER_INFLUENCIA_M,
+        });
+        if (!kpi.error) state.amebaKpi[cfg.id] = kpi.data || [];
+        else console.error('kpi_copamiento_ameba:', kpi.error.message);
       }
     }
   } catch (e) {
@@ -237,39 +242,6 @@ async function cargarKpiIncendios_() {
     state.kpiIncendiosCargando = false;
     renderKpiIncendios_();
   }
-}
-
-/* Recalcula el KPI de una ameba escenario por escenario, usando solo las
- * entidades visibles. Es la versión dinámica: refleja los filtros activos. */
-async function recalcularKpiAmebaVisible_(cfg) {
-  const ids = idsVisiblesPorEscenario_();
-  const filas = [];
-
-  for (const esc of ['Verde', 'Amarilla', 'Roja']) {
-    const lista = ids[esc] || [];
-    if (lista.length === 0) {
-      const base = (state.amebaDatos[cfg.id] || {}).area_km2 || 0;
-      filas.push({ escenario: esc, ameba_km2: base, copado_km2: 0, pct_ameba: 0, sin_cubrir_km2: base });
-      continue;
-    }
-    const { data, error } = await supabaseClient.rpc('kpi_ameba_ids', {
-      p_comuna_id: String(state.activeComunaId),
-      p_nivel: cfg.temporadas,
-      p_ids: lista,
-      p_buffer_m: BUFFER_INFLUENCIA_M,
-    });
-    if (error) { console.error('kpi_ameba_ids:', error.message); continue; }
-    const f = (data && data[0]) ? data[0] : null;
-    filas.push({
-      escenario: esc,
-      ameba_km2: f ? f.ameba_km2 : 0,
-      copado_km2: f ? f.copado_km2 : 0,
-      pct_ameba: f ? f.pct_ameba : 0,
-      sin_cubrir_km2: f ? f.sin_cubrir_km2 : 0,
-    });
-  }
-
-  state.amebaKpi[cfg.id] = filas;
 }
 
 function renderKpiIncendios_() {
@@ -311,13 +283,13 @@ function renderKpiIncendios_() {
 
   let html = '<div style="font-size:10px;font-weight:600;opacity:.75;margin:2px 0 5px;">🔥 Copamiento sobre incendios</div>';
 
-  // Cabecera con las tres ventanas históricas; la ameba encendida en el mapa, destacada.
+  // Cabecera: una sola columna, el trienio (la zona encendida en el mapa, destacada)
   html += '<div style="display:flex;align-items:center;gap:4px;font-size:9px;margin-bottom:3px;">' +
     '<span style="width:58px;flex-shrink:0;"></span>' +
     NIVELES_AMEBA.map(cfg => {
       const on = state.amebaVisible && state.amebaVisible[cfg.id];
       return '<span style="flex:1;text-align:center;' + (on ? 'opacity:1;font-weight:800;color:#FDBA74;' : 'opacity:.6;') + '">' +
-        cfg.temporadas + ' temp.</span>';
+        'Trienio (3 temp.)</span>';
     }).join('') +
     '</div>';
 
@@ -335,7 +307,7 @@ function renderKpiIncendios_() {
         : '';
       return '<span title="' + titulo + '" style="flex:1;text-align:center;padding:3px 0;border-radius:4px;' +
         'background:' + tinte(v) + ';font-variant-numeric:tabular-nums;font-weight:700;font-size:10px;">' +
-        (v != null ? v.toFixed(0) + '%' : '—') + '</span>';
+        (v != null ? v.toLocaleString('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%' : '—') + '</span>';
     }).join('');
 
     const activa = escActivo(e.esc);
@@ -347,7 +319,7 @@ function renderKpiIncendios_() {
     '</div>';
   }).join('');
 
-  html += '<div style="margin-top:6px;font-size:9px;opacity:.5;">% de la zona de ocurrencia cubierta por los recursos</div>';
+  html += '<div style="margin-top:6px;font-size:9px;opacity:.5;">% de la zona de ocurrencia del trienio cubierta por el plan (todas las instituciones; zona tocada ≥ 30 % cuenta completa). Mismo valor en todo el sistema.</div>';
 
   cont.innerHTML = html;
   setTimeout(alinearResumenConSimbologia_, 0);

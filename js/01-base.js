@@ -746,3 +746,99 @@ async function entrarAlSistemaInterno_() {
   renderSimulacionPerfil_();
 }
 
+
+/* ☑️ SELECTOR MÚLTIPLE (22-10-2026) ──────────────────────────────────────────────────────────────────────────────────────
+ * Convierte un <select> de filtro en un desplegable con casillas para elegir VARIOS valores (p. ej. dos tipos de recurso).
+ * El <select> original queda oculto y sigue siendo la fuente de las opciones (los módulos lo repueblan como siempre):
+ *   · valoresSel_(id)  → arreglo con lo elegido ([] = todos);   · pasaSel_(id, v) → true si v pasa el filtro;
+ *   · actualizarSel_(id) → rehace la lista tras cambiar las opciones (también lo hace solo, con un MutationObserver).
+ * Compatibilidad: sel.value devuelve el PRIMER valor elegido; asignar '' limpia la selección; asignar un valor que no está
+ * elegido deja solo ese (p. ej. clic en la tarjeta de un tipo). Al cambiar, se dispara 'change' en el <select>. */
+const SEL_VALUE_ = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+function selMultiple_(id, nombrePlural) {
+  const sel = typeof id === 'string' ? document.getElementById(id) : id;
+  if (!sel || sel._msel) return sel;
+  const w = document.createElement('div'); w.className = 'msel';
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = (sel.className || '') + ' msel-btn'; btn.title = sel.title || '';
+  btn.style.cssText = sel.style.cssText;
+  const pop = document.createElement('div'); pop.className = 'msel-pop'; pop.hidden = true;
+  w.appendChild(btn); w.appendChild(pop);
+  sel.parentNode.insertBefore(w, sel); w.appendChild(sel); sel.style.display = 'none';
+  const m = sel._msel = { valores: [], btn, pop, nombre: nombrePlural || 'elegidos', q: '' };
+  Object.defineProperty(sel, 'value', {
+    configurable: true,
+    get() { return SEL_VALUE_.get.call(this); },
+    set(v) {
+      v = v == null ? '' : String(v);
+      if (!v) m.valores = []; else if (!m.valores.includes(v)) m.valores = [v];
+      SEL_VALUE_.set.call(this, m.valores[0] || '');
+      pintarSel_(sel);
+    },
+  });
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const abrir = pop.hidden;
+    document.querySelectorAll('.msel-pop').forEach(p => { p.hidden = true; });
+    pop.hidden = !abrir;
+    if (abrir) { const q = pop.querySelector('.msel-q'); if (q) q.focus(); }
+  });
+  pop.addEventListener('click', e => e.stopPropagation());
+  pop.addEventListener('input', e => {
+    if (!e.target.classList.contains('msel-q')) return;
+    m.q = normalizarBusqueda_(e.target.value || '');
+    pop.querySelectorAll('.msel-lista label').forEach(l => { l.style.display = !m.q || normalizarBusqueda_(l.textContent).includes(m.q) ? '' : 'none'; });
+  });
+  pop.addEventListener('change', e => {
+    const c = e.target; if (c.type !== 'checkbox') return;
+    if (c.hasAttribute('data-msel-todos')) m.valores = [];
+    else m.valores = [...pop.querySelectorAll('.msel-lista input:checked')].map(x => x.value);
+    SEL_VALUE_.set.call(sel, m.valores[0] || '');
+    pintarSel_(sel, true);
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  if (window.MutationObserver) new MutationObserver(() => pintarSel_(sel)).observe(sel, { childList: true });
+  if (!window.__mselCierre__) {
+    window.__mselCierre__ = true;
+    document.addEventListener('click', () => document.querySelectorAll('.msel-pop').forEach(p => { p.hidden = true; }));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.msel-pop').forEach(p => { p.hidden = true; }); });
+  }
+  pintarSel_(sel);
+  return sel;
+}
+/** Dibuja el botón y la lista de casillas (descarta lo elegido que ya no existe entre las opciones). */
+function pintarSel_(sel, conservarPop) {
+  const m = sel && sel._msel; if (!m) return;
+  const ops = [...sel.options].filter(o => o.value !== '');
+  m.valores = m.valores.filter(v => ops.some(o => o.value === v));
+  if (SEL_VALUE_.get.call(sel) !== (m.valores[0] || '')) SEL_VALUE_.set.call(sel, m.valores[0] || '');
+  const todos = ([...sel.options].find(o => o.value === '') || {}).text || 'Todos';
+  const txt = !m.valores.length ? todos : m.valores.length === 1 ? (ops.find(o => o.value === m.valores[0]) || {}).text : m.valores.length + ' ' + m.nombre;
+  m.btn.innerHTML = '<span>' + escapeHtml_(txt || todos) + '</span><i>▾</i>';
+  m.btn.classList.toggle('activo', !!m.valores.length);
+  sel.classList.toggle('activo', !!m.valores.length);
+  if (conservarPop) {   // tras un clic: solo se actualiza la casilla «Todos»
+    const t = m.pop.querySelector('[data-msel-todos]'); if (t) t.checked = !m.valores.length;
+    return;
+  }
+  m.pop.innerHTML = (ops.length > 8 ? '<input class="msel-q" placeholder="Buscar…" value="">' : '') +
+    '<label class="msel-todos"><input type="checkbox" data-msel-todos' + (m.valores.length ? '' : ' checked') + '> ' + escapeHtml_(todos) + '</label>' +
+    '<div class="msel-lista">' + ops.map(o => '<label><input type="checkbox" value="' + escapeHtml_(o.value) + '"' + (m.valores.includes(o.value) ? ' checked' : '') + '> ' + escapeHtml_(o.text) + '</label>').join('') + '</div>';
+  m.q = '';
+}
+function actualizarSel_(id) { pintarSel_(typeof id === 'string' ? document.getElementById(id) : id); }
+function valoresSel_(id) {
+  const sel = typeof id === 'string' ? document.getElementById(id) : id;
+  if (!sel) return [];
+  if (sel._msel) return sel._msel.valores.slice();
+  return sel.value ? [sel.value] : [];
+}
+function pasaSel_(id, v) { const vs = valoresSel_(id); return !vs.length || vs.includes(v); }
+/** Fija lo elegido desde el código (p. ej. clic en una tarjeta) y avisa con 'change'. */
+function fijarValoresSel_(id, valores) {
+  const sel = typeof id === 'string' ? document.getElementById(id) : id; if (!sel) return;
+  if (!sel._msel) { sel.value = (valores && valores[0]) || ''; sel.dispatchEvent(new Event('change', { bubbles: true })); return; }
+  sel._msel.valores = (valores || []).map(String);
+  SEL_VALUE_.set.call(sel, sel._msel.valores[0] || '');
+  pintarSel_(sel);
+  sel.dispatchEvent(new Event('change', { bubbles: true }));
+}

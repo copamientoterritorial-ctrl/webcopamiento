@@ -362,6 +362,7 @@ function renderSgComunas_(soloLista) {
   const D = state.sg.datos, S = state.sg, cuerpo = document.getElementById('sg-cuerpo');
   const areas = Object.values(D.areas).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   if (S.area && !D.areas[S.area]) S.area = '';
+  S.alcance = ''; S.estado = '';   // 22-10-2026: los filtros «Mostrar» y «Estado» ya no están en pantalla
   // Alcance (18-10-2026): '' = comunas de mi subgerencia · 'todas' = las ~103 con presencia CMPC (las de otra
   // subgerencia o sin área aparecen identificadas y atenuadas, para que el Subgerente vea cuáles tiene disponibles)
   const T = D.todas || [];
@@ -422,19 +423,11 @@ function renderSgComunas_(soloLista) {
     '<div class="sg-chips sg-chips-prio"><span class="tit">Prioridad</span>' + chipPrio('1', '🔴 Alta') + chipPrio('2', '🟠 Media') + chipPrio('3', '🟢 Baja') +
       (S.prios.length ? '<button class="sg-chip" data-sg-prio="__todas__">✕ Todas</button>' : '') +
       '<span style="font-size:11px;color:var(--text-tertiary);margin-left:6px;">Puedes marcar varias (p. ej. Alta + Media)</span></div>' +
-    // 🗺️ Las ~103 comunas con presencia CMPC: cuántas son de la subgerencia, de otra o sin área
-    '<div class="sg-alcance">' +
-      '<div class="txt"><b>' + T.length + ' comunas con presencia CMPC</b> (≥ ' + SG_MIN_HA_CMPC + ' ha): ' +
-        '<span class="mia">' + nMia + ' de ' + subgTxt + '</span> · <span class="otra">' + nOtra + ' de otra subgerencia</span>' +
-        (nSin ? ' · <span class="sin">' + nSin + ' sin área asignada</span>' : '') + '</div>' +
-      '<div class="sg-chips" style="margin:0;"><span class="tit">Mostrar</span>' + chip('alcance', '', '🧭 Solo ' + subgTxt, nMia) + chip('alcance', 'todas', '🗺️ Las ' + T.length + ' comunas CMPC', T.length) + '</div>' +
-    '</div>' +
+    // 22-10-2026: sin la franja «N comunas con presencia CMPC · Mostrar», sin la fila «Estado» y sin la cabecera del área
+    // elegida (pedido del usuario). El buscador pasa a la fila de Área.
     '<div class="sg-chips"><span class="tit">Área</span>' + chip('area', '', 'Todas', D.comunas.length) +
-      areas.map(a => chip('area', a.k, escapeHtml_(aTitulo_(a.nombre)), a.comunas.size)).join('') + '</div>' +
-    '<div class="sg-chips"><span class="tit">Estado</span>' + chip('estado', 'sin', '⛔ Sin iniciar', cuenta('estado', 'sin')) +
-      chip('estado', 'curso', '🟠 En curso', cuenta('estado', 'curso')) + chip('estado', 'ok', '✅ 3 escenarios', cuenta('estado', 'ok')) +
+      areas.map(a => chip('area', a.k, escapeHtml_(aTitulo_(a.nombre)), a.comunas.size)).join('') +
       '<input id="sg-q" class="admin-search" placeholder="Buscar comuna…" value="' + escapeHtml_(S.q || '') + '" style="max-width:180px;margin-left:auto;"></div>' +
-    (A ? '<div class="sg-area-cab2"><b>🧭 ' + escapeHtml_(aTitulo_(A.nombre)) + '</b><span>' + A.comunas.size + ' comuna(s)' + (A.jefes.length ? ' · Jefe de Área: ' + escapeHtml_(A.jefes.join(', ')) : '') + '</span></div>' : '') +
     '<div class="sg-resumen">' +
       '<div><b>' + todas.length + '</b><span>comunas' + (A ? ' del área' : verTodas ? ' mostradas (todas las CMPC)' : ' de la subgerencia') + ' con presencia CMPC</span></div>' +
       '<div style="--c:#DC2626"><b>' + cuenta('estado', 'sin') + '</b><span>⛔ sin iniciar</span></div>' +

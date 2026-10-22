@@ -282,12 +282,12 @@ function setEstadoTurnos_(tipo, texto) {
 }
 
 function recursosTurnosVisibles_() {
-  const tipo = state.turnosFiltroTipo;
+  const tiposSel = valoresSel_('turnos-tipo-select');   // ☑️ varios tipos a la vez (22-10-2026)
   const recSel = state.turnosFiltroRecurso;
   const q = normalizarTextoTurnos_(state.turnosBusqueda);
   return state.turnosRecursos.filter(r => {
     if (recSel && String(r.id) !== String(recSel)) return false;   // un recurso por su clave radial
-    if (tipo && (r.tipo_recurso || 'Sin tipo') !== tipo) return false;
+    if (tiposSel.length && !tiposSel.includes(r.tipo_recurso || 'Sin tipo')) return false;
     if (!q) return true;
     const inst = (r.instituciones && r.instituciones.nombre) || '';
     const texto = normalizarTextoTurnos_([claveRecurso_(r), r.codigo_ref, r.tipo_recurso, r.nombre_recurso, r.sector, inst, r.descripcion_funcion].join(' '));
@@ -327,10 +327,11 @@ async function abrirCalendarioTurnos_() {
 }
 
 function iniciarListenersTurnos_() {
+  selMultiple_('turnos-tipo-select', 'tipos');
   const sel = document.getElementById('turnos-area-select');
   sel.addEventListener('change', () => {
     state.turnosArea = sel.value || null;
-    state.turnosFiltroTipo = ''; state.turnosFiltroRecurso = '';
+    state.turnosFiltroTipo = ''; state.turnosFiltroRecurso = ''; document.getElementById('turnos-tipo-select').value = '';
     if (state.turnosArea) cargarRecursosTurnos_();
     else {
       state.turnosRecursos = []; state.turnosData = {};
@@ -460,11 +461,11 @@ function navegarTurnos_(dir) {
 
 /** Desplegable de claves radiales: solo las del tipo elegido (si la clave elegida no es de ese tipo, se limpia). */
 function poblarClavesTurnos_() {
-  const tipo = state.turnosFiltroTipo;
-  const lista = state.turnosRecursos.filter(r => !tipo || (r.tipo_recurso || 'Sin tipo') === tipo);
+  const tiposSel = valoresSel_('turnos-tipo-select'), tipo = tiposSel.length === 1 ? tiposSel[0] : '';
+  const lista = state.turnosRecursos.filter(r => !tiposSel.length || tiposSel.includes(r.tipo_recurso || 'Sin tipo'));
   if (state.turnosFiltroRecurso && !lista.some(r => String(r.id) === String(state.turnosFiltroRecurso))) state.turnosFiltroRecurso = '';
   document.getElementById('turnos-recurso-select').innerHTML =
-    '<option value="">📻 ' + (tipo ? 'Todas las claves de ' + escapeHtml_(aTitulo_(tipo)) : 'Todas las claves') + ' (' + lista.length + ')</option>' +
+    '<option value="">📻 ' + (tipo ? 'Todas las claves de ' + escapeHtml_(aTitulo_(tipo)) : tiposSel.length > 1 ? 'Todas las claves de ' + tiposSel.length + ' tipos' : 'Todas las claves') + ' (' + lista.length + ')</option>' +
     lista.map(r => '<option value="' + escapeHtml_(String(r.id)) + '"' + (String(r.id) === String(state.turnosFiltroRecurso) ? ' selected' : '') + '>' +
       escapeHtml_((claveIdRecurso_(r) || 'Sin clave') + (tipo ? '' : ' · ' + aTitulo_(r.tipo_recurso || ''))) + '</option>').join('');
 }
@@ -992,7 +993,7 @@ function irAlCalendarioDesdeSeguimiento_(area, idRec) {
   // Abre el calendario en el área, el mes evaluado y el recurso (filtro por clave radial)
   const areas = (state.perfil.perfil === 'Administrador' ? (state.areasCatalogo || []) : (state.misAreasIds || []));
   state.turnosArea = areas.find(a => plNorm_(a) === plNorm_(area)) || area;
-  state.turnosFiltroTipo = ''; state.turnosFiltroRecurso = idRec || '';
+  state.turnosFiltroTipo = ''; state.turnosFiltroRecurso = idRec || ''; document.getElementById('turnos-tipo-select').value = '';
   state.turnosVista = 'mes'; state.turnosFechaBase = new Date(state.seg.mes);
   document.getElementById('turnos-area-select').value = state.turnosArea;
   cambiarModoTurnos_('cal');

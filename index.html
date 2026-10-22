@@ -85,6 +85,83 @@
           <select id="dash-comuna-select" class="comuna-select"></select>
         </div>
       </div>
+      <!-- 22-10-2026: el tiempo va AL PRINCIPIO del tablero (resumen para autoridades + análisis detallado plegado) -->
+      <div class="dash-grid dash-grid-meteo">
+        <!-- ===== MÓDULO METEOROLÓGICO ===== (oculto para el Subgerente de Relacionamiento) -->
+        <div class="dash-meteo" style="display:contents;">
+        <div class="dash-card dash-card-wide">
+          <div class="dash-card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <span>🌤️ El tiempo en la comuna · resumen para la toma de decisiones</span>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <select id="meteo-comparar-select" class="comuna-select" style="padding:6px 10px;font-size:11.5px;"><option value="">+ Comparar con otra comuna…</option></select>
+              <div id="meteo-comparadas" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+              <span class="dash-fuente">Fuente: Open-Meteo API · Actualizado: <span id="dash-meteo-actualizado">—</span></span>
+            </div>
+          </div>
+          <div id="dash-meteo"></div>
+        </div>
+        <!-- 📊 Análisis meteorológico detallado (22-10-2026): plegado por defecto; arriba queda el resumen simple para
+             autoridades (#dash-meteo). Pestañas por punto de vista; los mismos gráficos de antes (renderMeteoDetalle_). -->
+        <div class="dash-card dash-card-wide meteo-det" id="meteo-detalle">
+          <div class="dash-card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <span>📊 Análisis meteorológico detallado <small style="font-weight:500;color:var(--text-tertiary);">para quien necesite más detalle técnico</small></span>
+            <button class="meteo-det-btn" id="meteo-det-toggle" aria-expanded="false">Ver análisis detallado ▾</button>
+          </div>
+          <div id="meteo-det-cuerpo" hidden>
+            <div class="meteo-tabs" id="meteo-tabs">
+              <button data-mtab="combinado" class="on">🔥 Riesgo combinado</button>
+              <button data-mtab="viento">💨 Viento y puelche</button>
+              <button data-mtab="lluvia">🌧️ Lluvia</button>
+              <button data-mtab="rayos">⚡ Rayos</button>
+              <button data-mtab="temperatura">🌡️ Temperatura y humedad</button>
+              <button data-mtab="heladas">❄️ Heladas</button>
+            </div>
+            <div class="meteo-panel on" data-mpanel="combinado">
+              <div class="meteo-det-sub"><span>🔥 Viento + Temperatura (condiciones combinadas de riesgo)</span>
+                <span class="criterio-badge" style="background:#FEF2F2;color:#B91C1C;border-color:#FECACA;">Zonas rojas: T° máx ≥25 °C y viento ≥25 km/h el mismo día</span></div>
+              <div class="dash-chart" style="height:280px;"><canvas id="ch-meteo-combinado"></canvas></div>
+              <div id="meteo-combinado-analisis" class="meteo-analisis" style="margin-top:10px;"></div>
+            </div>
+            <div class="meteo-panel" data-mpanel="viento">
+              <div class="meteo-det-sub"><span>💨 Viento y ráfagas (km/h)</span></div>
+              <div class="dash-chart"><canvas id="ch-meteo-viento"></canvas></div>
+              <div class="meteo-det-sub" style="margin-top:12px;"><span>🌬️ Viento puelche (desde la cordillera, cálido y seco)</span>
+                <span class="criterio-badge">Criterio: viento del NE–E–SE ≥ 12 km/h con humedad ≤ 45 %</span></div>
+              <div id="meteo-puelche" class="ventanas-lista"></div>
+              <div class="meteo-det-sub" style="margin-top:12px;"><span>💨 Ventanas de peligro de viento</span>
+                <span class="criterio-badge">Criterio: ≥25 km/h sostenido · ráfagas ≥40</span></div>
+              <div id="meteo-ventanas-viento" class="ventanas-lista"></div>
+            </div>
+            <div class="meteo-panel" data-mpanel="lluvia">
+              <div class="meteo-det-sub"><span>🌧️ Precipitación acumulada (mm)</span>
+                <span class="dash-fuente">Total del periodo: <b id="meteo-precip-total" style="color:var(--cobalt);font-size:14px;">—</b></span></div>
+              <div class="dash-chart"><canvas id="ch-meteo-precip"></canvas></div>
+            </div>
+            <div class="meteo-panel" data-mpanel="rayos">
+              <div class="meteo-det-sub"><span>⚡ Probabilidad de tormentas eléctricas</span>
+                <span class="criterio-badge" style="background:#F5F3FF;color:#6D28D9;border-color:#DDD6FE;">Estimación: tormenta pronosticada · CAPE · índice de levantamiento · lluvia</span></div>
+              <div class="dash-chart" style="height:240px;"><canvas id="ch-meteo-tormentas"></canvas></div>
+              <div id="meteo-tormentas-analisis" class="meteo-analisis" style="margin-top:10px;"></div>
+              <div id="meteo-ventanas-tormentas" class="ventanas-lista" style="margin-top:10px;"></div>
+            </div>
+            <div class="meteo-panel" data-mpanel="temperatura">
+              <div class="meteo-det-grid">
+                <div><div class="meteo-det-sub"><span>🌡️ Tendencia térmica (°C)</span></div><div class="dash-chart"><canvas id="ch-meteo-temp"></canvas></div></div>
+                <div><div class="meteo-det-sub"><span>💧 Humedad relativa (%)</span></div><div class="dash-chart"><canvas id="ch-meteo-hum"></canvas></div></div>
+              </div>
+            </div>
+            <div class="meteo-panel" data-mpanel="heladas">
+              <div class="meteo-det-grid">
+                <div><div class="meteo-det-sub"><span>❄️ Riesgo de heladas (°C mínima)</span></div><div class="dash-chart"><canvas id="ch-meteo-heladas"></canvas></div></div>
+                <div><div class="meteo-det-sub"><span>❄️ Ventanas de heladas</span>
+                  <span class="criterio-badge" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;">Criterio: mínima ≤ 2 °C</span></div>
+                  <div id="meteo-ventanas-heladas" class="ventanas-lista"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div><!-- /dash-meteo -->
+      </div>
       <!-- ===== COPAMIENTO PLANIFICADO POR ALERTA (15-10-2026) ===== -->
       <!-- (16-10-2026: se quitó la fila de KPI «Periodos críticos activos · Nivel de copamiento · Alerta Amarilla · Alerta Roja») -->
       <div class="dash-card dash-card-wide" id="dash-esc-card">
@@ -119,65 +196,6 @@
           <div class="dash-card-title">Planificación de alertas (recursos propuestos)</div>
           <div class="dash-chart"><canvas id="chart-dash-alertas"></canvas></div>
         </div>
-        <!-- ===== MÓDULO METEOROLÓGICO ===== (oculto para el Subgerente de Relacionamiento) -->
-        <div class="dash-meteo" style="display:contents;">
-        <div class="dash-card dash-card-wide">
-          <div class="dash-card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-            <span>Pronóstico meteorológico · 14 días</span>
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-              <select id="meteo-comparar-select" class="comuna-select" style="padding:6px 10px;font-size:11.5px;"><option value="">+ Comparar con otra comuna…</option></select>
-              <div id="meteo-comparadas" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-              <span class="dash-fuente">Fuente: Open-Meteo API · Actualizado: <span id="dash-meteo-actualizado">—</span></span>
-            </div>
-          </div>
-          <div id="dash-meteo"></div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-card-title">🌡️ Tendencia térmica (°C)</div>
-          <div class="dash-chart"><canvas id="ch-meteo-temp"></canvas></div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-card-title">💧 Tendencia humedad relativa (%)</div>
-          <div class="dash-chart"><canvas id="ch-meteo-hum"></canvas></div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-card-title">💨 Viento y ráfagas (km/h)</div>
-          <div class="dash-chart"><canvas id="ch-meteo-viento"></canvas></div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-            <span>💨 Ventanas de peligro de viento</span>
-            <span class="criterio-badge">Criterio: ≥25 km/h sostenido · ráfagas ≥40</span>
-          </div>
-          <div id="meteo-ventanas-viento" class="ventanas-lista"></div>
-        </div>
-        <div class="dash-card dash-card-wide">
-          <div class="dash-card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-            <span>🔥 Viento + Temperatura (condiciones combinadas de riesgo)</span>
-            <span class="criterio-badge" style="background:#FEF2F2;color:#B91C1C;border-color:#FECACA;">Zonas rojas: T° máx ≥25 °C y viento ≥25 km/h el mismo día</span>
-          </div>
-          <div class="dash-chart" style="height:280px;"><canvas id="ch-meteo-combinado"></canvas></div>
-          <div id="meteo-combinado-analisis" class="meteo-analisis" style="margin-top:10px;"></div>
-        </div>
-        <div class="dash-card dash-card-wide">
-          <div class="dash-card-title" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>🌧️ Precipitación acumulada (mm)</span>
-            <span class="dash-fuente">Total del periodo: <b id="meteo-precip-total" style="color:var(--cobalt);font-size:14px;">—</b></span>
-          </div>
-          <div class="dash-chart"><canvas id="ch-meteo-precip"></canvas></div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-card-title">❄️ Riesgo de heladas (°C mínima)</div>
-          <div class="dash-chart"><canvas id="ch-meteo-heladas"></canvas></div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-            <span>❄️ Ventanas de heladas</span>
-            <span class="criterio-badge" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE;">Criterio: mínima ≤ 2 °C</span>
-          </div>
-          <div id="meteo-ventanas-heladas" class="ventanas-lista"></div>
-        </div>
-        </div><!-- /dash-meteo -->
       </div>
       <!-- 🤝 Municipalidades que forman parte del sistema (17-10-2026): carrusel de logos al final del
            Dashboard, para todos los perfiles menos GRD (cargarCarruselMunicipios_) -->
@@ -2085,6 +2103,8 @@
           <div class="form-group"><label>Nombre completo</label><input type="text" id="u-nombre"></div>
           <div class="form-group"><label>Correo</label><input type="email" id="u-email"></div>
           <div class="form-group"><label>Cargo</label><input type="text" id="u-cargo"></div>
+          <div class="form-group"><label>Teléfono <small style="font-weight:500;color:var(--text-tertiary);">(opcional)</small></label>
+            <input type="tel" id="u-telefono" placeholder="+56 9 1234 5678" autocomplete="off" inputmode="tel"></div>
           <div class="form-group">
             <label>Perfil</label>
             <select id="u-perfil">

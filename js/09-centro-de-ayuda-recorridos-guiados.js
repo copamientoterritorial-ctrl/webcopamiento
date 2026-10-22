@@ -88,6 +88,28 @@ const AY_SVG = {
     '<path d="M30 100 Q 110 40 170 80" stroke="#2563EB" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M170 80 Q 240 120 310 60" stroke="#F97316" stroke-width="5" fill="none" stroke-linecap="round"/>' +
     '<circle cx="170" cy="80" r="13" fill="#fff" stroke="#DC2626" stroke-width="2.5"/><text x="162" y="85" font-size="13">✂️</text>' +
     '<text x="14" y="132" font-size="10.5" fill="#475569">🔵 tramo 1 conserva el recurso · 🟠 tramo 2 = ruta nueva</text></g></svg>',
+  agricultores:
+    '<svg class="ay-ilus" viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" font-family="Inter,Arial,sans-serif">' +
+    // 1) Planificación: calendario con actividades
+    '<g transform="translate(14,18)"><rect width="176" height="166" rx="14" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/><text x="12" y="22" font-size="12.5" font-weight="800" fill="#1E3A8A">🗓️ Planificación</text>' +
+    Array.from({ length: 3 }, (_, f) => Array.from({ length: 5 }, (_, d) => { const k = (f * 5 + d) % 4; const c = ['#BFDBFE', '#BBF7D0', '#FECACA', '#F1F5F9'][k];
+      return '<rect x="' + (12 + d * 31) + '" y="' + (36 + f * 34) + '" width="28" height="30" rx="5" fill="#fff" stroke="#DBEAFE"/>' + (k < 3 ? '<rect x="' + (15 + d * 31) + '" y="' + (52 + f * 34) + '" width="22" height="8" rx="3" fill="' + c + '"/>' : ''); }).join('')).join('') +
+    '<text x="12" y="156" font-size="9.5" fill="#475569">Azul plan · verde hecho · rojo vencido</text></g>' +
+    // 2) App de terreno: celular con pincho y nube
+    '<g transform="translate(206,18)"><rect width="150" height="166" rx="14" fill="#F7FEE7" stroke="#65A30D" stroke-width="2"/><text x="12" y="22" font-size="12.5" font-weight="800" fill="#3F6212">📱 App de terreno</text>' +
+    '<rect x="45" y="32" width="60" height="110" rx="10" fill="#0F172A"/><rect x="50" y="40" width="50" height="86" rx="4" fill="#ECFCCB"/>' +
+    '<path d="M55 110 q15 -25 40 -30" stroke="#65A30D" stroke-width="2.5" fill="none" stroke-dasharray="3 3"/><path d="M69 65 L75 78 L81 65 Z" fill="#DC2626"/><circle cx="75" cy="62" r="7" fill="#DC2626"/><circle cx="75" cy="62" r="2.5" fill="#fff"/>' +
+    '<text x="12" y="158" font-size="9.5" fill="#475569">Formulario · fotos · sin señal</text></g>' +
+    // 3) Control diario: bitácora
+    '<g transform="translate(372,18)"><rect width="176" height="166" rx="14" fill="#FFFBEB" stroke="#D97706" stroke-width="2"/><text x="12" y="22" font-size="12.5" font-weight="800" fill="#92400E">📅 Control diario</text>' +
+    [['🧑‍🌾 Visita · Los Laureles', '09:40'], ['🎓 Capacitación · 18 pers.', '11:15'], ['🚧 Operativo R-86', '15:30'], ['⏳ Reunión (sin registrar)', '—']].map(([t, h], i) =>
+      '<g transform="translate(12,' + (34 + i * 30) + ')"><rect width="152" height="24" rx="6" fill="#fff" stroke="' + (i === 3 ? '#FCA5A5' : '#FDE68A') + '"/><text x="7" y="16" font-size="9.5" fill="#334155">' + t + '</text><text x="146" y="16" font-size="9" fill="#94A3B8" text-anchor="end">' + h + '</text></g>').join('') + '</g>' +
+    // 4) Tablero: meta vs realizado
+    '<g transform="translate(564,18)"><rect width="182" height="166" rx="14" fill="#F0FDF4" stroke="#16A34A" stroke-width="2"/><text x="12" y="22" font-size="12.5" font-weight="800" fill="#166534">📊 Meta vs realizado</text>' +
+    [[92, '#16A34A'], [74, '#D97706'], [48, '#DC2626'], [100, '#16A34A']].map(([p, c], i) =>
+      '<g transform="translate(12,' + (36 + i * 28) + ')"><text x="0" y="11" font-size="9.5" font-weight="700" fill="#334155">A' + (i + 1) + '</text><rect x="22" y="3" width="104" height="10" rx="5" fill="#E2E8F0"/>' +
+      '<rect x="22" y="3" width="' + (104 * p / 100) + '" height="10" rx="5" fill="' + c + '"/><text x="158" y="12" font-size="9.5" font-weight="800" fill="' + c + '" text-anchor="end">' + p + '%</text></g>').join('') +
+    '<text x="12" y="156" font-size="9.5" fill="#475569">Mes y temporada · ⬇️ Excel</text></g></svg>',
 };
 const AY_GUIAS = [
   {
@@ -218,9 +240,28 @@ const AY_GUIAS = [
     ],
     notas: [
       ['ok', '✅ Buenas prácticas', ['Antes de cortar o eliminar, revisa si la ruta tiene recurso asociado (punto 🟢).', 'Tras editar una ruta en Normal, propágala si quieres que la Amarilla/Roja tengan lo nuevo.']],
-      ['no', '⛔ Cuidado', ['Eliminar no se puede deshacer.', 'Unir/separar tramos no se sincroniza entre escenarios (solo los cambios de forma).']],
+      ['no', '⛔ Cuidado', ['Si eliminas algo por error: <b>↶ Deshacer</b> (20 s) o <b>🗑️ Recuperar</b> en la barra de edición (lo eliminado en la comuna, 30 días).', 'Unir/separar tramos no se sincroniza entre escenarios (solo los cambios de forma).']],
     ],
     tour: 'editar',
+  },
+  {
+    k: 'agricultores', ico: '🌾', c: '#65A30D', titulo: 'Agricultores · Asociación Malleco', sub: 'Tablero, control diario, planificación y app de terreno',
+    intro: 'Seguimiento del trabajo de prevención de la <b>Asociación de Agricultores Malleco</b> (Collipulli, Lumaco y Victoria): metas mensuales por actividad, lo realizado en terreno, la planificación del equipo y el registro de agricultores con su nivel de riesgo. Los gestores registran desde la <b>📱 App de terreno</b>, que funciona sin señal.',
+    flujo: [['🌾 Agricultores', 'menú superior'], ['🗓️ Planificar', 'actividades del equipo'], ['📱 Registrar', 'en terreno, con o sin señal'], ['📅 Control diario', 'bitácora del día'], ['📊 Tablero', 'meta vs realizado'], ['🗺️ Mapa · ⬇️ Excel', 'dónde y cuánto']],
+    pasos: [
+      ['Abre el módulo', 'En el menú superior: <b>🌾 Agricultores ▾ › Gestión Asociación Malleco</b>. El perfil de la Asociación entra directo a este módulo.', ['<span class="m">🌾 Agricultores ▾</span>', '<span class="fl">›</span>', '<span class="m az">Gestión Asociación Malleco</span>']],
+      ['📊 Tablero: metas del mes y de la temporada', 'Arriba, el cumplimiento del mes y de la temporada (oct–mar), agricultores por riesgo, personas capacitadas y operativos. La <b>Agenda de trabajo</b> compara meta vs realizado por actividad y mes: 🟢 ≥ 90 % · 🟡 60–89 % · 🔴 &lt; 60 %. Cada actividad cuenta como máximo su meta (tope 100 %).', ['<span class="m">📊 Tablero</span>', '<span class="m v">🟢 ≥ 90 %</span>', '<span class="m a">🟡 60–89 %</span>', '<span class="m r">🔴 &lt; 60 %</span>']],
+      ['🗓️ Planifica las actividades', 'Vista semanal, quincenal o mensual. <b>➕ Planificar actividad</b> (o clic en un día) asigna actividad, responsable y comuna. Azul = planificada, verde = realizada, rojo = vencida sin registrar.', ['<span class="m">🗓️ Planificación</span>', '<span class="m">Semanal · Quincenal · Mensual</span>', '<span class="m osc">➕ Planificar actividad</span>']],
+      ['📱 Registra en terreno', 'El gestor abre la <b>📱 App de terreno</b> con su mismo correo y clave, elige la actividad (visita a agricultor, capacitación, operativo carretero, reunión…), completa el formulario, agrega fotos y ubica el pincho en el mapa (se puede mover). <b>Sin señal</b> guarda todo en el teléfono y lo envía al volver la conexión. Desde el web, <b>➕ Registrar</b> usa los mismos formularios.', ['<span class="m">📱 App de terreno</span>', '<span class="m">➕ Registrar</span>', '<span class="m v">Funciona sin señal</span>']],
+      ['📅 Revisa el control diario', 'La bitácora de cada día: quién registró qué, dónde, con fotos y si estaba planificado. Arriba aparecen las <b>planificadas sin registrar</b> para completarlas.', ['<span class="m">📅 Control diario</span>', '<span class="m">◀ Hoy ▶</span>', '<span class="m r">⏳ Planificadas sin registrar</span>']],
+      ['👨‍🌾 Agricultores y 🗺️ Mapa', '<b>Agricultores</b>: ficha de cada uno (fundo, cultivos, nivel de riesgo, cortafuegos, fechas de cosecha y quema) con buscador y filtro por riesgo; avisa las quemas de los próximos 14 días. <b>Mapa</b>: las actividades por periodo (Hoy · 24 h · 48 h · 72 h · 7 días · Mes) sobre mapa sobrio o satélite.', ['<span class="m">👨‍🌾 Agricultores</span>', '<span class="m">🗺️ Mapa</span>', '<span class="m">Hoy · 24 h · 7 días · Mes</span>']],
+      ['Descarga el respaldo', '<b>⬇️ Excel</b> descarga metas, registros, planificación y agricultores. <b>🔄</b> vuelve a leer los datos.', ['<span class="m">⬇️ Excel</span>', '<span class="m">🔄</span>']],
+    ],
+    notas: [
+      ['tip', '💡 Instalar la app en el celular', ['Abre <b>copamientoterritorial.cl/app-agricultores/instalar.html</b> y sigue los pasos para Android (Chrome) o iPhone (Safari).', 'La app se actualiza sola; en «Yo» está <b>🔄 Buscar actualización</b>. Actualizar no borra lo pendiente por enviar.', 'Descarga el mapa de tu zona antes de salir a terreno para usarlo sin señal.']],
+      ['rol', '👥 Quién puede', ['Asociación de Agricultores: registra, planifica e ingresa la meta de escuelas (A8).', 'Administrador: todo, incluidas las metas.', 'Jefes de Área, Subgerente y GRT del área Victoria: ven el tablero (solo consulta). El Administrador y los Jefes ven además el GPS real cuando el pincho se movió ≥ 30 m.']],
+    ],
+    tour: 'agricultores',
   },
 ];
 
@@ -239,13 +280,20 @@ function abrirAyuda_(guia) {
     });
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && m.classList.contains('show') && !document.getElementById('ay-globo')) m.classList.remove('show'); });
   }
+  // renderAyuda_ solo deja abrir las guías del perfil (la Asociación ve únicamente la suya)
   renderAyuda_(guia || state.ayGuia || 'escenarios');
   m.classList.add('show');
 }
+/** Guías que ve cada perfil (21-10-2026): la de Agricultores SOLO el perfil Asociación de Agricultores, que a su vez solo ve esa. */
+function guiasAyudaVisibles_() {
+  const asoc = typeof esAsociacion_ === 'function' && esAsociacion_();
+  return AY_GUIAS.filter(x => asoc ? x.k === 'agricultores' : x.k !== 'agricultores');
+}
 function renderAyuda_(k) {
-  state.ayGuia = k;
-  const g = AY_GUIAS.find(x => x.k === k) || AY_GUIAS[0];
-  document.getElementById('ay-nav').innerHTML = AY_GUIAS.map(x =>
+  const lista = guiasAyudaVisibles_();
+  const g = lista.find(x => x.k === k) || lista[0];
+  state.ayGuia = g.k;
+  document.getElementById('ay-nav').innerHTML = lista.map(x =>
     '<button data-ay-guia="' + x.k + '" class="' + (x.k === g.k ? 'on' : '') + '" style="--c:' + x.c + '"><span class="ico">' + x.ico + '</span><span><b>' + x.titulo + '</b><small>' + x.sub + '</small></span></button>').join('') +
     '<div style="margin-top:auto;font-size:11px;color:var(--text-tertiary);padding:8px 4px;line-height:1.45;">Cada guía tiene un <b>▶ Recorrido guiado</b> que te lleva por los botones reales del sistema. Puedes salir con <b>Esc</b>.</div>';
   const cont = document.getElementById('ay-contenido');
@@ -337,7 +385,25 @@ const AY_TOURS = {
     { sel: '#btn-actualizar-datos', t: '🔄 Actualizar datos', d: 'Trae los últimos cambios de la base de datos (de todos los usuarios).', antes: ayCerrarMenus_ },
     { sel: '#btn-ayuda', t: '¡Listo!', d: 'Vuelve a esta ayuda cuando quieras con ❓.', antes: ayCerrarMenus_ },
   ],
+  agricultores: [
+    { sel: '#grupo-agricultores .vista-tab-grupo', t: 'Menú 🌾 Agricultores', d: 'El seguimiento de la Asociación de Agricultores Malleco.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-agricultores'); }, aviso: 'Lo ven el Administrador, la Asociación y los Jefes, Subgerente y GRT del área Victoria.' },
+    { sel: '#tab-agricultores', t: 'Gestión Asociación Malleco', d: 'Abre el tablero, el control diario, la planificación, los agricultores y el mapa.', antes: () => ayAbrirGrupo_('grupo-agricultores'), aviso: 'Tu perfil no tiene acceso a este módulo.' },
+    { sel: '#ag-vistas [data-ag-tab="tablero"]', t: '📊 Tablero', d: 'Cumplimiento del mes y de la temporada, y la agenda de trabajo: meta vs realizado por actividad (🟢 ≥ 90 % · 🟡 60–89 % · 🔴 &lt; 60 %).', antes: () => { ayCerrarMenus_(); ayIrVista_('agricultores'); ayTabAgr_('tablero'); } },
+    { sel: '#ag-vistas [data-ag-tab="plan"]', t: '🗓️ Planificación', d: 'Planifica las actividades del equipo por semana, quincena o mes con <b>➕ Planificar actividad</b> (o clic en un día).', antes: () => { ayIrVista_('agricultores'); ayTabAgr_('plan'); } },
+    { sel: '#ag-app', t: '📱 App de terreno', d: 'El gestor registra en terreno con su mismo correo y clave: formulario, fotos y ubicación. <b>Funciona sin señal</b> y envía todo al volver la conexión.', antes: () => ayIrVista_('agricultores') },
+    { sel: '#ag-registrar', t: '➕ Registrar desde el web', d: 'Los mismos formularios de la app, para registrar una actividad desde el computador.', antes: () => ayIrVista_('agricultores'), aviso: 'Lo ven quienes pueden registrar: la Asociación y el Administrador.' },
+    { sel: '#ag-vistas [data-ag-tab="diario"]', t: '📅 Control diario', d: 'La bitácora del día: quién registró qué, dónde y con fotos, y las actividades planificadas que faltan por registrar.', antes: () => { ayIrVista_('agricultores'); ayTabAgr_('diario'); } },
+    { sel: '#ag-vistas [data-ag-tab="agricultores"]', t: '👨‍🌾 Agricultores', d: 'Ficha de cada agricultor con su nivel de riesgo, fundo, cultivos y fechas de cosecha y quema (avisa las quemas de los próximos 14 días).', antes: () => { ayIrVista_('agricultores'); ayTabAgr_('agricultores'); } },
+    { sel: '#ag-vistas [data-ag-tab="mapa"]', t: '🗺️ Mapa', d: 'Las actividades en el mapa por periodo (Hoy · 24 h · 48 h · 72 h · 7 días · Mes), sobre mapa sobrio o satélite.', antes: () => { ayIrVista_('agricultores'); ayTabAgr_('mapa'); } },
+    { sel: '#ag-excel', t: '⬇️ Excel', d: 'Descarga metas, registros, planificación y agricultores.', antes: () => ayIrVista_('agricultores') },
+    { sel: '#btn-ayuda', t: '¡Listo!', d: 'Para instalar la app en el celular: <b>copamientoterritorial.cl/app-agricultores/instalar.html</b>. Vuelve a esta ayuda cuando quieras con ❓.', antes: ayCerrarMenus_ },
+  ],
 };
+/** Cambia la pestaña del módulo Agricultores (para el recorrido guiado). */
+function ayTabAgr_(tab) {
+  const b = document.querySelector('#ag-vistas [data-ag-tab="' + tab + '"]');
+  if (b && !b.classList.contains('on')) b.click();
+}
 let ayRec_ = null;
 function iniciarRecorrido_(k) {
   const pasos = AY_TOURS[k]; if (!pasos) return;

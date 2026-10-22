@@ -225,7 +225,7 @@ function plRecursosFiltrados_() {
   const q = normalizarBusqueda_(state.pl.q);
   return plRecursosDelArea_().filter(r =>
       (!state.pl.sector || r.sector === state.pl.sector)
-      && (!state.pl.tipo || r.tipo_recurso === state.pl.tipo)
+      && (!(state.pl.tipos || []).length || state.pl.tipos.includes(r.tipo_recurso))   // ☑️ varios tipos (22-10-2026)
       && plCumpleGrafica_(r)
       && (!q || normalizarBusqueda_([r.alias, r.codigo_ref, r.tipo_recurso, r.sector, r.empresa, r.area, r.ruta1_nombre, r.ruta2_nombre].join(' ')).includes(q)))
     .sort((a, b) => compararTipoRecurso_(a.tipo_recurso, b.tipo_recurso)   // orden de tipos del sistema
@@ -256,7 +256,8 @@ function plOpcionesFiltro_(id, textoTodos, valores, actual) {
   const lista = valores.slice().sort(id === 'pl-tipo' ? compararTipoRecurso_ : (a, b) => String(a).localeCompare(String(b), 'es'));
   sel.innerHTML = '<option value="">' + textoTodos + '</option>' +
     lista.map(v => '<option value="' + escapeHtml_(v) + '">' + escapeHtml_(v) + '</option>').join('');
-  sel.value = lista.includes(actual) ? actual : '';
+  if (sel._msel) actualizarSel_(sel);   // selector múltiple: conserva lo elegido que siga existiendo
+  else sel.value = lista.includes(actual) ? actual : '';
   return sel.value;
 }
 
@@ -264,6 +265,7 @@ function renderPlanificador_() {
   const enArea = plRecursosDelArea_();
   state.pl.sector = plOpcionesFiltro_('pl-sector', 'Todos los sectores', [...new Set(enArea.map(r => r.sector).filter(Boolean))], state.pl.sector);
   state.pl.tipo = plOpcionesFiltro_('pl-tipo', 'Todos los tipos', [...new Set(enArea.map(r => r.tipo_recurso).filter(Boolean))].sort(compararTipoRecurso_), state.pl.tipo);
+  state.pl.tipos = valoresSel_('pl-tipo');
   const lista = plRecursosFiltrados_();
   document.getElementById('pl-grafica').value = state.pl.grafica || '';
   renderKpisPlanificador_(enArea);
@@ -295,7 +297,7 @@ function plMarcarFiltros_() {
 function plLimpiarFiltros_() {
   if (state.pl.nuevo) cancelarNuevoRecursoPlanificador_();
   const antes = state.pl.idArea;
-  state.pl.subg = ''; state.pl.sector = ''; state.pl.tipo = ''; state.pl.grafica = ''; state.pl.q = '';
+  state.pl.subg = ''; state.pl.sector = ''; state.pl.tipo = ''; state.pl.tipos = []; state.pl.grafica = ''; state.pl.q = '';
   state.pl.idArea = null; state.pl.selId = null; state.pl.preview = null; state.pl.encuadrar = true;
   document.getElementById('pl-busqueda').value = '';
   ['pl-sector', 'pl-tipo', 'pl-grafica'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
@@ -351,6 +353,16 @@ function renderListaPlanificador_(lista) {
 }
 
 
+/** Clave radial del recurso sobre su ruta asociada (21-10-2026): misma etiqueta que el punto del recurso, en AZUL, en el vértice
+ *  central de la ruta. Sigue el interruptor «Clave radial de los recursos» y la barra de opacidad del panel de capas. */
+function plClaveEnRuta_(capa, r, esSel, grupo) {
+  const clave = state.pl.claveRadial ? claveRecurso_(r) : '';
+  if (!clave) return;
+  const p = plPosEtiqueta_(capa); if (!p) return;
+  L.marker(p, { interactive: false, keyboard: false, zIndexOffset: esSel ? 1050 : 50, pane: 'plEtq',
+    icon: L.divIcon({ className: 'pl-clave-mapa ruta' + (esSel ? ' sel' : ''), iconSize: [0, 0], iconAnchor: [0, 9],
+      html: '<span>' + escapeHtml_(clave) + '</span>' }) }).addTo(grupo);
+}
 function renderMapaPlanificador_(lista) {
   if (!plMap) return;
   plRutasLayer.clearLayers(); plSelLayer.clearLayers(); plRecursosLayer.clearLayers();
@@ -377,6 +389,7 @@ function renderMapaPlanificador_(lista) {
       capa.on('click', () => seleccionarRecursoPlanificador_(r.id));
       capa._plEtq = rn.descripcion || claveRecurso_(r) || '';
       plAsignadasLayer.addLayer(capa);
+      plClaveEnRuta_(capa, r, false, plAsignadasLayer);
     });
   }
   // Rutas SIGEI: solo contexto (ya no se asocian desde aquí)
@@ -395,6 +408,7 @@ function renderMapaPlanificador_(lista) {
     const capa = L.geoJSON(gSel, { style: { color: '#2563EB', weight: 6, opacity: 0.95 } });
     capa.bindTooltip('Ruta (Normal): ' + etiquetaNormal(rnSel), { sticky: true });
     plSelLayer.addLayer(capa);
+    plClaveEnRuta_(capa, sel, true, plSelLayer);
     try { limites.push(capa.getBounds()); limitesSel.push(capa.getBounds()); } catch (e) {}
   }
 

@@ -104,9 +104,9 @@ function crearControlCapasPlanificador_() {
       div.addEventListener('click', (e) => {
         if (e.target.closest('.pl-leyenda-tit')) { div.classList.toggle('plegado'); return; }
         const t = e.target.closest('[data-pltipo]');
-        if (t) {   // clic en un tipo = filtrar por ese tipo (otro clic lo quita)
-          state.pl.tipo = state.pl.tipo === t.dataset.pltipo ? '' : t.dataset.pltipo;
-          renderPlanificador_();
+        if (t) {   // clic en un tipo = lo suma o lo quita del filtro de tipos (selector múltiple, 22-10-2026)
+          const vs = valoresSel_('pl-tipo'), tt = t.dataset.pltipo;
+          fijarValoresSel_('pl-tipo', vs.includes(tt) ? vs.filter(x => x !== tt) : vs.concat(tt));   // su 'change' redibuja
         }
       });
       return div;
@@ -258,7 +258,7 @@ function renderControlCapasPlanificador_() {
     };
     ley.style.display = tipos.length ? '' : 'none';
     ley.innerHTML = '<div class="pl-leyenda-tit">📍 Recursos disponibles <small>' + filtrados.length + '</small><span class="pl-capas-caret">▾</span></div>' +
-      '<div class="pl-leyenda-cuerpo">' + tipos.map(t => '<div class="pl-tipo-fila' + (state.pl.tipo === t ? ' activo' : '') + '" data-pltipo="' + escapeHtml_(t) + '"' +
+      '<div class="pl-leyenda-cuerpo">' + tipos.map(t => '<div class="pl-tipo-fila' + ((state.pl.tipos || []).includes(t) ? ' activo' : '') + '" data-pltipo="' + escapeHtml_(t) + '"' +
         (porTipo[t] ? '' : ' style="opacity:.4;"') + ' title="Clic para filtrar por este tipo">' +
         '<span class="pl-tipo-ico">' + iconoTipo(t) + '</span><span class="pl-tipo-nom">' + escapeHtml_(aTitulo_(t)) + '</span>' +
         '<span class="pl-capa-n">' + porTipo[t] + '</span></div>').join('') + '</div>' +
@@ -767,17 +767,18 @@ function plCambiarEscalaIconos_(v) {
 }
 
 function iniciarListenersPlanificador_() {
+  selMultiple_('pl-tipo', 'tipos');   // ☑️ varios tipos a la vez (22-10-2026)
   document.getElementById('pl-area').addEventListener('change', (e) => {
     if (state.pl.nuevo) cancelarNuevoRecursoPlanificador_();
     state.pl.idArea = e.target.value ? Number(e.target.value) : null;
-    state.pl.sector = ''; state.pl.tipo = ''; state.pl.selId = null; state.pl.preview = null;
+    state.pl.sector = ''; state.pl.tipo = ''; state.pl.tipos = []; document.getElementById('pl-tipo').value = ''; state.pl.selId = null; state.pl.preview = null;
     state.pl.moviendo = false; state.pl.rutas = []; state.pl.encuadrar = true;
     renderPlanificador_();
     cargarRutasPlanificador_();
     plResetExtra_();   // capas del Planificador de Alertas: se recargan para la nueva área
   });
   document.getElementById('pl-sector').addEventListener('change', (e) => { state.pl.sector = e.target.value; state.pl.encuadrar = true; renderPlanificador_(); });
-  document.getElementById('pl-tipo').addEventListener('change', (e) => { state.pl.tipo = e.target.value; renderPlanificador_(); });
+  document.getElementById('pl-tipo').addEventListener('change', (e) => { state.pl.tipo = e.target.value; state.pl.tipos = valoresSel_('pl-tipo'); renderPlanificador_(); });
   // Subgerencia: limita las áreas y, sin área, muestra todos los recursos de esa subgerencia
   document.getElementById('pl-subg').addEventListener('change', (e) => {
     const antes = state.pl.idArea;
