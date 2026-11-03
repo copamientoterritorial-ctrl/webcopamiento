@@ -415,7 +415,7 @@ async function guardarEdicionForma_() {
     ef.capaOriginal.addTo(map);
   }
   mostrarToast_('Forma actualizada.');
-  if (ef.tabla === 'planificacion' && ef.tipo === 'linea') avisarRutaEnOtrosEscenarios_(ef.id, 'Forma actualizada.');
+  if (ef.tabla === 'planificacion') avisarRutaEnOtrosEscenarios_(ef.id, 'Forma actualizada.');   // 03-11-2026 (SQL 152): líneas y áreas
   finalizarEdicionForma_();
 
   // Recarga en segundo plano para sincronizar (la figura ya se ve actualizada)

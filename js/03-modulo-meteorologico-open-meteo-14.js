@@ -782,6 +782,7 @@ async function adminSeccionUsuarios_(c) {
           return '<option value="' + escapeHtml_(a) + '"' + (a === fA ? ' selected' : '') + '>' + escapeHtml_(aTitulo_(a)) + ' (' + n + ')</option>';
         }).join('') + '</select>' +
       '<span class="admin-count">' + lista.length + ' de ' + state.usuarios.length + '</span>' + densToggle_() +
+      '<button class="popup-btn" id="adm-u-excel" style="padding:9px 12px;" title="Descargar a Excel los usuarios que se ven (con los filtros vigentes)">⬇️ Excel</button>' +
       '<button class="btn-primary" id="adm-u-nuevo" style="padding:9px 14px;">+ Nuevo usuario</button>') +
       '<div class="adm-kpis">' +
       admKpi_('👥', '#EFF4FF', 'Total', state.usuarios.length, { click: '', activo: !fP }) +
@@ -816,6 +817,7 @@ async function adminSeccionUsuarios_(c) {
     const inp = document.getElementById('adm-u-search'); inp.addEventListener('input', render); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
     document.getElementById('adm-u-area').addEventListener('change', e => { state.admFiltroArea = e.target.value; render(); });
     document.getElementById('adm-u-nuevo').addEventListener('click', () => abrirModalUsuario_(null));
+    document.getElementById('adm-u-excel').addEventListener('click', () => descargarUsuariosExcel_(lista, ORDEN, comunasDeArea));
     c.querySelectorAll('[data-kpi]').forEach(k => k.addEventListener('click', () => { state.admFiltroPerfil = k.dataset.kpi; render(); }));
     bindDensidad_(c, render);
     c.querySelectorAll('[data-e]').forEach(b => b.onclick = () => abrirModalUsuario_(state.usuarios.find(x => x.id === b.dataset.e)));
@@ -825,6 +827,42 @@ async function adminSeccionUsuarios_(c) {
     c.querySelectorAll('[data-del]').forEach(b => b.onclick = () => eliminarUsuarioInactivo_(state.usuarios.find(x => x.id === b.dataset.del)));
   };
   render();
+}
+
+/** ⬇️ Usuarios a Excel (03-11-2026): los que se ven con los filtros (perfil, área, búsqueda), ordenados por perfil y nombre.
+ *  Hoja «Usuarios» (datos, perfil, alcance, estado) + hoja «Resumen» (cantidad por perfil, activos / inactivos). */
+async function descargarUsuariosExcel_(lista, orden, comunasDeArea) {
+  if (!lista || !lista.length) { mostrarToast_('No hay usuarios para descargar con estos filtros.'); return; }
+  const fh = v => v ? new Date(v).toLocaleString('es-CL') : '';
+  const nombreArea = k => { const a = (state.areasCatalogo || []).find(x => SG_KEY(x) === k); return a ? aTitulo_(a) : k; };
+  const filas = lista.slice().sort((a, b) => (orden.indexOf(a.perfil) - orden.indexOf(b.perfil)) || String(a.nombre_completo).localeCompare(String(b.nombre_completo), 'es'))
+    .map(u => ({
+      'Nombre': u.nombre_completo || '', 'Correo': u.email || '', 'Teléfono': u.telefono || '', 'Cargo': u.cargo || '', 'Perfil': u.perfil || '',
+      'Subgerencia': u.subgerencia ? aTitulo_(u.subgerencia) : '',
+      'Áreas asignadas': (u.area_ids || []).join(', '),
+      'Áreas (asignadas o por sus comunas)': [...(u._areas || [])].map(nombreArea).sort().join(', '),
+      'Comunas': u.perfil === 'Administrador' ? 'Todas' : (u.comuna_ids || []).map(nombreComuna_).join(', '),
+      'N° comunas': u.perfil === 'Administrador' ? '' : (u.comuna_ids || []).length,
+      'Estado': u.estado === 'activo' ? 'Activo' : 'Inactivo',
+      'Debe cambiar clave': u.debe_cambiar_clave ? 'Sí' : 'No',
+      'Último acceso': fh(u.last_sign_in_at || u.ultimo_acceso),
+      'Creado': fh(u.created_at || u.creado_en),
+    }));
+  try {
+    const XLSX = await tbCargarSheetJs_();
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(filas);
+    ws['!cols'] = [28, 32, 14, 22, 28, 12, 30, 34, 40, 10, 9, 10, 18, 18].map(wch => ({ wch }));
+    ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: filas.length, c: Object.keys(filas[0]).length - 1 } }) };
+    XLSX.utils.book_append_sheet(wb, ws, 'Usuarios');
+    const resumen = orden.map(p => { const g = lista.filter(u => u.perfil === p); return { 'Perfil': p, 'Usuarios': g.length,
+      'Activos': g.filter(u => u.estado === 'activo').length, 'Inactivos': g.filter(u => u.estado !== 'activo').length }; }).filter(r => r.Usuarios);
+    resumen.push({ 'Perfil': 'TOTAL', 'Usuarios': lista.length, 'Activos': lista.filter(u => u.estado === 'activo').length, 'Inactivos': lista.filter(u => u.estado !== 'activo').length });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumen), 'Resumen');
+    const filtro = [state.admFiltroPerfil, state.admFiltroArea].filter(Boolean).map(s => normalizarBusqueda_(s).replace(/[^a-z0-9]+/g, '_')).join('_');
+    XLSX.writeFile(wb, 'usuarios_' + (filtro ? filtro + '_' : '') + fechaISO_(new Date()) + '.xlsx');
+    mostrarToast_('✅ Descargados ' + lista.length + ' usuario(s).');
+  } catch (e) { mostrarToast_('No se pudo generar el Excel: ' + (e.message || e)); }
 }
 
 /** 🗑️ Eliminar una cuenta INACTIVA (SQL 115): primero simula (qué registros se tocan), luego doble confirmación.
