@@ -150,6 +150,7 @@ function mostrarVista_(vista, modoMapa) {
   if (vista === 'riesgo' && !puedeAccionesRiesgo_()) vista = 'dashboard';
   if (vista === 'appreportes' && !puedeReportesApp_()) vista = 'dashboard';
   if (vista === 'implementacion' && !puedeImplementacion_()) vista = 'dashboard';
+  if (vista === 'descargas' && !puedeDescargasGeo_()) vista = 'dashboard';
   if (vista === 'bosques' && !puedeBosques_()) vista = 'dashboard';
   if (vista === 'seguimiento' && !puedeSeguimiento_()) vista = 'dashboard';
   if (vista === 'patrullajes' && !puedeVerModulo_('patrullajes')) vista = 'dashboard';
@@ -199,6 +200,8 @@ function mostrarVista_(vista, modoMapa) {
   if (arP) arP.classList.toggle('show', vista === 'appreportes');
   const imP = document.getElementById('implementacion-panel');
   if (imP) imP.classList.toggle('show', vista === 'implementacion');
+  const dgP = document.getElementById('descargas-panel');
+  if (dgP) dgP.classList.toggle('show', vista === 'descargas');
   const brP = document.getElementById('bosques-panel');
   if (brP) brP.classList.toggle('show', vista === 'bosques');
   const sgP = document.getElementById('seguimiento-panel');
@@ -236,6 +239,7 @@ function mostrarVista_(vista, modoMapa) {
   else if (vista === 'riesgo') abrirAccionesRiesgo_();
   else if (vista === 'appreportes') abrirReportesApp_();
   else if (vista === 'implementacion') abrirImplementacion_();
+  else if (vista === 'descargas') abrirDescargasGeo_();
   else if (vista === 'bosques') abrirBosques_();
   else if (vista === 'seguimiento') abrirSeguimiento_();
   else if (vista === 'agricultores') abrirAgricultores_();
@@ -289,14 +293,27 @@ function marcarMenuActivo_(vista) {
     if (btn) btn.classList.toggle('active', !!g.querySelector('.vista-subitem.active'));
   });
 }
+/** Velo (02-11-2026): con un submenú abierto, todo lo de abajo se oscurece para que el menú resalte y no se confunda
+ *  con el panel cargado. Un clic en el velo cierra el menú. */
+function veloMenu_(on) {
+  let v = document.getElementById('menu-velo');
+  if (!v && on) {
+    v = document.createElement('div'); v.id = 'menu-velo';
+    v.addEventListener('click', ev => { ev.stopPropagation(); cerrarSubmenus_(); });
+    document.body.appendChild(v);
+  }
+  document.body.classList.toggle('menu-velo-on', !!on);
+}
 function cerrarSubmenus_() {
   document.querySelectorAll('.vista-grupo.abierto').forEach(g => g.classList.remove('abierto'));
+  veloMenu_(false);
 }
 function alternarSubmenu_(grupo) {
   const abierto = grupo.classList.contains('abierto');
   cerrarSubmenus_();
   if (abierto) return;
   grupo.classList.add('abierto');
+  if (window.innerWidth > 600) veloMenu_(true);
   // La barra de pestañas tiene overflow (recorta lo absoluto): el submenú va fijo bajo su botón.
   const sub = grupo.querySelector('.vista-submenu'), btn = grupo.querySelector('.vista-tab-grupo');
   if (sub && btn && window.innerWidth > 600) {
@@ -306,6 +323,7 @@ function alternarSubmenu_(grupo) {
   }
 }
 function iniciarMenuSuperior_() {
+  document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && document.querySelector('.vista-grupo.abierto')) cerrarSubmenus_(); });
   document.querySelectorAll('.vista-tab-grupo').forEach(b => b.addEventListener('click', (ev) => {
     ev.stopPropagation(); alternarSubmenu_(b.closest('.vista-grupo'));
   }));
@@ -806,10 +824,11 @@ function actualizarIndicadorVivoPrio_() {
 async function cargarResumenPrevencion_() {
   state.prio.resumenEstado = 'cargando';
   renderListaPrio_();
-  const { data, error } = await supabaseClient.rpc('resumen_comunas_prevencion');
-  if (error) { state.prio.resumenEstado = 'error: ' + error.message; renderListaPrio_(); return; }
-  state.prio.resumen = {};
-  (data || []).forEach(r => { state.prio.resumen[r.id_comuna] = r; });
+  // 22-10-2026: consulta compartida con el Dashboard y el Seguimiento (js/02); aquí siempre fresca (se pide por cambios)
+  let m;
+  try { m = await obtenerResumenCopamiento_(true); }
+  catch (error) { state.prio.resumenEstado = 'error: ' + (error.message || error); renderListaPrio_(); return; }
+  state.prio.resumen = m;
   state.prio.resumenEstado = 'ok';
   state.prio.resumenEn = Date.now();
   recalcularPrio_();

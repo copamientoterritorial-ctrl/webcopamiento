@@ -214,10 +214,12 @@ function idsComunasMulti_() {
 }
 
 function estiloLimite_(comunaId) {
+  // 🧭 Modo área: los límites los dibuja el modo área (un color por comuna, capa «Comunas del área»)
+  if (document.body.classList.contains('modo-area-trabajo')) return { opacity: 0, fillOpacity: 0 };
   const activo = comunaId === state.activeComunaId;
   return activo
-    ? { color: '#0F172A', weight: 3.5, fillOpacity: 0.05, dashArray: '' }
-    : { color: '#94A3B8', weight: 1.5, fillOpacity: 0, dashArray: '6,6' };
+    ? { color: '#0F172A', weight: 3.5, opacity: 1, fillOpacity: 0.05, dashArray: '' }
+    : { color: '#94A3B8', weight: 1.5, opacity: 1, fillOpacity: 0, dashArray: '6,6' };
 }
 
 async function cargarLimitesMultiComuna_() {
@@ -229,20 +231,12 @@ async function cargarLimitesMultiComuna_() {
   if (error || !data) return;
   data.forEach(c => {
     if (!c.geometry) return;
-    const capa = L.geoJSON(c.geometry, { pane: 'limitesPane', style: estiloLimite_(c.id) });
-    capa.on('click', (ev) => {
-      if (hayModoTrabajoActivo_()) {
-        // En modo de trabajo, el clic debe llegar al mapa (agregar vértice, etc.),
-        // no intentar cambiar de comuna. Se re-emite al mapa.
-        map.fire('click', ev);
-        return;
-      }
-      if (c.id !== state.activeComunaId) seleccionarComuna_(c.id);
-    });
+    // 22-10-2026: el límite ya no es un enlace (pinchar otra comuna no cambia de comuna; se cambia con el selector)
+    const capa = L.geoJSON(c.geometry, { pane: 'limitesPane', interactive: false, style: estiloLimite_(c.id) });
     window.limitesPorComuna[c.id] = capa;
     if (!state.limitesOcultos[c.id]) limitesMultiLayer.addLayer(capa);
   });
-  if (!map.hasLayer(limitesMultiLayer)) limitesMultiLayer.addTo(map);
+  if (!map.hasLayer(limitesMultiLayer) && !state.areaActiva) limitesMultiLayer.addTo(map);   // en 🧭 modo área no se muestran
   refrescarEstiloLimites_();
 }
 

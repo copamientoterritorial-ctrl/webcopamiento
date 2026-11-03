@@ -315,6 +315,43 @@ async function cargarDashboard_() {
   cargarCopamientoAlertasDash_(planes || [], comunaId);
 }
 
+/* ── ⚡ Resumen de copamiento por comuna (22-10-2026) ──
+ * resumen_comunas_prevencion() lo usan el Dashboard, Comunas Prioritarias y el Seguimiento. Antes cada uno lo pedía por su
+ * cuenta (varias consultas pesadas a la vez al iniciar). Ahora:
+ *   · UNA consulta compartida (si ya hay una en curso, los demás esperan la misma);
+ *   · en memoria 5 min (cambiar de subgerencia, área o pestaña no vuelve a consultar);
+ *   · copia en el navegador (localStorage): al iniciar se muestra al instante la última copia y se refresca en segundo plano.
+ * En la base (SQL 145) la función ya no recalcula: lee la tabla copamiento_comuna_cache. */
+const RESUMEN_COP_TTL = 5 * 60e3, RESUMEN_COP_LS = 'resumen_copamiento_v1';
+const resumenCop_ = { mapa: null, en: 0, promesa: null, avisar: [] };
+/** Lo que haya ya (memoria o copia del navegador), sin consultar. { mapa, en } o null. */
+function resumenCopamientoDisponible_() {
+  if (resumenCop_.mapa) return { mapa: resumenCop_.mapa, en: resumenCop_.en };
+  try {
+    const j = JSON.parse(localStorage.getItem(RESUMEN_COP_LS) || 'null');
+    if (j && j.mapa) { resumenCop_.mapa = j.mapa; resumenCop_.en = j.en || 0; return { mapa: j.mapa, en: resumenCop_.en }; }
+  } catch (e) {}
+  return null;
+}
+/** Resumen fresco (consulta solo si no hay uno de menos de 5 min, o si forzar). Devuelve { id_comuna: fila }. */
+function obtenerResumenCopamiento_(forzar) {
+  if (!forzar && resumenCop_.mapa && Date.now() - resumenCop_.en < RESUMEN_COP_TTL) return Promise.resolve(resumenCop_.mapa);
+  if (resumenCop_.promesa) return resumenCop_.promesa;
+  resumenCop_.promesa = supabaseClient.rpc('resumen_comunas_prevencion').then(({ data, error }) => {
+    if (error) throw error;
+    const m = {}; (data || []).forEach(x => { m[x.id_comuna] = x; });
+    resumenCop_.mapa = m; resumenCop_.en = Date.now(); resumenCop_.promesa = null;
+    try { localStorage.setItem(RESUMEN_COP_LS, JSON.stringify({ en: resumenCop_.en, mapa: m })); } catch (e) {}
+    cargarCopamientoAlertasDash_.resumen = m;
+    if (state.prio) { state.prio.resumen = m; state.prio.resumenEn = resumenCop_.en; }
+    resumenCop_.avisar.forEach(fn => { try { fn(m); } catch (e) {} });
+    return m;
+  }).catch(e => { resumenCop_.promesa = null; throw e; });
+  return resumenCop_.promesa;
+}
+/** Invalida el resumen en memoria (tras trabajar en el Planificador): la próxima lectura consulta de nuevo. */
+function invalidarResumenCopamiento_() { resumenCop_.en = 0; cargarCopamientoAlertasDash_.resumen = null; }
+
 /* ── 🧭 Copamiento planificado por alerta (15-10-2026) ──
  * Por escenario (Normal / Amarilla / Roja): % de la zona de incendios del trienio cubierta (mismo cálculo de
  * Comunas Prioritarias, RPC resumen_comunas_prevencion), km reales de rutas (largo de las líneas planificadas),
@@ -382,12 +419,12 @@ async function cargarCopamientoAlertasDash_(planes, comunaId) {
   });
   // % de copamiento sobre la zona de incendios del trienio (promedio de las comunas con plan en cada escenario)
   // El cálculo es pesado (geometría): primero se muestran km e instituciones y el % llega después
-  const resumen = (state.prio && state.prio.resumen) || cargarCopamientoAlertasDash_.resumen || null;
-  if (!resumen && !cargarCopamientoAlertasDash_.pidiendo) {
+  // 22-10-2026: resumen compartido (memoria / copia del navegador al instante; se refresca en segundo plano si está viejo)
+  const disp = resumenCopamientoDisponible_();
+  const resumen = (state.prio && state.prio.resumen) || cargarCopamientoAlertasDash_.resumen || (disp && disp.mapa) || null;
+  if ((!disp || Date.now() - disp.en > RESUMEN_COP_TTL) && !cargarCopamientoAlertasDash_.pidiendo) {
     cargarCopamientoAlertasDash_.pidiendo = true;
-    supabaseClient.rpc('resumen_comunas_prevencion').then(({ data }) => {
-      const m = {}; (data || []).forEach(x => { m[x.id_comuna] = x; });
-      cargarCopamientoAlertasDash_.resumen = m;
+    obtenerResumenCopamiento_().then(() => {
       cargarCopamientoAlertasDash_.pidiendo = false;
       if (pedido === cargarCopamientoAlertasDash_.n && state.vistaActual === 'dashboard') cargarCopamientoAlertasDash_(planes, comunaId);
     }).catch(() => { cargarCopamientoAlertasDash_.pidiendo = false; });

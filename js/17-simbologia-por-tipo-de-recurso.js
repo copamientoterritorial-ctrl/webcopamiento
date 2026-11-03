@@ -36,6 +36,12 @@ async function cargarTiposRecurso_(forzar) {
     // Orden del sistema: Brigada Multipropósito, Brigada Disuasiva, Vigía Camioneta, Vigía
     // Motorizado, Vigía Montado, Vigía Infantería, Vigía Dron; luego el resto según su «orden».
     state.tiposRecursoCatalogo = (data || []).slice().sort((a, b) => rangoTipoRecurso_(a.nombre) - rangoTipoRecurso_(b.nombre));
+    // Tipos asociados a cada institución (SQL 138, Administración › 🏷️ Tipos de recurso). Sin el SQL: {} (regla anterior).
+    state.tiposPorInstitucion = {};
+    try {
+      const { data: tri, error: eTri } = await supabaseClient.from('tipo_recurso_institucion').select('institucion_id, tipo_nombre');
+      if (!eTri) (tri || []).forEach(x => { (state.tiposPorInstitucion[x.institucion_id] = state.tiposPorInstitucion[x.institucion_id] || []).push(x.tipo_nombre); });
+    } catch (e) { /* sin SQL 138 */ }
     return state.tiposRecursoCatalogo;
   })();
 

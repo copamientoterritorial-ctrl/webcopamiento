@@ -179,7 +179,10 @@ function renderTabInterno_(tab) {
     // Límite comunal: si el usuario tiene VARIAS comunas -> árbol (una por comuna,
     // la activa resaltada). Si tiene una -> check simple.
     const idsMulti = tieneVariasComunas_() ? idsComunasMulti_() : [];
-    if (idsMulti.length >= 2) {
+    if (state.areaActiva && state.areaFiltro) {
+      // 🧭 Modo área: los límites son la capa «Comunas del área» (un color por comuna; encender/apagar y opacidad)
+      filaCapaComunasArea_(c);
+    } else if (idsMulti.length >= 2) {
       const cont = document.createElement('div');
       const comunasMulti = idsMulti.map(id => state.comunas.find(cm => cm.id === id)).filter(Boolean).sort((a, b) => a.comuna.localeCompare(b.comuna));
       const visibles = comunasMulti.filter(cm => window.limitesPorComuna[cm.id] && limitesMultiLayer.hasLayer(window.limitesPorComuna[cm.id])).length;
@@ -439,31 +442,8 @@ function renderTabInterno_(tab) {
         }
       }
 
-      // ── CAPA ADMIN: Recursos filtrados por comuna (solo Administrador) ──
-      if (esAdminOJefe_()) {   // 17-10-2026: también Jefe de Área
-        const infoRCA = state.recursosComunaAdminInfo || { ok: false, count: 0 };
-        renderArbolTiposRecurso_(c, {
-          titulo: '📍 Recursos de la Comuna',
-          dotColor: '#2563EB',
-          colapsoKey: 'colapsoRecComuna',
-          layerGroup: recursosComunaAdminLayer,
-          featureLayers: recursosComunaAdminFeatureLayers,
-          infoCount: infoRCA.ok ? infoRCA.count : null,
-          btnEtiqId: 'btn-etiq-recursos-comuna-admin',
-          etiqActiva: state.mostrarEtiquetasRecursosComunaAdmin,
-          onToggleEtiq: toggleEtiquetasRecursosComunaAdmin_,
-          onToggleCapa: async () => {
-            if (map.hasLayer(recursosComunaAdminLayer)) {
-              map.removeLayer(recursosComunaAdminLayer);
-              state.recursosComunaAdminOn = false;
-            } else {
-              await loadRecursosComunaAdmin_();
-              recursosComunaAdminLayer.addTo(map);
-              state.recursosComunaAdminOn = true;
-            }
-          }
-        });
-      }
+      // 22-10-2026: se quitó la capa «📍 Recursos de la Comuna»: «Recursos Disponibles» ya se filtra por el interruptor ÁREA
+      // (modo área = recursos del área; modo comuna = recursos de la comuna).
 
       c.querySelectorAll('[data-arealayer]').forEach(tg => {
         tg.addEventListener('click', () => {
@@ -490,7 +470,7 @@ function renderTabInterno_(tab) {
     if (Object.keys(arbolPat).length > 0) {
       // Árbol Área → Sector, igual que Áreas de Relacionamiento.
       c.appendChild(construirArbolGenerico_({
-        titulo: 'Rutas de Patrullaje',
+        titulo: 'Rutas de Patrullaje SIGEI',
         arbol: arbolPat,
         layerGroup: patrullajeLayer,
         ocultosKey: 'patrullajeSectoresOcultos',
@@ -502,7 +482,7 @@ function renderTabInterno_(tab) {
       const rowPatrullaje = document.createElement('div'); rowPatrullaje.className = 'layer-row';
       rowPatrullaje.innerHTML =
         '<div class="layer-left"><span class="flame-dot" style="background:#DC2626"></span>' +
-        '<div><div class="layer-name">Rutas de Patrullaje</div><div class="layer-count">' +
+        '<div><div class="layer-name">Rutas de Patrullaje SIGEI</div><div class="layer-count">' +
         (infoPat.cargado ? (infoPat.ok ? infoPat.count + ' ruta(s)' : 'No disponible') : 'Cargando…') +
         '</div></div></div>' +
         '<div class="toggle ' + (map.hasLayer(patrullajeLayer) ? 'on' : '') + '" id="toggle-patrullaje"></div>';
@@ -520,41 +500,7 @@ function renderTabInterno_(tab) {
       c.appendChild(msg);
     }
 
-    // ── CAPA ADMIN: Rutas filtradas por comuna (solo Administrador) ──
-    if (esAdminOJefe_()) {   // 17-10-2026: también Jefe de Área
-      const infoRCU = state.rutasComunaAdminInfo || { ok: false, count: 0 };
-      const arbolRC = window.arbolRutasComuna || {};
-
-      if (Object.keys(arbolRC).length > 0) {
-        // Mismo árbol Área → Sector que las rutas de patrullaje.
-        c.appendChild(construirArbolGenerico_({
-          titulo: '📍 Rutas de la Comuna',
-          arbol: arbolRC,
-          layerGroup: rutasComunaAdminLayer,
-          ocultosKey: 'rutasComunaSectoresOcultos',
-          colorDot: '#2563EB',
-          colapsoKey: 'colapsoRutasComuna',
-          conZoom: true,
-        }));
-      } else {
-        const rowRCU = document.createElement('div'); rowRCU.className = 'layer-row';
-        rowRCU.innerHTML =
-          '<div class="layer-left"><span class="flame-dot" style="background:#2563EB"></span>' +
-          '<div><div class="layer-name">📍 Rutas de la Comuna</div><div class="layer-count">' + (infoRCU.ok ? infoRCU.count + ' ruta(s) · comuna activa' : 'Cargando…') + '</div></div></div>' +
-          '<div class="toggle ' + (map.hasLayer(rutasComunaAdminLayer) ? 'on' : '') + '" id="toggle-rutas-comuna-admin"></div>';
-        c.appendChild(rowRCU);
-        c.querySelector('#toggle-rutas-comuna-admin').addEventListener('click', async (ev) => {
-          const tg = ev.currentTarget;
-          if (map.hasLayer(rutasComunaAdminLayer)) {
-            map.removeLayer(rutasComunaAdminLayer); state.rutasComunaAdminOn = false; tg.classList.remove('on');
-          } else {
-            await loadRutasComunaAdmin_();
-            rutasComunaAdminLayer.addTo(map); state.rutasComunaAdminOn = true; tg.classList.add('on');
-            renderTab(state.activeTab || 'capas');
-          }
-        });
-      }
-    }
+    // 22-10-2026: se quitó la capa «📍 Rutas de la Comuna»: «Rutas de Patrullaje SIGEI» ya se filtra por el interruptor ÁREA.
 
     // ── App Móvil: posiciones en tiempo real ─────────────────────────────────
     {

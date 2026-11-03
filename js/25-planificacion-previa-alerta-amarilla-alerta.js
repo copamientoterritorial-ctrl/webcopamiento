@@ -931,12 +931,16 @@ async function activarEscenarioDesdeBoton_(escenario) {
                             amarilla: [capaAlertaAmarillaLayer, planificacionRecursosAmarillaLayer],
                             roja: [capaAlertaRojaLayer, planificacionRecursosRojaLayer] };
     capasActivas[clave].forEach(l => l.addTo(map));
-    // Cargar datos si no están
-    await cargarCapasAlertaGlobales_();
-    // Conservar el filtro por institución al cambiar de nivel de alerta.
-    reaplicarFiltrosAlerta_();
-    // Actualizar simbología
-    mostrarSimbologiaEscenario_(escenario);
+    // Cargar datos si no están (⏳ indicador de carga: bloquea el mapa hasta que esté listo)
+    cargaInicio_('escenario', 'Activando ' + nombreEscenario_(escenario) + '…');
+    try {
+      await cargarCapasAlertaGlobales_();
+      cargaAvance_('escenario', 70, 'Aplicando filtros y simbología…');
+      // Conservar el filtro por institución al cambiar de nivel de alerta.
+      reaplicarFiltrosAlerta_();
+      // Actualizar simbología
+      mostrarSimbologiaEscenario_(escenario);
+    } finally { cargaFin_('escenario'); }
     mostrarToast_('🗺️ Escenario ' + etiquetaEscenario_(escenario) + ' activo');
   } else {
     // Se apagó — ocultar simbología y, con ella, la estadística
@@ -1044,18 +1048,24 @@ async function iniciarPlanificacionRapida_(escenario) {
   const cfg = state.comunas.find(c => c.id === id);
   const nombre = cfg ? cfg.comuna : id;
 
-  // Cargar datos de la capa de alerta si aún no están
-  await cargarCapasAlertaGlobales_();
-
-  state.escenarioActivo = escenario;
-  const { data: plan, error } = await supabaseClient.rpc('obtener_o_crear_plan_contingencia', {
-    p_ambito: ambito, p_comuna_id: id, p_area: null, p_escenario: escenario,
-  });
+  // Cargar datos de la capa de alerta si aún no están (⏳ indicador de carga)
+  cargaInicio_('escenario', 'Preparando ' + nombreEscenario_(escenario) + '…');
+  let plan = null, error = null;
+  try {
+    await cargarCapasAlertaGlobales_();
+    cargaAvance_('escenario', 60, 'Abriendo el plan de ' + nombreEscenario_(escenario) + '…');
+    state.escenarioActivo = escenario;
+    ({ data: plan, error } = await supabaseClient.rpc('obtener_o_crear_plan_contingencia', {
+      p_ambito: ambito, p_comuna_id: id, p_area: null, p_escenario: escenario,
+    }));
+  } catch (e) {
+    error = e;   // red caída o similar: antes la pantalla «Preparando…» quedaba pegada
+  } finally { cargaFin_('escenario'); }
 
   // ── OCULTAR LANDING ───────────────────────────────────────────────────────
   ocultarLandingPlanificacion_();
 
-  if (error) { mostrarToast_('Error: ' + error.message); return; }
+  if (error) { mostrarToast_('Error: ' + (error.message || error)); return; }
 
   // 3. Simbología adecuada al escenario (mostrar panel con color del escenario)
   mostrarSimbologiaEscenario_(escenario);

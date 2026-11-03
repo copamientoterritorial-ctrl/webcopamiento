@@ -2,13 +2,14 @@
  * Control interno: avance de las 24 comunas relevantes (V6 de Comunas Prioritarias) en 7 etapas, por comuna y por
  * área. Solo el Administrador marca; Jefes de Área, Subgerentes y GRT ven (RLS de implementacion_etapas). */
 const IM_ETAPAS = [
-  ['reunion_autoridades', '🤝', 'Reunión autoridades'],
-  ['capacitacion_sistema', '🎓', 'Capacitación del Sistema'],
-  ['bajada_gestores', '👥', 'Bajada a Gestores'],
-  ['rutas_normal', '🛣️', 'Construcción de rutas en condiciones normales'],
+  // 22-10-2026: nombres nuevos (las claves de la BD no cambian: lo ya marcado se conserva)
+  ['reunion_autoridades', '🤝', 'Bajada Autoridades Regionales'],
+  ['capacitacion_sistema', '🎓', 'Capacitación Jefes de Área'],
+  ['bajada_gestores', '👥', 'Bajar Sistema GRT'],
+  ['rutas_normal', '🛣️', 'Construcción Plan CMPC'],
   ['bajada_alcalde', '🏛️', 'Bajada a Alcalde'],
-  ['sistema_grd', '🖥️', 'Mostrar Sistema a GRD'],
-  ['autonomia_grd', '🚀', 'Autonomía de GRD en el Sistema'],
+  ['sistema_grd', '🖥️', 'Bajada Sistema GRD'],
+  ['autonomia_grd', '🚀', 'GRD en Sistema Copamiento'],
 ];
 state.im = { datos: null, area: '', listeners: false };
 function puedeImplementacion_() { return esAdminOJefe_(); }
@@ -84,6 +85,42 @@ function imTorta_(pct, tam, sub) {
 }
 function imHechas_(c) { const M = state.im.datos.marcas; return IM_ETAPAS.filter(([k]) => M[c.id + '|' + k] && M[c.id + '|' + k].completada).length; }
 
+let imDetAbierto_ = false;   // «Ver avance por comuna» desplegado (se conserva al filtrar / buscar)
+/** Bloque «Avance Copamiento Comunal» (7 etapas) para una lista de comunas [{ id, nombre }].
+ *  tiene(id, etapa) → true si la comuna cumplió la etapa. Arriba el avance GENERAL (torta + cifras); a la derecha cada etapa
+ *  con su nombre completo, barra ancha y «n de N comunas». Con conDetalle, el botón «Ver avance por comuna» despliega una
+ *  fila por comuna (sin volver a dibujar). Lo usan este módulo y el 📈 Seguimiento (con sus filtros). */
+function imKpiGlobalHtml_(comunas, tiene, nota, conDetalle) {
+  const N = IM_ETAPAS.length, n = comunas.length;
+  const hechas = id => IM_ETAPAS.filter(([k]) => tiene(id, k)).length;
+  const pct = n ? Math.round(comunas.reduce((s, c) => s + hechas(c.id), 0) * 100 / (n * N)) : 0;
+  const completas = comunas.filter(c => hechas(c.id) === N).length, sinIniciar = comunas.filter(c => hechas(c.id) === 0).length;
+  const enCurso = n - completas - sinIniciar;
+  const detalle = !conDetalle ? '' :
+    '<div class="im-det">' + comunas.slice().sort((a, b) => hechas(b.id) - hechas(a.id) || String(a.nombre).localeCompare(String(b.nombre), 'es')).map(c => {
+      const h = hechas(c.id), p = Math.round(h * 100 / N);
+      return '<div class="im-det-fila" style="--c:' + imColor_(p) + '"><b title="' + escapeHtml_(c.nombre) + '">' + escapeHtml_(c.nombre) + '</b>' +
+        '<span class="im-det-etapas">' + IM_ETAPAS.map(([k, ico, nom]) => '<i class="' + (tiene(c.id, k) ? 'ok' : '') + '" title="' + escapeHtml_(nom) + (tiene(c.id, k) ? ' · cumplida' : ' · pendiente') + '">' + ico + '</i>').join('') + '</span>' +
+        '<span class="im-barra"><em style="width:' + p + '%"></em></span><strong>' + p + '%</strong><small>' + h + '/' + N + '</small></div>';
+    }).join('') + '</div>';
+  return '<div class="im-global-wrap' + (conDetalle && imDetAbierto_ ? ' abierto' : '') + '">' +
+    '<div class="im-global im-global-v2" style="--c:' + imColor_(pct) + '">' +
+      '<div class="im-gen">' + imTorta_(pct, 150, 'avance') +
+        '<div class="im-gen-txt"><b>Avance Copamiento Comunal</b>' +
+          '<span>' + n + ' comuna(s) × ' + N + ' etapas' + (nota || '') + '</span>' +
+          '<div class="im-gen-cifras"><em style="--k:#16A34A">✅ ' + completas + '<small>completas</small></em><em style="--k:#D97706">🟠 ' + enCurso + '<small>en curso</small></em>' +
+            '<em style="--k:#DC2626">⛔ ' + sinIniciar + '<small>sin iniciar</small></em></div>' +
+          (conDetalle ? '<button type="button" class="im-ver-det" onclick="imDetAbierto_ = this.closest(\'.im-global-wrap\').classList.toggle(\'abierto\')">' +
+            '<span class="ver">▸ Ver avance por comuna</span><span class="ocultar">▾ Ocultar avance por comuna</span></button>' : '') +
+        '</div></div>' +
+      '<div class="im-etapas-v2">' + IM_ETAPAS.map(([k, ico, nom], i) => {
+        const c = comunas.filter(x => tiene(x.id, k)).length, p = n ? Math.round(c * 100 / n) : 0;
+        return '<div style="--c:' + imColor_(p) + '"><div class="cab"><span>' + ico + ' ' + (i + 1) + '. ' + escapeHtml_(nom) + '</span><b>' + p + '%</b></div>' +
+          '<span class="im-barra"><em style="width:' + p + '%"></em></span><small>' + c + ' de ' + n + ' comunas</small></div>';
+      }).join('') + '</div>' +
+    '</div>' + detalle + '</div>';
+}
+
 function renderImplementacion_() {
   const D = state.im.datos; if (!D) return;
   const cuerpo = document.getElementById('im-cuerpo'), M = D.marcas, edita = imPuedeEditar_();
@@ -94,18 +131,11 @@ function renderImplementacion_() {
   D.comunas.forEach(c => (c.areas.length ? c.areas : ['(sin área)']).forEach(a => { (porArea[a] = porArea[a] || []).push(c); }));
   const areas = Object.keys(porArea).map(a => ({ a, lista: porArea[a], pct: pctDe(porArea[a]) })).sort((x, y) => y.pct - x.pct || x.a.localeCompare(y.a, 'es'));
   const filas = state.im.area ? (porArea[state.im.area] || []) : D.comunas;
-  const pctG = pctDe(D.comunas), pctF = pctDe(filas);
-  const completas = D.comunas.filter(c => imHechas_(c) === N).length, sinIniciar = D.comunas.filter(c => imHechas_(c) === 0).length;
+  const pctF = pctDe(filas);
   const porEtapa = IM_ETAPAS.map(([k]) => filas.filter(c => M[c.id + '|' + k] && M[c.id + '|' + k].completada).length);
   const fmtF = f => f ? new Date(String(f).slice(0, 10) + 'T12:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' }) : '';
   cuerpo.innerHTML =
-    '<div class="im-global" style="--c:' + imColor_(pctG) + '">' + imTorta_(pctG, 132, 'avance') +
-      '<div class="barra"><b style="font-size:15px;">Avance de la implementación</b>' +
-      '<small style="margin:2px 0 8px;">' + D.comunas.length + ' comunas × ' + N + ' etapas · ✅ ' + completas + ' comuna(s) completas · ⛔ ' + sinIniciar + ' sin iniciar</small>' +
-      '<div class="im-etapas-res">' + IM_ETAPAS.map(([k, ico, nom]) => {
-        const n = D.comunas.filter(c => M[c.id + '|' + k] && M[c.id + '|' + k].completada).length, p = D.comunas.length ? Math.round(n * 100 / D.comunas.length) : 0;
-        return '<div title="' + escapeHtml_(nom) + ': ' + n + ' de ' + D.comunas.length + ' comunas"><span>' + ico + ' ' + escapeHtml_(nom) + '</span><span class="im-barra chica" style="--c:' + imColor_(p) + '"><em style="width:' + p + '%"></em></span><b style="color:' + imColor_(p) + '">' + p + '%</b></div>';
-      }).join('') + '</div></div></div>' +
+    imKpiGlobalHtml_(D.comunas.map(c => ({ id: c.id, nombre: c.comuna })), (id, k) => !!(M[id + '|' + k] && M[id + '|' + k].completada)) +
     '<div class="im-areas">' + areas.map(x => '<div class="im-area' + (state.im.area === x.a ? ' on' : '') + '" style="--c:' + imColor_(x.pct) + '" data-im-area="' + escapeHtml_(x.a) + '" title="Clic para ver solo esta área">' +
       imTorta_(x.pct, 54) + '<div><b>📍 ' + escapeHtml_(aTitulo_(x.a)) + '</b>' +
       '<small style="color:var(--text-tertiary);">' + x.lista.length + ' comuna(s) · ' + x.lista.filter(c => imHechas_(c) === N).length + ' completa(s)</small></div></div>').join('') + '</div>' +

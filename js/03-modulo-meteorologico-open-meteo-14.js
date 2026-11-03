@@ -655,7 +655,7 @@ function cargarSeccionAdmin_(seccion) {
   c.innerHTML = '<div class="layer-empty-msg">Cargando…</div>';
   const fn = {
     resumen: adminSeccionResumen_, usuarios: adminSeccionUsuarios_, permisosPerfil: adminSeccionPermisosPerfil_, instituciones: adminSeccionInstituciones_,
-    recursos: adminSeccionRecursos_, patrulleros: adminSeccionPatrulleros_, comunas: adminSeccionComunas_, areaComunas: adminSeccionAreaComunas_, auditoria: adminSeccionAuditoria_, auditoriaPerfiles: adminSeccionAuditoriaPerfiles_, modulosPerfil: adminSeccionModulosPerfil_, actividad: adminSeccionActividad_, sesiones: adminSeccionSesiones_,
+    recursos: adminSeccionRecursos_, tiposRecurso: adminSeccionTiposRecurso_, patrulleros: adminSeccionPatrulleros_, comunas: adminSeccionComunas_, areaComunas: adminSeccionAreaComunas_, auditoria: adminSeccionAuditoria_, auditoriaPerfiles: adminSeccionAuditoriaPerfiles_, modulosPerfil: adminSeccionModulosPerfil_, actividad: adminSeccionActividad_, sesiones: adminSeccionSesiones_,
     appPatrulleros: adminSeccionAppPatrulleros_, appAcciones: adminSeccionAppAcciones_,
   }[seccion];
   if (fn) fn(c);
@@ -862,7 +862,6 @@ const AUD_CAPACIDADES = [
   ['📊 Dashboard', 'Ver pronóstico meteorológico', 'dashboard', 'ver', ['si', 'no', 'si', 'si', 'si', 'si', 'no']],
   ['🗺️ Mapa', 'Ver capas del mapa (visor)', 'mapa', 'ver', ['si', 'si', 'si', 'si', 'si', 'si', 'no']],
   ['🗺️ Mapa', 'Capa Red Vial CMPC', 'mapa', 'ver', ['si', 'si', 'si', 'si', 'no', 'no', 'no']],
-  ['🗺️ Mapa', 'Capas «Recursos / Rutas de la comuna»', 'mapa', 'ver', ['si', 'si', 'si', 'si', 'no', 'no', 'no']],
   ['🧭 Planificador de Alertas', 'Planificar escenario Normal', 'planificador_mapa', 'editar', ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no (consulta)', 'no (consulta)', 'no']],
   ['🧭 Planificador de Alertas', 'Planificar Alerta Amarilla', 'planificador_mapa', 'editar', ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'Sus comunas', 'no (consulta)', 'no']],
   ['🧭 Planificador de Alertas', 'Planificar Alerta Roja', 'planificador_mapa', 'editar', ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'Sus comunas', 'no (consulta)', 'no']],
@@ -872,6 +871,10 @@ const AUD_CAPACIDADES = [
   ['🧭 Planificador de Alertas', 'Editar forma, cortar, unir y separar rutas', 'planificador_mapa', 'editar', ['si', 'si', 'si', 'si', 'Amarilla y Roja, sin CMPC', 'no', 'no']],
   ['🧭 Planificador de Alertas', 'Propagar a las demás alertas (⏫)', 'planificador_mapa', 'editar', ['si', 'si', 'si', 'si', 'Desde Amarilla/Roja, sin CMPC', 'no', 'no']],
   ['🧭 Planificador de Alertas', 'Cambiar la comuna de una ruta (🏘️)', 'planificador_mapa', 'editar', ['si', 'Sus comunas', 'Sus comunas', 'Sus comunas', 'Amarilla y Roja, sin CMPC', 'no', 'no']],
+  ['🌲 Planificador CMPC', 'Cambiar la comuna de un recurso (🏘️, SQL 143)', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
+  ['🧭 Planificador de Alertas', 'Comunas que comparte una ruta (🔗 Comparte, SQL 141)', 'planificador_mapa', 'editar', ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'Amarilla y Roja, sin CMPC', 'no', 'no']],
+  ['🧭 Planificador de Alertas', 'Modo Área (interruptor ÁREA)', 'planificador_mapa', 'ver', ['si', 'si', 'si', 'si', 'no', 'no', 'no']],
+  ['🚓 Prevención', 'Comunas de una ruta SIGEI (🔗 Comunas, SQL 141)', null, null, ['si', 'si', 'si', 'si', 'no', 'no', 'no']],
   ['🧭 Planificador de Alertas', 'Traspasar rutas SIGEI a las alertas', 'planificador_mapa', 'editar', ['si', 'si', 'si', 'si', 'no', 'no', 'no']],
   ['🧭 Planificador de Alertas', 'Sumar el área de influencia de un comité (Red de Prevención) al copamiento', 'planificador_mapa', 'editar', ['si', 'si', 'si', 'si', 'Amarilla y Roja', 'no', 'no']],
   ['🚓 Prevención', 'Asignar gestor de relacionamiento a rutas SIGEI (y planilla codificada)', null, null, ['si', 'si', 'si', 'si', 'no', 'no', 'no']],
@@ -888,8 +891,11 @@ const AUD_CAPACIDADES = [
   ['🌲 Planificador CMPC', 'Planificador gráfico / Tablero de recursos', 'planificador_grafico', 'ver', ['si', 'si', 'si', 'si', 'no', 'si (consulta)', 'no']],
   ['🌲 Planificador CMPC', 'Mover / ubicar recursos en el mapa', 'planificador_grafico', 'editar', ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
   ['🌲 Planificador CMPC', 'Gestión de Recursos: editar datos y contacto', null, null, ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
+  ['🌲 Planificador CMPC', 'Gestión de Recursos: 👥 personas del recurso y titular (SQL 147)', null, null, ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
+  ['🌲 Planificador CMPC', 'Gestión de Recursos: 📋 plantilla y ⬆️ carga masiva de personas (SQL 149)', null, null, ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
   ['🌲 Planificador CMPC', 'Gestión de Recursos: nuevo recurso, carga Excel, empresas', null, null, ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
   ['🌲 Planificador CMPC', 'Gestión de Recursos: eliminar recurso (sin rutas)', null, null, ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
+  ['🌲 Planificador CMPC', 'Descargas geográficas: recursos, rutas, SIGEI y entidades en KML / GeoJSON', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
   ['🚓 Prevención', 'Gestión Patrullajes SIGEI', 'patrullajes', 'editar', ['si', 'si', 'si', 'si', 'no', 'no', 'no']],
   ['🚓 Prevención', 'Comunas Prioritarias: consultar', 'prioridad', 'ver', ['si', 'si', 'si', 'si', 'no', 'no', 'no']],
   ['🚓 Prevención', 'Comunas Prioritarias: editar parámetros y responsables', 'prioridad', 'editar', ['si', 'si', 'si', 'si', 'no', 'no', 'no']],
@@ -1287,6 +1293,100 @@ async function adminSeccionInstituciones_(c) {
 }
 
 // ---------- CATÁLOGO DE RECURSOS ----------
+/* ---------- 🏷️ TIPOS DE RECURSO Y SU INSTITUCIÓN (22-10-2026, SQL 138) ----------
+ * Izquierda: catálogo tipos_recurso (crear / editar etiqueta, emoji, color, orden, activo; el NOMBRE no cambia porque los recursos
+ * guardan el tipo por su nombre). Derecha: elegir una institución y marcar los tipos que puede usar al planificar.
+ * Sin tipos asociados, la institución sigue con la regla anterior (CMPC = catálogo completo; resto = genéricos). */
+async function adminSeccionTiposRecurso_(c) {
+  const [tr, tri] = await Promise.all([
+    supabaseClient.from('tipos_recurso').select('*').order('orden', { ascending: true }).order('nombre', { ascending: true }),
+    supabaseClient.from('tipo_recurso_institucion').select('institucion_id, tipo_nombre'),
+  ]);
+  if (tr.error) { c.innerHTML = adminHead_('Tipos de recurso', '') + '<div class="layer-empty-msg">' + escapeHtml_(tr.error.message) + '</div>'; return; }
+  const sinSql = !!tri.error;
+  const tipos = (tr.data || []).slice().sort((a, b) => rangoTipoRecurso_(a.nombre) - rangoTipoRecurso_(b.nombre) || (a.orden || 0) - (b.orden || 0));
+  const asoc = {}; (tri.data || []).forEach(x => { (asoc[x.institucion_id] = asoc[x.institucion_id] || new Set()).add(String(x.tipo_nombre).toUpperCase()); });
+  const insts = (state.instituciones || []).slice().sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+  const instDeTipo = n => insts.filter(i => asoc[i.id] && asoc[i.id].has(String(n).toUpperCase()));
+  state.admTipos = { tipos, asoc, inst: (state.admTipos && state.admTipos.inst) || (insts[0] ? insts[0].id : '') };
+  const S = state.admTipos;
+  const render = () => {
+    const instSel = insts.find(i => String(i.id) === String(S.inst));
+    const marcados = (instSel && asoc[instSel.id]) || new Set();
+    c.innerHTML = adminHead_('🏷️ Tipos de recurso', 'Catálogo de tipos y qué tipos puede usar cada institución al planificar',
+        '<button class="btn-primary" id="adm-tr-nuevo" style="padding:9px 14px;">+ Nuevo tipo</button>') +
+      (sinSql ? '<div class="gr-aviso" style="display:block;margin-bottom:12px;">⚠️ Falta ejecutar en Supabase <b>138_tipos_recurso_por_institucion.sql</b>: sin él no se pueden crear tipos ni asociarlos.</div>' : '') +
+      '<div class="adm-tr-grid">' +
+        '<div class="dash-card"><div class="dash-card-title">Catálogo de tipos <small style="font-weight:500;color:var(--text-tertiary);">' + tipos.length + ' tipos · ' + tipos.filter(t => t.activo).length + ' activos</small></div>' +
+          '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Tipo</th><th>Color</th><th>Orden</th><th>Instituciones</th><th>Estado</th><th></th></tr></thead><tbody>' +
+          tipos.map(t => '<tr' + (t.activo ? '' : ' style="opacity:.55;"') + '><td><b>' + escapeHtml_((t.emoji ? t.emoji + ' ' : '') + (t.etiqueta || aTitulo_(t.nombre))) + '</b><br><small style="color:var(--text-tertiary);">' + escapeHtml_(t.nombre) + '</small></td>' +
+            '<td><span class="swatch-lg" style="background:' + escapeHtml_(t.color_hex || '#64748B') + ';width:16px;height:16px;"></span></td><td>' + (t.orden != null ? t.orden : '—') + '</td>' +
+            '<td style="font-size:11px;">' + (instDeTipo(t.nombre).map(i => escapeHtml_(i.nombre)).join(', ') || '<span style="color:var(--text-tertiary);">—</span>') + '</td>' +
+            '<td>' + (t.activo ? '<span class="bdg bdg-ok">Activo</span>' : '<span class="bdg bdg-off">Inactivo</span>') + '</td>' +
+            '<td class="acciones-cell"><span class="act-btns">' + actBtn_('editar', 'data-tr-e="' + escapeHtml_(t.nombre) + '"') + '</span></td></tr>').join('') +
+          '</tbody></table></div></div>' +
+        '<div class="dash-card"><div class="dash-card-title">Tipos por institución</div>' +
+          '<label style="font-size:12px;font-weight:700;color:var(--text-secondary);">Institución</label>' +
+          '<select id="adm-tr-inst" class="admin-search" style="width:100%;margin:4px 0 10px;">' + insts.map(i => '<option value="' + escapeHtml_(i.id) + '"' + (String(i.id) === String(S.inst) ? ' selected' : '') + '>' + escapeHtml_(i.nombre) + (asoc[i.id] ? ' (' + asoc[i.id].size + ')' : '') + '</option>').join('') + '</select>' +
+          '<p style="font-size:11.5px;color:var(--text-tertiary);margin:0 0 8px;">Marca los tipos que esta institución puede elegir al planificar. ' +
+            (marcados.size ? '' : '<b>Sin tipos marcados</b> usa la regla anterior' + (instSel && esInstitucionCmpc_(instSel) ? ' (catálogo completo de CMPC).' : ' (solo tipos genéricos: Personal, Vehículo, Punto de Control…).')) + '</p>' +
+          '<div class="adm-tr-lista">' + tipos.filter(t => t.activo).map(t => '<label><input type="checkbox" value="' + escapeHtml_(t.nombre) + '"' + (marcados.has(String(t.nombre).toUpperCase()) ? ' checked' : '') + '> ' +
+            '<span class="swatch-lg" style="background:' + escapeHtml_(t.color_hex || '#64748B') + ';width:10px;height:10px;"></span>' + escapeHtml_((t.emoji ? t.emoji + ' ' : '') + (t.etiqueta || aTitulo_(t.nombre))) + '</label>').join('') + '</div>' +
+          '<div style="display:flex;gap:8px;margin-top:10px;"><button class="btn-secondary" id="adm-tr-ninguno">Quitar todos</button><button class="btn-primary" id="adm-tr-guardar"' + (sinSql ? ' disabled' : '') + '>Guardar tipos de la institución</button></div>' +
+        '</div>' +
+      '</div>';
+    document.getElementById('adm-tr-nuevo').onclick = () => abrirModalTipoRecurso_(null);
+    c.querySelectorAll('[data-tr-e]').forEach(b => b.onclick = () => abrirModalTipoRecurso_(tipos.find(t => t.nombre === b.dataset.trE)));
+    document.getElementById('adm-tr-inst').onchange = e => { S.inst = e.target.value; render(); };
+    document.getElementById('adm-tr-ninguno').onclick = () => c.querySelectorAll('.adm-tr-lista input').forEach(x => { x.checked = false; });
+    document.getElementById('adm-tr-guardar').onclick = async () => {
+      const sel = [...c.querySelectorAll('.adm-tr-lista input:checked')].map(x => x.value);
+      const { data: n, error } = await supabaseClient.rpc('asignar_tipos_institucion', { p_institucion: S.inst, p_tipos: sel });
+      if (error) { mostrarToast_('No se pudo guardar: ' + error.message); return; }
+      mostrarToast_('✅ ' + (instSel ? instSel.nombre : 'Institución') + ': ' + (n || 0) + ' tipo(s) asociados' + (n ? '' : ' (vuelve a la regla anterior)') + '.');
+      await cargarTiposRecurso_(true);
+      adminSeccionTiposRecurso_(c);
+    };
+  };
+  render();
+}
+/** Ventana para crear o editar un tipo de recurso (el nombre solo se escribe al crear). */
+function abrirModalTipoRecurso_(t) {
+  const nuevo = !t;
+  const ov = document.createElement('div');
+  ov.className = 'modal-overlay show';
+  ov.innerHTML = '<div class="modal-card" style="max-width:440px;"><h3>' + (nuevo ? 'Nuevo tipo de recurso' : 'Editar tipo de recurso') + '</h3>' +
+    '<div class="form-group"><label>Nombre (código, no se puede cambiar después)</label><input type="text" id="tr-nombre" value="' + escapeHtml_(t ? t.nombre : '') + '"' + (nuevo ? '' : ' disabled') + ' placeholder="Ej.: VIGIA BICICLETA"></div>' +
+    '<div class="form-group"><label>Etiqueta visible</label><input type="text" id="tr-etiqueta" value="' + escapeHtml_(t && t.etiqueta ? t.etiqueta : '') + '" placeholder="Ej.: Vigía Bicicleta"></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">' +
+      '<div class="form-group"><label>Emoji</label><input type="text" id="tr-emoji" maxlength="4" value="' + escapeHtml_(t && t.emoji ? t.emoji : '') + '"></div>' +
+      '<div class="form-group"><label>Color</label><input type="color" id="tr-color" value="' + escapeHtml_(t && /^#[0-9A-Fa-f]{6}$/.test(t.color_hex || '') ? t.color_hex : '#64748B') + '" style="width:100%;height:36px;"></div>' +
+      '<div class="form-group"><label>Orden</label><input type="number" id="tr-orden" value="' + (t && t.orden != null ? t.orden : 100) + '"></div>' +
+    '</div>' +
+    '<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:4px 0 10px;"><input type="checkbox" id="tr-activo"' + (!t || t.activo ? ' checked' : '') + '> Activo (aparece en los formularios y filtros)</label>' +
+    '<p class="form-error" id="tr-error"></p>' +
+    '<div class="modal-actions"><button class="btn-secondary" id="tr-cancelar">Cancelar</button><button class="btn-primary" id="tr-guardar">Guardar</button></div></div>';
+  document.body.appendChild(ov);
+  const cerrar = () => ov.remove();
+  ov.addEventListener('click', e => { if (e.target === ov) cerrar(); });
+  ov.querySelector('#tr-cancelar').onclick = cerrar;
+  ov.querySelector('#tr-guardar').onclick = async () => {
+    const err = ov.querySelector('#tr-error'); err.classList.remove('show');
+    const nombre = ov.querySelector('#tr-nombre').value.trim();
+    if (!nombre) { err.textContent = 'El nombre es obligatorio.'; err.classList.add('show'); return; }
+    const { error } = await supabaseClient.rpc('guardar_tipo_recurso', {
+      p_nombre: nombre, p_etiqueta: ov.querySelector('#tr-etiqueta').value, p_emoji: ov.querySelector('#tr-emoji').value,
+      p_color: ov.querySelector('#tr-color').value, p_orden: Number(ov.querySelector('#tr-orden').value) || 100,
+      p_activo: ov.querySelector('#tr-activo').checked, p_nuevo: nuevo,
+    });
+    if (error) { err.textContent = /guardar_tipo_recurso|does not exist/i.test(error.message) ? 'Falta ejecutar el SQL 138 en Supabase.' : error.message; err.classList.add('show'); return; }
+    cerrar();
+    mostrarToast_('✅ Tipo ' + (nuevo ? 'creado' : 'actualizado') + ': ' + nombre.toUpperCase());
+    await cargarTiposRecurso_(true);
+    cargarSeccionAdmin_('tiposRecurso');
+  };
+}
+
 async function adminSeccionRecursos_(c) {
   const { data, error } = await supabaseClient.from('recursos_maestro').select('*, instituciones(nombre, color_hex, logo_url)').order('created_at', { ascending: false });
   if (error) { c.innerHTML = adminHead_('Catálogo de recursos', '') + '<div class="layer-empty-msg">' + error.message + '</div>'; return; }
@@ -1987,7 +2087,9 @@ async function adminSeccionActividad_(c) {
 
 // ---------- ⏱️ SESIONES DE USUARIOS (17-10-2026, SQL 116; solo Administrador) ----------
 // Número de sesiones por usuario, fechas y tiempo conectado (inicio → último latido / salida).
-state.ses = { dias: 30, perfil: '', q: '', abierto: '', filas: null, chart: null };
+state.ses = { dias: 30, perfil: '', area: '', q: '', abierto: '', filas: null, chart: null };
+/** Perfil de la sesión para filtrar: Subgerente y GRT son Jefes de Área en la BD (02-11-2026: + GRT). */
+function perfilClaveSes_(s) { return s.subgerencia ? 'Subgerente de Relacionamiento' : s.es_grt ? PERFIL_GRT : s.perfil; }
 function fmtMinutosSes_(m) {
   m = Math.round(Number(m || 0));
   if (m < 60) return m + ' min';
@@ -1997,6 +2099,7 @@ function fmtMinutosSes_(m) {
 /** Perfil para mostrar en Sesiones: Subgerente con su subgerencia y GRD con su comuna (19-10-2026). */
 function perfilSesion_(s) {
   if (s.subgerencia) return 'Subgerente · ' + aTitulo_(s.subgerencia);
+  if (s.es_grt) return 'GRT';
   if (s.perfil === 'GRD') {
     const slugs = ((state.ses && state.ses.comunaGrd) || {})[s.perfil_id] || [];
     const nombres = slugs.map(id => { const c = (state.comunas || []).find(x => x.id === id); return c ? c.comuna : String(id).replace(/-/g, ' ').replace(/(^|\s)\S/g, m => m.toUpperCase()); });
@@ -2034,14 +2137,41 @@ async function adminSeccionSesiones_(c, recargar) {
         (pc.data || []).forEach(p => add(p.perfil_id, p.comuna_id));
       } catch (e) { /* sin comuna: se muestra solo «GRD» */ }
     }
+    // 02-11-2026: ÁREA de relacionamiento de cada usuario (Jefe / Subgerente / GRT: perfil_areas; GRD: el área de su comuna)
+    // y CAMBIOS guardados en cada sesión (auditoria, SQL 146)
+    S.areasDe = {}; S.acciones = {};
+    const ids = [...new Set(filas.map(s => s.perfil_id))];
+    const nombreArea = {};
+    const addArea = (id, a) => { if (!a) return; const k = SG_KEY(a); if (!nombreArea[k] || /[^\x00-\x7F]/.test(a)) nombreArea[k] = a; const l = S.areasDe[id] = S.areasDe[id] || []; if (!l.includes(k)) l.push(k); };
+    try {
+      const slugsGrd = [...new Set(Object.values(S.comunaGrd).flat())];
+      const idsCom = slugsGrd.map(sl => ((state.comunas || []).find(c => c.id === sl) || {}).id_comuna).filter(v => v != null);
+      const [pa, ac, acc] = await Promise.all([
+        ids.length ? supabaseClient.from('perfil_areas').select('perfil_id, area').in('perfil_id', ids) : { data: [] },
+        idsCom.length ? supabaseClient.from('v_area_comunas_admin').select('area, id_comuna').in('id_comuna', idsCom) : { data: [] },
+        supabaseClient.rpc('acciones_sesiones', { p_desde: desde }),
+      ]);
+      (pa.data || []).forEach(x => addArea(x.perfil_id, x.area));
+      const areasCom = {}; (ac.data || []).forEach(x => { (areasCom[Number(x.id_comuna)] = areasCom[Number(x.id_comuna)] || []).push(x.area); });
+      Object.keys(S.comunaGrd).forEach(id => S.comunaGrd[id].forEach(sl => {
+        const c = (state.comunas || []).find(x => x.id === sl); (c ? areasCom[Number(c.id_comuna)] || [] : []).forEach(a => addArea(id, a));
+      }));
+      if (!acc.error) (acc.data || []).forEach(x => { S.acciones[x.sesion_id] = x; });
+    } catch (e) { /* sin áreas o sin el SQL 146: se omiten */ }
+    S.nombreArea = nombreArea;
   }
   const q = normalizarBusqueda_(S.q || '');
-  const ses = S.filas.filter(s => (!S.perfil || (s.subgerencia ? 'Subgerente de Relacionamiento' : s.perfil) === S.perfil) && (!q || normalizarBusqueda_(s.nombre_completo || '').includes(q)));
+  S.areasDe = S.areasDe || {}; S.acciones = S.acciones || {};
+  const ses = S.filas.filter(s => (!S.perfil || perfilClaveSes_(s) === S.perfil) && (!S.area || (S.areasDe[s.perfil_id] || []).includes(S.area)) &&
+    (!q || normalizarBusqueda_(s.nombre_completo || '').includes(q)));
+  const accDe = s => S.acciones[s.id] || null;
+  const nAcc = s => { const a = accDe(s); return a ? (a.altas || 0) + (a.ediciones || 0) + (a.eliminaciones || 0) : 0; };
   // Por usuario
   const porU = {};
   ses.forEach(s => {
-    const u = porU[s.perfil_id] = porU[s.perfil_id] || { id: s.perfil_id, nombre: s.nombre_completo, perfil: perfilSesion_(s), estado: s.estado, n: 0, min: 0, dias: new Set(), ultima: null, primera: null, enCurso: false, lista: [] };
-    u.n++; u.min += Number(s.minutos || 0); u.dias.add(String(s.inicio).slice(0, 10)); u.lista.push(s);
+    const u = porU[s.perfil_id] = porU[s.perfil_id] || { id: s.perfil_id, nombre: s.nombre_completo, perfil: perfilSesion_(s), estado: s.estado, n: 0, min: 0, inter: 0, acc: 0,
+      areas: (S.areasDe[s.perfil_id] || []).map(k => aTitulo_(S.nombreArea[k] || k)), dias: new Set(), ultima: null, primera: null, enCurso: false, lista: [] };
+    u.n++; u.min += Number(s.minutos || 0); u.inter += Number(s.interacciones || 0); u.acc += nAcc(s); u.dias.add(String(s.inicio).slice(0, 10)); u.lista.push(s);
     if (!u.ultima || s.inicio > u.ultima) u.ultima = s.inicio;
     if (!u.primera || s.inicio < u.primera) u.primera = s.inicio;
     if (s.en_curso) u.enCurso = true;
@@ -2049,39 +2179,54 @@ async function adminSeccionSesiones_(c, recargar) {
   const usuarios = Object.values(porU).sort((a, b) => b.min - a.min);
   const totMin = ses.reduce((t, s) => t + Number(s.minutos || 0), 0);
   const fh = iso => iso ? new Date(iso).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
-  const perfiles = ['Administrador', 'Subgerente de Relacionamiento', 'Jefe de Área Relacionamiento', 'GRD', 'Visor'];
-  const detalle = u => '<tr class="ses-det"><td colspan="8" style="background:var(--bg-light);padding:8px 14px;">' +
-    '<table class="admin-table" style="background:var(--white);"><thead><tr><th>Inicio</th><th>Fin</th><th>Duración</th><th>Vistas</th><th>Equipo</th></tr></thead><tbody>' +
-    u.lista.map(s => '<tr><td>' + fh(s.inicio) + '</td><td>' + (s.en_curso ? '<span class="bdg bdg-ok">🟢 En curso</span>' : fh(s.fin)) + '</td><td><b>' + fmtMinutosSes_(s.minutos) + '</b></td>' +
+  const perfiles = ['Administrador', 'Subgerente de Relacionamiento', 'Jefe de Área Relacionamiento', PERFIL_GRT, 'GRD', 'Visor'];
+  const areasOpc = Object.keys(S.nombreArea || {}).sort((a, b) => S.nombreArea[a].localeCompare(S.nombreArea[b], 'es'));
+  const txtAcc = s => {
+    const a = accDe(s); if (!a || !nAcc(s)) return '<span style="color:var(--text-tertiary);">—</span>';
+    return '<b>' + nAcc(s) + '</b> <span style="font-size:10.5px;color:var(--text-tertiary);">(' + [a.altas && '＋' + a.altas, a.ediciones && '✏️' + a.ediciones, a.eliminaciones && '🗑️' + a.eliminaciones].filter(Boolean).join(' ') +
+      ')</span><div style="font-size:10px;color:var(--text-tertiary);">' + escapeHtml_((a.tablas || []).join(', ')) + '</div>';
+  };
+  const detalle = u => '<tr class="ses-det"><td colspan="10" style="background:var(--bg-light);padding:8px 14px;">' +
+    '<table class="admin-table" style="background:var(--white);"><thead><tr><th>Inicio</th><th>Fin</th><th title="Tiempo con actividad real (clics, teclas, toques). Las pausas no suman.">Tiempo activo</th>' +
+      '<th>Interacciones</th><th>Cambios guardados</th><th>Vistas</th><th>Equipo</th></tr></thead><tbody>' +
+    u.lista.map(s => '<tr><td>' + fh(s.inicio) + '</td><td>' + (s.en_curso ? '<span class="bdg bdg-ok">🟢 En curso</span>' : fh(s.fin)) + '</td>' +
+      '<td><b>' + fmtMinutosSes_(s.minutos) + '</b>' + (s.medicion_activa === false ? ' <span title="Sesión anterior a la medición de actividad: tiempo bruto (incluye pausas)" style="font-size:10px;color:#B45309;">⚠️ bruto</span>'
+        : (Number(s.minutos_brutos || 0) - Number(s.minutos || 0) >= 1 ? '<div style="font-size:10px;color:var(--text-tertiary);">abierta ' + fmtMinutosSes_(s.minutos_brutos) + '</div>' : '')) + '</td>' +
+      '<td>' + (s.medicion_activa === false ? '—' : Number(s.interacciones || 0).toLocaleString('es-CL')) + '</td><td>' + txtAcc(s) + '</td>' +
       '<td style="font-size:11px;">' + escapeHtml_((s.vistas || []).join(', ') || '—') + '</td>' +
       '<td style="font-size:11px;color:var(--text-tertiary);" title="' + escapeHtml_(s.agente || '') + '">' + escapeHtml_(dispositivoSes_(s.agente)) + (s.pantalla ? ' · ' + escapeHtml_(s.pantalla) : '') + '</td></tr>').join('') +
     '</tbody></table></td></tr>';
-  c.innerHTML = adminHead_('⏱️ Sesiones de usuarios', 'Número de sesiones, fechas y tiempo de conexión de cada usuario (solo Administrador)',
+  c.innerHTML = adminHead_('⏱️ Sesiones de usuarios', 'Sesiones, tiempo ACTIVO (solo con clics, teclas o toques: una pantalla abierta sin uso no suma) y lo que hizo cada usuario',
       '<select id="ses-dias" class="admin-search" style="min-width:0;">' + [[1, 'Hoy (24 h)'], [7, 'Últimos 7 días'], [30, 'Últimos 30 días'], [90, 'Últimos 90 días'], [365, 'Último año']]
         .map(([v, t]) => '<option value="' + v + '"' + (S.dias === v ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>' +
-      '<select id="ses-perfil" class="admin-search" style="min-width:0;"><option value="">Todos los perfiles</option>' + perfiles.map(p => '<option' + (S.perfil === p ? ' selected' : '') + '>' + p + '</option>').join('') + '</select>' +
+      '<select id="ses-perfil" class="admin-search" style="min-width:0;"><option value="">Todos los perfiles</option>' + perfiles.map(p => '<option value="' + escapeHtml_(p) + '"' + (S.perfil === p ? ' selected' : '') + '>' + (p === PERFIL_GRT ? 'GRT (Gestor de Relacionamiento Territorial)' : p) + '</option>').join('') + '</select>' +
+      '<select id="ses-area" class="admin-search" style="min-width:0;"><option value="">Todas las áreas</option>' + areasOpc.map(k => '<option value="' + escapeHtml_(k) + '"' + (S.area === k ? ' selected' : '') + '>🧭 ' + escapeHtml_(aTitulo_(S.nombreArea[k])) + '</option>').join('') + '</select>' +
       '<input id="ses-q" class="admin-search" style="min-width:180px;" placeholder="Buscar usuario…" value="' + escapeHtml_(S.q || '') + '">' +
       '<button class="popup-btn" id="ses-recargar" style="padding:9px 12px;">🔄</button><button class="popup-btn" id="ses-excel" style="padding:9px 12px;">⬇️ Excel</button>') +
     '<div class="adm-kpis">' +
       admKpi_('🔐', '#EFF4FF', 'Sesiones', ses.length) +
       admKpi_('👥', '#DBEAFE', 'Usuarios que entraron', usuarios.length) +
-      admKpi_('⏱️', '#DCFCE7', 'Tiempo total conectado', fmtMinutosSes_(totMin)) +
-      admKpi_('📊', '#FEF3C7', 'Promedio por sesión', ses.length ? fmtMinutosSes_(totMin / ses.length) : '—') +
-      admKpi_('🟢', '#DCFCE7', 'Sesiones en curso', ses.filter(s => s.en_curso).length) +
+      admKpi_('⏱️', '#DCFCE7', 'Tiempo activo total', fmtMinutosSes_(totMin)) +
+      admKpi_('📊', '#FEF3C7', 'Promedio activo por sesión', ses.length ? fmtMinutosSes_(totMin / ses.length) : '—') +
+      admKpi_('✏️', '#EDE9FE', 'Cambios guardados', ses.reduce((t, s) => t + nAcc(s), 0).toLocaleString('es-CL')) +
+      admKpi_('🟢', '#DCFCE7', 'En curso (activos últimos 5 min)', ses.filter(s => s.en_curso).length) +
     '</div>' +
-    '<div class="dash-card" style="margin-bottom:14px;"><div class="dash-card-title">Sesiones y horas conectadas por día</div><div style="height:220px;position:relative;"><canvas id="ses-chart"></canvas></div></div>' +
-    '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Usuario</th><th>Perfil</th><th style="text-align:right;">Sesiones</th><th style="text-align:right;">Días con uso</th>' +
-      '<th style="text-align:right;">Tiempo total</th><th style="text-align:right;">Promedio</th><th>Última sesión</th><th>Primera del periodo</th></tr></thead><tbody>' +
+    '<div class="dash-card" style="margin-bottom:14px;"><div class="dash-card-title">Sesiones y horas activas por día</div><div style="height:220px;position:relative;"><canvas id="ses-chart"></canvas></div></div>' +
+    '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Usuario</th><th>Perfil</th><th>Área</th><th style="text-align:right;">Sesiones</th><th style="text-align:right;">Días con uso</th>' +
+      '<th style="text-align:right;" title="Solo tiempo con actividad real">Tiempo activo</th><th style="text-align:right;">Promedio</th><th style="text-align:right;" title="Altas, ediciones y eliminaciones guardadas en la base">Cambios</th><th>Última sesión</th><th>Primera del periodo</th></tr></thead><tbody>' +
       (usuarios.map(u => '<tr data-ses-u="' + u.id + '" style="cursor:pointer;"><td><div class="cell-persona">' + avatar_(u.nombre, u.enCurso) + '<div><div class="cp-nombre">' + escapeHtml_(u.nombre || '—') + '</div>' +
-          '<div class="cp-sub">' + (u.enCurso ? '🟢 conectado ahora' : '') + (u.estado === 'inactivo' ? ' · cuenta inactiva' : '') + '</div></div></div></td>' +
-        '<td style="font-size:11.5px;">' + escapeHtml_(u.perfil || '') + '</td><td style="text-align:right;"><b>' + u.n + '</b></td><td style="text-align:right;">' + u.dias.size + '</td>' +
+          '<div class="cp-sub">' + (u.enCurso ? '🟢 activo ahora' : '') + (u.estado === 'inactivo' ? ' · cuenta inactiva' : '') + '</div></div></div></td>' +
+        '<td style="font-size:11.5px;">' + escapeHtml_(u.perfil || '') + '</td><td style="font-size:11px;">' + escapeHtml_(u.areas.join(' / ') || '—') + '</td>' +
+        '<td style="text-align:right;"><b>' + u.n + '</b></td><td style="text-align:right;">' + u.dias.size + '</td>' +
         '<td style="text-align:right;"><b>' + fmtMinutosSes_(u.min) + '</b></td><td style="text-align:right;">' + fmtMinutosSes_(u.min / u.n) + '</td>' +
+        '<td style="text-align:right;">' + (u.acc ? '<b>' + u.acc.toLocaleString('es-CL') + '</b>' : '—') + '</td>' +
         '<td style="font-size:11.5px;">' + fh(u.ultima) + '</td><td style="font-size:11.5px;">' + fh(u.primera) + '</td></tr>' +
         (S.abierto === u.id ? detalle(u) : '')).join('') ||
-        '<tr><td colspan="8" style="padding:14px;color:var(--text-tertiary);">Sin sesiones en el periodo. Las sesiones se registran desde que se ejecutó el SQL 116 y cada usuario volvió a entrar.</td></tr>') +
+        '<tr><td colspan="10" style="padding:14px;color:var(--text-tertiary);">Sin sesiones en el periodo con estos filtros.</td></tr>') +
     '</tbody></table></div>';
   document.getElementById('ses-dias').addEventListener('change', e => { S.dias = Number(e.target.value); adminSeccionSesiones_(c, true); });
   document.getElementById('ses-perfil').addEventListener('change', e => { S.perfil = e.target.value; adminSeccionSesiones_(c); });
+  document.getElementById('ses-area').addEventListener('change', e => { S.area = e.target.value; adminSeccionSesiones_(c); });
   let t = null;
   document.getElementById('ses-q').addEventListener('input', e => { clearTimeout(t); t = setTimeout(() => { S.q = e.target.value; adminSeccionSesiones_(c); const i = document.getElementById('ses-q'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 250); });
   document.getElementById('ses-recargar').addEventListener('click', () => adminSeccionSesiones_(c, true));
@@ -2096,7 +2241,7 @@ async function adminSeccionSesiones_(c, recargar) {
     S.chart = new Chart(document.getElementById('ses-chart'), {
       data: { labels: dias.map(d => { const p = parseISOLocal_(d); return p.getDate() + '/' + (p.getMonth() + 1); }),
         datasets: [{ type: 'bar', label: 'Sesiones', data: dias.map(d => (porDia[d] || {}).n || 0), backgroundColor: '#3B82F6', borderRadius: 3, yAxisID: 'y' },
-                   { type: 'line', label: 'Horas conectadas', data: dias.map(d => Math.round(((porDia[d] || {}).min || 0) / 6) / 10), borderColor: '#16A34A', backgroundColor: '#16A34A', tension: 0.3, yAxisID: 'y2', pointRadius: 2 }] },
+                   { type: 'line', label: 'Horas activas', data: dias.map(d => Math.round(((porDia[d] || {}).min || 0) / 6) / 10), borderColor: '#16A34A', backgroundColor: '#16A34A', tension: 0.3, yAxisID: 'y2', pointRadius: 2 }] },
       options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { position: 'bottom' } },
         scales: { y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: 'Sesiones' } },
                   y2: { position: 'right', beginAtZero: true, grid: { display: false }, title: { display: true, text: 'Horas' } } } },
@@ -2114,8 +2259,15 @@ async function descargarSesiones_(ses) {
     const XLSX = await tbCargarSheetJs_();
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ses.map(s => ({
-      'Usuario': s.nombre_completo, 'Perfil': perfilSesion_(s), 'Inicio': new Date(s.inicio).toLocaleString('es-CL'),
-      'Fin': s.en_curso ? 'En curso' : (s.fin ? new Date(s.fin).toLocaleString('es-CL') : ''), 'Minutos': Number(s.minutos || 0),
+      'Usuario': s.nombre_completo, 'Perfil': perfilSesion_(s),
+      'Área': ((state.ses.areasDe || {})[s.perfil_id] || []).map(k => aTitulo_((state.ses.nombreArea || {})[k] || k)).join(' / '),
+      'Inicio': new Date(s.inicio).toLocaleString('es-CL'),
+      'Fin': s.en_curso ? 'En curso' : (s.fin ? new Date(s.fin).toLocaleString('es-CL') : ''),
+      'Minutos activos': Number(s.minutos || 0), 'Minutos abierta': Number(s.minutos_brutos != null ? s.minutos_brutos : s.minutos || 0),
+      'Medición': s.medicion_activa === false ? 'Bruta (anterior al SQL 146)' : 'Actividad real',
+      'Interacciones': Number(s.interacciones || 0),
+      'Altas': ((state.ses.acciones || {})[s.id] || {}).altas || 0, 'Ediciones': ((state.ses.acciones || {})[s.id] || {}).ediciones || 0,
+      'Eliminaciones': ((state.ses.acciones || {})[s.id] || {}).eliminaciones || 0, 'Tablas': (((state.ses.acciones || {})[s.id] || {}).tablas || []).join(', '),
       'Vistas': (s.vistas || []).join(', '), 'Equipo': dispositivoSes_(s.agente), 'Pantalla': s.pantalla || '' }))), 'Sesiones');
     XLSX.writeFile(wb, 'sesiones_usuarios_' + fechaISO_(new Date()) + '.xlsx');
   } catch (e) { mostrarToast_('No se pudo generar el Excel: ' + (e.message || e)); }

@@ -199,6 +199,33 @@ body{
 @keyframes cortePulso{0%,100%{box-shadow:0 0 0 3px rgba(220,38,38,.25),0 2px 6px rgba(0,0,0,.35);}50%{box-shadow:0 0 0 8px rgba(220,38,38,.12),0 2px 6px rgba(0,0,0,.35);}}
 .mascara-area-etq span{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font:800 11px 'Inter',sans-serif;color:#6D28D9;letter-spacing:.3px;text-transform:uppercase;
   text-shadow:0 0 3px #fff,0 0 3px #fff,1px 1px 0 #fff,-1px -1px 0 #fff;opacity:.85;}
+/* 🧭 Modo área: sin filtro de comuna; el filtro de área solo lo ve el Administrador */
+body.modo-area-trabajo #comuna-select, body.modo-area-trabajo #comuna-badge, body.modo-area-trabajo #btn-fav-comuna{display:none!important;}
+/* El selector «🧭 Área» del encabezado se reemplazó por el interruptor ÁREA del mapa (22-10-2026): queda oculto, solo sincroniza */
+#area-select{display:none!important;}
+.comunas-area-opac{align-items:center;gap:8px;padding:2px 12px 8px 36px;font-size:11px;color:var(--text-secondary,#64748B);}
+.comunas-area-opac input{flex:1;accent-color:#7C3AED;}
+/* ⏳ Indicador de carga del planificador (30-10-2026): barra con % y etapa; mientras carga, el velo bloquea el mapa */
+#carga-capas{position:absolute;inset:0;z-index:850;pointer-events:none;display:none;}
+#carga-capas.activo,#carga-capas.listo{display:block;}
+#carga-capas .cc-velo{position:absolute;inset:0;background:rgba(15,23,42,.08);cursor:progress;pointer-events:auto;}
+#carga-capas.listo .cc-velo,#carga-capas.lenta .cc-velo{display:none;}
+#carga-capas .cc-caja{position:absolute;top:62px;left:50%;transform:translateX(-50%);width:min(380px,calc(100% - 32px));pointer-events:auto;
+  background:#0F172A;color:#fff;border-radius:12px;padding:10px 14px 11px;box-shadow:0 8px 24px rgba(0,0,0,.3);font:600 12.5px 'Inter',sans-serif;}
+#carga-capas .cc-fila{display:flex;align-items:center;gap:9px;}
+#carga-capas .cc-txt{flex:1;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#carga-capas .cc-pct{font-weight:900;font-variant-numeric:tabular-nums;color:#93C5FD;}
+#carga-capas .cc-spin{width:14px;height:14px;border-radius:50%;border:2.5px solid rgba(255,255,255,.25);border-top-color:#60A5FA;animation:ccGiro .8s linear infinite;flex-shrink:0;}
+#carga-capas .cc-barra{height:6px;border-radius:4px;background:rgba(255,255,255,.15);margin-top:8px;overflow:hidden;}
+#carga-capas .cc-barra em{display:block;height:100%;width:4%;border-radius:4px;background:linear-gradient(90deg,#3B82F6,#60A5FA);transition:width .35s ease;}
+#carga-capas .cc-lenta{display:none;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:11.5px;color:#FDE68A;}
+#carga-capas.lenta .cc-lenta{display:flex;}
+#carga-capas .cc-lenta button{border:none;border-radius:7px;padding:4px 9px;font:700 11.5px 'Inter',sans-serif;cursor:pointer;background:#fff;color:#0F172A;}
+#carga-capas.listo .cc-caja{background:#15803D;}
+#carga-capas.listo .cc-spin{display:none;}
+#carga-capas.listo .cc-pct{color:#fff;}
+#carga-capas.listo .cc-barra em{background:#BBF7D0;}
+@keyframes ccGiro{to{transform:rotate(360deg);}}
 /* Entidades planificadas de OTRAS comunas del área: atenuadas */
 .plan-otra-comuna{opacity:.55;}
 .comuna-badge{

@@ -13,29 +13,50 @@ function normalizarTextoCli_(s) {
   return (s || '').toString().trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
+/* 22-10-2026 · Dos niveles y UNA sola capa (cada ruta aparece una vez):
+ *   · Modo Área (Admin / Jefe con 🧭 ÁREA): las rutas del área (misma clave que clave_area_red_vial_).
+ *   · Modo Comuna (todos): las rutas de la comuna activa + las de otras comunas que ENTRAN a ella (ruta compartida).
+ *   · Administrador sin comuna elegida: todas. */
 function filtrarRutasPorPerfil_(rutas) {
   const rol = state.perfil.perfil;
-
-  // Administrador: TODAS las rutas
-  if (rol === 'Administrador') return rutas;
-
-  // Jefe de Área: según modo área o modo comuna
-  if (rol === 'Jefe de Área Relacionamiento') {
-    if (state.areaActiva) {
-      // Modo Área: rutas del área activa
-      const areaAct = normalizarTextoCli_(state.areaActiva);
-      return rutas.filter(r => r.area && normalizarTextoCli_(r.area) === areaAct);
-    }
-    // Modo Comuna: solo rutas de la comuna activa
-    const idc = idComunaActiva_();
-    if (idc == null) return [];
-    return rutas.filter(r => r.id_comuna === idc);
+  const clave = a => plNorm_(a || '').replace(/[^A-Z0-9]/g, '');
+  // 🔗 Comunas elegidas para cada ruta (SQL 141, ruta_sigei_comunas): la ruta también participa en ellas
+  const asoc = r => (state.rutaSigeiComunas || {})[String(r.id)] || [];
+  if (state.areaActiva && (rol === 'Administrador' || rol === 'Jefe de Área Relacionamiento')) {
+    const k = clave(state.areaActiva);
+    const ids = state.areaFiltro ? state.areaFiltro.ids : new Set();
+    return rutas.filter(r => (r.area && clave(r.area) === k) || asoc(r).some(c => ids.has(c)));
   }
-
-  // GRD / Visor: solo rutas de la comuna activa
   const idc = idComunaActiva_();
-  if (idc == null) return [];
-  return rutas.filter(r => r.id_comuna === idc);
+  if (idc == null) return rol === 'Administrador' ? rutas : [];
+  const polys = poligonosComunaActiva_();
+  return rutas.filter(r => r.id_comuna === idc || asoc(r).includes(state.activeComunaId) || (polys.length && rutaEntraEnPoligonos_(r.geometry, polys)));
+}
+/** Asociaciones ruta SIGEI → comunas (SQL 141). Sin el 141 queda vacío y todo funciona como antes. */
+async function cargarRutaSigeiComunas_() {
+  const m = {};
+  try {
+    const { data, error } = await supabaseClient.from('ruta_sigei_comunas').select('ruta_id, comuna_id');
+    if (!error) (data || []).forEach(x => { (m[String(x.ruta_id)] = m[String(x.ruta_id)] || []).push(x.comuna_id); });
+  } catch (e) {}
+  state.rutaSigeiComunas = m;
+}
+/** Polígonos (GeoJSON [lng,lat]) del límite de la comuna activa, con su caja para descartar rápido. */
+function poligonosComunaActiva_() {
+  try {
+    if (typeof limiteLayer === 'undefined' || !limiteLayer.getLayers().length) return [];
+    const polys = [];
+    limiteLayer.eachLayer(l => { const gj = l.toGeoJSON(); (gj.features || [gj]).forEach(f => polys.push(...poligonosDeGeojson_(f.geometry || f))); });
+    polys.forEach(p => { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; p[0].forEach(([x, y]) => { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }); p.__bb = [x0, y0, x1, y1]; });
+    return polys;
+  } catch (e) { return []; }
+}
+/** ¿Algún vértice de la ruta cae dentro de la comuna? (muestra cada 3 vértices: suficiente para una ruta que entra). */
+function rutaEntraEnPoligonos_(geom, polys) {
+  const g = geom && (geom.type === 'Feature' ? geom.geometry : geom);
+  if (!g || !g.coordinates) return false;
+  const partes = g.type === 'LineString' ? [g.coordinates] : g.type === 'MultiLineString' ? g.coordinates : [];
+  return partes.some(p => p.some((c, i) => (i % 3 === 0 || i === p.length - 1) && puntoEnPoligonos_(c[0], c[1], polys)));
 }
 
 // Neón en la ruta de patrullaje seleccionada (popup abierto)
@@ -431,6 +452,7 @@ async function loadPatrullajeLayer_() {
       if (document.querySelector('.rail-btn.active') && document.querySelector('.rail-btn.active').dataset.tab === 'capas') renderTab('capas');
       return;
     }
+    await cargarRutaSigeiComunas_();
     const permitidas = filtrarRutasPorPerfil_(data || []);
     state.patrullajeRutas = permitidas;
 
@@ -445,11 +467,19 @@ async function loadPatrullajeLayer_() {
             '<div class="popup-row">Subgerencia: ' + escapeHtml_(r.subgerencia || '—') + '</div>' +
             '<div class="popup-row">Área: ' + escapeHtml_(r.area || '—') + ' · Sector: ' + escapeHtml_(r.sector || '—') + '</div>' +
             '<div class="popup-row">Comuna: ' + escapeHtml_(r.comuna || '—') + '</div>' +
+            (((state.rutaSigeiComunas || {})[String(r.id)] || []).length
+              ? '<div class="popup-row" style="color:#6D28D9;">🔗 Participa también en: ' + escapeHtml_(((state.rutaSigeiComunas || {})[String(r.id)] || [])
+                  .map(id => ((state.comunas || []).find(c => c.id === id) || {}).comuna || id).join(', ')) + '</div>'
+              : '') +
             '<div class="popup-row">Actividad: ' + escapeHtml_(r.actividad || '—') + ' · ' + escapeHtml_(r.tipo_movil || '—') + '</div>' +
             '<div class="popup-row">KM: ' + (r.km != null ? Number(r.km).toFixed(1) : '—') + ' · Temp: ' + escapeHtml_(r.temporada || '—') + '</div>' +
-            (puedeTraspasarRutas_()
-              ? '<div class="popup-actions"><button class="popup-btn" data-action="ruta-a-alertas" ' +
-                'data-id="' + escapeHtml_(String(r.id)) + '" style="color:#7C3AED;">⏫ Sumar a alertas</button></div>'
+            ((puedeTraspasarRutas_() || esAdminOJefe_())
+              ? '<div class="popup-actions">' +
+                (puedeTraspasarRutas_() ? '<button class="popup-btn" data-action="ruta-a-alertas" ' +
+                  'data-id="' + escapeHtml_(String(r.id)) + '" style="color:#7C3AED;">⏫ Sumar a alertas</button>' : '') +
+                (esAdminOJefe_() ? '<button class="popup-btn" onclick="asociarComunasRutaSigei_(\'' + escapeHtml_(String(r.id)) + '\')" ' +
+                  'style="color:#5B21B6;" title="Comunas del área donde también participa esta ruta">🔗 Comunas</button>' : '') +
+                '</div>'
               : '')
           );
           // Neón mientras el popup de la ruta está abierto (seleccionada)
@@ -627,6 +657,9 @@ function bindPopupActionsRecursoArea_(r) {
   document.querySelectorAll('.popup-btn[data-action="editar-recurso-area"]').forEach(btn => {
     btn.onclick = () => { map.closePopup(); abrirModalRecursoArea_(r); };
   });
+  document.querySelectorAll('.popup-btn[data-action="comuna-recurso-area"]').forEach(btn => {
+    btn.onclick = () => cambiarComunaRecurso_(r);
+  });
   document.querySelectorAll('.popup-btn[data-action="eliminar-recurso-area"]').forEach(btn => {
     btn.onclick = async () => {
       if (!confirm('¿Eliminar este recurso disponible? También se borran sus turnos y rutas asociadas.')) return;
@@ -637,6 +670,41 @@ function bindPopupActionsRecursoArea_(r) {
       loadRecursosDisponiblesAreaLayer_();
     };
   });
+}
+
+/** 22-10-2026 · Cambiar la comuna a la que pertenece un recurso (solo el Administrador, RPC cambiar_comuna_recurso del SQL 143).
+ *  Propone las comunas del área del recurso; con la casilla, todas. */
+async function cambiarComunaRecurso_(r) {
+  if (!(state.perfil && state.perfil.perfil === 'Administrador')) { mostrarToast_('Solo el Administrador cambia la comuna de un recurso.'); return; }
+  const actual = (state.comunas || []).find(c => Number(c.id_comuna) === Number(r.id_comuna));
+  const delArea = actual ? await comunasDelAreaDe_(actual.id) : [];
+  const todas = (state.comunas || []).slice().sort((a, b) => String(a.comuna).localeCompare(String(b.comuna), 'es'));
+  const opciones = lista => lista.filter(c => !actual || c.id !== actual.id)
+    .map(c => '<option value="' + escapeHtml_(c.id) + '">' + escapeHtml_(c.comuna) + '</option>').join('');
+  const promesa = dialogoBr_(
+    '<h3 style="margin:0 0 6px;">🏘️ Comuna del recurso</h3>' +
+    '<p style="font-size:12.5px;margin:0 0 10px;"><b>' + escapeHtml_(claveIdTexto_(r.clave_radial, r.codigo_ref) || r.nombre_recurso || 'Recurso') + '</b> pertenece a <b>' +
+      escapeHtml_(r.comuna || 'sin comuna') + '</b>. Elige la nueva comuna (no se mueve su ubicación en el mapa).</p>' +
+    '<select data-valor class="admin-search" style="width:100%;min-width:0;margin-bottom:8px;">' + opciones(delArea.length > 1 ? delArea : todas) + '</select>' +
+    (delArea.length > 1 ? '<label style="display:flex;gap:6px;align-items:center;font-size:12px;margin-bottom:12px;color:var(--text-secondary);"><input type="checkbox" data-todas> Mostrar todas las comunas</label>' : '') +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn-secondary" data-resp="__no__" style="flex:none;padding:9px 14px;">Cancelar</button>' +
+    '<button class="btn-primary" data-resp="__sel__" style="flex:none;padding:9px 14px;">Cambiar</button></div>');
+  const ov = [...document.querySelectorAll('.br-modal-overlay')].pop();
+  const chk = ov && ov.querySelector('[data-todas]');
+  if (chk) chk.addEventListener('change', () => { ov.querySelector('[data-valor]').innerHTML = opciones(chk.checked ? todas : delArea); });
+  const resp = await promesa;
+  if (!resp || !resp.valor) return;
+  const { data, error } = await supabaseClient.rpc('cambiar_comuna_recurso', { p_recurso_id: r.id, p_comuna_id: resp.valor });
+  if (error) { mostrarToast_(/cambiar_comuna_recurso|does not exist/i.test(error.message) ? 'Falta ejecutar el SQL 143 (comuna de un recurso).' : 'No se pudo cambiar la comuna: ' + error.message); return; }
+  map.closePopup();
+  const elegida = (state.comunas || []).find(c => c.id === resp.valor);
+  const guardada = data && data[0];
+  if (guardada && elegida && String(guardada.id_comuna_guardada) !== String(elegida.id_comuna)) {
+    mostrarToast_('⚠️ La base mantuvo la comuna ' + (guardada.comuna_guardada || '—') + ' (la calcula desde la ubicación del recurso).');
+  } else {
+    mostrarToast_('🏘️ El recurso ahora pertenece a ' + nombreComuna_(resp.valor) + '.');
+  }
+  loadRecursosDisponiblesAreaLayer_();
 }
 
 function toggleEtiquetasRecursosArea_() {
@@ -678,7 +746,7 @@ function onGeoData(comunaId, geo) {
     if (tieneVariasComunas_()) {
       map.removeLayer(limiteLayer);
     } else {
-      if (state.limiteComunalOn) { if (!map.hasLayer(limiteLayer)) limiteLayer.addTo(map); }
+      if (state.limiteComunalOn && !state.areaActiva) { if (!map.hasLayer(limiteLayer)) limiteLayer.addTo(map); }
       else { map.removeLayer(limiteLayer); }
     }
     enviarLimiteAlFondo_(); // capa de referencia: siempre al fondo

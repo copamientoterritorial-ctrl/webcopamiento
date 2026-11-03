@@ -567,7 +567,12 @@ async function loadAreaLayers_() {
   const rolCalifica = state.perfil.perfil === 'Administrador' || state.perfil.perfil === 'Jefe de Área Relacionamiento';
   if (!rolCalifica) return;
 
-  const { data: res, error } = await supabaseClient.functions.invoke('get-area-layers', { body: {} });
+  // Se pide una vez por sesión; al cambiar de modo (área / comuna) solo se vuelve a filtrar (22-10-2026)
+  let res = state.areaLayersRes, error = null;
+  if (!res) {
+    ({ data: res, error } = await supabaseClient.functions.invoke('get-area-layers', { body: {} }));
+    if (!error && res && res.ok) state.areaLayersRes = res;
+  }
   if (error || !res || !res.ok) {
     console.error('No se pudieron cargar las capas por zona:', error || res);
     return;
@@ -644,8 +649,13 @@ async function loadAreaLayers_() {
   }
 
   if (res.areaRelacionamiento && res.areaRelacionamiento.ok) {
-    const feats = res.areaRelacionamiento.data.features || [];
-    state.areaRelGeojson = res.areaRelacionamiento.data; // lo reutiliza el Planificador
+    state.areaRelGeojson = res.areaRelacionamiento.data; // lo reutiliza el Planificador (todas las áreas)
+    // 22-10-2026: el mapa carga SOLO el área que corresponde (y sus sectores): en modo área, el área activa; si no, las áreas del
+    // perfil (Jefe / GRT / Subgerente: perfil_areas). El Administrador sin modo área ve todas.
+    const kA = a => plNorm_(a || '').replace(/[^A-Z0-9]/g, '');
+    const permitidas = state.areaActiva ? [kA(state.areaActiva)]
+      : state.perfil.perfil === 'Administrador' ? null : (state.misAreasIds || []).map(kA);
+    const feats = (res.areaRelacionamiento.data.features || []).filter(f => !permitidas || permitidas.includes(kA((f.properties || {}).AREA)));
     state.areaRelacionamientoInfo = { ok: true, count: feats.length };
     // Índice para el árbol: { area: { sector: [capas] } }
     window.arbolAreaRel = {};

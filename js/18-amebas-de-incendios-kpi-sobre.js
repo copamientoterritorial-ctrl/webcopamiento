@@ -52,9 +52,80 @@ function focosDeUltimasTemporadas_(n) {
   return { puntos, temporadas };
 }
 
+/* 🧭 Ameba DEL ÁREA (22-10-2026, SQL 142): unión de las amebas guardadas de las comunas del área (la misma que usa
+ * kpi_copamiento_area). Las comunas sin ameba guardada se calculan una vez con obtener_ameba_incendios, con los focos del
+ * archivo nacional dentro de cada comuna y las temporadas del trienio del área. */
+async function cargarAmebaArea_(nivel, cfg) {
+  const area = state.areaActiva, capa = amebaLayers[nivel];
+  capa.clearLayers();
+  const pedir = () => supabaseClient.rpc('ameba_area_geojson', { p_area: area, p_nivel: cfg.temporadas });
+  state.amebaCargando[nivel] = true;
+  try {
+    let { data, error } = await pedir();
+    if (error) {
+      console.error('ameba_area_geojson:', error.message);
+      if (/ameba_area_geojson|does not exist/i.test(error.message)) mostrarToast_('Falta ejecutar el SQL 142 (zona de incendios del área).');
+      return;
+    }
+    let fila = data && data[0];
+    const polysArea = await poligonosArea_(area);
+    const focosArea = polysArea.length ? await focosEnPoligonos_(polysArea, cfg.temporadas) : { temporadas: [], puntos: [] };
+    if (fila && (fila.comunas_sin_ameba || []).length && focosArea.temporadas.length) {
+      const calculadas = await calcularAmebasComunas_(fila.comunas_sin_ameba, cfg, focosArea.temporadas);
+      if (calculadas) { const r2 = await pedir(); if (!r2.error) fila = r2.data && r2.data[0]; }
+    }
+    if (!fila || state.areaActiva !== area) return;
+    state.amebaDatos[nivel] = {
+      ambito: 'area:' + area, area_km2: Number(fila.area_km2) || 0, pct_comuna: null,
+      focos: fila.geojson ? focosArea.puntos.length || 1 : 0, temporadas: focosArea.temporadas, desdeCache: true,
+    };
+    if (fila.geojson) {
+      let geo; try { geo = JSON.parse(fila.geojson); } catch (e) { geo = null; }
+      if (geo) L.geoJSON(geo, {
+        style: { color: cfg.color, weight: 2, opacity: 0.9, fillColor: cfg.color, fillOpacity: 0.14, dashArray: '2,5', className: 'ameba-latido ameba-n3' },
+        interactive: false,
+      }).addTo(capa);
+    }
+    const ka = await supabaseClient.rpc('kpi_copamiento_area', { p_area: area, p_nivel: cfg.temporadas, p_buffer_influencia_m: BUFFER_INFLUENCIA_M });
+    if (!ka.error) state.amebaKpi[nivel] = ka.data || [];
+  } finally {
+    state.amebaCargando[nivel] = false;
+  }
+}
+async function calcularAmebasComunas_(ids, cfg, temporadas) {
+  const { data: lims, error } = await supabaseClient.from('v_comunas_limite').select('id, comuna, geometry').in('id', ids);
+  if (error || !lims) return 0;
+  let n = 0;
+  for (const c of lims) {
+    let g = c.geometry; if (typeof g === 'string') { try { g = JSON.parse(g); } catch (e) { continue; } }
+    if (g && g.type === 'Feature') g = g.geometry;
+    const polys = conCajas_(poligonosDeGeojson_(g));
+    if (!polys.length) continue;
+    const { puntos } = await focosEnPoligonos_(polys, cfg.temporadas, temporadas);
+    if (!puntos.length) continue;
+    mostrarToast_('🔥 Calculando la zona de incendios de ' + c.comuna + ' (' + puntos.length + ' focos)…');
+    const r = await supabaseClient.rpc('obtener_ameba_incendios', {
+      p_comuna_id: c.id, p_nivel: cfg.temporadas, p_temporadas: temporadas, p_buffer_m: BUFFER_AMEBA_M, p_puntos: puntos,
+    });
+    if (r.error) console.warn('obtener_ameba_incendios (' + c.comuna + '):', r.error.message); else n++;
+  }
+  return n;
+}
+/** Al entrar o salir del modo área: la ameba y el KPI cambian de ámbito (área ↔ comuna). */
+async function refrescarAmebaPorModo_() {
+  NIVELES_AMEBA.forEach(cfg => { amebaLayers[cfg.id].clearLayers(); delete state.amebaDatos[cfg.id]; delete state.amebaKpi[cfg.id]; });
+  for (const cfg of NIVELES_AMEBA) {
+    if (!state.amebaVisible[cfg.id]) continue;
+    await cargarAmeba_(cfg.id);
+    if (state.amebaVisible[cfg.id]) { amebaLayers[cfg.id].addTo(map); amebaLayers[cfg.id].bringToBack(); }
+    pintarEstadoAmeba_(cfg.id, state.amebaVisible[cfg.id], false);
+  }
+}
+
 async function cargarAmeba_(nivel) {
   const cfg = NIVELES_AMEBA.find(x => x.id === nivel);
   if (!cfg || !state.activeComunaId) return;
+  if (state.areaActiva) { await cargarAmebaArea_(nivel, cfg); return; }
 
   const capa = amebaLayers[nivel];
   capa.clearLayers();
@@ -236,6 +307,14 @@ async function cargarKpiIncendios_() {
         else console.error('kpi_copamiento_ameba:', kpi.error.message);
       }
     }
+    // 🧭 Modo Área (22-10-2026, SQL 139): el nivel de copamiento es el DEL ÁREA (zonas de incendio del trienio de todas sus
+    // comunas frente a todo lo planificado en ellas, misma REGLA A). En modo comuna queda el de la comuna (arriba).
+    state.kpiIncendiosArea = null;
+    if (state.areaActiva) {
+      const ka = await supabaseClient.rpc('kpi_copamiento_area', { p_area: state.areaActiva, p_nivel: 3, p_buffer_influencia_m: BUFFER_INFLUENCIA_M });
+      if (!ka.error) { state.amebaKpi.n2 = ka.data || []; state.kpiIncendiosArea = state.areaActiva; }
+      else state.kpiIncendiosArea = { error: /kpi_copamiento_area|does not exist/i.test(ka.error.message) ? 'Falta ejecutar el SQL 139 (copamiento por área).' : ka.error.message };
+    }
   } catch (e) {
     console.error('cargarKpiIncendios_:', e);
   } finally {
@@ -281,7 +360,10 @@ function renderKpiIncendios_() {
     return 'rgba(239,68,68,0.26)';
   };
 
-  let html = '<div style="font-size:10px;font-weight:600;opacity:.75;margin:2px 0 5px;">🔥 Copamiento sobre incendios</div>';
+  const kA = state.kpiIncendiosArea;
+  let html = '<div style="font-size:10px;font-weight:600;opacity:.75;margin:2px 0 5px;">🔥 Copamiento sobre incendios · ' +
+    (typeof kA === 'string' ? '🧭 Área ' + escapeHtml_(aTitulo_(kA)) : 'comuna') + '</div>' +
+    (kA && kA.error ? '<div style="font-size:9.5px;color:#FCA5A5;margin-bottom:4px;">⚠️ ' + escapeHtml_(kA.error) + ' Se muestra el de la comuna.</div>' : '');
 
   // Cabecera: una sola columna, el trienio (la zona encendida en el mapa, destacada)
   html += '<div style="display:flex;align-items:center;gap:4px;font-size:9px;margin-bottom:3px;">' +
@@ -488,11 +570,11 @@ async function exportarPlanKML_() {
 
     const idEstilo = (nom) => 'est_' + String(nom).replace(/[^A-Za-z0-9]/g, '_');
 
-    let kml = '<?xml version="1.0" encoding="UTF-8"?>\\n' +
-      '<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\\n' +
-      '<name>' + escapeHtml_('Plan ' + nombreEscenario_(esc) + ' — ' + comuna) + '</name>\\n' +
+    let kml = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\n' +
+      '<name>' + escapeHtml_('Plan ' + nombreEscenario_(esc) + ' — ' + comuna) + '</name>\n' +
       '<description>' + escapeHtml_('SIG Copamiento Territorial · ' +
-        new Date().toLocaleDateString('es-CL')) + '</description>\\n';
+        new Date().toLocaleDateString('es-CL')) + '</description>\n';
 
     Object.keys(instituciones).forEach(nom => {
       const c = colorKml_(instituciones[nom]);
@@ -500,13 +582,13 @@ async function exportarPlanKML_() {
         '<LineStyle><color>' + c + '</color><width>3</width></LineStyle>' +
         '<PolyStyle><color>' + colorKml_(instituciones[nom], '66') + '</color></PolyStyle>' +
         '<IconStyle><color>' + c + '</color><scale>1.1</scale></IconStyle>' +
-        '</Style>\\n';
+        '</Style>\n';
     });
 
     // Una carpeta por institución, para poder encender y apagar en Earth.
     Object.keys(instituciones).forEach(nom => {
       const suyas = filas.filter(r => (r.instituciones && r.instituciones.nombre || 'Sin institución') === nom);
-      kml += '<Folder><name>' + escapeHtml_(nom) + '</name>\\n';
+      kml += '<Folder><name>' + escapeHtml_(nom) + '</name>\n';
 
       suyas.forEach(r => {
         let geom = null;
@@ -525,10 +607,10 @@ async function exportarPlanKML_() {
             (r.descripcion ? '<b>Descripción:</b> ' + escapeHtml_(r.descripcion) : '') +
           ']]></description>' +
           geometriaKml_(geom) +
-          '</Placemark>\\n';
+          '</Placemark>\n';
       });
 
-      kml += '</Folder>\\n';
+      kml += '</Folder>\n';
     });
 
     kml += '</Document></kml>';
@@ -558,16 +640,13 @@ function geometriaKml_(g) {
       '<LineString><tessellate>1</tessellate><coordinates>' + coords(parte) + '</coordinates></LineString>'
     ).join('') + '</MultiGeometry>';
   }
-  if (g.type === 'Polygon') {
-    return '<Polygon><outerBoundaryIs><LinearRing><coordinates>' +
-      coords(g.coordinates[0]) + '</coordinates></LinearRing></outerBoundaryIs></Polygon>';
-  }
-  if (g.type === 'MultiPolygon') {
-    return '<MultiGeometry>' + g.coordinates.map(poly =>
-      '<Polygon><outerBoundaryIs><LinearRing><coordinates>' +
-      coords(poly[0]) + '</coordinates></LinearRing></outerBoundaryIs></Polygon>'
-    ).join('') + '</MultiGeometry>';
-  }
+  // 02-11-2026: polígonos con sus huecos (innerBoundaryIs) y colecciones de geometrías
+  const poligono = rings => '<Polygon><outerBoundaryIs><LinearRing><coordinates>' + coords(rings[0]) + '</coordinates></LinearRing></outerBoundaryIs>' +
+    rings.slice(1).map(r => '<innerBoundaryIs><LinearRing><coordinates>' + coords(r) + '</coordinates></LinearRing></innerBoundaryIs>').join('') + '</Polygon>';
+  if (g.type === 'Polygon') return poligono(g.coordinates);
+  if (g.type === 'MultiPolygon') return '<MultiGeometry>' + g.coordinates.map(poligono).join('') + '</MultiGeometry>';
+  if (g.type === 'MultiPoint') return '<MultiGeometry>' + g.coordinates.map(c => '<Point><coordinates>' + c[0] + ',' + c[1] + ',0</coordinates></Point>').join('') + '</MultiGeometry>';
+  if (g.type === 'GeometryCollection') return '<MultiGeometry>' + (g.geometries || []).map(geometriaKml_).join('') + '</MultiGeometry>';
   return '';
 }
 
@@ -741,7 +820,14 @@ function infoRecursoRutaPlan_(r, escenario) {
   if (!/CMPC/i.test(String((r.instituciones || {}).nombre || ''))) return null;
   if (!r.recurso_ref_id) return { con: false };
   const ri = (state.recursoRefInfo || {})[r.recurso_ref_id] || {};
-  return { con: true, clave: claveIdTexto_(r.recurso_ref_clave || ri.alias, r.recurso_ref_codigo || ri.codigo_ref) };   // «Clave radial · ID»
+  // 22-10-2026: solo la CLAVE RADIAL (el ID solo si el recurso no tiene clave)
+  return { con: true, clave: String(r.recurso_ref_clave || ri.alias || r.recurso_ref_codigo || ri.codigo_ref || '').trim() };
+}
+/** Etiqueta de una ruta CMPC del escenario Normal: punto neón + clave radial si está asignada, o «Sin asignar». */
+function etiquetaRutaAsignada_(info) {
+  return puntoNeonRecursoRuta_(info) + (info.con
+    ? '<b>' + escapeHtml_(info.clave || 'Asignada') + '</b>'
+    : '<span style="color:#DC2626;">Sin asignar</span>');
 }
 function detalleHoverRecurso_(datos) {
   const institucion = (datos && datos.institucion) ? String(datos.institucion).trim() : '';
@@ -760,8 +846,8 @@ function detalleHoverRecurso_(datos) {
   if (nombre && nombre !== institucion) encabezado.push(escapeHtml_(nombre));
   if (tipo) encabezado.push('<span style="opacity:.8;">' + escapeHtml_(aTitulo_(tipo)) + '</span>');
   if (datos && datos.recursoRuta) encabezado.push(datos.recursoRuta.con
-    ? '<span style="color:#4ADE80;font-weight:700;">📻 ' + escapeHtml_(datos.recursoRuta.clave || 'Recurso asociado') + '</span>'
-    : '<span style="color:#F87171;font-weight:700;">Sin recurso asociado</span>');
+    ? '<span style="color:#4ADE80;font-weight:700;">✔ Asignada · 📻 ' + escapeHtml_(datos.recursoRuta.clave || '—') + '</span>'
+    : '<span style="color:#F87171;font-weight:700;">Sin asignar</span>');
   // Recursos disponibles: ¿tiene ruta asignada? (mismo punto neón que las rutas)
   if (datos && datos.rutaDelRecurso) encabezado.unshift(puntoNeonRecursoRuta_(datos.rutaDelRecurso) + (datos.rutaDelRecurso.con
     ? '<span style="color:#4ADE80;font-weight:700;">Con ruta asignada</span>'
@@ -1211,8 +1297,8 @@ async function loadRecursosDisponiblesAreaLayer_() {
     // Filtro 🧭 Área (Admin y Jefe de Área): solo los recursos del área elegida
     // (nombre comparado sin tildes, espacios ni guiones). 13-10-2026: antes el Admin veía todos.
     resultado = await recursosDeAreas_(state.areaActiva);
-  } else if (perfil === 'Administrador') {
-    // Administrador sin área elegida: TODOS los recursos (sin filtro)
+  } else if (perfil === 'Administrador' && !idComunaActiva_()) {
+    // Administrador sin área ni comuna elegida: TODOS los recursos (sin filtro)
     resultado = await supabaseClient.from('recursos_disponibles_area_geojson').select('*');
   } else {
     // Jefe de Área en modo comuna, GRD y Visor: solo recursos de la comuna activa
@@ -1225,16 +1311,6 @@ async function loadRecursosDisponiblesAreaLayer_() {
 
   if (error) { state.recursosDisponiblesInfo = { ok: false, count: 0, error: error.message }; return; }
 
-  // Nombre de la persona a cargo (recurso_contacto, SQL 92). Por RLS solo lo leen el Administrador
-  // y el Jefe de su área; para los demás la etiqueta queda con ID y clave radial.
-  const personaPor = {};
-  try {
-    const ids = (data || []).map(r => r.id);
-    for (let i = 0; i < ids.length; i += 150) {
-      const { data: cs } = await supabaseClient.from('recurso_contacto').select('recurso_id, nombre_persona').in('recurso_id', ids.slice(i, i + 150));
-      (cs || []).forEach(c => { if (c.nombre_persona) personaPor[c.recurso_id] = c.nombre_persona; });
-    }
-  } catch (e) { /* sin contactos: solo ID y clave */ }
 
   // ¿Tiene ruta asignada? (línea del escenario Normal, SQL 79, o recurso_rutas): mismo punto neón que las rutas
   const conRuta = new Set();
@@ -1251,12 +1327,12 @@ async function loadRecursosDisponiblesAreaLayer_() {
     const inst = r.instituciones || { nombre: 'Institución', color_hex: '#64748B' };
     // Etiqueta (15-10-2026): Clave radial · ID y, debajo, el nombre de la persona a cargo.
     // Sin ID ni clave se muestra el tipo de recurso, como antes.
-    const idClave = escapeHtml_(claveIdTexto_(r.clave_radial, r.codigo_ref));   // «Clave radial · ID»
+    // 22-10-2026: la etiqueta muestra SOLO la clave radial (sin ID ni persona) y el punto de ruta asignada; sin clave, el tipo.
+    const idClave = escapeHtml_(String(r.clave_radial || '').trim());
     // Indicador de ruta (recursos de Relacionamiento): 🟢 con ruta asignada · 🔴 sin ruta, como en las rutas creadas
-    const infoRuta = pertenenciaDeRecurso_(r) === 'Relacionamiento' ? { con: conRuta.has(String(r.id)), clave: idClave ? claveIdTexto_(r.clave_radial, r.codigo_ref) : '' } : null;
+    const infoRuta = pertenenciaDeRecurso_(r) === 'Relacionamiento' ? { con: conRuta.has(String(r.id)), clave: String(r.clave_radial || '').trim() } : null;
     const punto = infoRuta ? '<span class="punto-neon ' + (infoRuta.con ? 'con' : 'sin') + '" title="' + (infoRuta.con ? 'Tiene ruta asignada' : 'Sin ruta asignada') + '"></span>' : '';
-    const etiqueta = punto + (idClave ? '<b>' + idClave + '</b>' : escapeHtml_(r.tipo_recurso || r.nombre_recurso || inst.nombre)) +
-      (personaPor[r.id] ? '<br><span class="lbl-persona">👤 ' + escapeHtml_(personaPor[r.id]) + '</span>' : '');
+    const etiqueta = punto + (idClave ? '<b>' + idClave + '</b>' : escapeHtml_(r.tipo_recurso || r.nombre_recurso || inst.nombre));
     const puedeEditar = puedeGestionarRecursoArea_(r.area);
     const enEdicionEstaZona = !!(state.modoRecursosArea && plNorm_(state.modoRecursosArea.area) === plNorm_(r.area));
     const popupHtml =
@@ -1264,10 +1340,13 @@ async function loadRecursosDisponiblesAreaLayer_() {
       '<div class="popup-row">🏢 ' + inst.nombre + '</div>' +
       '<div class="popup-row">🏷️ ' + r.tipo_recurso + (r.tipo_movil && r.tipo_movil !== 'No Aplica' ? ' (' + r.tipo_movil + ')' : '') + (r.cantidad_personas ? ' · ' + r.cantidad_personas + ' persona(s)' : '') + '</div>' +
       (infoRuta ? '<div class="popup-row">' + punto + (infoRuta.con ? '<b style="color:#16A34A;">Tiene ruta asignada</b>' : '<b style="color:#DC2626;">Sin ruta asignada</b> · se asigna en el escenario Normal') + '</div>' : '') +
+      '<div class="popup-row">🏘️ Comuna: <b>' + escapeHtml_(r.comuna || 'Sin comuna') + '</b></div>' +
       (r.fecha_inicio_operacion ? '<div class="popup-row">📅 Inicio: ' + r.fecha_inicio_operacion + '</div>' : '') +
       '<div class="popup-row">' + escapeHtml_(r.descripcion_funcion || 'Sin descripción') + '</div>' +
       (puedeEditar ? '<div class="popup-actions">' +
         '<button class="popup-btn" data-action="editar-recurso-area" data-id="' + r.id + '">Editar</button>' +
+        (state.perfil && state.perfil.perfil === 'Administrador'   // 22-10-2026: cambiar la comuna del recurso, solo el Administrador (SQL 143)
+          ? '<button class="popup-btn" data-action="comuna-recurso-area" data-id="' + r.id + '" style="color:#0369A1;">🏘️ Comuna</button>' : '') +
         '<button class="popup-btn" data-action="eliminar-recurso-area" data-id="' + r.id + '" style="color:#DC2626;">Eliminar</button></div>' : '');
 
     if (r.tipo_geometria === 'linea' || r.tipo_geometria === 'area') {
@@ -1301,7 +1380,7 @@ async function loadRecursosDisponiblesAreaLayer_() {
         figura.bindTooltip(etiqueta, { permanent: true, direction: 'center', className: 'map-label' });
       }
       figura._tipoRecurso = r.tipo_recurso || 'Sin tipo'; figura._pertenencia = pertenenciaDeRecurso_(r);
-      habilitarHoverEtiqueta_(figura, { institucion: inst.nombre, nombre: r.nombre_recurso, tipo: r.tipo_recurso, descripcion: r.descripcion_funcion, rutaDelRecurso: infoRuta }, { direction: 'center', offset: [0, 0] });
+      // 22-10-2026: sin tarjeta al pasar el cursor (la etiqueta del recurso ya muestra clave y ruta asignada)
       activarNeonHover_(figura, inst.color_hex);
       recursosDisponiblesAreaLayer.addLayer(figura);
       return;
@@ -1322,7 +1401,7 @@ async function loadRecursosDisponiblesAreaLayer_() {
     if (state.mostrarEtiquetasRecursosArea && !tipoRecursoOculto_(m._tipoRecurso)) {
       m.bindTooltip(etiqueta, { permanent: true, interactive: true, direction: 'top', offset: [0, -16], className: 'map-label' });
     }
-    habilitarHoverEtiqueta_(m, { institucion: inst.nombre, nombre: r.nombre_recurso, tipo: r.tipo_recurso, descripcion: r.descripcion_funcion, rutaDelRecurso: infoRuta }, { direction: 'top', offset: [0, -18] });
+    // 22-10-2026: sin tarjeta al pasar el cursor (la etiqueta del recurso ya muestra clave y ruta asignada)
     activarNeonHover_(m, inst.color_hex);
     recursosDisponiblesAreaLayer.addLayer(m);
     if (tipoRecursoOculto_(m._tipoRecurso) || !recursoActivoHoy_(m._recursoId)) { const el = m.getElement && m.getElement(); if (el) el.style.display = 'none'; }

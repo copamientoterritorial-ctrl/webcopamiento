@@ -100,14 +100,35 @@ async function cargarSeguimiento_(forzar) {
   if (!state.sg.datos) cuerpo.innerHTML = '<div class="tb-vacio">Reuniendo comunas, copamiento y recursos de la subgerencia…</div>';
   try {
     const misAreas = new Set((state.misAreasIds || []).map(SG_KEY));
-    // Recursos de la subgerencia (con fechas de operación)
-    const recursos = [];
-    for (let d = 0; ; d += 1000) {
-      const { data, error } = await supabaseClient.from('referencia_recursos')
-        .select('id, codigo_ref, alias, area_nombre, subgerencia, tipo_recurso, fecha_inicio_operacion, fecha_termino_operacion').range(d, d + 999);
-      if (error) throw error;
-      recursos.push(...(data || [])); if (!data || data.length < 1000) break;
+    // 22-10-2026: lo que NO depende de la subgerencia se lee UNA vez (en paralelo) y se reutiliza al cambiar el filtro
+    // Ambas / Norte / Sur; 🔄 Actualizar lo vuelve a leer.
+    if (forzar || !state.sg.base) {
+      est.textContent = 'Leyendo datos…';
+      const leerRecursos = async () => {
+        const out = [];
+        for (let d = 0; ; d += 1000) {
+          const { data, error } = await supabaseClient.from('referencia_recursos')
+            .select('id, codigo_ref, alias, area_nombre, subgerencia, tipo_recurso, fecha_inicio_operacion, fecha_termino_operacion').range(d, d + 999);
+          if (error) throw error;
+          out.push(...(data || [])); if (!data || data.length < 1000) break;
+        }
+        return out;
+      };
+      const [rec, acR, cpR, ppR, etR, paR, pfR, psR] = await Promise.all([
+        leerRecursos(),
+        supabaseClient.from('v_area_comunas_admin').select('area, area_norm, id_comuna'),
+        supabaseClient.from('comunas_prioridad').select('*'),
+        supabaseClient.from('prioridad_parametros').select('id, parametros'),
+        supabaseClient.from('implementacion_etapas').select('id_comuna, etapa, completada, fecha'),
+        supabaseClient.from('perfil_areas').select('perfil_id, area'),
+        supabaseClient.from('perfiles').select('id, nombre_completo, perfil'),
+        supabaseClient.from('perfil_subgerencias').select('perfil_id'),
+      ]);
+      state.sg.base = { recursos: rec, ac: acR.data || [], cp: cpR, pp: ppR, et: etR, pa: paR, pf: pfR, ps: psR, usuariosPor: {} };
     }
+    const B = state.sg.base;
+    // Recursos de la subgerencia (con fechas de operación)
+    const recursos = B.recursos;
     // Áreas de la subgerencia con el MISMO criterio del filtro Subgerencia de Comunas Prioritarias
     // (cargarAreasPrio_): el área toma la subgerencia de sus recursos. Sin subgerencia: perfil_areas.
     const subgDeArea = {};
@@ -122,7 +143,7 @@ async function cargarSeguimiento_(forzar) {
     const area = (k, nom) => (areas[k] = areas[k] || { k, nombre: nom || k, comunas: new Set(), rec: [], jefes: [] });
     recursos.forEach(r => { const k = SG_KEY(r.area_nombre); if (k && esMia(k)) area(k, r.area_nombre).rec.push(r); });
     // Comunas de cada área (asignación administrativa, SQL 94)
-    const { data: ac } = await supabaseClient.from('v_area_comunas_admin').select('area, area_norm, id_comuna');
+    const ac = B.ac;
     // Áreas y subgerencias de TODAS las comunas (para mostrar las 103 CMPC con su subgerencia, 18-10-2026)
     const areasPorComuna = {}, subgsPorComuna = {};
     (ac || []).forEach(x => {
@@ -134,10 +155,7 @@ async function cargarSeguimiento_(forzar) {
     });
     const idsCom = new Set(); Object.values(areas).forEach(a => a.comunas.forEach(id => idsCom.add(id)));
     // Prioridad (Comunas Prioritarias: misma matriz y parámetros vigentes) — toda la matriz
-    const [cp, pp] = await Promise.all([
-      supabaseClient.from('comunas_prioridad').select('*'),
-      supabaseClient.from('prioridad_parametros').select('id, parametros'),
-    ]);
+    const cp = B.cp, pp = B.pp;
     // Comunas = las mismas del mapa de Comunas Prioritarias con el filtro de la subgerencia (aunque la
     // comuna aún no esté habilitada en el sistema: entonces no tiene planes y figura «sin iniciar»).
     const habil = {}; (state.comunas || []).forEach(c => { habil[Number(c.id_comuna)] = c; });
@@ -158,39 +176,47 @@ async function cargarSeguimiento_(forzar) {
     const P = paramsCompletosPrio_(vig ? vig.parametros : null);
     const prioPor = {}; (cp.data || []).forEach(c => { prioPor[c.id_comuna] = calcularPrio_(c, P); });
     // Copamiento sobre incendios por escenario (mismo resumen de Comunas Prioritarias)
-    let resumen = (state.prio && state.prio.resumen) || cargarCopamientoAlertasDash_.resumen || null;
-    if (!resumen || forzar) {
-      est.textContent = 'Calculando copamiento sobre incendios…';
-      const { data } = await supabaseClient.rpc('resumen_comunas_prevencion');
-      resumen = {}; (data || []).forEach(x => { resumen[x.id_comuna] = x; });
-      cargarCopamientoAlertasDash_.resumen = resumen;
+    // 22-10-2026: resumen compartido (js/02). Si hay uno en memoria o en el navegador se usa AL INSTANTE y, si está viejo,
+    // se refresca en segundo plano y se vuelve a dibujar. Solo se espera la consulta si no hay ninguno (primera vez) o con 🔄.
+    const disp = resumenCopamientoDisponible_();
+    let resumen = (!forzar && disp) ? disp.mapa : null;
+    if (!resumen) {
+      est.textContent = 'Leyendo copamiento…';
+      resumen = await obtenerResumenCopamiento_(!!forzar);
+    } else if (Date.now() - disp.en > RESUMEN_COP_TTL) {
+      obtenerResumenCopamiento_().then(m => {
+        if (state.sg.datos && state.sg.datos.resumen !== m) {
+          Object.values(state.sg.cachePor || {}).forEach(c => { if (c && c.datos) c.datos.resumen = m; });
+          state.sg.datos.resumen = m;
+          if (state.vistaActual === 'seguimiento' || document.getElementById('sg-lista')) renderSeguimiento_();
+        }
+      }).catch(() => {});
     }
     // Usuarios que trabajaron en cada comuna (quién creó entidades en sus planes)
-    const usuariosPor = {};
+    // 22-10-2026: se guarda por comuna (B.usuariosPor) y solo se consultan las comunas que faltan, con las tandas en paralelo
+    const usuariosPor = B.usuariosPor;
     try {
-      const slugs = comunas.map(c => c.id).filter(Boolean);
-      const { data: planes } = slugs.length ? await supabaseClient.from('planes_contingencia').select('id, comuna_id').in('comuna_id', slugs) : { data: [] };
-      const comunaDePlan = {}; (planes || []).forEach(p => { comunaDePlan[p.id] = p.comuna_id; });
-      const pids = Object.keys(comunaDePlan), ids = new Set();
-      for (let i = 0; i < pids.length; i += 120) {
-        const { data } = await supabaseClient.from('planificacion_recursos').select('plan_id, creado_por').in('plan_id', pids.slice(i, i + 120));
-        (data || []).forEach(r => { if (!r.creado_por) return; const s = comunaDePlan[r.plan_id]; const u = usuariosPor[s] = usuariosPor[s] || {}; u[r.creado_por] = (u[r.creado_por] || 0) + 1; ids.add(r.creado_por); });
+      const slugs = comunas.map(c => c.id).filter(s => s && !usuariosPor[s]);
+      if (slugs.length) {
+        est.textContent = 'Leyendo quién trabajó en cada comuna…';
+        const { data: planes } = await supabaseClient.from('planes_contingencia').select('id, comuna_id').in('comuna_id', slugs);
+        const comunaDePlan = {}; (planes || []).forEach(p => { comunaDePlan[p.id] = p.comuna_id; });
+        slugs.forEach(s => { usuariosPor[s] = usuariosPor[s] || {}; });
+        const pids = Object.keys(comunaDePlan), ids = new Set(), tandas = [];
+        for (let i = 0; i < pids.length; i += 120) tandas.push(supabaseClient.from('planificacion_recursos').select('plan_id, creado_por').in('plan_id', pids.slice(i, i + 120)));
+        (await Promise.all(tandas)).forEach(({ data }) => (data || []).forEach(r => {
+          if (!r.creado_por) return; const u = usuariosPor[comunaDePlan[r.plan_id]]; u[r.creado_por] = (u[r.creado_por] || 0) + 1; ids.add(r.creado_por);
+        }));
+        const faltan = [...ids].filter(id => !(state.sg.nombres || {})[id]);
+        if (faltan.length) state.sg.nombres = Object.assign(state.sg.nombres || {}, await nombresPerfiles_(faltan));
       }
-      if (ids.size) state.sg.nombres = await nombresPerfiles_([...ids]);
     } catch (e) { /* sin detalle de usuarios */ }
     // 🪜 Avance de la implementación por comuna (SQL 124; solo las 24 comunas relevantes V6)
     let etapas = null;
-    try {
-      const { data, error } = await supabaseClient.from('implementacion_etapas').select('id_comuna, etapa, completada, fecha');
-      if (!error) { etapas = {}; (data || []).forEach(r => { if (r.completada) (etapas[r.id_comuna] = etapas[r.id_comuna] || {})[r.etapa] = r; }); }
-    } catch (e) { /* sin el SQL 124 */ }
+    if (B.et && !B.et.error) { etapas = {}; (B.et.data || []).forEach(r => { if (r.completada) (etapas[r.id_comuna] = etapas[r.id_comuna] || {})[r.etapa] = r; }); }
     // Jefes de cada área
     try {
-      const [pa, pf, ps] = await Promise.all([
-        supabaseClient.from('perfil_areas').select('perfil_id, area'),
-        supabaseClient.from('perfiles').select('id, nombre_completo, perfil'),
-        supabaseClient.from('perfil_subgerencias').select('perfil_id'),
-      ]);
+      const pa = B.pa, pf = B.pf, ps = B.ps;
       const subgs = new Set((ps.data || []).map(x => x.perfil_id));
       const nom = {}; (pf.data || []).forEach(p => { if (esJefeAreaPerfil_(p.perfil) && !subgs.has(p.id)) nom[p.id] = p.nombre_completo; });
       (pa.data || []).forEach(x => { const a = areas[SG_KEY(x.area)]; if (a && nom[x.perfil_id] && !a.jefes.includes(nom[x.perfil_id])) a.jefes.push(nom[x.perfil_id]); });
@@ -379,7 +405,6 @@ function renderSgComunas_(soloLista) {
     .sort((a, b) => ({ mia: 0, otra: 1, sin: 2 }[a.alcance] || 0) - ({ mia: 0, otra: 1, sin: 2 }[b.alcance] || 0) ||   // primero las de la subgerencia
       a.prio - b.prio || (b.nivel || 0) - (a.nivel || 0) || a.c.comuna.localeCompare(b.c.comuna, 'es'));
   const fmt = v => Number(v || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 });
-  const cuenta = (k, v) => todas.filter(f => f[k] === v).length;
   const chip = (k, v, txt, n) => '<button class="sg-chip' + (S[k] === v ? ' on' : '') + '" data-sg-f="' + k + '|' + escapeHtml_(v) + '">' + txt + (n != null ? '<small>' + n + '</small>' : '') + '</button>';
   // 19-10-2026: sin promedio; una tarjeta por alerta (Normal · Amarilla · Roja) con su % y barra
   const tarjetaAlerta = (lbl, p, c) => '<div class="sg-al" style="--a:' + c + '"><span>' + lbl + '</span><b>' + fmt(p) + '%</b><i><em style="width:' + Math.min(100, p) + '%"></em></i></div>';
@@ -411,8 +436,12 @@ function renderSgComunas_(soloLista) {
         (ajena ? '' : '<button class="sg-ver-mapa" data-sg-mapa="' + f.c.id_comuna + '" title="Ver el copamiento de ' + escapeHtml_(f.c.comuna) + ' en el mapa (Normal, Amarilla y Roja)">🗺️ Ver copamiento en el mapa</button>') + '</div>' +
     '</div>';
   }).join('') || '<div class="tb-vacio">Sin comunas con este filtro.</div>';
-  if (soloLista && document.getElementById('sg-lista')) { document.getElementById('sg-lista').innerHTML = lista; return; }
-  const promDe = k => todas.length ? Math.round(todas.reduce((s, f) => s + (Number(f[k]) || 0), 0) / todas.length) : 0;
+  if (soloLista && document.getElementById('sg-lista')) {
+    document.getElementById('sg-lista').innerHTML = lista;
+    const kImpl = document.getElementById('sg-impl-kpi'); if (kImpl) kImpl.innerHTML = sgImplKpiHtml_(filas);
+    const nCom = document.querySelector('#sg-n-comunas b'); if (nCom) nCom.textContent = filas.length;
+    return;
+  }
   const cuentaPrio = p => todasSinPrio.filter(f => String(f.prio) === p).length;
   const chipPrio = (p, txt) => '<button class="sg-chip' + (S.prios.includes(p) ? ' on' : '') + '" data-sg-prio="' + p + '">' + txt + '<small>' + cuentaPrio(p) + '</small></button>';
   const A = S.area ? D.areas[S.area] : null;
@@ -422,23 +451,34 @@ function renderSgComunas_(soloLista) {
     // Prioridad primero (varias a la vez)
     '<div class="sg-chips sg-chips-prio"><span class="tit">Prioridad</span>' + chipPrio('1', '🔴 Alta') + chipPrio('2', '🟠 Media') + chipPrio('3', '🟢 Baja') +
       (S.prios.length ? '<button class="sg-chip" data-sg-prio="__todas__">✕ Todas</button>' : '') +
-      '<span style="font-size:11px;color:var(--text-tertiary);margin-left:6px;">Puedes marcar varias (p. ej. Alta + Media)</span></div>' +
+      '<span style="font-size:11px;color:var(--text-tertiary);margin-left:6px;">Puedes marcar varias (p. ej. Alta + Media)</span>' +
+      // 22-10-2026: el filtro de comuna va en esta fila, a la derecha
+      '<input id="sg-q" class="admin-search" placeholder="🔎 Filtro de comuna" title="Filtro de comuna" value="' + escapeHtml_(S.q || '') + '" style="max-width:220px;margin-left:auto;"></div>' +
     // 22-10-2026: sin la franja «N comunas con presencia CMPC · Mostrar», sin la fila «Estado» y sin la cabecera del área
     // elegida (pedido del usuario). El buscador pasa a la fila de Área.
     '<div class="sg-chips"><span class="tit">Área</span>' + chip('area', '', 'Todas', D.comunas.length) +
       areas.map(a => chip('area', a.k, escapeHtml_(aTitulo_(a.nombre)), a.comunas.size)).join('') +
-      '<input id="sg-q" class="admin-search" placeholder="Buscar comuna…" value="' + escapeHtml_(S.q || '') + '" style="max-width:180px;margin-left:auto;"></div>' +
-    '<div class="sg-resumen">' +
-      '<div><b>' + todas.length + '</b><span>comunas' + (A ? ' del área' : verTodas ? ' mostradas (todas las CMPC)' : ' de la subgerencia') + ' con presencia CMPC</span></div>' +
-      '<div style="--c:#DC2626"><b>' + cuenta('estado', 'sin') + '</b><span>⛔ sin iniciar</span></div>' +
-      '<div style="--c:#16A34A"><b>' + cuenta('estado', 'ok') + '</b><span>✅ con los 3 escenarios</span></div>' +
-      // Una tarjeta por alerta: copamiento promedio de las comunas mostradas
-      '<div class="sg-res-al" style="--c:#16A34A"><b>' + promDe('pN') + '%</b><span>🟢 copamiento Normal</span><i><em style="width:' + promDe('pN') + '%"></em></i></div>' +
-      '<div class="sg-res-al" style="--c:#D97706"><b>' + promDe('pA') + '%</b><span>🟡 copamiento Alerta Amarilla</span><i><em style="width:' + promDe('pA') + '%"></em></i></div>' +
-      '<div class="sg-res-al" style="--c:#DC2626"><b>' + promDe('pR') + '%</b><span>🔴 copamiento Alerta Roja</span><i><em style="width:' + promDe('pR') + '%"></em></i></div>' +
-    '</div>' +
+      // 22-10-2026: sin las tarjetas de resumen; queda solo el N.º de comunas (junto al buscador)
+      '<span class="sg-n-comunas" id="sg-n-comunas" title="Comunas' + (A ? ' del área' : verTodas ? ' mostradas (todas las CMPC)' : ' de la subgerencia') + ' con presencia CMPC">' +
+        '🏘️ <b>' + filas.length + '</b> comuna(s)</span></div>' +
+    '<div id="sg-impl-kpi">' + sgImplKpiHtml_(filas) + '</div>' +
     '<div class="sg-lista" id="sg-lista">' + lista + '</div>';
   state.sg.ultimoComunas = filas;
+}
+
+/** 🪜 Avance de la implementación (mismo bloque de Prevención › Implementación por comuna) sobre las comunas que dejan
+ *  los filtros del Seguimiento (prioridad, área, búsqueda), solo las que están entre las 24 de implementación. */
+function sgImplKpiHtml_(filas) {
+  const D = state.sg.datos;
+  if (!D || !D.etapas || typeof imKpiGlobalHtml_ !== 'function') return '';   // sin el SQL 124
+  const vistos = new Set(), comunas = [];
+  filas.filter(f => !f.alcance || f.alcance === 'mia').forEach(f => {
+    const id = Number(f.c.id_comuna);
+    if (D.implIds.has(id) && !vistos.has(id)) { vistos.add(id); comunas.push({ id, nombre: f.c.comuna }); }
+  });
+  if (!comunas.length) return '<div class="tb-vacio" style="padding:8px;">🪜 Ninguna de estas comunas está entre las comunas de implementación.</div>';
+  const filtrado = state.sg.area || (state.sg.prios || []).length || state.sg.q;
+  return imKpiGlobalHtml_(comunas, (id, k) => !!(D.etapas[id] && D.etapas[id][k]), filtrado ? ' · según los filtros' : '', true);
 }
 
 /** 🗺️ Ver el copamiento de la comuna en el mapa (interactivo): Planificador de Alertas en modo consulta,

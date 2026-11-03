@@ -131,6 +131,7 @@ const MENU_MODULOS = [
   { id: 'tab-planificador', grupo: '🌲 Planificador CMPC', nombre: 'Planificador gráfico', ver: () => puedeVerModulo_('planificador_grafico'), nivel: () => nivelPermiso_('planificador_grafico') },
   { id: 'tab-tablero', grupo: '🌲 Planificador CMPC', nombre: 'Tablero de Recursos', ver: () => puedeVerModulo_('planificador_grafico'), nivel: () => 'ver' },
   { id: 'tab-gestion', grupo: '🌲 Planificador CMPC', nombre: 'Gestión de Recursos', ver: () => puedeGestionRecursos_(), nivel: () => 'editar' },
+  { id: 'tab-descargas', grupo: '🌲 Planificador CMPC', nombre: 'Descargas geográficas (KML / GeoJSON)', ver: () => puedeDescargasGeo_(), nivel: () => 'ver' },
   { id: 'tab-agricultores', grupo: '🌾 Agricultores', nombre: 'Gestión Asociación Malleco (Tablero de seguimiento)', ver: () => puedeAgricultores_(),
     nivel: () => agrPuedeRegistrar_() ? 'editar' : 'ver', nota: () => esAsociacion_() ? 'Registra; meta solo escuelas' : (esAdminPerfil_() ? '' : 'Área Victoria') },
   { id: 'tab-admin', grupo: '⚙️ Administración', nombre: 'Administración del sistema', ver: () => !!(state.perfil && state.perfil.perfil === 'Administrador'), nivel: () => 'editar' },
@@ -254,10 +255,10 @@ function poblarSelectorArea_() {
   const sel = document.getElementById('area-select');
   if (!sel) return;
   const areas = areasDisponibles_();
-  // Visible solo para Admin y Jefe de Área con al menos un área
-  if (!(state.perfil.perfil === 'Administrador' || state.perfil.perfil === 'Jefe de Área Relacionamiento') || !areas.length) {
-    sel.style.display = 'none'; return;
-  }
+  // Visible solo para Admin y Jefe de Área con al menos un área (igual el interruptor 🧭 ÁREA del mapa)
+  const puedeArea = (state.perfil.perfil === 'Administrador' || state.perfil.perfil === 'Jefe de Área Relacionamiento') && areas.length > 0;
+  const swArea = document.querySelector('.modo-area-sw'); if (swArea) swArea.style.display = puedeArea ? '' : 'none';
+  if (!puedeArea) { sel.style.display = 'none'; return; }
   sel.style.display = 'inline-block';
   if (sel.options.length === 0) {
     sel.innerHTML = '<option value="">🧭 Área: todas mis comunas</option>' + areas.map(a => '<option value="' + escapeHtml_(a) + '">🧭 Área: ' + escapeHtml_(aTitulo_(a)) + '</option>').join('');
@@ -283,10 +284,55 @@ function poblarSelectorArea_() {
 state.areaFiltro = null;   // { area, ids: Set(comunas.id) }
 let mascaraAreaLayer = null;
 
+/* 🧭 MODO ÁREA de trabajo (22-10-2026): interruptor «ÁREA» junto al de CMPC (js/26). Encendido = filtro de área con el área de la
+ * comuna activa (si la comuna está en dos áreas, la del usuario); apagado = modo comuna. El selector «🧭 Área» del encabezado y el
+ * interruptor son lo mismo (se sincronizan en activarModoArea_). En modo área: entidades de todas las comunas del área con su color
+ * normal (una sola capa por escenario), rutas SIGEI y recursos del área, y el nivel de copamiento DEL ÁREA (SQL 139). */
+async function areaDeComunaActiva_() {
+  const idc = idComunaActiva_(); if (idc == null) return null;
+  let { data, error } = await supabaseClient.from('v_area_comunas_admin').select('area, area_norm').eq('id_comuna', idc);
+  if (error || !data || !data.length) ({ data } = await supabaseClient.from('v_area_comunas').select('area, area_norm').eq('id_comuna', idc));
+  const areas = (data || []).map(x => x.area).filter(Boolean);
+  if (!areas.length) return null;
+  const k = a => plNorm_(a).replace(/[^A-Z0-9]/g, '');
+  const mias = (state.misAreasIds || []).map(k);
+  const elegida = areas.find(a => mias.includes(k(a))) || areas[0];
+  // Se devuelve con el mismo texto del selector del encabezado (catálogo o perfil_areas) si existe
+  return areasDisponibles_().find(a => k(a) === k(elegida)) || elegida;
+}
+async function alternarModoAreaTrabajo_(encender, chk) {
+  if (hayModoTrabajoActivo_()) {
+    mostrarToast_('🔒 Termina o cancela ' + nombreModoTrabajo_() + ' antes de cambiar de modo.');
+    if (chk) chk.checked = !encender; return;
+  }
+  if (!encender) { await activarModoArea_(null); return; }
+  if (!state.activeComunaId) { mostrarToast_('Elige primero una comuna: el modo área toma el área de esa comuna.'); if (chk) chk.checked = false; return; }
+  const area = state.areaActiva || await areaDeComunaActiva_();
+  if (!area) { mostrarToast_('Esta comuna no tiene un área de relacionamiento asignada (Administración › Comunas por área).'); if (chk) chk.checked = false; return; }
+  await activarModoArea_(area);
+}
+
 async function activarModoArea_(area) {
   state.areaActiva = area;
   const sel = document.getElementById('area-select');
   if (sel) { sel.classList.toggle('modo-area-on', !!area); sel.value = area || ''; }
+  const chkA = document.getElementById('modo-area-chk'); if (chkA) chkA.checked = !!area;
+  document.body.classList.toggle('modo-area-trabajo', !!area);
+  // Modo área: fuera la comuna activa (negro) y los límites multi-comuna; se enciende la capa Áreas de Relacionamiento
+  // (filtrada al área, sin consultas extra: la Edge Function queda en caché). Al salir se restaura lo anterior.
+  if (area) {
+    if (map.hasLayer(limiteLayer)) map.removeLayer(limiteLayer);
+    if (map.hasLayer(limitesMultiLayer)) map.removeLayer(limitesMultiLayer);
+    if (state.areaRelAntesModoArea === undefined) state.areaRelAntesModoArea = map.hasLayer(areaRelacionamientoLayer);
+    if (!map.hasLayer(areaRelacionamientoLayer)) areaRelacionamientoLayer.addTo(map);
+  } else {
+    if (state.limiteComunalOn !== false && !map.hasLayer(limiteLayer)) limiteLayer.addTo(map);
+    if (limitesMultiLayer.getLayers().length && !map.hasLayer(limitesMultiLayer)) limitesMultiLayer.addTo(map);
+    if (state.areaRelAntesModoArea === false && map.hasLayer(areaRelacionamientoLayer)) map.removeLayer(areaRelacionamientoLayer);
+    state.areaRelAntesModoArea = undefined;
+  }
+  limiteLayer.setStyle(limiteLayer.options.style);
+  if (typeof refrescarEstiloLimites_ === 'function') refrescarEstiloLimites_();
   state.areaFiltro = null;
   if (area) {
     const clave = plNorm_(area).replace(/[^A-Z0-9]/g, '');   // = clave_area_red_vial_
@@ -309,10 +355,85 @@ async function activarModoArea_(area) {
   }
   // Recargar todas las capas con el nuevo criterio
   recargarCapasPorFiltro_();
+  // Zona de incendios (ameba) y nivel de copamiento: del área (modo área) o de la comuna (modo comuna)
+  refrescarAmebaPorModo_().then(() => { if (state.kpiIncendiosVisible) cargarKpiIncendios_(); });
   mostrarToast_(area ? ('🧭 Área ' + aTitulo_(area) + ': ' + (state.areaFiltro ? state.areaFiltro.ids.size : 0) + ' comuna(s). El resto se ve en gris.') : 'Sin filtro de área: todas tus comunas.');
 }
 
-/** Máscara gris (todo lo que está FUERA del área) + contorno y nombre de cada comuna del área. */
+/* Límites comunales dentro del área (22-10-2026): suaves, un color por comuna y opacidad regulable (0 = ocultos, 1 = resaltados). */
+const COLORES_COMUNAS_AREA = ['#2563EB', '#D97706', '#059669', '#DB2777', '#0891B2', '#7C3AED', '#65A30D', '#DC2626', '#0D9488', '#9333EA', '#CA8A04', '#4F46E5'];
+let mascaraComunasOpac_ = 0.45;
+let mascaraComunasCapas_ = [];
+let mascaraAreaBounds_ = null;
+let comunasAreaLayer_ = null;      // capa «🏘️ Comunas del área»: se consulta SOLO al encenderla (optimización 22-10-2026)
+let comunasAreaDeFiltro_ = null;   // areaFiltro para el que se cargó
+state.comunasAreaOn = false;
+function estiloComunaArea_(color) {
+  const o = mascaraComunasOpac_;
+  return { color, weight: 1.2, opacity: Math.min(0.85, o * 1.4), dashArray: '5,6', fill: true, fillColor: color, fillOpacity: o * 0.22 };
+}
+function aplicarOpacidadComunasArea_(o) {
+  mascaraComunasOpac_ = Math.max(0, Math.min(1, o));
+  mascaraComunasCapas_.forEach(l => l.setStyle(estiloComunaArea_(l._colorComuna)));
+  document.querySelectorAll('.mascara-area-etq span').forEach(s => { s.style.opacity = mascaraComunasOpac_ < 0.05 ? '0' : String(Math.min(0.9, 0.35 + mascaraComunasOpac_)); });
+}
+async function toggleComunasArea_(on) {
+  state.comunasAreaOn = on;
+  if (!on) { if (comunasAreaLayer_) map.removeLayer(comunasAreaLayer_); return; }
+  if (!comunasAreaLayer_ || comunasAreaDeFiltro_ !== state.areaFiltro) await cargarComunasArea_();
+  if (comunasAreaLayer_ && state.comunasAreaOn && state.areaFiltro) { comunasAreaLayer_.addTo(map); aplicarOpacidadComunasArea_(mascaraComunasOpac_); }
+}
+/** Límites de las comunas del área: suaves, un color por comuna y su nombre. */
+async function cargarComunasArea_() {
+  const f = state.areaFiltro;
+  if (comunasAreaLayer_) { map.removeLayer(comunasAreaLayer_); comunasAreaLayer_ = null; }
+  mascaraComunasCapas_ = [];
+  if (!f || !f.ids.size) return;
+  const { data, error } = await supabaseClient.from('v_comunas_limite').select('id, comuna, geometry').in('id', [...f.ids]);
+  if (error || !data || state.areaFiltro !== f) return;
+  const grupo = L.layerGroup();
+  data.sort((a, b) => String(a.comuna).localeCompare(String(b.comuna), 'es')).forEach((c, i) => {
+    let g = c.geometry; if (typeof g === 'string') { try { g = JSON.parse(g); } catch (e) { return; } }
+    if (!g) return;
+    if (g.type === 'Feature') g = g.geometry;
+    const color = COLORES_COMUNAS_AREA[i % COLORES_COMUNAS_AREA.length];
+    const contorno = L.geoJSON(g, { pane: 'mascaraAreaPane', interactive: false, style: estiloComunaArea_(color) });
+    contorno._colorComuna = color;
+    mascaraComunasCapas_.push(contorno);
+    contorno.addTo(grupo);
+    try {
+      L.marker(contorno.getBounds().getCenter(), { pane: 'mascaraAreaPane', interactive: false, keyboard: false,
+        icon: L.divIcon({ className: 'mascara-area-etq', html: '<span>' + escapeHtml_(aTitulo_(c.comuna)) + '</span>', iconSize: [0, 0] }) }).addTo(grupo);
+    } catch (e) {}
+  });
+  comunasAreaLayer_ = grupo;
+  comunasAreaDeFiltro_ = f;
+}
+/** Fila de la capa «🏘️ Comunas del área» en el panel Capas (solo en modo área): encender/apagar + opacidad. */
+function filaCapaComunasArea_(c) {
+  if (!state.areaActiva || !state.areaFiltro) return;
+  const row = document.createElement('div'); row.className = 'layer-row';
+  row.innerHTML =
+    '<div class="layer-left"><span class="flame-dot" style="background:#7C3AED"></span>' +
+    '<div><div class="layer-name">🏘️ Comunas del área</div><div class="layer-count">' + state.areaFiltro.ids.size + ' comuna(s)</div></div></div>' +
+    '<div class="toggle ' + (state.comunasAreaOn ? 'on' : '') + '" id="toggle-comunas-area"></div>';
+  c.appendChild(row);
+  // La opacidad va fuera de la fila (las filas de capas tienen un formato fijo)
+  const op = document.createElement('div');
+  op.className = 'comunas-area-opac';
+  op.style.display = state.comunasAreaOn ? 'flex' : 'none';
+  op.innerHTML = '<span>Opacidad</span><input type="range" id="opac-comunas-area" min="5" max="100" step="5" value="' + Math.round(mascaraComunasOpac_ * 100) + '">';
+  c.appendChild(op);
+  const tg = row.querySelector('#toggle-comunas-area');
+  tg.addEventListener('click', async () => {
+    const on = !state.comunasAreaOn;
+    tg.classList.toggle('on', on); op.style.display = on ? 'flex' : 'none';
+    await toggleComunasArea_(on);
+  });
+  op.querySelector('input').addEventListener('input', e => aplicarOpacidadComunasArea_(Number(e.target.value) / 100));
+}
+
+/** Máscara gris (todo lo que está FUERA del área) + contorno del ÁREA (resaltado) + límites suaves de cada comuna con su nombre. */
 async function dibujarMascaraArea_() {
   if (!map) return;
   if (!map.getPane('mascaraAreaPane')) {
@@ -321,36 +442,127 @@ async function dibujarMascaraArea_() {
     map.getPane('mascaraAreaPane').style.pointerEvents = 'none';
   }
   if (mascaraAreaLayer) { map.removeLayer(mascaraAreaLayer); mascaraAreaLayer = null; }
+  mascaraAreaBounds_ = null;
   const f = state.areaFiltro;
+  // Las comunas del área se cargan aparte y solo si su capa está encendida (panel Capas)
+  if (comunasAreaLayer_) { map.removeLayer(comunasAreaLayer_); comunasAreaLayer_ = null; mascaraComunasCapas_ = []; }
   if (!f || !f.ids.size) return;
-  const { data, error } = await supabaseClient.from('v_comunas_limite').select('id, comuna, geometry').in('id', [...f.ids]);
-  if (error || !data || state.areaFiltro !== f) return;
-  const huecos = [];
+  if (state.comunasAreaOn) toggleComunasArea_(true);
   const grupo = L.layerGroup();
   const aLL = anillo => anillo.map(p => [p[1], p[0]]);
-  data.forEach(c => {
-    let g = c.geometry; if (typeof g === 'string') { try { g = JSON.parse(g); } catch (e) { return; } }
-    if (!g) return;
-    if (g.type === 'Feature') g = g.geometry;
-    const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
-    polys.forEach(p => { if (p && p[0]) huecos.push(aLL(p[0])); });
-    const contorno = L.geoJSON(g, { pane: 'mascaraAreaPane', interactive: false, style: { color: '#7C3AED', weight: 2, opacity: 0.85, dashArray: '7,5', fill: false } });
-    contorno.addTo(grupo);
+  // 22-10-2026 · Sin contorno resaltado: el área la muestra la capa «Áreas de Relacionamiento» (se enciende en activarModoArea_) y
+  // todo lo de AFUERA queda en gris (polígono del mundo con un hueco por cada sector del área, de la misma capa en caché).
+  // Sin esa capa, el hueco es la unión de las comunas del área (SQL 140).
+  const featsArea = await featuresAreaRelacionamiento_(f.area);
+  if (state.areaFiltro !== f) return;
+  let huecos = [];
+  featsArea.forEach(ft => poligonosDeGeometria_(ft.geometry).forEach(p => { if (p && p[0]) huecos.push(aLL(p[0])); }));
+  if (!huecos.length) {
     try {
-      const centro = contorno.getBounds().getCenter();
-      L.marker(centro, { pane: 'mascaraAreaPane', interactive: false, keyboard: false,
-        icon: L.divIcon({ className: 'mascara-area-etq', html: '<span>' + escapeHtml_(aTitulo_(c.comuna)) + '</span>', iconSize: [0, 0] }) }).addTo(grupo);
-    } catch (e) {}
-  });
-  if (!huecos.length) return;
-  // Polígono del mundo con un hueco por cada comuna del área: solo se agrisa lo de afuera
+      const { data: la, error: eLa } = await supabaseClient.rpc('limite_area_geojson', { p_area: f.area });
+      const fila = !eLa && la && la[0];
+      if (fila && fila.geojson && state.areaFiltro === f) poligonosDeGeometria_(JSON.parse(fila.geojson)).forEach(p => { if (p && p[0]) huecos.push(aLL(p[0])); });
+    } catch (e) { /* sin SQL 140 */ }
+  }
+  if (!huecos.length || state.areaFiltro !== f) return;
   const mundo = [[-89, -179.9], [-89, 179.9], [89, 179.9], [89, -179.9]];
   L.polygon([mundo, ...huecos], { pane: 'mascaraAreaPane', interactive: false, stroke: false, fillColor: '#475569', fillOpacity: 0.22 }).addTo(grupo);
+  const b = L.latLngBounds(huecos.flat());
+  if (b.isValid()) mascaraAreaBounds_ = b;   // sin etiqueta del área: la capa Áreas de Relacionamiento ya la muestra
   mascaraAreaLayer = grupo.addTo(map);
+  try { if (mascaraAreaBounds_ && mascaraAreaBounds_.isValid()) map.fitBounds(mascaraAreaBounds_, { padding: [30, 30] }); } catch (e) {}
+}
+
+/** Polígonos de la capa «Áreas de Relacionamiento» (Edge Function get-area-layers, en caché) del área indicada. */
+async function featuresAreaRelacionamiento_(area) {
   try {
-    const lim = L.featureGroup(grupo.getLayers().filter(l => l instanceof L.GeoJSON)).getBounds();
-    if (lim.isValid()) map.fitBounds(lim, { padding: [30, 30] });
-  } catch (e) {}
+    if (!state.areaLayersRes) {
+      const { data, error } = await supabaseClient.functions.invoke('get-area-layers', { body: {} });
+      if (!error && data && data.ok) state.areaLayersRes = data;
+    }
+    const res = state.areaLayersRes;
+    if (!res || !res.areaRelacionamiento || !res.areaRelacionamiento.data) return [];
+    const k = a => plNorm_(a || '').replace(/[^A-Z0-9]/g, '');
+    return (res.areaRelacionamiento.data.features || []).filter(ft => ft && ft.geometry && k((ft.properties || {}).AREA) === k(area));
+  } catch (e) { return []; }
+}
+function poligonosDeGeometria_(g) {
+  if (!g) return [];
+  if (g.type === 'Feature') g = g.geometry;
+  return g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+}
+/* 🔗 RUTAS COMPARTIDAS entre comunas del área (22-10-2026, SQL 141): por estrategia una ruta puede servir a dos o más comunas.
+ * Se eligen las comunas donde participa: cuenta en su copamiento y se ve al entrar a ellas (modo comuna).
+ * Entidades planificadas → entidad_comunas; rutas SIGEI → ruta_sigei_comunas. */
+async function comunasDelAreaDe_(comunaId) {
+  const c = (state.comunas || []).find(x => x.id === comunaId);
+  if (!c) return [];
+  let { data, error } = await supabaseClient.from('v_area_comunas_admin').select('area_norm').eq('id_comuna', c.id_comuna);
+  if (error || !data || !data.length) ({ data } = await supabaseClient.from('v_area_comunas').select('area_norm').eq('id_comuna', c.id_comuna));
+  const claves = [...new Set((data || []).map(x => x.area_norm).filter(Boolean))];
+  if (!claves.length) return [];
+  let { data: d2, error: e2 } = await supabaseClient.from('v_area_comunas_admin').select('id_comuna').in('area_norm', claves);
+  if (e2) ({ data: d2 } = await supabaseClient.from('v_area_comunas').select('id_comuna').in('area_norm', claves));
+  const nums = new Set((d2 || []).map(x => Number(x.id_comuna)));
+  return (state.comunas || []).filter(x => nums.has(Number(x.id_comuna))).sort((a, b) => a.comuna.localeCompare(b.comuna, 'es'));
+}
+/** Ventana con casillas de las comunas del área. Devuelve los ids elegidos o null si se cancela. */
+function elegirComunasCompartidas_(titulo, ayuda, comunas, marcadas, fija) {
+  return new Promise(resolve => {
+    const o = document.createElement('div');
+    o.className = 'br-modal-overlay';
+    o.innerHTML = '<div class="br-modal" style="width:min(440px,94vw);padding:18px 20px;">' +
+      '<div style="font-weight:800;font-size:15px;color:#5B21B6;margin-bottom:4px;">🔗 ' + escapeHtml_(titulo) + '</div>' +
+      '<div style="font-size:12px;opacity:.75;margin-bottom:10px;">' + ayuda + '</div>' +
+      '<div style="max-height:300px;overflow:auto;display:flex;flex-direction:column;gap:5px;">' +
+      comunas.map(c => '<label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 6px;border-radius:6px;background:rgba(124,58,237,.06);">' +
+        '<input type="checkbox" value="' + escapeHtml_(c.id) + '"' + (c.id === fija || marcadas.includes(c.id) ? ' checked' : '') + (c.id === fija ? ' disabled' : '') + '>' +
+        escapeHtml_(c.comuna) + (c.id === fija ? ' <span style="font-size:10px;opacity:.6;">(comuna de origen)</span>' : '') + '</label>').join('') +
+      '</div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">' +
+      '<button class="btn-secondary" data-r="no">Cancelar</button><button class="btn-primary" data-r="si">Guardar</button></div></div>';
+    o.addEventListener('click', e => {
+      const b = e.target.closest('[data-r]');
+      if (e.target !== o && !b) return;
+      const ok = b && b.dataset.r === 'si';
+      const ids = ok ? [...o.querySelectorAll('input[type=checkbox]:checked:not(:disabled)')].map(i => i.value) : null;
+      o.remove(); resolve(ids);
+    });
+    document.body.appendChild(o);
+  });
+}
+async function asociarComunasEntidad_(entidadId) {
+  const r = (state.planificacionRecursos || []).find(x => String(x.id) === String(entidadId));
+  const origen = state.activeComunaId;
+  const comunas = await comunasDelAreaDe_(origen);
+  if (comunas.length < 2) { mostrarToast_('La comuna no tiene otras comunas en su área de relacionamiento (Administración › Comunas por área).'); return; }
+  const actuales = ((state.entidadComunas || {})[String(entidadId)] || []).slice();
+  const ids = await elegirComunasCompartidas_('Comunas donde participa esta ruta',
+    'Marca las comunas del área a las que también sirve (por estrategia). Contará en su copamiento y se verá al entrar a ellas.' +
+    (r && r.descripcion ? '<br><b>' + escapeHtml_(r.descripcion) + '</b>' : ''), comunas, actuales, origen);
+  if (ids === null) return;
+  const { error } = await supabaseClient.rpc('asignar_comunas_entidad', { p_entidad: entidadId, p_comunas: ids });
+  if (error) { mostrarToast_(/asignar_comunas_entidad/.test(error.message) ? 'Falta ejecutar el SQL 141 en Supabase.' : 'No se pudo guardar: ' + error.message); return; }
+  map.closePopup();
+  mostrarToast_(ids.length ? '🔗 La ruta participa también en ' + ids.length + ' comuna(s) del área.' : 'La ruta queda solo en su comuna.');
+  loadPlanificacionRecursos_(state.activeComunaId);
+  if (state.kpiIncendiosVisible && typeof cargarKpiIncendios_ === 'function') cargarKpiIncendios_();
+}
+async function asociarComunasRutaSigei_(rutaId) {
+  const ruta = (state.patrullajeRutas || []).find(x => String(x.id) === String(rutaId)) || {};
+  const origen = (state.comunas || []).find(c => Number(c.id_comuna) === Number(ruta.id_comuna));
+  const base = origen ? origen.id : state.activeComunaId;
+  const comunas = await comunasDelAreaDe_(base);
+  if (!comunas.length) { mostrarToast_('No se encontraron las comunas del área de esta ruta.'); return; }
+  const actuales = ((state.rutaSigeiComunas || {})[String(rutaId)] || []).slice();
+  const ids = await elegirComunasCompartidas_('Comunas donde participa la ruta SIGEI',
+    'Marca las comunas del área donde también se patrulla esta ruta: aparecerá en esas comunas (modo comuna).' +
+    (ruta.nombre_ruta ? '<br><b>' + escapeHtml_(ruta.nombre_ruta) + '</b>' : ''), comunas, actuales, origen ? origen.id : null);
+  if (ids === null) return;
+  const { error } = await supabaseClient.rpc('asignar_comunas_ruta_sigei', { p_ruta: rutaId, p_comunas: ids });
+  if (error) { mostrarToast_(/asignar_comunas_ruta_sigei/.test(error.message) ? 'Falta ejecutar el SQL 141 en Supabase.' : 'No se pudo guardar: ' + error.message); return; }
+  map.closePopup();
+  mostrarToast_(ids.length ? '🔗 Ruta SIGEI asociada a ' + ids.length + ' comuna(s).' : 'La ruta SIGEI queda solo en su comuna.');
+  if (typeof loadPatrullajeLayer_ === 'function') loadPatrullajeLayer_();
 }
 
 /** Desde la ventana de una entidad de otra comuna del área: cambia a esa comuna. */
@@ -366,6 +578,7 @@ function recargarCapasPorFiltro_() {
     if (document.querySelector('.rail-btn.active') && document.querySelector('.rail-btn.active').dataset.tab === 'capas') renderTab('capas');
   });
   ampliarIncendiosZona_();   // incendios de la comuna/área + 10 km
+  if (typeof loadAreaLayers_ === 'function') loadAreaLayers_();   // Áreas de Relacionamiento: solo el área activa / las del perfil
   // Patrullaje y recursos por área
   if (typeof loadPatrullajeLayer_ === 'function') loadPatrullajeLayer_();
   if (typeof loadRecursosDisponiblesAreaLayer_ === 'function') loadRecursosDisponiblesAreaLayer_();

@@ -68,6 +68,28 @@ function poligonosDeGeojson_(g) {
   return [];
 }
 
+/** Agrega a cada polígono su caja [x0, y0, x1, y1] (descarte rápido en puntoEnPoligonos_). */
+function conCajas_(polys) {
+  polys.forEach(p => {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    p[0].forEach(([x, y]) => { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; });
+    p.__bb = [x0, y0, x1, y1];
+  });
+  return polys;
+}
+/** Polígonos (con caja) del área de relacionamiento: sus sectores en la capa «Áreas de Relacionamiento» (en caché). */
+async function poligonosArea_(area) {
+  const feats = await featuresAreaRelacionamiento_(area);
+  return conCajas_(feats.flatMap(f => poligonosDeGeojson_(f.geometry)));
+}
+/** Focos [lng, lat] de las N temporadas más recientes dentro de los polígonos (archivo nacional). */
+async function focosEnPoligonos_(polys, nTemporadas, temporadasFijas) {
+  const focos = await cargarIncendiosNacional_();
+  const dentro = focos.filter(f => f.t !== 'Sin clasificar' && puntoEnPoligonos_(f.c[0], f.c[1], polys));
+  const temporadas = temporadasFijas || [...new Set(dentro.map(f => f.t))].sort().reverse().slice(0, nTemporadas);
+  return { temporadas, puntos: dentro.filter(f => temporadas.includes(f.t)).map(f => [f.c[0], f.c[1]]) };
+}
+
 function puntoEnPoligonos_(lng, lat, polys) {
   for (const p of polys) {
     const bb = p.__bb;
@@ -87,20 +109,25 @@ async function ampliarIncendiosZona_() {
   incendiosZonaClave_ = clave;
   if (!k) return;
   try {
-    const [focos, zona] = await Promise.all([
-      cargarIncendiosNacional_(),
-      supabaseClient.rpc('zona_incendios_geojson', { p_ambito: k.ambito, p_clave: k.clave, p_metros: INCENDIOS_MARGEN_M }),
-    ]);
+    // 🧭 Modo área (22-10-2026): los incendios DEL ÁREA DE RELACIONAMIENTO (dentro de su polígono real, el de la capa
+    // Áreas de Relacionamiento en caché), sin margen. Modo comuna: comuna + 10 km (SQL 82), como siempre.
+    let polys = state.areaActiva ? await poligonosArea_(state.areaActiva) : [];
+    let focos;
+    if (polys.length) {
+      focos = await cargarIncendiosNacional_();
+    } else {
+      const [f, zona] = await Promise.all([
+        cargarIncendiosNacional_(),
+        supabaseClient.rpc('zona_incendios_geojson', { p_ambito: k.ambito, p_clave: k.clave, p_metros: INCENDIOS_MARGEN_M }),
+      ]);
+      focos = f;
+      if (incendiosZonaClave_ !== clave) return;
+      if (zona.error) throw new Error(zona.error.message);
+      if (!zona.data) return;                       // sin zona: se quedan los de la comuna
+      polys = conCajas_(poligonosDeGeojson_(JSON.parse(zona.data)));
+    }
     if (incendiosZonaClave_ !== clave) return;   // cambió la comuna/área mientras cargaba
-    if (zona.error) throw new Error(zona.error.message);
-    if (!zona.data) return;                       // sin zona: se quedan los de la comuna
-    const polys = poligonosDeGeojson_(JSON.parse(zona.data));
     if (!polys.length) return;
-    polys.forEach(p => {
-      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-      p[0].forEach(([x, y]) => { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; });
-      p.__bb = [x0, y0, x1, y1];
-    });
     const grupos = {};
     focos.forEach(f => {
       if (puntoEnPoligonos_(f.c[0], f.c[1], polys)) (grupos[f.t] = grupos[f.t] || []).push(f.c);
@@ -466,7 +493,11 @@ function actualizarCatalogoTiposFormulario_(idInst, idTipo, genericos) {
   const listaGenericos = genericos || TIPOS_GENERICOS_FORMULARIO;
 
   const inst = (state.instituciones || []).find(i => String(i.id) === String(fInst.value));
-  const usarCatalogo = esInstitucionCmpc_(inst) && perfilPuedeUsarCatalogoCmpc_();
+  // 22-10-2026 (SQL 138): si la institución tiene tipos ASOCIADOS en Administración › 🏷️ Tipos de recurso, se ofrecen esos.
+  // Sin asociación se mantiene la regla anterior (CMPC = catálogo completo para los perfiles que lo usan; resto = genéricos).
+  const asociados = inst && state.tiposPorInstitucion ? (state.tiposPorInstitucion[inst.id] || []) : [];
+  const usarAsociados = asociados.length > 0 && (!esInstitucionCmpc_(inst) || perfilPuedeUsarCatalogoCmpc_());
+  const usarCatalogo = usarAsociados || (esInstitucionCmpc_(inst) && perfilPuedeUsarCatalogoCmpc_());
   const seleccionPrevia = fTipo.value;
 
   fTipo.innerHTML = '';
@@ -479,10 +510,11 @@ function actualizarCatalogoTiposFormulario_(idInst, idTipo, genericos) {
   });
 
   if (usarCatalogo) {
-    const catalogo = (state.tiposRecursoCatalogo || []);
+    const norm = s => String(s || '').trim().toUpperCase();
+    const catalogo = (state.tiposRecursoCatalogo || []).filter(t => !usarAsociados || asociados.some(a => norm(a) === norm(t.nombre)));
     if (catalogo.length > 0) {
       const grupo = document.createElement('optgroup');
-      grupo.label = 'Catálogo CMPC';
+      grupo.label = usarAsociados ? 'Tipos de ' + aTitulo_(inst.nombre || 'la institución') : 'Catálogo CMPC';
       catalogo.forEach(t => {
         const opt = document.createElement('option');
         opt.value = t.nombre;
@@ -490,7 +522,7 @@ function actualizarCatalogoTiposFormulario_(idInst, idTipo, genericos) {
         grupo.appendChild(opt);
       });
       fTipo.appendChild(grupo);
-    } else {
+    } else if (!(state.tiposRecursoCatalogo || []).length) {
       // El catálogo aún no llegó: se pide y se vuelve a poblar al tenerlo.
       cargarTiposRecurso_()
         .then(() => actualizarCatalogoTiposFormulario_(idInst, idTipo, listaGenericos))

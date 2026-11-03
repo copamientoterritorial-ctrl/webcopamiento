@@ -130,8 +130,91 @@ async function encenderRutasEnAlerta_(comunasAlerta) {
   });
 }
 
+/* ── ⏳ INDICADOR DE CARGA DEL PLANIFICADOR (30-10-2026) ──
+ * Barra con % y etapa mientras se cargan los escenarios / entidades planificadas. Mientras carga, el mapa queda bloqueado
+ * (capa transparente) para que el usuario no empiece a editar a medias; al terminar: «✅ Listo para editar». Si una carga pasa
+ * de CARGA_LENTA_MS, ofrece 🔄 Reintentar o «Seguir igual» (desbloquea). Varias tareas a la vez = promedio de sus %.
+ * Uso: cargaInicio_(clave, texto) · cargaAvance_(clave, pct, texto) · cargaFin_(clave). */
+const CARGA_LENTA_MS = 30000;
+const cargaCapas_ = { tareas: new Map(), timerLenta: null, timerListo: null };
+function cargaEl_() {
+  let el = document.getElementById('carga-capas');
+  const cont = map && map.getContainer();
+  if (!el && cont) {
+    el = document.createElement('div'); el.id = 'carga-capas';
+    el.innerHTML = '<div class="cc-velo"></div><div class="cc-caja"><div class="cc-fila"><span class="cc-spin"></span><b class="cc-txt">Cargando…</b><span class="cc-pct">0%</span></div>' +
+      '<div class="cc-barra"><em></em></div><div class="cc-lenta"><span>⚠️ Está tardando más de lo normal.</span>' +
+      '<button type="button" data-cc="reintentar">🔄 Reintentar</button><button type="button" data-cc="seguir">Seguir igual</button></div></div>';
+    L.DomEvent.disableClickPropagation(el); L.DomEvent.disableScrollPropagation(el);
+    el.addEventListener('click', e => {
+      const b = e.target.closest('[data-cc]'); if (!b) return;
+      const accion = b.dataset.cc;
+      cargaCapas_.tareas.clear(); clearTimeout(cargaCapas_.timerLenta);
+      el.classList.remove('activo', 'lenta', 'listo');   // se oculta: la carga que siga en curso termina sola, sin bloquear
+      if (accion === 'reintentar' && state.activeComunaId) loadPlanificacionRecursos_(state.activeComunaId);
+    });
+    cont.appendChild(el);
+  }
+  return el;
+}
+function cargaRender_() {
+  const el = cargaEl_(); if (!el) return;
+  const T = [...cargaCapas_.tareas.values()];
+  clearTimeout(cargaCapas_.timerListo);
+  if (!T.length) {
+    clearTimeout(cargaCapas_.timerLenta);
+    if (!el.classList.contains('activo')) return;
+    el.classList.remove('activo', 'lenta'); el.classList.add('listo');
+    el.querySelector('.cc-txt').textContent = '✅ Listo para editar';
+    el.querySelector('.cc-pct').textContent = '100%';
+    el.querySelector('.cc-barra em').style.width = '100%';
+    cargaCapas_.timerListo = setTimeout(() => el.classList.remove('listo'), 1800);
+    return;
+  }
+  const pct = Math.round(T.reduce((s, t) => s + t.pct, 0) / T.length);
+  const actual = T.slice().sort((a, b) => a.pct - b.pct)[0];
+  el.classList.remove('listo'); el.classList.add('activo');
+  el.querySelector('.cc-txt').textContent = actual.texto || 'Cargando…';
+  el.querySelector('.cc-pct').textContent = pct + '%';
+  el.querySelector('.cc-barra em').style.width = Math.max(4, pct) + '%';
+}
+function cargaInicio_(clave, texto) {
+  cargaCapas_.tareas.set(clave, { texto, pct: 3 });
+  clearTimeout(cargaCapas_.timerLenta);
+  const el = cargaEl_(); if (el) el.classList.remove('lenta');
+  cargaCapas_.timerLenta = setTimeout(() => { if (cargaCapas_.tareas.size && el) el.classList.add('lenta'); }, CARGA_LENTA_MS);
+  cargaRender_();
+}
+function cargaAvance_(clave, pct, texto) {
+  const t = cargaCapas_.tareas.get(clave); if (!t) return;
+  t.pct = Math.max(t.pct, Math.min(99, pct)); if (texto) t.texto = texto;
+  cargaRender_();
+}
+function cargaFin_(clave) { if (cargaCapas_.tareas.delete(clave)) cargaRender_(); }
+
 let planifCargaToken_ = 0;   // solo dibuja la ÚLTIMA llamada (evita entidades duplicadas en el mapa)
+/* 22-10-2026 (SQL 145): al trabajar en el Planificador (cada recarga tras guardar), se recalculan EN SEGUNDO PLANO las comunas
+ * que la base marcó como pendientes (copamiento_comuna_cache). Así el Seguimiento, Comunas Prioritarias y el Dashboard solo
+ * leen la tabla. Una llamada a la vez; sin el SQL 145 no hace nada. */
+let refrescandoCopamiento_ = false;
+function refrescarCopamientoEnSegundoPlano_() {
+  if (refrescandoCopamiento_ || !(state.modoPlanificacion || state.editorMode)) return;
+  refrescandoCopamiento_ = true;
+  supabaseClient.rpc('refrescar_copamiento_pendientes', { p_max: 3 })
+    .then(n => { if (n && n.data) invalidarResumenCopamiento_(); })
+    .catch(() => {})
+    .finally(() => { refrescandoCopamiento_ = false; });
+}
+
+/** Carga la planificación de la comuna con el indicador ⏳ (siempre se cierra, aunque falle o la reemplace otra carga). */
 async function loadPlanificacionRecursos_(comunaId) {
+  if (!comunaId || state.modoMapa === 'emergencia') return loadPlanificacionRecursosInterno_(comunaId);
+  cargaInicio_('planif', 'Leyendo los planes de la comuna…');
+  try { return await loadPlanificacionRecursosInterno_(comunaId); }
+  catch (e) { console.error('loadPlanificacionRecursos_:', e); mostrarToast_('No se pudo cargar la planificación: ' + (e.message || e)); }
+  finally { cargaFin_('planif'); }
+}
+async function loadPlanificacionRecursosInterno_(comunaId) {
   const miCarga = ++planifCargaToken_;
   planificacionRecursosVerdeLayer.clearLayers();
   planificacionRecursosAmarillaLayer.clearLayers();
@@ -160,53 +243,73 @@ async function loadPlanificacionRecursos_(comunaId) {
   // Filtro por área (🧭): también los planes de las OTRAS comunas del área, solo para consulta
   const otraComunaPorPlan = {};
   const otrasComunas = (state.areaFiltro && state.modoMapa === 'planificador') ? [...state.areaFiltro.ids].filter(id => id !== comunaId) : [];
+  cargaAvance_('planif', 15, otrasComunas.length ? 'Leyendo las otras comunas del área…' : 'Buscando rutas compartidas con otras comunas…');
   if (otrasComunas.length) {
     const { data: po } = await supabaseClient.from('planes_contingencia').select('id, escenario, comuna_id').eq('ambito', 'comuna').in('comuna_id', otrasComunas);
     (po || []).forEach(p => { planIds.push(p.id); escenarioPorPlan[p.id] = p.escenario; otraComunaPorPlan[p.id] = p.comuna_id; });
   }
 
-  if (planIds.length === 0) return;
+  // 🧭 Modo comuna (22-10-2026, SQL 139): las entidades de OTRAS comunas que ENTRAN a esta (recursos compartidos) también
+  // cuentan en su copamiento, así que se dibujan aquí (con su color, solo consulta). En modo área ya vienen con el área.
+  let compartidas = [];
+  if (!otrasComunas.length && state.modoMapa === 'planificador') {
+    try {
+      const { data: ec, error: eEc } = await supabaseClient.rpc('entidades_compartidas_comuna', { p_comuna_id: String(comunaId) });
+      if (!eEc && ec && ec.length) {
+        ec.forEach(x => { escenarioPorPlan[x.plan_id] = x.escenario; otraComunaPorPlan[x.plan_id] = x.comuna_origen; });
+        const ids = ec.map(x => x.id);
+        for (let i = 0; i < ids.length; i += 150) {
+          const { data: cr } = await supabaseClient.from('planificacion_recursos_geojson').select('*, instituciones(nombre, color_hex, logo_url)').in('id', ids.slice(i, i + 150));
+          compartidas.push(...(cr || []));
+        }
+      }
+    } catch (e) { /* sin SQL 139: solo lo de la comuna */ }
+  }
+  state.idsCompartidas = new Set(compartidas.map(r => String(r.id)));
 
-  const { data: recursos, error: errRecursos } = await supabaseClient
-    .from('planificacion_recursos_geojson')
-    .select('*, instituciones(nombre, color_hex, logo_url)')
-    .in('plan_id', planIds);
+  if (planIds.length === 0 && !compartidas.length) return;
+
+  cargaAvance_('planif', 30, 'Cargando rutas, puntos y áreas planificadas…');
+  const { data: recPropios, error: errRecursos } = planIds.length
+    ? await supabaseClient.from('planificacion_recursos_geojson').select('*, instituciones(nombre, color_hex, logo_url)').in('plan_id', planIds)
+    : { data: [], error: null };
+  const recursos = (recPropios || []).concat(compartidas.filter(c => !(recPropios || []).some(p => p.id === c.id)));
   if (window.__DEBUG__) console.log('[DEBUG PLANIF] recursos encontrados:', recursos, 'error:', errRecursos);
 
   // Solo las entidades de la comuna activa cuentan como «su» planificación (KPI, edición, filtros)
   state.planificacionRecursos = (recursos || []).filter(r => !otraComunaPorPlan[r.plan_id]);
-  window.planRecursosMarkersById = window.planRecursosMarkersById || {};
-  // Recursos enlazados a rutas (SQL 79): código, tipo y estado de turno para la ventana de la ruta.
-  state.recursoRefInfo = {};
+  window.planRecursosMarkersById = window.planRecursosMarkersById || {};   // se vacía al redibujar (abajo)
+  // 30-10-2026: los 4 complementos (recurso asociado, trazabilidad, comunas compartidas y semáforo de propagación) se piden
+  // EN PARALELO (antes uno tras otro). Cada uno falla en silencio sin afectar a los demás.
+  cargaAvance_('planif', 60, 'Leyendo recursos asociados, propagación y trazabilidad…');
+  state.recursoRefInfo = {}; state.trazaPlanif = {}; state.entidadComunas = {}; state.propagacionEsc = {};
   const refIds = [...new Set((recursos || []).map(r => r.recurso_ref_id).filter(Boolean))];
-  if (refIds.length) {
-    try {
-      const { data: rinf } = await supabaseClient.from('v_planificador_recursos')
-        .select('id, codigo_ref, alias, tipo_recurso, area, sector, en_turno_hoy, proximo_turno, fecha_inicio_operacion').in('id', refIds);
-      (rinf || []).forEach(x => { state.recursoRefInfo[x.id] = x; });
-    } catch (e) { /* solo informativo */ }
-  }
-  // Trazabilidad de los recursos planificados (quién creó / modificó)
-  state.trazaPlanif = {};
-  if (state.planificacionRecursos.length) {
-    try {
-      const { data: tz } = await supabaseClient.from('v_trazabilidad_planificacion').select('*').in('id', state.planificacionRecursos.map(r => r.id));
-      (tz || []).forEach(t => { state.trazaPlanif[t.id] = t; });
-    } catch (e) {}
-  }
-  // 🚦 Semáforo de propagación (SQL 117): en qué alertas está cada entidad de la comuna
-  state.propagacionEsc = {};
   const planesPropios = planIds.filter(id => !otraComunaPorPlan[id]);
-  if (state.planificacionRecursos.length && planesPropios.length) {
-    try {
-      const { data: pe, error: ePe } = await supabaseClient.rpc('propagacion_escenarios', { p_plan_ids: planesPropios });
-      if (!ePe) (pe || []).forEach(x => { state.propagacionEsc[x.id] = x.escenarios || []; });
-    } catch (e) { /* sin SQL 117: sin semáforo */ }
-  }
+  const seguro_ = p => Promise.resolve(p).catch(() => ({ data: null, error: true }));
+  const [rRef, rTz, rEc, rPe] = await Promise.all([
+    // Recursos enlazados a rutas (SQL 79): código, tipo y estado de turno para la ventana de la ruta
+    refIds.length ? seguro_(supabaseClient.from('v_planificador_recursos')
+      .select('id, codigo_ref, alias, tipo_recurso, area, sector, en_turno_hoy, proximo_turno, fecha_inicio_operacion').in('id', refIds)) : null,
+    // Trazabilidad de los recursos planificados (quién creó / modificó)
+    state.planificacionRecursos.length ? seguro_(supabaseClient.from('v_trazabilidad_planificacion').select('*').in('id', state.planificacionRecursos.map(r => r.id))) : null,
+    // 🔗 Comunas donde participa cada entidad (SQL 141)
+    (recursos || []).length ? seguro_(supabaseClient.from('entidad_comunas').select('entidad_id, comuna_id').in('entidad_id', recursos.map(r => r.id))) : null,
+    // 🚦 Semáforo de propagación (SQL 117)
+    (state.planificacionRecursos.length && planesPropios.length) ? seguro_(supabaseClient.rpc('propagacion_escenarios', { p_plan_ids: planesPropios })) : null,
+  ]);
+  if (rRef && !rRef.error) (rRef.data || []).forEach(x => { state.recursoRefInfo[x.id] = x; });
+  if (rTz && !rTz.error) (rTz.data || []).forEach(t => { state.trazaPlanif[t.id] = t; });
+  if (rEc && !rEc.error) (rEc.data || []).forEach(x => { (state.entidadComunas[String(x.entidad_id)] = state.entidadComunas[String(x.entidad_id)] || []).push(x.comuna_id); });
+  if (rPe && !rPe.error) (rPe.data || []).forEach(x => { state.propagacionEsc[x.id] = x.escenarios || []; });
+  cargaAvance_('planif', 85, 'Dibujando en el mapa…');
 
   // Si mientras se consultaba empezó otra carga (p. ej. guardar + refrescar seguidos),
   // esta se descarta: si las dos dibujaran, cada ruta aparecería DOS veces.
   if (miCarga !== planifCargaToken_) return;
+  // 22-10-2026: el registro id → capa se reinicia en cada redibujo. Antes acumulaba las rutas eliminadas o unidas y
+  // 🔗 Unir mostraba sus vértices «fantasma» (al elegirlos la unión fallaba).
+  window.planRecursosMarkersById = {};
+  refrescarCopamientoEnSegundoPlano_();
   planificacionRecursosVerdeLayer.clearLayers();
   planificacionRecursosAmarillaLayer.clearLayers();
   planificacionRecursosRojaLayer.clearLayers();
@@ -231,20 +334,28 @@ async function loadPlanificacionRecursos_(comunaId) {
     const bloqueoCmpc = !otra && puedePlanificarEscenario_(escenario) && grdBloqueaInst_(inst);   // GRD: CMPC solo consulta
     const puedeEditar = !otra && puedePlanificarEscenario_(escenario) && !bloqueoCmpc;
     const comunaOtra = otra ? ((state.comunas || []).find(c => c.id === otra) || {}).comuna || otra : '';
+    // 🧭 Modo Área (22-10-2026): las entidades de las otras comunas del área se ven con su color normal (sin atenuar)
+    const atenuarOtra = !!otra && !(document.body.classList.contains('modo-area-trabajo')) && !(state.idsCompartidas && state.idsCompartidas.has(String(r.id)));
+    const comunasAsoc = (state.entidadComunas || {})[String(r.id)] || [];
+    const filaAsoc = comunasAsoc.length
+      ? '<div class="popup-row" style="margin-top:4px;color:#6D28D9;font-size:11px;">🔗 Participa también en: <b>' +
+        escapeHtml_(comunasAsoc.map(id => ((state.comunas || []).find(c => c.id === id) || {}).comuna || id).join(', ')) + '</b></div>'
+      : '';
 
     const popupHtml = otra
       ? '<div class="popup-title"><span class="pr-sw" style="background:' + colorInstitucion + ';display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;"></span>' + escapeHtml_(inst.nombre) +
           ' <span style="font-size:10px;">(' + (escenario === 'Verde' ? '🟢' : escenario === 'Amarilla' ? '🟡' : '🔴') + ' ' + escapeHtml_(comunaOtra) + ')</span></div>' +
         '<div class="popup-row">🏷️ ' + iconoTipoGeometria_(r.tipo_geometria) + ' · ' + escapeHtml_(r.tipo_recurso || '') + '</div>' +
         '<div class="popup-row" style="margin-top:4px;">' + escapeHtml_(r.descripcion || 'Sin descripción') + '</div>' +
-        bloqueRecursoRuta_(r, escenario) +
-        '<div class="popup-row" style="margin-top:6px;color:#6D28D9;font-size:11px;">🧭 Planificada en la comuna <b>' + escapeHtml_(comunaOtra) + '</b> (otra comuna del área). Para editarla, cambia a esa comuna.</div>' +
+        bloqueRecursoRuta_(r, escenario) + filaAsoc +
+        '<div class="popup-row" style="margin-top:6px;color:#6D28D9;font-size:11px;">🧭 Planificada en la comuna <b>' + escapeHtml_(comunaOtra) + '</b> (' + (state.idsCompartidas && state.idsCompartidas.has(String(r.id)) ? 'entra a esta comuna y suma en su copamiento' : 'otra comuna del área') + '). Para editarla, cambia a esa comuna.</div>' +
         '<div class="popup-actions"><button class="popup-btn" onclick="irAComunaArea_(\'' + escapeHtml_(otra) + '\')">📍 Ir a ' + escapeHtml_(comunaOtra) + '</button></div>'
       :
       '<div class="popup-title"><span class="pr-sw" style="background:' + colorInstitucion + ';display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;"></span>' + inst.nombre + ' <span style="font-size:10px;">(' + (escenario === 'Verde' ? '🟢 Planificado' : escenario === 'Amarilla' ? '🟡 Planificado' : '🔴 Planificado') + ')</span></div>' +
       '<div class="popup-row">🏷️ ' + iconoTipoGeometria_(r.tipo_geometria) + ' · ' + r.tipo_recurso + '</div>' +
+      '<div class="popup-row">🏘️ Comuna: <b>' + escapeHtml_(nombreComuna_(comunaId)) + '</b></div>' +
       '<div class="popup-row" style="margin-top:4px;">' + escapeHtml_(r.descripcion || 'Sin descripción') + '</div>' +
-      bloqueRecursoRuta_(r, escenario) +
+      bloqueRecursoRuta_(r, escenario) + filaAsoc +
       bloquePropagacion_(r.id, escenario) +
       bloqueTrazabilidad_(state.trazaPlanif && state.trazaPlanif[r.id]) +
       (bloqueoCmpc ? '<div class="popup-row" style="margin-top:6px;color:#B45309;font-size:11px;">🔒 Recurso de CMPC: tu perfil GRD solo lo consulta (planificas las otras instituciones).</div>' : '') +
@@ -260,6 +371,9 @@ async function loadPlanificacionRecursos_(comunaId) {
           : '') +
         (comunasCambioRuta_().length > 1 && !(state.modoPlanificacion && state.modoPlanificacion.ambito === 'area')
           ? '<button class="popup-btn" data-action="cambiar-comuna" data-id="' + r.id + '" style="color:#0369A1;" title="Mover esta entidad (y sus copias en las otras alertas) a otra comuna">🏘️ Comuna</button>'
+          : '') +
+        ((r.tipo_geometria === 'linea' || r.tipo_geometria === 'area')
+          ? '<button class="popup-btn" data-action="comunas-compartidas" data-id="' + r.id + '" style="color:#5B21B6;" title="Comunas del área donde también participa (suma en su copamiento y se ve al entrar a ellas)">🔗 Comparte</button>'
           : '') +
         '<button class="popup-btn" data-action="eliminar-planificacion" data-id="' + r.id + '" style="color:#DC2626;">Eliminar</button></div>' : '');
 
@@ -290,7 +404,7 @@ async function loadPlanificacionRecursos_(comunaId) {
       const arrEtiqFig = claveEscFig === 'verde' ? alertaVerdeFeatureLayers : claveEscFig === 'amarilla' ? alertaAmarillaFeatureLayers : alertaRojaFeatureLayers;
       // Ruta CMPC del escenario Normal: punto neón según tenga o no recurso asociado
       const infoRuta = infoRecursoRutaPlan_(r, escenario);
-      const textoEtiqFig = infoRuta ? puntoNeonRecursoRuta_(infoRuta) + escapeHtml_(inst.nombre) : inst.nombre;
+      const textoEtiqFig = infoRuta ? etiquetaRutaAsignada_(infoRuta) : inst.nombre;   // ruta CMPC: asignada (clave radial) / sin asignar
       arrEtiqFig.push({ layer: figura, texto: textoEtiqFig });
       if (state.mostrarEtiquetasAlerta && state.mostrarEtiquetasAlerta[claveEscFig]) {
         figura.bindTooltip(textoEtiqFig, { permanent: true, direction: 'center', className: 'map-label' });
@@ -304,7 +418,7 @@ async function loadPlanificacionRecursos_(comunaId) {
       // Efecto neón al pasar el mouse (color según escenario Amarilla/Roja)
       const claseNeon = escenario === 'Verde' ? 'neon-hover-verde' : escenario === 'Amarilla' ? 'neon-hover-amarilla' : 'neon-hover-roja';
       figura.on('mouseover', () => { const el = figura.getElement && figura.getElement(); if (el) { el.classList.add(claseNeon); figura.setStyle({ weight: 5, fillOpacity: 0.32 }); } });
-      figura.on('mouseout',  () => { const el = figura.getElement && figura.getElement(); if (el) { el.classList.remove(claseNeon); figura.setStyle({ weight: r.tipo_geometria === 'area' ? 3 : 4, fillOpacity: otra ? 0.08 : 0.18 }); } });
+      figura.on('mouseout',  () => { const el = figura.getElement && figura.getElement(); if (el) { el.classList.remove(claseNeon); figura.setStyle({ weight: r.tipo_geometria === 'area' ? 3 : 4, fillOpacity: atenuarOtra ? 0.08 : 0.18 }); } });
       figura._institucionId = r.institucion_id;
       figura._institucionNombre = inst.nombre;
       figura._esLinea = (r.tipo_geometria === 'linea');
@@ -314,7 +428,7 @@ async function loadPlanificacionRecursos_(comunaId) {
       figura._pertenencia = pertenenciaDeRecurso_(r);
       if (otra) {
         // Otra comuna del área: atenuada, sin edición y fuera de KPI / filtros de la comuna activa
-        figura.setStyle({ opacity: 0.55, fillOpacity: 0.08, dashArray: r.tipo_geometria === 'linea' ? '10,6' : '6,5' });
+        if (atenuarOtra) figura.setStyle({ opacity: 0.55, fillOpacity: 0.08, dashArray: r.tipo_geometria === 'linea' ? '10,6' : '6,5' });
         figura._otraComuna = otra;
         layerDestino.addLayer(figura);
       } else {
@@ -351,7 +465,7 @@ async function loadPlanificacionRecursos_(comunaId) {
             html: '<div style="width:24px;height:24px;border-radius:50%;background:#F1F5F9;border:2px solid ' + colorInstitucion + ';box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
               '<img src="' + escapeHtml_(logoFig) + '" alt="" style="width:17px;height:17px;object-fit:contain;transform:scale(' + ZOOM_LOGO_MARCADOR + ');" onerror="this.style.display=\'none\'"></div>',
           });
-          const mLogo = L.marker(centro, { icon: iconoLogo, interactive: false, keyboard: false, opacity: otra ? 0.55 : 1 });
+          const mLogo = L.marker(centro, { icon: iconoLogo, interactive: false, keyboard: false, opacity: atenuarOtra ? 0.55 : 1 });
           mLogo._institucionId = r.institucion_id;
           mLogo._institucionNombre = inst.nombre;
           mLogo._esLogoDeFigura = true;
@@ -416,7 +530,7 @@ async function loadPlanificacionRecursos_(comunaId) {
     const m = L.marker([lat, lng], { icon: icono, draggable: puedeEditar && !!(state.modoPlanificacion || state.editorMode),
       zIndexOffset: (100 - rangoInstitucionCapa_(inst.nombre)) * 10 });   // orden de capas: Municipalidad arriba, CMPC abajo
     m._puedeArrastrar = puedeEditar;
-    if (otra) { m.setOpacity(0.55); m._otraComuna = otra; }
+    if (otra) { if (atenuarOtra) m.setOpacity(0.55); m._otraComuna = otra; }
     m.bindPopup(popupHtml);
     m.on('popupopen', () => {
       if (otra) return;   // otra comuna del área: ventana de consulta
@@ -556,10 +670,15 @@ function renderLeyendaModoCmpc_(hojas) {
     options: { position: 'topright' },
     onAdd() {
       const d = L.DomUtil.create('div', 'modo-cmpc-ctrl');
-      d.innerHTML = '<label class="modo-cmpc-sw" title="Modo CMPC: colorea las rutas de CMPC por tipo de recurso y atenúa las demás instituciones">' +
-        '<input type="checkbox" id="modo-cmpc-chk"><span class="sl"></span><b>CMPC</b></label><div class="modo-cmpc-ley" id="modo-cmpc-ley" style="display:none;"></div>';
+      // 22-10-2026: junto al de CMPC, el interruptor 🧭 ÁREA (modo área de relacionamiento; = filtro de área del encabezado)
+      d.innerHTML = '<div class="modo-sw-fila">' +
+        '<label class="modo-cmpc-sw modo-area-sw" title="Modo Área: todo a nivel del área de relacionamiento (sus comunas, recursos, rutas y nivel de copamiento del área). Apagado = modo comuna">' +
+          '<input type="checkbox" id="modo-area-chk"><span class="sl"></span><b>ÁREA</b></label>' +
+        '<label class="modo-cmpc-sw" title="Modo CMPC: colorea las rutas de CMPC por tipo de recurso y atenúa las demás instituciones">' +
+          '<input type="checkbox" id="modo-cmpc-chk"><span class="sl"></span><b>CMPC</b></label></div>' +
+        '<div class="modo-cmpc-ley" id="modo-cmpc-ley" style="display:none;"></div>';
       L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
-      d.querySelector('#modo-cmpc-chk').addEventListener('change', e => {
+      d.querySelector('#modo-area-chk').addEventListener('change', e => alternarModoAreaTrabajo_(e.target.checked, e.target));      d.querySelector('#modo-cmpc-chk').addEventListener('change', e => {
         state.modoCmpc = e.target.checked;
         document.body.classList.toggle('modo-cmpc', state.modoCmpc);
         aplicarModoCmpc_();
@@ -712,6 +831,9 @@ function bindPopupActionsPlanificacion_() {
   document.querySelectorAll('.popup-btn[data-action="cambiar-comuna"]').forEach(btn => {
     btn.onclick = () => cambiarComunaEntidad_(btn.dataset.id);
   });
+  document.querySelectorAll('.popup-btn[data-action="comunas-compartidas"]').forEach(btn => {
+    btn.onclick = () => asociarComunasEntidad_(btn.dataset.id);
+  });
   document.querySelectorAll('.popup-btn[data-action="unir-linea"]').forEach(btn => {
     btn.onclick = () => unirLineaPaso_(btn.dataset.id);
   });
@@ -728,18 +850,18 @@ function bloqueRecursoRuta_(r, escenario) {
   if (r.tipo_geometria !== 'linea') return '';
   if (!r.recurso_ref_id) {
     return escenario === 'Verde'
-      ? '<div class="popup-row" style="opacity:.65;font-size:11px;">🔗 Sin recurso asociado · se asigna en <b>Editar</b></div>'
+      ? '<div class="popup-row" style="font-size:11px;color:#DC2626;font-weight:700;">⭕ Sin asignar <span style="opacity:.7;font-weight:400;color:inherit;">· se asigna en <b>Editar</b></span></div>'
       : '';
   }
   const i = (state.recursoRefInfo || {})[r.recurso_ref_id] || {};
-  // Referencia = «Clave radial · ID» (SQL 91: recurso_ref_clave / recurso_ref_codigo)
-  const codigo = claveIdTexto_(i.alias || r.recurso_ref_clave, i.codigo_ref || r.recurso_ref_codigo) || 'Recurso';
+  // 22-10-2026: «Asignada» + solo la clave radial (el ID solo si no tiene clave)
+  const codigo = String(i.alias || r.recurso_ref_clave || i.codigo_ref || r.recurso_ref_codigo || '').trim() || 'Recurso';   // solo la clave radial
   const tipo = i.tipo_recurso || r.recurso_ref_tipo || '';
   const turno = i.en_turno_hoy
     ? '<span style="color:#16A34A;font-weight:700;">🟢 En turno hoy</span>'
     : '<span style="opacity:.75;">⚪ Sin turno hoy' + (i.proximo_turno ? ' · próximo ' + plFechaCorta_(i.proximo_turno) : '') + '</span>';
   return '<div class="popup-row" style="margin-top:4px;padding:5px 7px;border-radius:7px;background:rgba(37,99,235,.08);">' +
-    '🔗 <b>' + escapeHtml_(codigo) + '</b> · ' + escapeHtml_(aTitulo_(tipo)) +
+    '<span style="color:#16A34A;font-weight:700;">✔ Asignada</span> · 📻 <b>' + escapeHtml_(codigo) + '</b> · ' + escapeHtml_(aTitulo_(tipo)) +
     (escenario !== 'Verde' ? ' <span style="opacity:.6;font-size:10px;">(heredado de Normal)</span>' : '') + '<br>' + turno +
     (puedeGestionarTurnos_() && i.area
       ? ' <button class="popup-btn" data-action="calendario-recurso" data-area="' + escapeHtml_(i.area) + '" style="padding:1px 6px;font-size:10px;">📅 Calendario</button>'

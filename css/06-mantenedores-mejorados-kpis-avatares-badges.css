@@ -223,7 +223,7 @@ body.tema-oscuro .mr-chip, body.tema-oscuro .mr-dia{background:#13213A;}
 @media (max-width: 600px) {
   /* --- Barra superior: hamburguesa + compacta --- */
   #topbar{ height:56px; padding:0 8px; gap:8px; }
-  #map, #dashboard, #patrullajes-panel, #planificador-panel, #prioridad-panel, #tablero-panel, #gestion-panel, #riesgo-panel, #appreportes-panel, #implementacion-panel, #seguimiento-panel, #bosques-panel, #agricultores-panel, #turnosgestor-panel{ top:56px; }
+  #map, #dashboard, #patrullajes-panel, #planificador-panel, #prioridad-panel, #tablero-panel, #gestion-panel, #riesgo-panel, #appreportes-panel, #implementacion-panel, #descargas-panel, #seguimiento-panel, #bosques-panel, #agricultores-panel, #turnosgestor-panel{ top:56px; }
   #admin-panel{ top:56px; }
   #simbologia-flotante{ top:auto; }
   #btn-hamburguesa{

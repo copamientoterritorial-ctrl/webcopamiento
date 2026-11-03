@@ -225,6 +225,7 @@
         <button class="admin-menu-item" data-seccion="permisosPerfil">🛡️ Permisos por perfil</button>
         <button class="admin-menu-item" data-seccion="instituciones">🏢 Instituciones</button>
         <button class="admin-menu-item" data-seccion="recursos">📦 Catálogo de recursos</button>
+        <button class="admin-menu-item" data-seccion="tiposRecurso">🏷️ Tipos de recurso</button>
         <button class="admin-menu-item" data-seccion="patrulleros">🚓 Patrulleros</button>
         <button class="admin-menu-item" data-seccion="comunas">🗺️ Comunas</button>
         <button class="admin-menu-item" data-seccion="areaComunas">🧩 Comunas por área</button>
@@ -557,6 +558,18 @@
     <div class="gr-cuerpo" id="im-cuerpo" style="overflow:auto;"><div class="tb-vacio">Cargando…</div></div>
   </div>
 
+  <!-- 🗺️ Descargas geográficas (Planificador CMPC ▾, 02-11-2026, solo Administrador): KML y GeoJSON de recursos, rutas
+       asociadas, rutas SIGEI, entidades planificadas y límites de comunas, con filtros (js/34). -->
+  <div id="descargas-panel">
+    <div class="pat-toolbar">
+      <div class="pat-toolbar-left">
+        <strong>🗺️ Descargas geográficas</strong>
+        <span class="turnos-estado">KML (Google Earth) y GeoJSON (QGIS / ArcGIS) con los filtros del sistema</span>
+      </div>
+    </div>
+    <div class="dg-cuerpo" id="dg-cuerpo"><div class="tb-vacio">Cargando…</div></div>
+  </div>
+
   <!-- 👥 Turnos de Gestores de relacionamiento (Planificador CMPC ▾, 20-10-2026, SQL 134): cada área programa día a día los
        turnos de sus gestores (gestores_relacionamiento). Editan Admin y Jefes / Subgerentes de esa área; los GRT solo ven. -->
   <div id="turnosgestor-panel">
@@ -691,6 +704,9 @@
           <option value="incompleto">🔴 Contacto incompleto</option>
           <option value="completo">🟢 Contacto completo</option>
           <option value="modificado">✏️ Con cambios sin guardar</option>
+          <option value="pers_completo">👥 Personas completas</option>
+          <option value="pers_incompleto">👥 Faltan personas</option>
+          <option value="pers_sin_titular">⭐ Sin titular</option>
         </select>
       </div>
       <div class="pat-toolbar-right" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -702,6 +718,10 @@
         <button class="turnos-btn" id="gr-nuevo" style="display:none;" title="Solo Administrador: agregar un recurso que falte en el área elegida">➕ Nuevo recurso</button>
         <button class="turnos-btn" id="gr-pdf" title="Listado compacto por área para verificar: resumen de recursos disponibles + lista con casilla de verificación">📋 Resumen PDF</button>
         <button class="turnos-btn" id="gr-descargar" title="Descargar la tabla (con los filtros vigentes) a Excel">⬇️ Descargar Excel</button>
+        <button class="turnos-btn" id="gr-descargar-personas" title="Descargar a Excel todas las personas de los recursos filtrados, con todos sus datos">👥 Descargar personas</button>
+        <button class="turnos-btn" id="gr-plantilla-personas" title="Plantilla Excel para completar las personas: una fila por cupo (N° personas) de cada recurso filtrado, con las personas ya registradas">📋 Plantilla personas</button>
+        <button class="turnos-btn" id="gr-subir-personas" title="Subir la plantilla de personas completada: vista previa antes de aplicar">⬆️ Subir personas</button>
+        <input type="file" id="gr-archivo-personas" accept=".xlsx,.xls" style="display:none;">
         <button class="turnos-btn" id="gr-subir" style="display:none;" title="Solo Administrador: subir la tabla actualizada (se cruza por el ID; el ID no se modifica)">⬆️ Subir Excel</button>
         <input type="file" id="gr-archivo" accept=".xlsx,.xls,.csv" style="display:none;">
       </div>
@@ -826,6 +846,7 @@
             <button class="vista-subitem" data-vista="planificador" id="tab-planificador"><span class="vs-ico">🧭</span><span><b>Planificador gráfico de Recursos</b><small>Recursos del área en el mapa</small></span></button>
             <button class="vista-subitem" data-vista="tablero" id="tab-tablero"><span class="vs-ico">📊</span><span><b>Tablero de Recursos</b><small>Resumen, activación por quincena y descarga</small></span></button>
             <button class="vista-subitem" data-vista="gestion" id="tab-gestion" style="display:none;"><span class="vs-ico">🗂️</span><span><b>Gestión de Recursos</b><small>Datos y contacto de cada recurso · carga masiva</small></span></button>
+            <button class="vista-subitem" data-vista="descargas" id="tab-descargas" style="display:none;"><span class="vs-ico">🗺️</span><span><b>Descargas geográficas</b><small>Recursos, rutas y entidades en KML y GeoJSON</small></span></button>
           </div>
         </div>
         <!-- Agricultores ▾ (20-10-2026, SQL 129): Asociación de Agricultores Malleco -->
@@ -2185,5 +2206,6 @@
 <script src="js/31-informe-en-pdf.js"></script>
 <script src="js/32-arbol-jerarquico-areas-de-relacionamiento.js"></script>
 <script src="js/33-eventos.js"></script>
+<script src="js/34-descargas-geograficas.js"></script>
 </body>
 </html>

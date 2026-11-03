@@ -50,6 +50,12 @@ function mostrarVerticesUnion_(excluirId, soloId, escenario) {
     if (soloId && String(idRec) !== String(soloId)) return;
     const capa = registro[idRec];
     if (!capa || !capa._esLinea) return;
+    // Solo rutas que de verdad están en el mapa: ni eliminadas, ni de escenarios apagados, ni ocultas por filtro,
+    // ni de otras comunas del área (no se pueden unir con las de la comuna activa)
+    if (!map.hasLayer(capa) || capa._otraComuna) return;
+    const elCapa = capa.getElement && capa.getElement();
+    if (elCapa && elCapa.style.display === 'none') return;
+    if (!(state.planificacionRecursos || []).some(x => String(x.id) === String(idRec))) return;
     // La unión se confina al escenario que se está editando: mezclar líneas
     // de Verde, Amarilla y Roja rompería la coherencia del copamiento.
     if (escenario && capa._escenario !== escenario) return;
@@ -576,13 +582,15 @@ async function decidirComunaTrazado_(puntosLngLat, tipo) {
   return { planId: p.id, comuna: top.comuna, saltarAvisoFuera: true };
 }
 /** 🏘️ Cambiar la comuna de una entidad planificada (y de sus copias en las otras alertas). */
-async function cambiarComunaEntidad_(id) {
-  const todas = comunasCambioRuta_().filter(c => c.id !== state.activeComunaId)
+async function cambiarComunaEntidad_(id, comunaOrigen) {
+  // comunaOrigen = comuna del plan de la entidad (por defecto la activa)
+  const origen = comunaOrigen || state.activeComunaId;
+  const todas = comunasCambioRuta_().filter(c => c.id !== origen)
     .sort((a, b) => String(a.comuna).localeCompare(String(b.comuna), 'es'));
   if (!todas.length) { mostrarToast_('No tienes otras comunas a las que moverla.'); return; }
   // 19-10-2026: por defecto solo las comunas del ÁREA de la comuna actual (p. ej. área Victoria), dentro de las del perfil
   const porArea = await comunasPorAreaUsuario_();
-  const areasActual = Object.keys(porArea).filter(k => porArea[k].includes(state.activeComunaId));
+  const areasActual = Object.keys(porArea).filter(k => porArea[k].includes(origen));
   const deArea = new Set(areasActual.flatMap(k => porArea[k]));
   const delArea = todas.filter(c => deArea.has(c.id));
   const nomAreas = areasActual.map(k => aTitulo_((state.nombreAreaPorClave || {})[k] || k)).join(' / ');
@@ -590,7 +598,7 @@ async function cambiarComunaEntidad_(id) {
   const inicial = delArea.length ? delArea : todas;
   const promesa = dialogoBr_(
     '<h3 style="margin:0 0 6px;">🏘️ Cambiar de comuna</h3>' +
-    '<p style="font-size:12.5px;margin:0 0 10px;">Mueve la entidad desde <b>' + escapeHtml_(nombreComuna_(state.activeComunaId)) + '</b> al plan de la misma alerta en otra comuna' +
+    '<p style="font-size:12.5px;margin:0 0 10px;">Mueve la entidad desde <b>' + escapeHtml_(nombreComuna_(origen)) + '</b> al plan de la misma alerta en otra comuna' +
       (delArea.length ? ' del área <b>' + escapeHtml_(nomAreas) + '</b>' : '') + '.</p>' +
     '<select data-valor class="admin-search" style="width:100%;min-width:0;margin-bottom:8px;">' + opciones(inicial) + '</select>' +
     (delArea.length && delArea.length < todas.length
@@ -606,7 +614,7 @@ async function cambiarComunaEntidad_(id) {
   const { data, error } = await supabaseClient.rpc('mover_entidad_comuna', { p_id: id, p_comuna_id: r.valor, p_familia: !!r.chk });
   if (error) { mostrarToast_('No se pudo cambiar la comuna: ' + error.message + (/function|does not exist/i.test(error.message) ? ' (¿se ejecutó el SQL 117?)' : '')); return; }
   map.closePopup();
-  mostrarToast_('🏘️ Movida a ' + nombreComuna_(r.valor) + ' (' + (data || 0) + ' entidad(es)). Ya no se ve en ' + nombreComuna_(state.activeComunaId) + '.');
+  mostrarToast_('🏘️ Movida a ' + nombreComuna_(r.valor) + ' (' + (data || 0) + ' entidad(es)). Ya no pertenece a ' + nombreComuna_(origen) + '.');
   loadPlanificacionRecursos_(state.activeComunaId);
 }
 

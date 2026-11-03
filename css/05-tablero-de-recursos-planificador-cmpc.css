@@ -191,6 +191,11 @@ body.tema-oscuro #planificador-panel .pat-toolbar .pl-filtro.activo{background-c
 .lupa-caja.alejar{border-color:#DC2626;background:rgba(220,38,38,.10);}
 /* 🎨 Modo CMPC (interruptor bajo la barra de zoom del mapa principal; aplicarModoCmpc_, js/26) */
 .modo-cmpc-ctrl{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+.modo-sw-fila{display:flex;gap:6px;align-items:center;}
+.modo-area-sw input:checked + .sl{background:#7C3AED !important;}
+.modo-area-sw input:checked ~ b{color:#6D28D9 !important;}
+/* 22-10-2026: el interruptor va AL LADO (izquierda) de la barra de zoom, no debajo; su leyenda se despliega bajo él */
+.leaflet-top.leaflet-right .leaflet-control.modo-cmpc-ctrl{position:absolute;top:0;right:calc(100% + 8px);margin:10px 0 0 0;}
 .modo-cmpc-sw{display:flex;align-items:center;gap:6px;background:var(--white,#fff);border:1px solid var(--border,#E2E8F0);border-radius:999px;
   padding:4px 9px 4px 5px;box-shadow:0 1px 5px rgba(0,0,0,.18);cursor:pointer;user-select:none;font:800 10.5px Inter,sans-serif;color:#334155;}
 .modo-cmpc-sw input{display:none;}
@@ -210,6 +215,12 @@ body.tema-oscuro #planificador-panel .pat-toolbar .pl-filtro.activo{background-c
 path.modo-cmpc-atenuada, .leaflet-marker-icon.modo-cmpc-atenuada{opacity:.22 !important;}
 .leaflet-marker-icon.modo-cmpc-pt{filter:drop-shadow(0 0 0 var(--cmpc-c)) drop-shadow(0 0 3px var(--cmpc-c)) drop-shadow(0 0 2px var(--cmpc-c));}
 body.tema-oscuro .modo-cmpc-sw, body.tema-oscuro .modo-cmpc-ley{background:#1E293B;border-color:#334155;color:#E2E8F0;}
+/* 🏷️ Administración › Tipos de recurso (adminSeccionTiposRecurso_, js/03) */
+.adm-tr-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:start;}
+.adm-tr-lista{max-height:420px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:6px;}
+.adm-tr-lista label{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;font-size:12.5px;cursor:pointer;}
+.adm-tr-lista label:hover{background:#F1F5F9;}
+@media (max-width:1000px){ .adm-tr-grid{grid-template-columns:1fr;} }
 /* ☑️ Selector múltiple (selMultiple_, js/01): botón con el texto de lo elegido + lista con casillas */
 .msel{position:relative;display:inline-flex;}
 .msel-btn{display:inline-flex !important;align-items:center;justify-content:space-between;gap:6px;cursor:pointer;text-align:left;white-space:nowrap;overflow:hidden;}

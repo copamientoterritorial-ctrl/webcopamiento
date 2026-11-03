@@ -275,7 +275,9 @@ function setBasemap(basemapId) {
 // Pane propio para los límites comunales: SIEMPRE al fondo de todas las capas
 // del sistema (overlayPane = 400, Red Vial = 380/381) y sobre el mapa base (200).
 map.createPane('limitesPane').style.zIndex = 350;
-const limiteLayer = L.geoJSON(null, { pane: 'limitesPane', style:{ color:'#0F172A', weight:2, fillOpacity:0.02 } }).addTo(map);
+// En 🧭 modo área no se resalta la comuna activa (manda el contorno del área, js/15)
+const limiteLayer = L.geoJSON(null, { pane: 'limitesPane', style: () => document.body.classList.contains('modo-area-trabajo')
+  ? { opacity: 0, fillOpacity: 0 } : { color:'#0F172A', weight:2, opacity: 1, fillOpacity:0.02 } }).addTo(map);
 // Límites de TODAS las comunas del usuario (cuando tiene varias). El activo va resaltado.
 const limitesMultiLayer = L.layerGroup();
 window.limitesPorComuna = {}; // comuna_id -> capa
@@ -547,15 +549,28 @@ async function entrarAlSistemaInterno_() {
       .then(({ data }) => { if (data) state.sesionUsoId = data; }, () => {});
   }
   if (!window.__heartbeat__) {
-    window.__heartbeat__ = setInterval(() => {
+    // 02-11-2026 (SQL 146): el latido se manda SOLO si hubo interacción real (clic, tecla, toque, rueda) desde el anterior,
+    // con cuántas hubo. Una pestaña abierta sin uso no alarga la sesión ni suma tiempo conectado.
+    window.__interacciones__ = 0;
+    ['mousedown', 'keydown', 'touchstart', 'wheel'].forEach(ev =>
+      window.addEventListener(ev, () => { window.__interacciones__++; }, { passive: true, capture: true }));
+    const latido = () => {
+      const n = window.__interacciones__; if (!n || !state.sesionUsoId) return;
+      window.__interacciones__ = 0;
       try { supabaseClient.rpc('marcar_actividad', { p_vista: state.vistaActual || null }); } catch (e) {}
-      if (state.sesionUsoId) supabaseClient.rpc('latido_sesion_uso', { p_id: state.sesionUsoId, p_vista: state.vistaActual || null })
-        .then(({ data }) => { if (data) state.sesionUsoId = data; }, () => {});
-    }, 120000); // cada 2 minutos
-    // Al cerrar la pestaña: último latido (la sesión termina ahí aunque no se pulse «Salir»)
-    window.addEventListener('pagehide', () => {
-      if (state.sesionUsoId) try { supabaseClient.rpc('latido_sesion_uso', { p_id: state.sesionUsoId, p_vista: state.vistaActual || null }); } catch (e) {}
-    });
+      supabaseClient.rpc('latido_sesion_uso', { p_id: state.sesionUsoId, p_vista: state.vistaActual || null, p_interacciones: n })
+        .then(({ data, error }) => {
+          if (data) state.sesionUsoId = data;
+          // Sin el SQL 146 (latido de 3 parámetros): latido anterior
+          else if (error && /latido_sesion_uso|PGRST202|function/i.test(error.message || '')) {
+            supabaseClient.rpc('latido_sesion_uso', { p_id: state.sesionUsoId, p_vista: state.vistaActual || null })
+              .then(r => { if (r.data) state.sesionUsoId = r.data; }, () => {});
+          }
+        }, () => {});
+    };
+    window.__heartbeat__ = setInterval(latido, 120000); // cada 2 minutos (solo si hubo actividad)
+    // Al cerrar la pestaña: último latido si hubo actividad (la sesión termina ahí aunque no se pulse «Salir»)
+    window.addEventListener('pagehide', () => { try { latido(); } catch (e) {} });
   }
   document.getElementById('force-password-overlay').style.display = 'none';
   document.getElementById('login-overlay').style.display = 'none';

@@ -118,7 +118,15 @@ body.nav-c4 .navbar__right{gap:3px;}
   display:none;position:fixed;z-index:3000;min-width:290px;padding:6px;
   background:var(--white);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-lift);
 }
-.vista-grupo.abierto .vista-submenu{display:block;}
+.vista-grupo.abierto .vista-submenu{display:block;animation:vista-sub-in .14s ease-out;}
+@keyframes vista-sub-in{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+/* Velo con el submenú abierto (veloMenu_, js/13): oscurece y desenfoca lo de abajo; la barra superior queda encima */
+#menu-velo{position:fixed;inset:0;z-index:3990;background:rgba(15,23,42,.38);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+  opacity:0;pointer-events:none;transition:opacity .15s ease;}
+body.menu-velo-on #menu-velo{opacity:1;pointer-events:auto;}
+body.menu-velo-on #topbar{z-index:4000;}
+body.menu-velo-on .vista-grupo.abierto > .vista-tab-grupo{background:var(--navy-deep);color:#fff;}
+body.tema-oscuro #menu-velo{background:rgba(0,0,0,.5);}
 .vista-subitem{
   display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:none;border-radius:9px;
   background:transparent;font-family:inherit;text-align:left;cursor:pointer;color:var(--text-primary);

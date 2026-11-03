@@ -114,11 +114,20 @@ const AY_SVG = {
 const AY_GUIAS = [
   {
     k: 'escenarios', ico: '🧭', c: '#16A34A', titulo: 'Crear escenarios de alertas', sub: 'Planes Normal, Alerta Amarilla y Roja por comuna',
+    perfiles: ['admin', 'subgerente', 'grt', 'jefe', 'grd', 'visor'],
     intro: 'Cada comuna tiene <b>tres planes</b>: 🟢 Condiciones Normales, 🟡 Alerta Amarilla y 🔴 Alerta Roja. Cada plan reúne puntos, rutas (líneas) y áreas por institución: a mayor alerta, más copamiento.',
-    flujo: [['Planificador de Alertas', 'Gestión SIG ▾'], ['Elige la comuna', 'o el filtro 🧭 Área'], ['✏️ Planificar', 'elige el escenario'], ['Dibuja', 'punto · línea · área'], ['Ficha y guardar', 'institución, tipo, recurso'], ['⏫ Propagar', 'Normal → Amarilla → Roja']],
+    paraTi: {
+      admin: ['Planificas los 3 escenarios de cualquier comuna y solo tú cambias la comuna de un <b>recurso</b> (🏘️ en su ventana).', 'Con el interruptor <b>ÁREA</b> ves y mides un área completa (guía «Modo Área y rutas compartidas»).'],
+      subgerente: ['Planificas los 3 escenarios en las comunas de todas las áreas de tu subgerencia, igual que un Jefe de Área.'],
+      grt: ['Planificas los 3 escenarios en las comunas de tus áreas.'],
+      jefe: ['Planificas los 3 escenarios en las comunas de tus áreas. Con el interruptor <b>ÁREA</b> trabajas el área completa.'],
+      grd: ['Planificas la <b>Alerta Amarilla</b> y la <b>Alerta Roja</b> de tu comuna; el escenario Normal es solo de consulta.', 'Las entidades de <b>CMPC</b> las ves pero no las editas (las planifica CMPC).'],
+      visor: ['Puedes ver los 3 escenarios de tus comunas (solo consulta).'],
+    },
+    flujo: [['Planificador de Alertas', 'Gestión SIG ▾'], ['Elige la comuna', 'o el interruptor ÁREA'], ['✏️ Planificar', 'elige el escenario'], ['Dibuja', 'punto · línea · área'], ['Ficha y guardar', 'institución, tipo, recurso'], ['⏫ Propagar', 'Normal → Amarilla → Roja']],
     pasos: [
       ['Abre el Planificador de Alertas', 'En el menú superior: <b>Gestión SIG ▾ › Planificador de Alertas</b>.', ['<span class="m">🗺️ Gestión SIG ▾</span>', '<span class="fl">›</span>', '<span class="m az">🧭 Planificador de Alertas</span>']],
-      ['Elige la comuna', 'Con el selector de comuna (arriba a la derecha). El Jefe de Área también puede usar el filtro <b>🧭 Área</b> para trabajar todas las comunas de su área: el resto se ve atenuado.', ['<span class="m">📍 Comuna ▾</span>', '<span class="m">🧭 Área ▾</span>']],
+      ['Elige la comuna', 'Con el selector de comuna (arriba a la derecha). El Administrador y el Jefe de Área también tienen el interruptor <b>ÁREA</b> (arriba a la derecha del mapa, junto a CMPC) para ver el área completa.', ['<span class="m">📍 Comuna ▾</span>', '<span class="m">ÁREA ◯</span>']],
       ['Abre ✏️ Planificar y elige el escenario', 'El botón del lápiz muestra los escenarios que tu perfil puede planificar.', ['<span class="m osc">✏️</span>', '<span class="fl">›</span>', '<span class="m v">🟢 Escenario Normal</span>', '<span class="m a">🟡 Alerta Amarilla</span>', '<span class="m r">🔴 Alerta Roja</span>']],
       ['Dibuja en el mapa', 'En la barra de edición elige qué dibujar. Las líneas se trazan con un clic por vértice (o ✍️ trazo libre); el <b>🧲 imán</b> pega la ruta a la Red Vial. Termina con doble clic o ✓ Finalizar.', ['<span class="m">📍 Punto</span>', '<span class="m">📏 Línea</span>', '<span class="m">📐 Área</span>', '<span class="m">🧲 Imán Red Vial</span>', '<span class="m">📥 Importar KML</span>']],
       ['Completa la ficha y guarda', 'Institución, <b>tipo de recurso</b> (con CMPC aparece el catálogo: Brigada Multipropósito, Vigía Camioneta…), <b>recurso asociado</b> (solo en Normal) y la descripción operativa.', ['<span class="m">Institución ▾</span>', '<span class="m">Tipo de recurso ▾</span>', '<span class="m">Recurso asociado ▾</span>', '<span class="m osc">Guardar en la planificación</span>']],
@@ -126,13 +135,18 @@ const AY_GUIAS = [
       ['Sal de la planificación', 'Con <b>🚪 Salir de planificación</b> en la barra de edición. Todo queda guardado al instante.', ['<span class="m">🚪 Salir de planificación</span>']],
     ],
     notas: [
-      ['tip', '💡 Consejos', ['Junto a cada ruta CMPC del escenario Normal: punto 🟢 = tiene recurso, punto 🔴 = falta asignarlo.', 'La forma de una ruta se mantiene igual en los 3 escenarios (al editarla en uno, cambia en los otros).', '📤 Exportar plan descarga el escenario en GeoJSON o KML.']],
+      ['tip', '💡 Consejos', ['Cada ruta CMPC del escenario Normal muestra su <b>clave radial</b> con el punto 🟢 (asignada) o «<b>Sin asignar</b>» con el punto 🔴.', 'La ventana de cada ruta indica la <b>🏘️ comuna</b> a la que pertenece; si sirve a varias comunas del área, usa <b>🔗 Comparte</b>.', 'La forma de una ruta se mantiene igual en los 3 escenarios (al editarla en uno, cambia en los otros).', '📤 Exportar plan descarga el escenario en GeoJSON o KML.']],
       ['rol', '👥 Quién puede', ['Administrador y Jefe de Área: los 3 escenarios.', 'GRD: las Alertas Amarilla y Roja de su comuna (Normal solo consulta).', 'Visor: solo consulta.']],
     ],
     tour: 'escenarios',
   },
   {
     k: 'copamiento', ico: '🚨', c: '#DC2626', titulo: 'Realizar un copamiento de recursos', sub: 'Periodo Crítico a partir de un plan de alerta',
+    perfiles: ['admin', 'subgerente', 'grt', 'jefe', 'grd', 'visor'],
+    paraTi: {
+      grd: ['Creas y editas el Periodo Crítico de tu comuna y marcas qué recursos <b>van</b>. Solo eliminas los periodos activos que tú creaste.'],
+      visor: ['Puedes ver los periodos críticos y su copamiento (solo consulta).'],
+    },
     intro: 'Cuando se declara una alerta, se crea un <b>Periodo Crítico</b> a partir de la plantilla (el plan Normal, Amarilla o Roja). Luego se marca qué recursos <b>van</b> realmente y el sistema muestra solo lo seleccionado.',
     flujo: [['Modo Emergencia', 'Gestión SIG ▾'], ['🔥 Crear Periodo Crítico', 'asistente 3 pasos'], ['Marca lo que «Va»', 'por institución'], ['💾 Guardar selección', 'mapa, PDF e informe'], ['Reactivar', 'si llegan más recursos']],
     pasos: [
@@ -151,6 +165,13 @@ const AY_GUIAS = [
   },
   {
     k: 'asignar', ico: '🔗', c: '#2563EB', titulo: 'Asignar recursos y sus restricciones', sub: 'Recurso asociado, turnos y reglas del sistema',
+    perfiles: ['admin', 'subgerente', 'grt', 'jefe'],
+    paraTi: {
+      admin: ['Además puedes cambiar la <b>comuna de un recurso</b> sin moverlo: ventana del recurso (modo edición) › <b>🏘️ Comuna</b>.'],
+      jefe: ['Asignas recursos a las rutas y programas turnos solo en tus áreas.'],
+      subgerente: ['Asignas recursos y programas turnos en todas las áreas de tu subgerencia.'],
+      grt: ['Asignas recursos a las rutas de tus áreas.'],
+    },
     intro: 'La <b>ruta de un recurso</b> es su línea del <b>escenario Normal</b>. Al asociarlos, la ruta queda enlazada con el recurso en el Planificador gráfico, el Tablero y el Calendario de Turnos.',
     flujo: [['Escenario 🟢 Normal', 'dibuja o abre la ruta'], ['Recurso asociado', 'del mismo tipo'], ['Turnos', 'días del recurso'], ['Seguimiento', 'avance y tablero']],
     pasos: [
@@ -167,18 +188,30 @@ const AY_GUIAS = [
       ['Comuna sin área', 'No aparecen recursos: asigna la comuna en Administración › Comunas por área.'],
       ['Eliminar un recurso', 'Solo si NO tiene rutas (🔒 en Gestión de Recursos). Quita primero la asociación.'],
       ['Turnos', 'No se asignan antes de la fecha de inicio de operación del recurso.'],
-      ['Perfiles', 'Jefe de Área: solo sus áreas · GRD: solo Alerta Amarilla · Visor: solo consulta.'],
+      ['Comuna del recurso', 'Se toma de su ubicación; solo el Administrador la cambia sin moverlo (🏘️ Comuna). Si lo mueves, vuelve a calcularse por la ubicación.'],
+      ['Perfiles', 'Jefe de Área: solo sus áreas · GRD: Alertas Amarilla y Roja, sin asignar recursos CMPC · Visor: solo consulta.'],
     ],
-    notas: [['tip', '💡 Consejo', ['En el escenario Normal, el punto 🔴 junto a una ruta CMPC indica que aún no tiene recurso: es la lista de pendientes.']]],
+    notas: [['tip', '💡 Consejo', ['En el escenario Normal, «<b>Sin asignar</b>» (punto 🔴) junto a una ruta CMPC indica que aún no tiene recurso: es la lista de pendientes.', 'En el mapa, cada recurso muestra su <b>clave radial</b> con el punto 🟢 (tiene ruta) o 🔴 (sin ruta).']]],
     tour: 'asignar',
   },
   {
     k: 'cmpc', ico: '🌲', c: '#0F766E', titulo: 'Planificador CMPC', sub: 'Turnos, planificador gráfico, tablero y gestión',
+    perfiles: ['admin', 'subgerente', 'grt', 'jefe', 'visor'],
+    paraTi: {
+      admin: ['Todo, incluida la carga masiva por Excel, ➕ Nuevo recurso, 🏢 Empresas y eliminar recursos sin ruta.',
+        '<b>🗺️ Descargas geográficas</b>: filtra por subgerencia, área, comuna, sector, tipo, escenario e institución, pulsa «🔍 Aplicar» y descarga cada capa (recursos, rutas asociadas, rutas SIGEI, entidades planificadas, límites de comunas) o todas juntas en <b>KML</b> (Google Earth) o <b>GeoJSON</b> (QGIS / ArcGIS).'],
+      jefe: ['Turnos, Planificador gráfico, Tablero y Gestión de Recursos de <b>tus áreas</b>, con los datos de contacto.',
+        'Registra las <b>👥 personas</b> de cada recurso de tus áreas y marca al ⭐ titular; sigue el KPI de avance hasta el 100 %.'],
+      subgerente: ['Lo mismo que un Jefe de Área, en todas las áreas de tu subgerencia.'],
+      grt: ['Turnos, Planificador gráfico, Tablero y Gestión de Recursos de tus áreas. También 👥 Turnos de Gestores (solo consulta).'],
+      visor: ['Puedes consultar el Planificador gráfico y el Tablero de Recursos.'],
+    },
     intro: 'El menú <b>🌲 Planificador CMPC</b> reúne la operación diaria de los recursos de Relacionamiento: cuándo trabajan (<b>Turnos</b>), dónde están y qué ruta cubren (<b>Planificador gráfico</b>), cuántos hay activos (<b>Tablero</b>) y sus datos y contacto (<b>Gestión de Recursos</b>).',
     flujo: [['Gestión de Recursos', 'datos y contacto'], ['Planificador gráfico', 'ubicar y ver su ruta'], ['Turnos', 'días de trabajo'], ['Seguimiento', 'quién falta actualizar'], ['Tablero', 'resumen y Excel']],
     pasos: [
       ['Abre el menú Planificador CMPC', 'En el menú superior: <b>🌲 Planificador CMPC ▾</b>. Las opciones dependen de tu perfil.', ['<span class="m">🌲 Planificador CMPC ▾</span>', '<span class="fl">›</span>', '<span class="m az">📅 Turnos</span>', '<span class="m az">🧭 Planificador gráfico</span>', '<span class="m az">📊 Tablero</span>', '<span class="m az">🗂️ Gestión</span>']],
       ['Completa los datos en Gestión de Recursos', 'Tabla editable por área: tipo, sector, empresa (desplegable de las empresas del área), turno, horario, N° de personas, fechas y <b>contacto</b> (persona, RUT, teléfono, mail). Guarda con <b>💾 Guardar cambios</b>. Elige qué columnas ver con <b>🧩 Columnas</b> y descarga el <b>📋 Resumen PDF</b> por área.', ['<span class="m">🧩 Columnas</span>', '<span class="m">Empresa ▾</span>', '<span class="m osc">💾 Guardar cambios</span>', '<span class="m">📋 Resumen PDF</span>', '<span class="m">⬇️ Excel</span>']],
+      ['Registra las personas de cada recurso', 'En la planilla, junto a la <b>Clave radial</b>, el botón <b>👥 n/N</b> (personas registradas / N° personas; verde = completo con titular, ámbar = faltan) abre el actualizador: <b>➕ Agregar persona</b> con nombre completo, RUT, cargo (Multipropósito: Jefe de Brigada, Motosierrista, Manual · resto: Vigía), teléfono, correo, dirección, N° de temporadas trabajando, 🚗 conductor, 🎓 curso Call Fire y <b>⭐ titular</b> (uno por recurso; es el que aparece en la planilla). Dentro está la <b>❓ Guía rápida</b>. Arriba, el KPI <b>👥 Avance de actualización de personas</b>; filtra «👥 Faltan personas» o «⭐ Sin titular» y baja todo con <b>👥 Descargar personas</b>. Para muchas a la vez: <b>📋 Plantilla personas</b> (una fila por cupo de cada recurso filtrado), complétala en Excel y súbela con <b>⬆️ Subir personas</b> (vista previa antes de aplicar; no elimina a nadie).', ['<span class="m">👥 2/4</span>', '<span class="m v">➕ Agregar persona</span>', '<span class="m a">⭐ Titular</span>', '<span class="m">📋 Plantilla personas</span>', '<span class="m">⬆️ Subir personas</span>']],
       ['Ubica el recurso y revisa su ruta', '<b>Planificador gráfico</b>: filtra por subgerencia, área, sector y tipo; la lista y el mapa muestran cada recurso con su <b>ruta asociada</b> (escenario Normal). En la ficha, <b>📍 Ubicar / mover</b> fija el punto en el mapa (Administrador y Jefe de Área).', ['<span class="m">Área ▾</span>', '<span class="m">Tipo ▾</span>', '<span class="m v">📍 Ubicar en el mapa</span>', '<span class="m">✕ Limpiar filtros</span>']],
       ['Programa los turnos', '<b>Turnos de Recursos</b>: elige el área y el mes (vista <b>Mes</b> por defecto). Haz clic o arrastra sobre los días: verde <b>T</b> = turno, amarillo <b>L</b> = libre. Filtra por tipo y por clave radial. La columna <b>Avance</b> muestra días trabajados / días de operación.', ['<span class="m">Área ▾</span>', '<span class="m">Tipo ▾</span>', '<span class="m">📻 Clave ▾</span>', '<span class="m v">T</span>', '<span class="m a">L</span>', '<span class="m">Mes</span>']],
       ['Descarga los PDF de turnos', '<b>PDF mensual</b> (una página por recurso) y <b>PDF panorama</b> (todos los recursos + resumen por día: cuántos operan, cuántos en turno y % disponible).', ['<span class="m">🖨️ PDF mensual</span>', '<span class="m">🗓️ PDF panorama</span>']],
@@ -191,23 +224,29 @@ const AY_GUIAS = [
       ['Carga masiva', 'Subir Excel, ➕ Nuevo recurso, 🏢 Empresas y 🗑️ Eliminar: solo el Administrador.'],
       ['Eliminar un recurso', 'Solo si NO tiene ruta asignada (aparece 🔒).'],
       ['Datos de contacto', 'Solo los ven el Administrador y el Jefe de esa área.'],
+      ['Personas del recurso', 'Se registran de a una en 👥; el contacto de la planilla es el ⭐ titular (no se edita en la tabla). Avance = personas registradas / N° personas.'],
       ['Jefe de Área', 'Ve y edita solo los recursos de sus áreas.'],
     ],
     notas: [
-      ['tip', '💡 Consejos', ['En el mapa, los Recursos disponibles muestran «Clave radial · ID», la persona a cargo y el punto 🟢 con ruta / 🔴 sin ruta.', 'Los tipos siempre aparecen en el mismo orden: Brigada Multipropósito, Disuasiva, Vigía Camioneta, Motorizado, Montado, Infantería, Dron.']],
+      ['tip', '💡 Consejos', ['En el mapa, los Recursos disponibles muestran solo su <b>clave radial</b> y el punto 🟢 con ruta / 🔴 sin ruta. El detalle (comuna, tipo, empresa) está en su ventana.', 'Los filtros de tipo, sector y empresa admiten <b>varias opciones a la vez</b>.', 'Los tipos siempre aparecen en el mismo orden: Brigada Multipropósito, Disuasiva, Vigía Camioneta, Motorizado, Montado, Infantería, Dron.']],
       ['rol', '👥 Quién puede', ['Administrador: todo, incluida la carga masiva.', 'Jefe de Área: Turnos, Planificador gráfico, Tablero y Gestión de sus áreas.', 'GRD y Visor: según los permisos de su perfil (consulta).']],
     ],
     tour: 'cmpc',
   },
   {
-    k: 'subgerente', ico: '📈', c: '#0F766E', titulo: 'Subgerente · Seguimiento', sub: 'Avance de las áreas de la subgerencia en sus comunas',
-    intro: 'El <b>Subgerente de Relacionamiento</b> administra todas las áreas de su subgerencia (Norte o Sur) con los permisos de un Jefe de Área. Su tablero <b>📈 Seguimiento</b> (exclusivo de este perfil) tiene dos vistas simples: <b>🏘️ Comunas y copamiento</b> (avance = nivel de copamiento de cada comuna, su prioridad, qué falta iniciar y quién ha trabajado) y <b>🌲 Inicio de recursos</b> (fechas de inicio de operación por área, con gráfico y filtros rápidos).',
-    flujo: [['📈 Seguimiento', 'entra directo aquí'], ['Elige un área', 've todas sus comunas'], ['⛔ Sin iniciar', 'lo primero a atender'], ['Copamiento', 'Normal · Amarilla · Roja'], ['🌲 Recursos', 'cuándo inicia cada uno']],
+    k: 'subgerente', ico: '📈', c: '#0F766E', titulo: 'Seguimiento', sub: 'Avance de las áreas y comunas de la subgerencia',
+    perfiles: ['admin', 'subgerente'],
+    intro: 'El <b>Subgerente de Relacionamiento</b> administra todas las áreas de su subgerencia (Norte o Sur) con los permisos de un Jefe de Área. Su tablero <b>📈 Seguimiento</b> tiene tres vistas: <b>🏘️ Comunas y copamiento</b> (nivel de copamiento de cada comuna, su prioridad, el <b>Avance Copamiento Comunal</b> y quién ha trabajado), <b>🌲 Inicio de recursos</b> y <b>📅 Turnos</b>. El Administrador también lo ve, con el filtro de subgerencia Ambas / Norte / Sur.',
+    paraTi: {
+      admin: ['Arriba eliges la <b>subgerencia</b>: Ambas, Norte o Sur. Cambiar de subgerencia es inmediato (los datos se leen una sola vez).'],
+      subgerente: ['Es tu vista de inicio: ves todas las áreas y comunas de tu subgerencia.'],
+    },
+    flujo: [['📈 Seguimiento', 'vista de inicio'], ['Prioridad y área', 'y el filtro de comuna'], ['Avance Copamiento Comunal', 'general y por comuna'], ['Copamiento', 'Normal · Amarilla · Roja'], ['🌲 Recursos · 📅 Turnos', 'inicio y calendario']],
     pasos: [
-      ['Entra al tablero', 'Al iniciar sesión, el Subgerente llega directo a <b>📈 Seguimiento</b> (pestaña superior). No ve los reportes meteorológicos.', ['<span class="m osc">📈 Seguimiento</span>', '<span class="m">🏘️ Comunas y copamiento</span>', '<span class="m">🌲 Inicio de recursos</span>']],
-      ['Elige un área', 'Los botones de <b>Área</b> muestran <b>todas</b> las comunas de esa área (con su cantidad). Cada comuna trae su <b>prioridad</b> de Comunas Prioritarias (Alta, Media, Baja) y 🤝 si la comparte con otra área.', ['<span class="m">Todas</span>', '<span class="m v">Los Ángeles</span>', '<span class="m">Mulchén</span>', '<span class="m">Prioridad Alta</span>']],
-      ['Mira el avance de cada comuna', 'Parte eligiendo la <b>prioridad</b> (puedes marcar varias, p. ej. Alta + Media). Cada comuna muestra <b>tres tarjetas</b>: el nivel de copamiento en <b>Normal</b>, <b>Amarilla</b> y <b>Roja</b> sobre la zona de incendios del trienio. Arriba, el promedio de cada alerta para las comunas mostradas.', ['<span class="m v">Normal 40%</span>', '<span class="m a">Amarilla 62%</span>', '<span class="m r">Roja 81%</span>']],
-      ['Detecta lo que falta iniciar', 'Cada comuna dice su estado: <b>⛔ Sin iniciar</b> (ningún escenario con entidades), <b>🟠 En curso</b> (y qué escenario falta) o <b>✅ 3 escenarios</b>. Filtra con los botones de <b>Estado</b> y <b>Prioridad</b>.', ['<span class="m r">⛔ Sin iniciar</span>', '<span class="m a">🟠 En curso · falta Roja</span>', '<span class="m v">✅ 3 escenarios</span>']],
+      ['Entra al tablero', 'Al iniciar sesión, el Subgerente llega directo a <b>📈 Seguimiento</b> (pestaña superior). El % de copamiento se muestra al instante (queda guardado) y se actualiza solo en segundo plano; <b>🔄 Actualizar</b> fuerza una lectura completa.', ['<span class="m osc">📈 Seguimiento</span>', '<span class="m">🏘️ Comunas y copamiento</span>', '<span class="m">🌲 Inicio de recursos</span>', '<span class="m">📅 Turnos</span>']],
+      ['Filtra por prioridad, área o comuna', 'Parte por la <b>prioridad</b> (puedes marcar varias, p. ej. Alta + Media). A la derecha de esa fila está el <b>🔎 Filtro de comuna</b>. Los botones de <b>Área</b> muestran sus comunas y, al lado, el total «🏘️ N comuna(s)».', ['<span class="m r">Alta</span>', '<span class="m a">Media</span>', '<span class="m">🔎 Filtro de comuna</span>', '<span class="m v">Los Ángeles</span>', '<span class="m">🏘️ 9 comuna(s)</span>']],
+      ['Revisa el Avance Copamiento Comunal', 'El bloque muestra el <b>avance general</b> (completas · en curso · sin iniciar) y el avance de cada una de las 7 etapas: Bajada Autoridades Regionales, Capacitación Jefes de Área, Bajar Sistema GRT, Construcción Plan CMPC, Bajada a Alcalde, Bajada Sistema GRD y GRD en Sistema Copamiento. Se recalcula con los filtros. <b>▸ Ver avance por comuna</b> despliega cada comuna con sus etapas.', ['<span class="m v">68 % avance</span>', '<span class="m">▸ Ver avance por comuna</span>']],
+      ['Mira el copamiento de cada comuna', 'Cada comuna muestra <b>tres tarjetas</b> con su nivel de copamiento en <b>Normal</b>, <b>Amarilla</b> y <b>Roja</b> sobre la zona de incendios del trienio, su estado (<b>⛔ Sin iniciar</b>, <b>🟠 En curso</b> y qué falta, <b>✅ 3 escenarios</b>) y su torta de implementación (pasa el mouse para ver las etapas).', ['<span class="m v">Normal 40%</span>', '<span class="m a">Amarilla 62%</span>', '<span class="m r">Roja 81%</span>', '<span class="m r">⛔ Sin iniciar</span>']],
       ['Quién ha trabajado', 'En cada comuna aparecen los <b>usuarios que han trabajado</b> en sus planes (con cuántas entidades crearon) y su usuario GRD. «Nadie ha trabajado aún» = hay que asignar o activar a alguien.', ['<span class="m">👤 Claudio León (2)</span>', '<span class="m">🏛️ GRD</span>']],
       ['Revisa el inicio de los recursos', 'Vista <b>🌲 Inicio de recursos</b>: filtros rápidos por <b>área</b> (o toda la subgerencia), <b>periodo</b> (ya iniciados, próximos 7 o 30 días, más adelante, sin fecha) y tipo. La <b>línea de tiempo</b> muestra cada recurso en su fecha de inicio (línea roja = hoy) y el gráfico, cuántos inician por semana.', ['<span class="m">✅ Ya iniciados</span>', '<span class="m">⏳ Próximos 7 días</span>', '<span class="m">📅 Próximos 30 días</span>', '<span class="m">❓ Sin fecha</span>']],
       ['Turnos y Excel', '<b>📅 Turnos</b>: qué áreas tienen el calendario completo en el periodo (un recurso con más de 4 días libres seguidos queda incompleto) y qué recursos faltan. <b>⬇️ Excel</b>: hojas «Comunas», «Inicio de recursos» y «Turnos».', ['<span class="m osc">📅 Turnos</span>', '<span class="m">⬇️ Excel</span>']],
@@ -215,6 +254,7 @@ const AY_GUIAS = [
     tabla: [
       ['Indicador', 'Cómo se lee'],
       ['Copamiento por alerta', '% de copamiento de Normal, Amarilla y Roja (una tarjeta cada una) sobre la zona de incendios de las últimas 3 temporadas (mismo cálculo de Comunas Prioritarias).'],
+      ['Avance Copamiento Comunal', '% de las 7 etapas cumplidas en las comunas de implementación que quedan con los filtros (cada comuna = 7 etapas). Las etapas las marca el Administrador en Prevención › Implementación por comuna.'],
       ['Prioridad', 'Nivel de la comuna en la matriz de Comunas Prioritarias (Alta, Media, Baja).'],
       ['⛔ Sin iniciar', 'La comuna no tiene entidades planificadas en ningún escenario.'],
       ['🟠 En curso', 'Tiene planificación, pero le falta al menos un escenario (se indica cuál).'],
@@ -222,18 +262,25 @@ const AY_GUIAS = [
       ['Inicio de recursos', 'Fecha de inicio de operación de cada recurso (Gestión de Recursos). «Sin fecha» = falta cargarla.'],
     ],
     notas: [
-      ['rol', '👥 Quién lo ve', ['Solo el Subgerente de Relacionamiento (todas las áreas de su subgerencia, que se asignan solas).', 'El Administrador lo prueba con <b>Ver el sistema como… › 📈 Modo Subgerente</b>.']],
+      ['rol', '👥 Quién lo ve', ['El Subgerente de Relacionamiento (todas las áreas de su subgerencia, que se asignan solas).', 'El Administrador, con el filtro Ambas / Norte / Sur (o con <b>Ver el sistema como… › 📈 Modo Subgerente</b>).']],
       ['tip', '💡 Consejos', ['Empieza por las comunas ⛔ sin iniciar de prioridad Alta.', 'Revisa cada semana los recursos ⏳ que inician en los próximos 7 días y los ❓ sin fecha.']],
     ],
     tour: 'subgerente',
   },
   {
-    k: 'editar', ico: '✏️', c: '#7C3AED', titulo: 'Editar y mejorar', sub: 'Forma, corte, datos y seguimiento',
+    k: 'editar', ico: '✏️', c: '#7C3AED', titulo: 'Editar y mejorar', sub: 'Forma, corte, unión, datos y seguimiento',
+    perfiles: ['admin', 'subgerente', 'grt', 'jefe', 'grd'],
+    paraTi: {
+      grd: ['Editas, cortas, unes y propagas en las Alertas Amarilla y Roja de tu comuna; las entidades de CMPC son solo de consulta.'],
+      admin: ['Todo, en cualquier comuna. Gestión de Recursos completa (Excel, empresas, eliminar).'],
+    },
     intro: 'Todo lo planificado se puede corregir y mejorar: forma de las rutas, cortes, ficha, ubicación del recurso, datos y contacto. Los cambios se guardan al instante y se reflejan en todo el sistema.',
     flujo: [['Clic en la entidad', 'abre su ventana'], ['Editar ficha o forma', 'vértices'], ['✂️ Cortar', 'una ruta en dos'], ['⏫ Propagar', 'a otras alertas'], ['🔄 Actualizar', 'datos al día']],
     pasos: [
       ['Edita la ficha o la forma', 'Durante la planificación, clic en una ruta, punto o área: <b>✏️ Editar</b> (institución, tipo, recurso, descripción), <b>🧩 Editar forma</b> (arrastra vértices; clic derecho borra uno), <b>⏫ Propagar</b> o <b>🗑️ Eliminar</b>.', ['<span class="m">✏️ Editar</span>', '<span class="m">🧩 Editar forma</span>', '<span class="m mo">⏫ Propagar</span>', '<span class="m r">🗑️ Eliminar</span>']],
       ['Corta una ruta', 'En la barra de edición, <b>✂️ Cortar ruta</b>: las rutas se resaltan y el ✂️ se pega a la más cercana (y al vértice). Clic para cortar: el tramo 1 conserva el recurso; el tramo 2 queda como ruta nueva.', ['<span class="m">✂️ Cortar ruta</span>']],
+      ['Une dos rutas', 'En la ventana de una línea, <b>🔗 Unir</b>: haz clic en el punto azul de esta línea donde se engancha y luego en el de la otra. Solo aparecen los vértices de las rutas que están en el mapa (del mismo escenario y de la comuna activa).', ['<span class="m">🔗 Unir</span>', '<span class="m">✂️ Separar</span>']],
+      ['Comparte una ruta entre comunas', 'Si por estrategia una ruta sirve a varias comunas del área, en su ventana usa <b>🔗 Comparte</b> y marca las comunas: suma en su copamiento y se ve al entrar a ellas. <b>🏘️ Comuna</b> cambia la comuna a la que pertenece.', ['<span class="m">🔗 Comparte</span>', '<span class="m">🏘️ Comuna</span>']],
       ['Importa rutas', '<b>📥 Importar KML/KMZ</b> trae rutas de Google Earth u otros sistemas.', ['<span class="m">📥 Importar KML/KMZ</span>']],
       ['Mejora los datos de los recursos', '<b>Gestión de Recursos</b>: edita en la tabla (Jefe de Área en sus áreas), elige 🧩 columnas, filtra por empresa, tipo o sector; el Administrador administra 🏢 Empresas y elimina recursos sin ruta (doble confirmación).', ['<span class="m az">🗂️ Gestión de Recursos</span>', '<span class="m">🧩 Columnas</span>', '<span class="m">🏢 Empresas</span>']],
       ['Haz seguimiento', '<b>Prevención ▾ › Comunas Prioritarias</b> (📈 KPI de avance, ✅ comunas listas) y <b>Acciones de Riesgo</b>. El botón <b>🔄</b> trae los últimos datos de la base.', ['<span class="m">🛡️ Prevención ▾</span>', '<span class="m">📈 KPI de avance</span>', '<span class="m">🔄 Actualizar</span>']],
@@ -245,7 +292,57 @@ const AY_GUIAS = [
     tour: 'editar',
   },
   {
+    k: 'area', ico: '🗺️', c: '#7C3AED', titulo: 'Modo Área y rutas compartidas', sub: 'Ver y medir un área completa · rutas de varias comunas',
+    perfiles: ['admin', 'subgerente', 'grt', 'jefe'],
+    intro: 'El interruptor <b>ÁREA</b> cambia el mapa del nivel <b>comuna</b> al nivel <b>área de relacionamiento</b>: se ve el área completa (capa Áreas de Relacionamiento) con todo lo de afuera en gris, y el copamiento, la zona de incendios, los recursos y las rutas SIGEI pasan a ser los del área. Las rutas que por estrategia sirven a varias comunas se comparten con <b>🔗 Comparte</b>.',
+    paraTi: {
+      admin: ['El modo área toma el área de la comuna elegida: para ver otra área, elige primero una comuna de esa área.'],
+      jefe: ['Ves y mides tus áreas completas; la capa Áreas de Relacionamiento muestra solo las tuyas.'],
+      subgerente: ['Puedes recorrer cada área de tu subgerencia eligiendo una de sus comunas y encendiendo ÁREA.'],
+      grt: ['Ves y mides tus áreas completas.'],
+    },
+    flujo: [['Elige una comuna', 'del área'], ['Enciende ÁREA', 'arriba a la derecha'], ['Área completa', 'resto en gris'], ['Copamiento del área', 'e incendios del área'], ['🔗 Comparte', 'rutas de varias comunas']],
+    pasos: [
+      ['Enciende el modo área', 'Con una comuna elegida, enciende el interruptor <b>ÁREA</b> (arriba a la derecha del mapa, junto a CMPC). El selector de comuna se oculta, se enciende la capa <b>Áreas de Relacionamiento</b> con sus sectores y todo lo de afuera queda en gris. Apágalo para volver al modo comuna.', ['<span class="m">ÁREA ◯</span>', '<span class="m">CMPC ◯</span>']],
+      ['Qué cambia en el mapa', 'Se ven las entidades de <b>todas</b> las comunas del área con su color normal, los <b>incendios del área</b>, la <b>zona de incendios del trienio del área</b> y el cuadro de copamiento <b>del área</b>. «Recursos Disponibles» y «Rutas de Patrullaje SIGEI» muestran los del área.', ['<span class="m v">🔥 Copamiento · 🧭 Área</span>', '<span class="m">Recursos Disponibles</span>', '<span class="m">Rutas de Patrullaje SIGEI</span>']],
+      ['Límites de las comunas', 'En el panel <b>Capas</b>, «<b>🏘️ Comunas del área</b>» (apagada al inicio) dibuja el límite de cada comuna con un color distinto; su deslizador de <b>opacidad</b> las resalta o suaviza.', ['<span class="m">🏘️ Comunas del área</span>', '<span class="m">Opacidad ━━●━</span>']],
+      ['Comparte una ruta entre comunas', 'En modo comuna, en la ventana de una ruta o área planificada: <b>🔗 Comparte</b> y marca las comunas del área donde también participa. Suma en el copamiento de esas comunas y se ve al entrar a ellas («🔗 Participa también en: …»).', ['<span class="m">🔗 Comparte</span>', '<span class="m v">☑ Contulmo</span>', '<span class="m v">☑ Tirúa</span>']],
+      ['Rutas SIGEI de varias comunas', 'En la ventana de una ruta SIGEI, <b>🔗 Comunas</b> (Administrador y Jefe de Área) marca las comunas donde también se patrulla: aparece en esas comunas.', ['<span class="m">🔗 Comunas</span>']],
+    ],
+    tabla: [
+      ['Regla', 'Qué pasa'],
+      ['Base por comuna', 'Cada entidad sigue perteneciendo a una comuna; el modo área solo la muestra y la mide junto a las demás.'],
+      ['Lo que entra a otra comuna', 'Una ruta que cruza a otra comuna del área cuenta automáticamente también en esa comuna.'],
+      ['Edición', 'Se planifica en modo comuna. Las entidades de otras comunas se ven con «📍 Ir a la comuna».'],
+      ['Cambiar de comuna', 'Pinchar otra comuna en el mapa ya no cambia de comuna: se usa el selector.'],
+    ],
+    notas: [['tip', '💡 Consejo', ['El % de copamiento del área usa la misma regla que el de cada comuna (zona de incendios del trienio, ameba tocada ≥ 30 % cuenta completa).']]],
+    tour: 'area',
+  },
+  {
+    k: 'implementacion', ico: '🪜', c: '#B45309', titulo: 'Implementación por comuna', sub: '7 etapas en las comunas de implementación',
+    perfiles: ['admin', 'subgerente', 'grt', 'jefe'],
+    intro: 'Control interno del avance del sistema en las comunas de implementación, en <b>7 etapas</b>: 1. Bajada Autoridades Regionales · 2. Capacitación Jefes de Área · 3. Bajar Sistema GRT · 4. Construcción Plan CMPC · 5. Bajada a Alcalde · 6. Bajada Sistema GRD · 7. GRD en Sistema Copamiento.',
+    paraTi: {
+      admin: ['Solo tú marcas las etapas: clic en cada casilla de la tabla (se guarda la fecha y quién la marcó).'],
+      jefe: ['Consulta el avance de las comunas y de tus áreas (solo lectura).'],
+      subgerente: ['Consulta el avance; en tu 📈 Seguimiento lo ves filtrado por prioridad, área y comuna.'],
+      grt: ['Consulta el avance (solo lectura).'],
+    },
+    flujo: [['Prevención ▾', 'menú superior'], ['🪜 Implementación', 'por comuna'], ['Avance general', 'y por etapa'], ['Por área', 'clic en la tarjeta'], ['⬇️ Excel', 'respaldo']],
+    pasos: [
+      ['Abre el módulo', '<b>Prevención ▾ › 🪜 Implementación por comuna</b>.', ['<span class="m">🛡️ Prevención ▾</span>', '<span class="fl">›</span>', '<span class="m az">🪜 Implementación por comuna</span>']],
+      ['Lee el Avance Copamiento Comunal', 'A la izquierda el <b>avance general</b> (completas · en curso · sin iniciar); a la derecha cada etapa con su barra y «n de N comunas».', ['<span class="m v">68 % avance</span>', '<span class="m">1. Bajada Autoridades Regionales · 100 %</span>']],
+      ['Filtra por área', 'Clic en la tarjeta de un área para ver solo sus comunas (otro clic vuelve a todas).', ['<span class="m">📍 Cañete 57 %</span>']],
+      ['Marca las etapas (Administrador)', 'En la tabla, clic en la casilla de la etapa de cada comuna: ✓ con la fecha. Otro clic la desmarca.', ['<span class="m v">✓ 12/10</span>', '<span class="m">⬜ pendiente</span>']],
+      ['Descarga el respaldo', '<b>⬇️ Excel</b> con todas las comunas y etapas.', ['<span class="m">⬇️ Excel</span>']],
+    ],
+    notas: [['tip', '💡 Consejo', ['El mismo avance aparece en el 📈 Seguimiento, recalculado con sus filtros.']]],
+    tour: 'implementacion',
+  },
+  {
     k: 'agricultores', ico: '🌾', c: '#65A30D', titulo: 'Agricultores · Asociación Malleco', sub: 'Tablero, control diario, planificación y app de terreno',
+    perfiles: ['asoc'],
     intro: 'Seguimiento del trabajo de prevención de la <b>Asociación de Agricultores Malleco</b> (Collipulli, Lumaco y Victoria): metas mensuales por actividad, lo realizado en terreno, la planificación del equipo y el registro de agricultores con su nivel de riesgo. Los gestores registran desde la <b>📱 App de terreno</b>, que funciona sin señal.',
     flujo: [['🌾 Agricultores', 'menú superior'], ['🗓️ Planificar', 'actividades del equipo'], ['📱 Registrar', 'en terreno, con o sin señal'], ['📅 Control diario', 'bitácora del día'], ['📊 Tablero', 'meta vs realizado'], ['🗺️ Mapa · ⬇️ Excel', 'dónde y cuánto']],
     pasos: [
@@ -284,10 +381,25 @@ function abrirAyuda_(guia) {
   renderAyuda_(guia || state.ayGuia || 'escenarios');
   m.classList.add('show');
 }
-/** Guías que ve cada perfil (21-10-2026): la de Agricultores SOLO el perfil Asociación de Agricultores, que a su vez solo ve esa. */
+/* 23-10-2026 · Centro de ayuda POR PERFIL: cada guía declara qué perfiles la ven (`perfiles`) y puede traer una nota
+ * «🎯 Para tu perfil» (`paraTi`, por clave de perfil). Respeta «Ver el sistema como…» (lee el perfil simulado). */
+const AY_PERFIL_NOMBRE = { admin: 'Administrador', subgerente: 'Subgerente de Relacionamiento', grt: 'Gestor de Relacionamiento Territorial (GRT)',
+  jefe: 'Jefe de Área', grd: 'GRD (municipio)', visor: 'Visor', asoc: 'Asociación de Agricultores' };
+/** Perfil para la ayuda: admin · subgerente · grt · jefe · grd · visor · asoc */
+function ayPerfil_() {
+  if (typeof esAsociacion_ === 'function' && esAsociacion_()) return 'asoc';
+  const p = state.perfil && state.perfil.perfil;
+  if (p === 'Administrador') return 'admin';
+  if (esSubgerente_()) return 'subgerente';
+  if (state.esGRT) return 'grt';
+  if (esJefeAreaPerfil_(p)) return 'jefe';
+  if (p === 'GRD') return 'grd';
+  return 'visor';
+}
+/** Guías que ve cada perfil: las que incluyen su perfil en `perfiles` (la de Agricultores solo la Asociación, que solo ve esa). */
 function guiasAyudaVisibles_() {
-  const asoc = typeof esAsociacion_ === 'function' && esAsociacion_();
-  return AY_GUIAS.filter(x => asoc ? x.k === 'agricultores' : x.k !== 'agricultores');
+  const pf = ayPerfil_();
+  return AY_GUIAS.filter(x => !x.perfiles || x.perfiles.includes(pf));
 }
 function renderAyuda_(k) {
   const lista = guiasAyudaVisibles_();
@@ -295,13 +407,16 @@ function renderAyuda_(k) {
   state.ayGuia = g.k;
   document.getElementById('ay-nav').innerHTML = lista.map(x =>
     '<button data-ay-guia="' + x.k + '" class="' + (x.k === g.k ? 'on' : '') + '" style="--c:' + x.c + '"><span class="ico">' + x.ico + '</span><span><b>' + x.titulo + '</b><small>' + x.sub + '</small></span></button>').join('') +
-    '<div style="margin-top:auto;font-size:11px;color:var(--text-tertiary);padding:8px 4px;line-height:1.45;">Cada guía tiene un <b>▶ Recorrido guiado</b> que te lleva por los botones reales del sistema. Puedes salir con <b>Esc</b>.</div>';
+    '<div style="margin-top:auto;font-size:11px;color:var(--text-tertiary);padding:8px 4px;line-height:1.45;">👤 Guías para tu perfil: <b>' + AY_PERFIL_NOMBRE[ayPerfil_()] + '</b>.<br>' +
+      'Cada guía tiene un <b>▶ Recorrido guiado</b> que te lleva por los botones reales del sistema. Puedes salir con <b>Esc</b>.</div>';
   const cont = document.getElementById('ay-contenido');
   cont.style.setProperty('--c', g.c);
+  const paraTi = g.paraTi && g.paraTi[ayPerfil_()];
   cont.innerHTML =
     '<div class="ay-hero"><span style="font-size:34px;">' + g.ico + '</span><div><h2>' + g.titulo + '</h2><p>' + g.intro + '</p></div>' +
-      '<button class="ay-tour" data-ay-tour="' + g.tour + '">▶ Recorrido guiado</button></div>' +
-    AY_SVG[g.k] +
+      (g.tour ? '<button class="ay-tour" data-ay-tour="' + g.tour + '">▶ Recorrido guiado</button>' : '') + '</div>' +
+    (paraTi ? '<div class="ay-nota ok" style="margin:0 0 12px;"><b>🎯 Para tu perfil (' + AY_PERFIL_NOMBRE[ayPerfil_()] + ')</b><ul>' + paraTi.map(x => '<li>' + x + '</li>').join('') + '</ul></div>' : '') +
+    (AY_SVG[g.k] || '') +
     '<div class="ay-flujo">' + g.flujo.map(([t, s], i) => (i ? '<span class="f">→</span>' : '') + '<div class="p"><i>' + (i + 1) + '</i><b>' + t + '</b>' + s + '</div>').join('') + '</div>' +
     '<div class="ay-pasos">' + g.pasos.map(([t, d, ui], i) =>
       '<div class="ay-paso"><div class="n">' + (i + 1) + '</div><div><h4>' + t + '</h4><p>' + d + '</p>' + (ui && ui.length ? '<div class="ay-ui">' + ui.join('') + '</div>' : '') + '</div></div>').join('') + '</div>' +
@@ -322,7 +437,7 @@ const AY_TOURS = {
   escenarios: [
     { sel: '#grupo-mapa .vista-tab-grupo', t: 'Menú Gestión SIG', d: 'Aquí están el <b>Planificador de Alertas</b>, el <b>Modo Emergencia</b> y el informe de copamiento.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-mapa'); } },
     { sel: '#sub-mapa-visor', t: 'Planificador de Alertas', d: 'Abre el mapa para planificar los escenarios Normal, Alerta Amarilla y Roja.', antes: () => ayAbrirGrupo_('grupo-mapa') },
-    { sel: '#comuna-select', t: 'Elige la comuna', d: 'Los planes son por comuna. Elígela aquí (o usa el filtro 🧭 Área para ver todas las de tu área).', antes: () => { ayCerrarMenus_(); ayIrMapa_('planificador'); }, aviso: 'El selector aparece en el mapa cuando tienes más de una comuna asignada.' },
+    { sel: '#comuna-select', t: 'Elige la comuna', d: 'Los planes son por comuna. Elígela aquí (o enciende el interruptor ÁREA, arriba a la derecha del mapa, para ver toda tu área).', antes: () => { ayCerrarMenus_(); ayIrMapa_('planificador'); }, aviso: 'El selector aparece en el mapa cuando tienes más de una comuna asignada.' },
     { sel: '#btn-planificar', t: '✏️ Planificar', d: 'Con una comuna elegida, este botón abre la lista de escenarios que puedes planificar.', antes: () => ayIrMapa_('planificador'), aviso: 'Aparece cuando hay una comuna seleccionada y tu perfil puede planificar.' },
     { sel: '#plan-verde', t: '🟢 Escenario Normal', d: 'Condiciones normales: la base del copamiento. Aquí se asocia cada ruta CMPC con su recurso.', antes: ayAbrirPlanificar_, aviso: 'Abre ✏️ Planificar con una comuna elegida para ver los escenarios.' },
     { sel: '#plan-amarilla', t: '🟡 Alerta Amarilla', d: 'Refuerzo del copamiento para la alerta amarilla. El GRD planifica este escenario y la Alerta Roja.', antes: ayAbrirPlanificar_ },
@@ -353,6 +468,11 @@ const AY_TOURS = {
     { sel: '#gr-area', t: 'Elige el área', d: 'La tabla se filtra por subgerencia, área, sector, tipo y empresa. El Jefe de Área ve solo sus áreas.', antes: () => { ayCerrarMenus_(); ayIrVista_('gestion'); }, aviso: 'Gestión de Recursos es solo para Administrador y Jefe de Área.' },
     { sel: '#gr-tabla', t: 'Edita directo en la tabla', d: 'Los campos cambiados se ven en azul; los errores (RUT, mail, fechas) en rojo. Guarda con <b>💾 Guardar cambios</b>. El 🔒 ID no se modifica; 🗑️ elimina solo recursos sin ruta.', antes: () => ayIrVista_('gestion') },
     { sel: '#gr-columnas', t: '🧩 Columnas', d: 'Elige qué columnas ver (Todas · Contacto · Operación). Se recuerda en tu navegador.', antes: () => ayIrVista_('gestion') },
+    { sel: '.grk-personas', t: '👥 Avance de actualización de personas', d: 'Personas registradas sobre el N° personas de los recursos filtrados, recursos completos y con ⭐ titular. Usa el filtro «👥 Faltan personas» para ver lo pendiente.', antes: () => ayIrVista_('gestion'), aviso: 'Aparece cuando hay recursos en la tabla.' },
+    { sel: '.gr-pers', t: '👥 Personas del recurso', d: 'Junto a la Clave radial: abre el actualizador para agregar a cada persona (cargo, RUT, temporadas, conductor, Call Fire) y marcar al ⭐ titular. Trae su ❓ Guía rápida.', antes: () => ayIrVista_('gestion'), aviso: 'Aparece cuando hay recursos en la tabla.' },
+    { sel: '#gr-descargar-personas', t: '👥 Descargar personas', d: 'Excel con todas las personas de los recursos filtrados y un resumen por recurso.', antes: () => ayIrVista_('gestion') },
+    { sel: '#gr-plantilla-personas', t: '📋 Plantilla personas', d: 'Una fila por cupo (N° personas) de cada recurso filtrado, con las ya registradas. Complétala en Excel sin tocar «ID recurso» ni «ID persona».', antes: () => ayIrVista_('gestion') },
+    { sel: '#gr-subir-personas', t: '⬆️ Subir personas', d: 'Sube la plantilla completa: verás nuevas, actualizadas, sin cambios y errores antes de aplicar. No elimina personas.', antes: () => ayIrVista_('gestion') },
     { sel: '#tab-planificador', t: '🧭 Planificador gráfico', d: 'Los recursos del área en el mapa con su ruta asociada.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-cmpc'); } },
     { sel: '#pl-area', t: 'Filtra el área', d: 'Subgerencia, área, sector y tipo. ✕ Limpiar filtros vuelve a ver todo.', antes: () => { ayCerrarMenus_(); ayIrVista_('planificador'); }, aviso: 'El Planificador gráfico depende de los permisos de tu perfil.' },
     { sel: '#pl-lista', t: 'Lista de recursos', d: 'Clic en un recurso para abrir su ficha: ruta asociada y <b>📍 Ubicar / mover</b> el punto en el mapa.', antes: () => ayIrVista_('planificador') },
@@ -368,8 +488,10 @@ const AY_TOURS = {
   subgerente: [
     { sel: '#tab-seguimiento', t: '📈 Seguimiento', d: 'El tablero exclusivo del Subgerente. Es su vista de inicio.', antes: () => { ayCerrarMenus_(); }, aviso: 'Solo lo ve el Subgerente (el Administrador lo prueba con «Ver como… › 📈 Modo Subgerente»).' },
     { sel: '#sg-vistas', t: 'Dos vistas simples', d: '<b>🏘️ Comunas y copamiento</b> y <b>🌲 Inicio de recursos</b>, por separado.', antes: () => { ayIrVista_('seguimiento'); state.sg.vista = 'comunas'; if (state.sg.datos) renderSeguimiento_(); } },
-    { sel: '#sg-cuerpo .sg-chips', t: 'Elige un área', d: 'Muestra todas las comunas del área, cada una con su prioridad de Comunas Prioritarias.', antes: () => ayIrVista_('seguimiento'), aviso: 'Aparece cuando el tablero termina de calcular.' },
-    { sel: '.sg-com', t: 'Avance de una comuna', d: 'Tres tarjetas con el <b>nivel de copamiento</b> de Normal, Amarilla y Roja. A la derecha: ⛔ sin iniciar / 🟠 en curso / ✅ 3 escenarios y los usuarios que han trabajado.', antes: () => ayIrVista_('seguimiento'), aviso: 'Aparece cuando el tablero termina de calcular.' },
+    { sel: '#sg-cuerpo .sg-chips-prio', t: 'Prioridad y filtro de comuna', d: 'Marca una o varias prioridades. A la derecha, el <b>🔎 Filtro de comuna</b> busca por nombre.', antes: () => ayIrVista_('seguimiento'), aviso: 'Aparece cuando el tablero termina de cargar.' },
+    { sel: '#sg-n-comunas', t: 'Área y total de comunas', d: 'Los botones de Área muestran sus comunas; aquí, cuántas quedan con los filtros.', antes: () => ayIrVista_('seguimiento'), aviso: 'Aparece cuando el tablero termina de cargar.' },
+    { sel: '#sg-impl-kpi', t: 'Avance Copamiento Comunal', d: 'Avance general y por etapa de las comunas filtradas. <b>▸ Ver avance por comuna</b> despliega el detalle.', antes: () => ayIrVista_('seguimiento'), aviso: 'Aparece cuando el tablero termina de cargar.' },
+    { sel: '.sg-com', t: 'Avance de una comuna', d: 'Tres tarjetas con el <b>nivel de copamiento</b> de Normal, Amarilla y Roja. A la derecha: ⛔ sin iniciar / 🟠 en curso / ✅ 3 escenarios y los usuarios que han trabajado.', antes: () => ayIrVista_('seguimiento'), aviso: 'Aparece cuando el tablero termina de cargar.' },
     { sel: '[data-sg-vista="recursos"]', t: '🌲 Inicio de recursos', d: 'Fechas de inicio de operación por área: línea de tiempo, inicios por semana y filtros rápidos (ya iniciados, próximos 7 / 30 días, sin fecha).', antes: () => ayIrVista_('seguimiento') },
     { sel: '[data-sg-vista="turnos"]', t: '📅 Turnos', d: 'Qué áreas tienen el calendario de turnos completo. Un recurso queda incompleto si tiene más de 4 días libres seguidos en el periodo.', antes: () => ayIrVista_('seguimiento') },
     { sel: '#sg-excel', t: '⬇️ Excel', d: 'Descarga comunas, inicio de recursos y, si abriste la vista Turnos, la completitud del calendario por recurso.', antes: () => ayIrVista_('seguimiento') },
@@ -383,6 +505,20 @@ const AY_TOURS = {
     { sel: '#grupo-cmpc .vista-tab-grupo', t: 'Mejora los datos', d: 'Planificador CMPC ▾ › <b>Gestión de Recursos</b>: edición en la tabla, columnas, filtros por empresa/tipo/sector y 🏢 Empresas.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-cmpc'); } },
     { sel: '#grupo-prevencion .vista-tab-grupo', t: 'Seguimiento', d: 'Prevención ▾ › <b>Comunas Prioritarias</b> (📈 KPI de avance, ✅ listas) y <b>Acciones de Riesgo</b>.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-prevencion'); }, aviso: 'El menú Prevención depende de tu perfil.' },
     { sel: '#btn-actualizar-datos', t: '🔄 Actualizar datos', d: 'Trae los últimos cambios de la base de datos (de todos los usuarios).', antes: ayCerrarMenus_ },
+    { sel: '#btn-ayuda', t: '¡Listo!', d: 'Vuelve a esta ayuda cuando quieras con ❓.', antes: ayCerrarMenus_ },
+  ],
+  area: [
+    { sel: '#grupo-mapa .vista-tab-grupo', t: 'Planificador de Alertas', d: 'El modo área está en el mapa del <b>Planificador de Alertas</b>.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-mapa'); } },
+    { sel: '#comuna-select', t: 'Elige una comuna del área', d: 'El modo área toma el área de la comuna elegida.', antes: () => { ayCerrarMenus_(); ayIrMapa_('planificador'); }, aviso: 'Si tienes una sola comuna, ya está elegida.' },
+    { sel: '#modo-area-chk', t: 'Interruptor ÁREA', d: 'Enciéndelo para ver el área completa: capa Áreas de Relacionamiento, resto en gris, copamiento, incendios, recursos y rutas SIGEI del área. Apágalo para volver a la comuna.', antes: () => ayIrMapa_('planificador'), aviso: 'Aparece para el Administrador y el Jefe de Área, arriba a la derecha del mapa.' },
+    { sel: '.rail-btn[data-tab="capas"]', t: 'Capas', d: 'En modo área, «🏘️ Comunas del área» dibuja los límites de cada comuna con su opacidad; «Recursos Disponibles» y «Rutas de Patrullaje SIGEI» siguen el modo.', antes: () => ayIrMapa_('planificador') },
+    { sel: '#btn-planificar', t: '🔗 Comparte', d: 'En modo comuna, al planificar, la ventana de una ruta tiene <b>🔗 Comparte</b> para elegir las comunas del área donde también participa.', antes: () => ayIrMapa_('planificador'), aviso: 'Aparece con una comuna elegida y permiso para planificar.' },
+    { sel: '#btn-ayuda', t: '¡Listo!', d: 'Vuelve a esta ayuda cuando quieras con ❓.', antes: ayCerrarMenus_ },
+  ],
+  implementacion: [
+    { sel: '#grupo-prevencion .vista-tab-grupo', t: 'Menú Prevención', d: 'Aquí está <b>🪜 Implementación por comuna</b>.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-prevencion'); }, aviso: 'El menú Prevención depende de tu perfil.' },
+    { sel: '#tab-implementacion', t: '🪜 Implementación por comuna', d: 'Avance de las 7 etapas en las comunas de implementación.', antes: () => ayAbrirGrupo_('grupo-prevencion'), aviso: 'Lo ven el Administrador, los Jefes de Área, el Subgerente y el GRT.' },
+    { sel: '#im-cuerpo', t: 'Avance y tabla', d: 'Arriba el <b>Avance Copamiento Comunal</b> (general y por etapa), luego las tarjetas por área y la tabla de comunas × etapas. El Administrador marca con clic en cada casilla.', antes: () => { ayCerrarMenus_(); ayIrVista_('implementacion'); } },
     { sel: '#btn-ayuda', t: '¡Listo!', d: 'Vuelve a esta ayuda cuando quieras con ❓.', antes: ayCerrarMenus_ },
   ],
   agricultores: [

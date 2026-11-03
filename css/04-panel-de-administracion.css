@@ -539,6 +539,51 @@ body.modo-dashboard #btn-volver-sg{display:none !important;}   /* solo se ve sob
 #implementacion-panel{position:absolute;top:60px;left:0;right:0;bottom:0;z-index:350;background:var(--bg-light);display:none;flex-direction:column;color:var(--text-primary);}
 #implementacion-panel.show{display:flex;}
 /* 👥 Turnos de Gestores (20-10-2026, SQL 134) */
+/* 🗺️ Descargas geográficas (02-11-2026) */
+#descargas-panel{position:absolute;top:60px;left:0;right:0;bottom:0;z-index:350;background:var(--bg-light);display:none;flex-direction:column;color:var(--text-primary);}
+#descargas-panel.show{display:flex;}
+.dg-cuerpo{flex:1;min-height:0;display:flex;gap:12px;padding:12px;}
+.dg-lado{width:390px;flex-shrink:0;overflow:auto;display:flex;flex-direction:column;gap:10px;}
+.dg-bloque{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:7px;font-size:12px;}
+.dg-bloque > b{font-size:13px;color:var(--text-primary);margin-bottom:2px;}
+.dg-bloque label{display:flex;flex-direction:column;gap:3px;font-weight:600;color:var(--text-secondary);}
+.dg-bloque label .admin-search,.dg-bloque label .msel-btn{width:100%;min-width:0;text-align:left;text-align-last:left;justify-content:flex-start;}
+.dg-mas{border-top:1px dashed var(--border);padding-top:6px;display:flex;flex-direction:column;gap:7px;}
+.dg-mas summary{cursor:pointer;font-weight:700;color:var(--cobalt);font-size:12px;list-style:none;}
+.dg-mas summary::-webkit-details-marker{display:none;}
+.dg-mas[open] summary{margin-bottom:6px;}
+.dg-mas > label,.dg-mas > .dg-escs{margin-bottom:7px;}
+.dg-prog{display:none;position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:600;width:min(380px,calc(100% - 32px));
+  background:#0F172A;color:#fff;border-radius:12px;padding:10px 14px 11px;box-shadow:0 8px 24px rgba(0,0,0,.3);font:600 12.5px 'Inter',sans-serif;}
+.dg-prog.activo{display:block;}
+.dg-prog-fila{display:flex;align-items:center;gap:9px;}
+.dg-prog-fila b{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#dg-prog-pct{font-weight:900;color:#93C5FD;font-variant-numeric:tabular-nums;}
+.dg-prog .cc-spin{width:14px;height:14px;border-radius:50%;border:2.5px solid rgba(255,255,255,.25);border-top-color:#60A5FA;animation:ccGiro .8s linear infinite;flex-shrink:0;}
+.dg-prog-barra{height:6px;border-radius:4px;background:rgba(255,255,255,.15);margin-top:8px;overflow:hidden;}
+.dg-prog-barra em{display:block;height:100%;width:1%;border-radius:4px;background:linear-gradient(90deg,#3B82F6,#60A5FA);transition:width .3s ease;}
+.dg-escs{display:flex;flex-direction:column;gap:4px;font-weight:600;color:var(--text-secondary);}
+.dg-escs label{flex-direction:row;align-items:center;gap:6px;font-weight:500;color:var(--text-primary);}
+.dg-capa{flex-direction:row !important;align-items:center;gap:8px !important;font-weight:500 !important;color:var(--text-primary) !important;}
+.dg-capa i,.dg-bajar i{display:inline-block;width:10px;height:10px;border-radius:3px;flex-shrink:0;margin-right:4px;}
+.dg-capa span{flex:1;}
+.dg-capa em{font-style:normal;font-weight:800;color:var(--text-secondary);font-variant-numeric:tabular-nums;}
+.dg-aplicar{margin-top:4px;justify-content:center;}
+.dg-descargas{display:flex;flex-direction:column;gap:6px;}
+.dg-bajar{display:block;padding:7px 0;border-bottom:1px solid #F1F5F9;}
+.dg-bajar:last-child{border-bottom:none;}
+.dg-bajar-nom{display:flex;align-items:center;gap:4px;font-weight:700;font-size:12.5px;color:var(--text-primary);text-align:left;margin-bottom:5px;white-space:normal;}
+.dg-bajar-nom small{color:var(--text-tertiary);font-weight:600;margin-left:2px;}
+.dg-bajar-btns{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.dg-bajar-btns button{width:100%;justify-content:center;}
+.dg-bajar small{color:var(--text-tertiary);font-weight:500;}
+.dg-bajar-todo{padding-bottom:6px;border-bottom:1px dashed var(--border);margin-bottom:2px;}
+.dg-nota{color:var(--text-tertiary);font-size:11.5px;}
+.dg-mapa-caja{flex:1;min-width:0;position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);}
+#dg-mapa{position:absolute;inset:0;}
+.dg-estado{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:500;background:#0F172A;color:#fff;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;}
+.dg-estado:empty{display:none;}
+@media (max-width:800px){.dg-cuerpo{flex-direction:column;} .dg-lado{width:auto;} .dg-mapa-caja{min-height:360px;}}
 #turnosgestor-panel{position:absolute;top:60px;left:0;right:0;bottom:0;z-index:350;background:var(--bg-light);display:none;flex-direction:column;color:var(--text-primary);}
 #turnosgestor-panel.show{display:flex;}
 .tg-pinceles{display:flex;gap:4px;flex-wrap:wrap;}
@@ -673,6 +718,43 @@ body.modo-dashboard #btn-volver-sg{display:none !important;}   /* solo se ve sob
 .im-etapas-res div span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .im-etapas-res b{text-align:right;font-variant-numeric:tabular-nums;}
 .im-area.on{box-shadow:0 0 0 2px var(--cobalt);}
+.sg-n-comunas{margin-left:auto;font-size:12.5px;color:var(--text-secondary);background:var(--white);border:1px solid var(--border);
+  border-radius:999px;padding:5px 12px;white-space:nowrap;}
+.sg-n-comunas b{font-size:15px;color:var(--text-primary);font-weight:900;}
+/* 22-10-2026 · «Avance Copamiento Comunal» v2: avance general destacado + etapas con nombre completo y barra ancha */
+.im-global-wrap{margin:10px 0;}
+.im-global-v2{align-items:stretch;gap:22px;padding:16px 20px;flex-wrap:wrap;}
+.im-gen{display:flex;align-items:center;gap:16px;flex:0 0 auto;padding-right:22px;border-right:1px dashed var(--border);}
+.im-gen-txt b{display:block;font-size:17px;font-weight:800;color:var(--text-primary);}
+.im-gen-txt > span{display:block;font-size:11.5px;color:var(--text-secondary);margin:2px 0 10px;}
+.im-gen-cifras{display:flex;gap:8px;}
+.im-gen-cifras em{font-style:normal;font-size:20px;font-weight:900;color:var(--k);background:color-mix(in srgb,var(--k) 10%,transparent);
+  border-radius:10px;padding:5px 10px;min-width:74px;line-height:1.1;}
+.im-gen-cifras em small{display:block;font-size:10.5px;font-weight:700;color:var(--text-secondary);margin:2px 0 0;}
+.im-ver-det{margin-top:10px;border:1px solid var(--border);background:var(--white);border-radius:9px;padding:6px 11px;font:700 12px 'Inter',sans-serif;color:var(--cobalt);cursor:pointer;}
+.im-ver-det:hover{background:#EFF6FF;}
+.im-ver-det .ocultar,.im-global-wrap.abierto .im-ver-det .ver{display:none;}
+.im-global-wrap.abierto .im-ver-det .ocultar{display:inline;}
+.im-etapas-v2{flex:1 1 520px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px 22px;align-content:center;}
+.im-etapas-v2 > div .cab{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:600;color:var(--text-primary);margin-bottom:4px;}
+.im-etapas-v2 > div .cab b{color:var(--c);font-size:14px;font-weight:900;font-variant-numeric:tabular-nums;}
+.im-etapas-v2 .im-barra{height:10px;}
+.im-etapas-v2 small{display:block;font-size:10.5px;color:var(--text-tertiary);margin-top:3px;}
+.im-det{display:none;margin-top:8px;background:var(--white);border:1px solid var(--border);border-radius:14px;padding:8px 14px;
+  grid-template-columns:repeat(auto-fill,minmax(620px,1fr));gap:2px 40px;}
+.im-global-wrap.abierto .im-det{display:grid;}
+/* nombre · 7 etapas · barra (se adapta) · % · n/7 — sin desbordar hacia la columna vecina */
+.im-det-fila{display:grid;grid-template-columns:minmax(120px,170px) auto minmax(60px,1fr) 46px 34px;align-items:center;gap:10px;padding:6px 0;
+  border-bottom:1px solid #F1F5F9;font-size:12px;min-width:0;overflow:hidden;}
+.im-det-fila > b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.im-det-fila strong{color:var(--c);font-weight:900;text-align:right;font-variant-numeric:tabular-nums;}
+.im-det-fila small{color:var(--text-tertiary);font-size:10.5px;}
+.im-det-etapas{display:flex;gap:3px;}
+.im-det-etapas i{font-style:normal;width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;
+  background:#F1F5F9;filter:grayscale(1);opacity:.45;}
+.im-det-etapas i.ok{background:#DCFCE7;filter:none;opacity:1;}
+@media (max-width:900px){.im-gen{border-right:none;padding-right:0;} .im-det{grid-template-columns:1fr;}
+  .im-det-fila{grid-template-columns:minmax(90px,1fr) auto 40px 30px;} .im-det-fila .im-barra{display:none;}}
 .im-area b{display:block;font-size:12.5px;}
 .im-area .fila{display:flex;align-items:center;gap:8px;margin-top:4px;}
 .im-area .fila .im-barra{flex:1;}
@@ -757,6 +839,46 @@ select.gr-in:disabled{color:var(--text-secondary);cursor:default;opacity:1;}
 @media (max-width:700px){ .grn-grid{grid-template-columns:1fr 1fr;} }
 .gr-pill{display:inline-block;padding:1px 7px;border-radius:99px;font-size:10.5px;font-weight:700;}
 .gr-pill.ok{background:#DCFCE7;color:#166534;} .gr-pill.no{background:#FEE2E2;color:#991B1B;}
+/* 👥 Personas de cada recurso (SQL 147) */
+.gr-clave-cel{display:flex;align-items:center;gap:4px;}
+/* 📈 KPI Avance de actualización de personas + guía rápida */
+.grk-personas{flex:1 1 360px;min-width:280px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:8px 12px;}
+/* En la ventana 👥 el cuerpo es columna flexible: el KPI no debe crecer (dejaba un gran espacio vacío) */
+.grk-personas.grk-mini{flex:0 0 auto;min-width:0;margin-bottom:8px;padding:5px 10px;display:flex;align-items:center;gap:10px;}
+.grk-mini .grk-cab{flex:0 0 auto;gap:8px;}
+.grk-mini .grk-cab b{font-size:15px;}
+.grk-mini .grk-barra{flex:1;margin:0;height:7px;}
+#grp-cuerpo{gap:8px;}
+#grp-cuerpo > *{flex-shrink:0;}
+#grp-cuerpo .grp-guia,#grp-cuerpo .grp-resumen,#grp-cuerpo .grp-form{margin-bottom:0;}
+.grk-cab{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:12px;font-weight:700;color:var(--text-secondary);}
+.grk-cab b{font-size:20px;}
+.grk-barra{height:9px;background:#E5E7EB;border-radius:99px;overflow:hidden;margin:5px 0;}
+.grk-barra i{display:block;height:100%;border-radius:99px;transition:width .3s;}
+.grk-det{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11.5px;color:var(--text-secondary);}
+.grk-det b{color:var(--text-primary);}
+.grk-aviso{color:#B45309;font-weight:600;}
+.grp-guia{border:1.5px solid #FDE68A;background:#FFFBEB;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;}
+.grp-guia-cab{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.grp-guia ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;}
+.grp-guia li{display:flex;gap:7px;align-items:flex-start;line-height:1.35;}
+.grp-guia-n{flex:0 0 20px;height:20px;border-radius:50%;background:#F59E0B;color:#fff;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;}
+.grp-guia-pie{margin-top:8px;color:#92400E;}
+body.tema-oscuro .grk-personas{background:var(--bg-light);} body.tema-oscuro .grp-guia{background:#422006;border-color:#92400E;}
+.gr-pers{border:1.5px solid var(--border);background:var(--white);border-radius:99px;padding:2px 9px;font:700 11.5px inherit;font-family:inherit;cursor:pointer;white-space:nowrap;}
+.gr-pers.ok{background:#DCFCE7;border-color:#86EFAC;color:#166534;}
+.gr-pers.parcial{background:#FEF3C7;border-color:#FCD34D;color:#92400E;}
+.gr-pers.cero{color:var(--text-secondary);}
+.gr-pers:hover{border-color:#2563EB;}
+.grp-resumen{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px;}
+.grp-chip{background:#F1F5F9;border-radius:99px;padding:3px 10px;font-size:12px;}
+.grp-chip.aviso{background:#FEF3C7;color:#92400E;font-weight:600;}
+.grp-form{border:1.5px solid #BFDBFE;background:#F8FAFF;border-radius:10px;padding:12px;margin-bottom:12px;}
+.grp-chks{flex-direction:row;flex-wrap:wrap;gap:8px 18px;}
+.grp-chk{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--text-primary);cursor:pointer;}
+.grp-form-pie{display:flex;align-items:center;gap:8px;margin-top:10px;}
+.grp-tabla td{font-size:12px;vertical-align:middle;}
+.grp-tabla tr.grp-titular td{background:#FFFBEB;}
 .gr-modal{position:fixed;inset:0;z-index:5000;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:16px;}
 .gr-modal-caja{background:var(--white);color:var(--text-primary);border-radius:14px;width:min(920px,100%);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);}
 .gr-modal-cab,.gr-modal-pie{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);}

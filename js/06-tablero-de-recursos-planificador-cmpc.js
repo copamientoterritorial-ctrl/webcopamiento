@@ -436,7 +436,8 @@ async function descargarTablero_() {
  *   · Jefe de Área: edita directo en la tabla los recursos de SUS áreas (RPC actualizar_datos_recurso).
  *   · Administrador: todo lo anterior + carga masiva subiendo el Excel descargado
  *     (RPC actualizar_recursos_masivo; se cruza por el ID, que nunca se modifica).
- * El contacto vive en recurso_contacto (RLS: solo Admin y Jefe del área lo leen). */
+ * El contacto vive en recurso_contacto (RLS: solo Admin y Jefe del área lo leen).
+ * Desde 02-11-2026 (SQL 147) el contacto = TITULAR de 👥 Personas (recurso_personas): se edita en ese botón. */
 const GR_COLS = [
   { k: 'alias', t: 'Clave radial', ed: true, w: 90 },
   { k: 'codigo_ref', t: 'ID', lock: true },
@@ -445,10 +446,11 @@ const GR_COLS = [
   { k: 'area', t: 'Área' },
   { k: 'sector', t: 'Sector', ed: true, w: 120 },
   { k: 'zona_alerta', t: 'Zona de alerta' },   // calculada por el punto del recurso (SQL 126), no se edita
-  { k: 'nombre_persona', t: 'Nombre de la persona', ed: true, c: true, w: 190 },
-  { k: 'rut', t: 'RUT', ed: true, c: true, w: 110, tipo: 'rut' },
-  { k: 'telefono', t: 'Teléfono', ed: true, c: true, w: 120, tipo: 'tel' },
-  { k: 'mail', t: 'Mail', ed: true, c: true, w: 190, tipo: 'mail' },
+  // 02-11-2026 (SQL 147): el contacto es el TITULAR de 👥 Personas (un trigger lo copia); se edita en ese botón, no en la tabla
+  { k: 'nombre_persona', t: 'Titular', c: true, w: 190 },
+  { k: 'rut', t: 'RUT titular', c: true, w: 110, tipo: 'rut' },
+  { k: 'telefono', t: 'Teléfono titular', c: true, w: 120, tipo: 'tel' },
+  { k: 'mail', t: 'Mail titular', c: true, w: 190, tipo: 'mail' },
   { k: 'empresa', t: 'Empresa (EESS)', ed: true, w: 140 },
   { k: 'tipo_movil', t: 'Tipo de móvil', ed: true, w: 110 },
   { k: 'actividad', t: 'Turno', ed: true, w: 90 },
@@ -461,6 +463,8 @@ const GR_COLS = [
 const GR_CONTACTO = ['nombre_persona', 'rut', 'telefono', 'mail'];
 state.gr = { recursos: [], cambios: {}, errores: {}, listeners: false, sinSql92: false, carga: null,
   empresas: null,          // [{ id, nombre, activo, areas: [...] }] (SQL 100) o null si no está
+  personas: {},            // { recurso_id: [{ id, nombre, rut, cargo, titular }] } (SQL 147)
+  sinSql147: false,
   colsOcultas: new Set() };
 // Columnas ocultas: preferencia de cada usuario en este navegador (la Clave radial siempre se ve)
 const GR_COLS_KEY = 'gr-cols-ocultas';
@@ -581,6 +585,7 @@ async function abrirGestionRecursos_(forzar) {
     const { data: cs, error: ec } = await supabaseClient.from('recurso_contacto').select('recurso_id, nombre_persona, rut, telefono, mail, actualizado_en');
     if (ec) { state.gr.sinSql92 = true; console.warn('Gestión de Recursos: recurso_contacto no disponible (¿falta el SQL 92?):', ec.message); }
     else (cs || []).forEach(c => { contactos[c.recurso_id] = c; });
+    await cargarPersonasGestion_();
     const esAdmin = grEsAdmin_();
     const mias = (state.misAreasIds || []).map(plNorm_);
     state.gr.recursos = filas
@@ -664,9 +669,13 @@ function grFiltrados_() {
     if (fC === 'completo' && !grContactoCompleto_(r)) return false;
     if (fC === 'incompleto' && grContactoCompleto_(r)) return false;
     if (fC === 'modificado' && !state.gr.cambios[r.id]) return false;
+    if (fC === 'pers_completo' && grEstadoPersonas_(r) !== 'ok') return false;
+    if (fC === 'pers_incompleto' && grEstadoPersonas_(r) === 'ok') return false;
+    if (fC === 'pers_sin_titular' && (state.gr.personas[r.id] || []).some(p => p.titular)) return false;
     if (q) {
       const txt = normalizarBusqueda_([claveRecurso_(r), r.codigo_ref, r.tipo_recurso, r.sector, r.empresa,
-        grValor_(r, 'nombre_persona'), grValor_(r, 'rut'), grValor_(r, 'telefono'), grValor_(r, 'mail')].join(' '));
+        grValor_(r, 'nombre_persona'), grValor_(r, 'rut'), grValor_(r, 'telefono'), grValor_(r, 'mail')]
+        .concat((state.gr.personas[r.id] || []).map(p => p.nombre + ' ' + p.rut)).join(' '));
       if (!txt.includes(q)) return false;
     }
     return true;
@@ -695,7 +704,8 @@ function renderGestion_() {
     kpi(completos, 'con contacto completo', '#16A34A') +
     kpi(lista.length - completos, 'con contacto incompleto', '#DC2626') +
     kpi(lista.reduce((s, r) => s + (Number(grValor_(r, 'n_personas')) || 0), 0), '👥 personas', '#7C3AED') +
-    (nCamb ? kpi(nCamb, 'con cambios sin guardar', '#7C3AED') : '');
+    (nCamb ? kpi(nCamb, 'con cambios sin guardar', '#7C3AED') : '') +
+    grKpiPersonasHtml_(lista);
   const aviso = document.getElementById('gr-aviso');
   aviso.style.display = state.gr.sinSql92 ? '' : 'none';
   if (state.gr.sinSql92) aviso.textContent = '⚠️ Falta ejecutar en Supabase el SQL 92 (sql/pendientes/92_gestion_recursos_contacto.sql): por ahora no se pueden guardar cambios ni ver los datos de contacto.';
@@ -708,7 +718,8 @@ function renderGestion_() {
   if (!lista.length) { cont.innerHTML = '<div class="tb-vacio">No hay recursos con estos filtros.</div>'; return; }
   const cols = grColsVisibles_();
   const cab = '<tr>' + cols.map((c, i) => '<th class="' + (i === 0 ? 'gr-fijo ' : '') + (c.c ? 'gr-th-contacto' : '') + '">' +
-    (c.lock ? '🔒 ' : c.c ? '👤 ' : '') + escapeHtml_(c.t) + '</th>').join('') + '<th>Contacto</th><th title="Eliminar recurso (solo si no tiene rutas)"></th></tr>';
+    (c.lock ? '🔒 ' : c.c ? '👤 ' : '') + escapeHtml_(c.t) + (i === 0 ? ' · 👥' : '') + '</th>').join('') +
+    '<th>Contacto</th><th title="Eliminar recurso (solo si no tiene rutas)"></th></tr>';
   const cuerpo = lista.map(r => {
     const editable = grPuedeEditar_(r) && !state.gr.sinSql92;
     const camb = state.gr.cambios[r.id] || {}, errs = state.gr.errores[r.id] || {};
@@ -731,10 +742,12 @@ function renderGestion_() {
           '</select></td>';
       }
       const tipo = c.tipo === 'fecha' ? 'date' : c.tipo === 'num' ? 'number' : c.tipo === 'mail' ? 'email' : c.tipo === 'tel' ? 'tel' : 'text';
-      return '<td class="' + fijo.trim() + '"><input class="' + cls + '" type="' + tipo + '" style="--w:' + (c.w || 110) + 'px"' +
+      const input = '<input class="' + cls + '" type="' + tipo + '" style="--w:' + (c.w || 110) + 'px"' +
         ' data-gr-id="' + escapeHtml_(String(r.id)) + '" data-gr-k="' + c.k + '" value="' + escapeHtml_(v) + '"' +
         (c.lista ? ' list="' + c.lista + '"' : '') + (c.tipo === 'num' ? ' min="0" step="1"' : '') +
-        (errs[c.k] ? ' title="' + escapeHtml_(errs[c.k]) + '"' : '') + (editable ? '' : ' readonly tabindex="-1"') + '></td>';
+        (errs[c.k] ? ' title="' + escapeHtml_(errs[c.k]) + '"' : '') + (editable ? '' : ' readonly tabindex="-1"') + '>';
+      // 👥 Personas va junto a la Clave radial (columna fija)
+      return '<td class="' + fijo.trim() + '">' + (i === 0 ? '<div class="gr-clave-cel">' + input + grBotonPersonas_(r) + '</div>' : input) + '</td>';
     }).join('');
     const ok = grContactoCompleto_(r);
     // 🗑️ Eliminar: solo quien puede editar el recurso, y nunca si tiene rutas asignadas
@@ -965,7 +978,8 @@ function abrirNuevoRecursoGestion_() {
   document.getElementById('grn-error').textContent = '';
   document.getElementById('grn-cuerpo').innerHTML =
     '<div class="pl-aviso info" style="margin:0;">Área <b>' + escapeHtml_(area) + '</b>' + (ref.subgerencia ? ' · Subgerencia ' + escapeHtml_(ref.subgerencia) : '') +
-      '. Se crea <b>sin ubicación</b>: después ubícalo en <b>Planificador gráfico › ficha › 📍 Ubicar en el mapa</b>.</div>' +
+      '. Se crea <b>sin ubicación</b>: después ubícalo en <b>Planificador gráfico › ficha › 📍 Ubicar en el mapa</b>. ' +
+      'Las personas (y el titular) se agregan luego con <b>👥 Personas</b> en su fila.</div>' +
     '<div class="grn-grid">' +
       campo('codigo_ref', '🔒 ID (obligatorio, único)', inp('text', ' placeholder="Ej.: VCAM-0315" style="text-transform:uppercase;"')) +
       campo('alias', '📻 Clave radial', inp('text', ' placeholder="Ej.: AV3.71"')) +
@@ -979,10 +993,6 @@ function abrirNuevoRecursoGestion_() {
       campo('n_personas', 'N° personas', inp('number', ' min="0" step="1"')) +
       campo('fecha_inicio_operacion', 'Fecha inicio', inp('date')) +
       campo('fecha_termino_operacion', 'Fecha término', inp('date')) +
-      campo('nombre_persona', '👤 Nombre de la persona', inp('text')) +
-      campo('rut', '👤 RUT', inp('text', ' placeholder="12.345.678-5"')) +
-      campo('telefono', '👤 Teléfono', inp('tel')) +
-      campo('mail', '👤 Mail', inp('email')) +
       campo('trabajo_actual', 'Trabajo actual', inp('text'), true) +
     '</div>' +
     dl('grn-dl-sector', distintos('sector')) + dl('grn-dl-empresa', distintos('empresa')) + dl('grn-dl-movil', distintos('tipo_movil')) + dl('grn-dl-turno', distintos('actividad'));
@@ -1041,6 +1051,532 @@ async function eliminarRecursoGestion_(id) {
   mostrarToast_('🗑️ Recurso ' + nombre + ' eliminado.');
 }
 
+/* ── 👥 PERSONAS DE CADA RECURSO (02-11-2026, SQL 147) ──
+ * Cada recurso tiene N° personas; se registran de a una (nombre, RUT, teléfono, dirección, temporada, correo,
+ * curso Call Fire, cargo, conductor, titular). UNA persona es el titular: un trigger la copia a recurso_contacto
+ * y es la que muestra la planilla (columnas 👤 Titular). Escriben el Admin y el Jefe del área (puede_gestionar_recurso_). */
+function grCargosDe_(tipo) {   // = cargos_recurso_ del SQL 147
+  return /MULTIPROPOSITO/.test(normalizarBusqueda_(tipo || '').toUpperCase())
+    ? ['Jefe de Brigada', 'Motosierrista', 'Manual'] : ['Vigía'];
+}
+/** Temporadas = N° de temporadas trabajando (SQL 148): 1 → «1ª temporada». */
+function grTemporadas_(n) { return /^\d+$/.test(String(n == null ? '' : n)) && Number(n) >= 1 ? n + 'ª' : '—'; }
+async function cargarPersonasGestion_() {
+  state.gr.personas = {}; state.gr.sinSql147 = false;
+  for (let d = 0; ; d += 1000) {
+    const { data, error } = await supabaseClient.from('recurso_personas').select('id, recurso_id, nombre, rut, cargo, titular').order('nombre').range(d, d + 999);
+    if (error) { state.gr.sinSql147 = true; console.warn('Gestión de Recursos: recurso_personas no disponible (¿falta el SQL 147?):', error.message); return; }
+    (data || []).forEach(p => { (state.gr.personas[p.recurso_id] = state.gr.personas[p.recurso_id] || []).push(p); });
+    if (!data || data.length < 1000) break;
+  }
+}
+/** Estado de personas del recurso: 'ok' (registradas ≥ N° personas y con titular), 'parcial' o 'cero'. */
+function grEstadoPersonas_(r) {
+  const ps = state.gr.personas[r.id] || [], total = Number(grValorActual_(r, 'n_personas')) || 0;
+  if (!ps.length) return 'cero';
+  return total && ps.length >= total && ps.some(p => p.titular) ? 'ok' : 'parcial';
+}
+/** 📈 KPI «Avance de actualización de personas» de los recursos filtrados.
+ *  Avance = Σ mín(registradas, N° personas) / Σ N° personas (los recursos sin N° personas no entran al %). */
+function grKpiPersonasHtml_(lista) {
+  if (state.gr.sinSql147 || !lista.length) return '';
+  let esperadas = 0, cubiertas = 0, registradas = 0, completos = 0, titulares = 0, sinN = 0;
+  lista.forEach(r => {
+    const ps = state.gr.personas[r.id] || [], total = Number(grValorActual_(r, 'n_personas')) || 0;
+    registradas += ps.length;
+    if (ps.some(p => p.titular)) titulares++;
+    if (grEstadoPersonas_(r) === 'ok') completos++;
+    if (!total) { sinN++; return; }
+    esperadas += total; cubiertas += Math.min(ps.length, total);
+  });
+  const pct = esperadas ? Math.round(cubiertas / esperadas * 1000) / 10 : 0;
+  const color = pct >= 90 ? '#16A34A' : pct >= 50 ? '#F59E0B' : '#DC2626';
+  const pctR = Math.round(completos / lista.length * 100), pctT = Math.round(titulares / lista.length * 100);
+  const barra = (p, c) => '<div class="grk-barra"><i style="width:' + Math.min(100, p) + '%;background:' + c + '"></i></div>';
+  return '<div class="grk-personas" title="Avance = personas registradas (hasta el N° personas de cada recurso) / N° personas esperado. Filtra con «👥 Faltan personas» o «⭐ Sin titular».">' +
+    '<div class="grk-cab"><span>👥 Avance de actualización de personas</span><b style="color:' + color + '">' + pct.toLocaleString('es-CL') + ' %</b></div>' +
+    barra(pct, color) +
+    '<div class="grk-det">' +
+      '<span><b>' + cubiertas.toLocaleString('es-CL') + '</b> de ' + esperadas.toLocaleString('es-CL') + ' personas' + (registradas > cubiertas ? ' <small>(+' + (registradas - cubiertas) + ' sobre el N°)</small>' : '') + '</span>' +
+      '<span>✅ <b>' + completos + '</b>/' + lista.length + ' recursos completos (' + pctR + ' %)</span>' +
+      '<span>⭐ <b>' + titulares + '</b>/' + lista.length + ' con titular (' + pctT + ' %)</span>' +
+      (sinN ? '<span class="grk-aviso">⚠️ ' + sinN + ' sin N° personas</span>' : '') +
+    '</div></div>';
+}
+function grBotonPersonas_(r) {
+  const n = (state.gr.personas[r.id] || []).length, total = Number(grValorActual_(r, 'n_personas')) || 0;
+  const est = grEstadoPersonas_(r), cls = est === 'ok' ? 'ok' : est === 'cero' ? 'cero' : 'parcial';
+  return '<button class="gr-pers ' + cls + '" data-gr-personas="' + escapeHtml_(String(r.id)) + '" title="Personas registradas de ' + (total || '?') +
+    ' (N° personas). Clic para ver, agregar o editar.">👥 ' + n + (total ? '/' + total : '') + '</button>';
+}
+
+async function abrirPersonasRecurso_(id) {
+  const r = state.gr.recursos.find(x => String(x.id) === String(id)); if (!r) return;
+  if (state.gr.sinSql147) { mostrarToast_('⚠️ Falta ejecutar en Supabase el SQL 147 (sql/pendientes/147_personas_por_recurso.sql).'); return; }
+  let m = document.getElementById('grp-modal');
+  if (!m) {
+    m = document.createElement('div'); m.id = 'grp-modal'; m.className = 'gr-modal';
+    m.innerHTML = '<div class="gr-modal-caja" style="width:min(1150px,97vw);"><div class="gr-modal-cab"><b id="grp-titulo">👥 Personas</b><span style="display:flex;gap:6px;">' +
+      '<button class="turnos-btn" data-grp="guia" title="Cómo registrar y actualizar las personas del recurso">❓ Guía rápida</button>' +
+      '<button class="turnos-btn" data-grp="cerrar">✕</button></span></div>' +
+      '<div class="gr-modal-cuerpo" id="grp-cuerpo"></div>' +
+      '<div class="gr-modal-pie"><span id="grp-pie" style="flex:1;font-size:11.5px;color:var(--text-secondary);"></span><button class="turnos-btn" data-grp="cerrar">Cerrar</button></div></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click', e => {
+      const a = e.target.closest('[data-grp]');
+      if (e.target === m || (a && a.dataset.grp === 'cerrar')) { m.style.display = 'none'; renderGestion_(); return; }
+      if (!a) return;
+      if (a.dataset.grp === 'guia') { m._guia = !m._guia; grpGuardarGuia_(m._guia); grpRender_(); return; }
+      if (a.dataset.grp === 'nueva') grpFormulario_(null);
+      if (a.dataset.grp === 'editar') grpFormulario_(m._lista.find(p => p.id === a.dataset.id));
+      if (a.dataset.grp === 'cancelar') grpFormulario_(undefined);
+      if (a.dataset.grp === 'guardar') grpGuardar_();
+      if (a.dataset.grp === 'eliminar') grpEliminar_(a.dataset.id);
+    });
+  }
+  m._recurso = r; m._lista = []; m._form = undefined;
+  // La guía rápida se abre sola la primera vez; después se recuerda si el usuario la cerró
+  try { m._guia = localStorage.getItem('grp-guia') !== '0'; } catch (e) { m._guia = true; }
+  document.getElementById('grp-titulo').textContent = '👥 Personas · 📻 ' + (claveRecurso_(r) || 'Sin clave') + ' (' + (r.codigo_ref || 'sin ID') + ') · ' + aTitulo_(r.tipo_recurso || '');
+  document.getElementById('grp-cuerpo').innerHTML = '<div class="tb-vacio">Cargando…</div>';
+  m.style.display = 'flex';
+  await grpRecargar_();
+}
+async function grpRecargar_() {
+  const m = document.getElementById('grp-modal'), r = m._recurso;
+  const { data, error } = await supabaseClient.from('recurso_personas').select('*').eq('recurso_id', r.id);
+  if (error) { document.getElementById('grp-cuerpo').innerHTML = '<div class="tb-vacio">No se pudo cargar: ' + escapeHtml_(error.message) + '</div>'; return; }
+  const cargos = grCargosDe_(r.tipo_recurso);
+  m._lista = (data || []).sort((a, b) => (b.titular - a.titular) || (cargos.indexOf(a.cargo) - cargos.indexOf(b.cargo)) || a.nombre.localeCompare(b.nombre, 'es'));
+  state.gr.personas[r.id] = m._lista.map(p => ({ id: p.id, recurso_id: p.recurso_id, nombre: p.nombre, rut: p.rut, cargo: p.cargo, titular: p.titular }));
+  const t = m._lista.find(p => p.titular);   // la planilla muestra al titular
+  r.nombre_persona = t ? t.nombre : null; r.rut = t ? t.rut : null; r.telefono = t ? t.telefono : null; r.mail = t ? t.correo : null;
+  grpRender_();
+}
+function grpRender_() {
+  const m = document.getElementById('grp-modal'), r = m._recurso, lista = m._lista;
+  const editable = grPuedeEditar_(r);
+  const total = Number(grValorActual_(r, 'n_personas')) || 0;
+  const si = v => v ? '<span class="gr-pill ok">Sí</span>' : '<span style="color:var(--text-tertiary);">No</span>';
+  const porCargo = {}; lista.forEach(p => { porCargo[p.cargo] = (porCargo[p.cargo] || 0) + 1; });
+  const filas = lista.map(p => '<tr' + (p.titular ? ' class="grp-titular"' : '') + '>' +
+    '<td>' + (p.titular ? '⭐ ' : '') + '<b>' + escapeHtml_(p.nombre) + '</b></td><td>' + escapeHtml_(p.rut) + '</td><td>' + escapeHtml_(p.cargo) + '</td>' +
+    '<td>' + si(p.titular) + '</td><td>' + si(p.conductor) + '</td><td>' + si(p.curso_call_fire) + '</td>' +
+    '<td>' + escapeHtml_(p.telefono || '—') + '</td><td>' + escapeHtml_(p.correo || '—') + '</td><td>' + escapeHtml_(p.direccion || '—') + '</td><td style="text-align:center;">' + escapeHtml_(grTemporadas_(p.temporada)) + '</td>' +
+    '<td style="white-space:nowrap;">' + (editable ? '<button class="gr-del" style="width:auto;padding:0 7px;" data-grp="editar" data-id="' + escapeHtml_(p.id) + '" title="Editar">✏️</button> ' +
+      '<button class="gr-del" data-grp="eliminar" data-id="' + escapeHtml_(p.id) + '" title="Eliminar persona">🗑️</button>' : '') + '</td></tr>').join('');
+  const falta = total ? total - lista.length : 0;
+  const cubiertas = total ? Math.min(lista.length, total) : 0, pct = total ? Math.round(cubiertas / total * 100) : 0;
+  const color = pct >= 100 && lista.some(p => p.titular) ? '#16A34A' : pct >= 50 ? '#F59E0B' : '#DC2626';
+  document.getElementById('grp-cuerpo').innerHTML =
+    (m._guia ? grpGuiaHtml_(r) : '') +
+    (total ? '<div class="grk-personas grk-mini"><div class="grk-cab"><span>👥 Avance de este recurso</span><b style="color:' + color + '">' + pct + ' %</b></div>' +
+      '<div class="grk-barra"><i style="width:' + pct + '%;background:' + color + '"></i></div></div>' : '') +
+    '<div class="grp-resumen">' +
+      '<span class="grp-chip">👥 <b>' + lista.length + '</b>' + (total ? ' de ' + total + ' personas' : ' persona(s) · N° personas sin dato') + '</span>' +
+      Object.keys(porCargo).map(c => '<span class="grp-chip">' + escapeHtml_(c) + ': <b>' + porCargo[c] + '</b></span>').join('') +
+      (lista.length && !lista.some(p => p.titular) ? '<span class="grp-chip aviso">⚠️ Falta marcar el titular</span>' : '') +
+      (falta > 0 ? '<span class="grp-chip aviso">Faltan ' + falta + '</span>' : falta < 0 ? '<span class="grp-chip aviso">Hay ' + (-falta) + ' más que el N° personas</span>' : '') +
+      (editable && m._form === undefined ? '<button class="turnos-btn gr-btn-guardar" style="margin-left:auto;" data-grp="nueva">➕ Agregar persona</button>' : '') +
+    '</div>' +
+    '<div id="grp-form"></div>' +
+    (lista.length ? '<div style="overflow:auto;"><table class="emp-tabla grp-tabla"><thead><tr><th>Nombre completo</th><th>RUT</th><th>Cargo</th><th>Titular</th><th>Conductor</th><th>Curso Call Fire</th>' +
+      '<th>Teléfono</th><th>Correo</th><th>Dirección</th><th title="N° de temporadas trabajando">Temporadas</th><th></th></tr></thead><tbody>' + filas + '</tbody></table></div>'
+      : '<div class="tb-vacio">Aún no hay personas registradas en este recurso.</div>');
+  document.getElementById('grp-pie').textContent = 'Cargos de ' + aTitulo_(r.tipo_recurso || 'este recurso') + ': ' + grCargosDe_(r.tipo_recurso).join(', ') +
+    '. El titular (uno por recurso) es el que aparece en la planilla.' + (editable ? '' : ' · Solo consulta.');
+  if (m._form !== undefined) grpFormulario_(m._form);
+}
+function grpGuardarGuia_(abierta) { try { localStorage.setItem('grp-guia', abierta ? '1' : '0'); } catch (e) { /* sin almacenamiento */ } }
+/** ❓ Guía rápida del actualizador de personas (dentro de la ventana 👥 Personas). */
+function grpGuiaHtml_(r) {
+  const cargos = grCargosDe_(r.tipo_recurso).join(' · ');
+  const paso = (n, t, d) => '<li><span class="grp-guia-n">' + n + '</span><div><b>' + t + '</b><br>' + d + '</div></li>';
+  return '<div class="grp-guia"><div class="grp-guia-cab"><b>❓ Guía rápida · Actualizar las personas del recurso</b>' +
+      '<button class="turnos-btn" data-grp="guia" style="padding:2px 9px;">Ocultar</button></div>' +
+    '<ol>' +
+      paso(1, 'Revisa el N° de personas', 'Debe estar en la columna <b>N° personas</b> de la planilla: es la meta del avance (ej.: 👥 2/4 = faltan 2).') +
+      paso(2, '➕ Agregar persona', 'Una a la vez: <b>nombre completo, RUT y cargo</b> son obligatorios. Completa teléfono, correo, dirección y <b>N° de temporadas trabajando</b> (1 = primera).') +
+      paso(3, 'Elige el cargo', 'Para este recurso: <b>' + escapeHtml_(cargos) + '</b>. (Brigada Multipropósito: Jefe de Brigada, Motosierrista, Manual · resto: Vigía.)') +
+      paso(4, 'Marca ⭐ Titular', 'Solo <b>uno</b> por recurso: es el que aparece en la planilla (Titular, RUT, teléfono y mail). Marca también 🚗 Conductor y 🎓 Curso Call Fire si corresponde.') +
+      paso(5, '💾 Guardar y repetir', 'Se guarda al instante. Usa ✏️ para corregir y 🗑️ para quitar a quien ya no está. El recurso queda <b style="color:#16A34A">completo (verde)</b> con todas sus personas y un titular.') +
+    '</ol>' +
+    '<div class="grp-guia-pie">💡 En la planilla: filtro <b>«👥 Faltan personas»</b> o <b>«⭐ Sin titular»</b> para ver lo pendiente · <b>👥 Descargar personas</b> baja todo a Excel · ' +
+      'muchas a la vez: <b>📋 Plantilla personas</b> → completar en Excel → <b>⬆️ Subir personas</b>.</div></div>';
+}
+/** Muestra el formulario: null = persona nueva, objeto = editar, undefined = cerrarlo. */
+function grpFormulario_(p) {
+  const m = document.getElementById('grp-modal'), r = m._recurso;
+  const prev = m._form; m._form = p;
+  if ((prev === undefined) !== (p === undefined)) { grpRender_(); return; }   // cambia el botón «➕ Agregar»
+  const caja = document.getElementById('grp-form');
+  if (p === undefined) { caja.innerHTML = ''; return; }
+  const x = p || {};
+  const cargos = grCargosDe_(r.tipo_recurso);
+  const sinTitular = !m._lista.some(q => q.titular && q.id !== x.id);
+  const campo = (t, html, full) => '<label class="grn-campo' + (full ? ' full' : '') + '"><span>' + t + '</span>' + html + '</label>';
+  const val = v => ' value="' + escapeHtml_(v == null ? '' : v) + '"';
+  const chk = (k, t, on) => '<label class="grp-chk"><input type="checkbox" id="grp-' + k + '"' + (on ? ' checked' : '') + '> ' + t + '</label>';
+  caja.innerHTML = '<div class="grp-form"><div style="font-weight:700;margin-bottom:8px;">' + (p ? '✏️ Editar persona' : '➕ Nueva persona') + '</div><div class="grn-grid">' +
+    campo('Nombre completo *', '<input id="grp-nombre"' + val(x.nombre) + '>', true) +
+    campo('RUT *', '<input id="grp-rut" placeholder="12.345.678-5"' + val(x.rut) + '>') +
+    campo('Cargo *', '<select id="grp-cargo">' + (cargos.length > 1 ? '<option value="">— Selecciona —</option>' : '') +
+      cargos.map(c => '<option' + (x.cargo === c ? ' selected' : '') + '>' + escapeHtml_(c) + '</option>').join('') +
+      (x.cargo && !cargos.includes(x.cargo) ? '<option selected>' + escapeHtml_(x.cargo) + '</option>' : '') + '</select>') +
+    campo('N° de temporadas trabajando', '<input id="grp-temporada" type="number" min="1" max="60" step="1" placeholder="1 = primera temporada"' + val(x.temporada) + '>') +
+    campo('Teléfono', '<input id="grp-telefono" type="tel"' + val(x.telefono) + '>') +
+    campo('Correo', '<input id="grp-correo" type="email"' + val(x.correo) + '>') +
+    campo('Dirección', '<input id="grp-direccion"' + val(x.direccion) + '>') +
+    '<div class="grn-campo full grp-chks">' +
+      chk('titular', '⭐ Titular del recurso <small>(solo uno; aparece en la planilla)</small>', p ? x.titular : sinTitular) +
+      chk('conductor', '🚗 Conductor', x.conductor) +
+      chk('curso_call_fire', '🎓 Curso certificado Call Fire', x.curso_call_fire) +
+    '</div></div>' +
+    '<div class="grp-form-pie"><span id="grp-error" style="flex:1;color:#DC2626;font-size:12px;"></span>' +
+      '<button class="turnos-btn" data-grp="cancelar">Cancelar</button><button class="turnos-btn gr-btn-guardar" data-grp="guardar">💾 Guardar persona</button></div></div>';
+  setTimeout(() => { const el = document.getElementById('grp-nombre'); if (el) el.focus(); }, 30);
+}
+async function grpGuardar_() {
+  const m = document.getElementById('grp-modal'), r = m._recurso, err = document.getElementById('grp-error');
+  const v = k => (document.getElementById('grp-' + k).value || '').trim();
+  const c = k => document.getElementById('grp-' + k).checked;
+  err.textContent = '';
+  const nombre = v('nombre').replace(/\s+/g, ' ');
+  if (!nombre) { err.textContent = 'El nombre completo es obligatorio.'; return; }
+  const rut = grRut_(v('rut'));
+  if (!rut.v) { err.textContent = 'El RUT es obligatorio.'; return; }
+  if (!rut.ok) { err.textContent = rut.msg; return; }
+  if (!v('cargo')) { err.textContent = 'Elige el cargo.'; return; }
+  const tel = grNormalizar_({ tipo: 'tel' }, v('telefono')), mail = grNormalizar_({ tipo: 'mail' }, v('correo'));
+  if (!tel.ok) { err.textContent = tel.msg; return; }
+  if (!mail.ok) { err.textContent = 'Correo inválido.'; return; }
+  const temp = v('temporada');
+  if (temp && !(/^\d{1,2}$/.test(temp) && Number(temp) >= 1)) { err.textContent = 'Temporadas: número entero desde 1 (1 = primera temporada).'; return; }
+  const id = m._form && m._form.id;
+  // Aviso (no bloquea): el mismo RUT en otro recurso
+  const k = grCodigo_(rut.v), otro = Object.keys(state.gr.personas).find(rid => rid !== String(r.id) && state.gr.personas[rid].some(p => grCodigo_(p.rut) === k));
+  if (otro) {
+    const ro = state.gr.recursos.find(x => String(x.id) === otro);
+    if (!confirm('El RUT ' + rut.v + ' ya está registrado en el recurso ' + (ro ? (claveRecurso_(ro) || ro.codigo_ref) : 'otro') + '.\n¿Guardarlo igual también en este?')) return;
+  }
+  const titular = c('titular'), titularPrevio = m._lista.find(p => p.titular && p.id !== id);
+  if (titular && titularPrevio && !confirm('⭐ ' + titularPrevio.nombre + ' deja de ser el titular y pasa a serlo ' + nombre + '. ¿Continuar?')) return;
+  const btn = m.querySelector('[data-grp="guardar"]'); btn.disabled = true; btn.textContent = 'Guardando…';
+  const { error } = await supabaseClient.rpc('guardar_persona_recurso', { p_recurso_id: r.id, p_persona: {
+    id: id || null, nombre, rut: rut.v, cargo: v('cargo'), temporada: temp, telefono: tel.v, correo: mail.v, direccion: v('direccion'),
+    titular, conductor: c('conductor'), curso_call_fire: c('curso_call_fire') } });
+  btn.disabled = false; btn.textContent = '💾 Guardar persona';
+  if (error) { err.textContent = error.message; return; }
+  m._form = undefined;
+  await grpRecargar_();
+  mostrarToast_('✅ ' + nombre + (id ? ' actualizado(a).' : ' agregado(a) al recurso.'));
+}
+async function grpEliminar_(pid) {
+  const m = document.getElementById('grp-modal'), p = m._lista.find(x => x.id === pid); if (!p) return;
+  if (!confirm('🗑️ ¿Eliminar a ' + p.nombre + ' (' + p.rut + ') de este recurso?' + (p.titular ? '\n\nEs el TITULAR: la planilla quedará sin titular hasta que marques otro.' : ''))) return;
+  const { error } = await supabaseClient.rpc('eliminar_persona_recurso', { p_id: pid });
+  if (error) { mostrarToast_('No se pudo eliminar: ' + error.message); return; }
+  if (m._form && m._form.id === pid) m._form = undefined;
+  await grpRecargar_();
+  mostrarToast_('🗑️ Persona eliminada.');
+}
+
+/** 👥 Descargar personas: TODAS las columnas de recurso_personas de los recursos filtrados + datos del recurso. */
+async function descargarPersonasGestion_() {
+  if (state.gr.sinSql147) { mostrarToast_('⚠️ Falta ejecutar en Supabase el SQL 147.'); return; }
+  const lista = grFiltrados_();
+  if (!lista.length) { mostrarToast_('No hay recursos con estos filtros.'); return; }
+  try {
+    mostrarToast_('Generando Excel de personas…');
+    const ids = lista.map(r => r.id), pers = [];
+    for (let i = 0; i < ids.length; i += 150) {
+      const { data, error } = await supabaseClient.from('recurso_personas').select('*').in('recurso_id', ids.slice(i, i + 150));
+      if (error) throw error;
+      pers.push(...(data || []));
+    }
+    if (!pers.length) { mostrarToast_('Los recursos filtrados no tienen personas registradas.'); return; }
+    // Nombre de quien actualizó (si la tabla de perfiles es legible)
+    const quien = {};
+    try {
+      const uids = [...new Set(pers.map(p => p.actualizado_por).filter(Boolean))];
+      if (uids.length) { const { data } = await supabaseClient.from('perfiles').select('id, nombre_completo').in('id', uids); (data || []).forEach(u => { quien[u.id] = u.nombre_completo; }); }
+    } catch (e) { /* sin nombres: queda el id */ }
+    const porId = {}; lista.forEach(r => { porId[r.id] = r; });
+    const sn = b => b ? 'Sí' : 'No';
+    const fh = v => v ? new Date(v).toLocaleString('es-CL') : '';
+    const cab = ['Clave radial', 'ID recurso', 'Tipo de recurso', 'Subgerencia', 'Área', 'Sector', 'Comuna', 'Empresa (EESS)', 'Turno', 'N° personas del recurso',
+      'Nombre completo', 'RUT', 'Cargo', 'Titular', 'Conductor', 'Curso certificado Call Fire', 'Teléfono', 'Correo', 'Dirección', 'N° temporadas trabajando',
+      'Registrado el', 'Actualizado el', 'Actualizado por', 'ID persona'];
+    const filas = pers.map(p => { const r = porId[p.recurso_id] || {}; return {
+      'Clave radial': claveRecurso_(r) || '', 'ID recurso': r.codigo_ref || '', 'Tipo de recurso': r.tipo_recurso || '', 'Subgerencia': r.subgerencia || '',
+      'Área': r.area || '', 'Sector': r.sector || '', 'Comuna': r.comuna || '', 'Empresa (EESS)': r.empresa || '', 'Turno': r.actividad || '',
+      'N° personas del recurso': r.n_personas == null ? '' : Number(r.n_personas),
+      'Nombre completo': p.nombre, 'RUT': p.rut, 'Cargo': p.cargo, 'Titular': sn(p.titular), 'Conductor': sn(p.conductor),
+      'Curso certificado Call Fire': sn(p.curso_call_fire), 'Teléfono': p.telefono || '', 'Correo': p.correo || '', 'Dirección': p.direccion || '',
+      'N° temporadas trabajando': p.temporada == null ? '' : Number(p.temporada), 'Registrado el': fh(p.creado_en), 'Actualizado el': fh(p.actualizado_en),
+      'Actualizado por': quien[p.actualizado_por] || p.actualizado_por || '', 'ID persona': p.id }; })
+      .sort((a, b) => String(a['Área']).localeCompare(String(b['Área']), 'es') || String(a['ID recurso']).localeCompare(String(b['ID recurso']), 'es', { numeric: true }) ||
+        (a.Titular === 'Sí' ? -1 : b.Titular === 'Sí' ? 1 : 0) || String(a['Nombre completo']).localeCompare(String(b['Nombre completo']), 'es'));
+    const XLSX = await tbCargarSheetJs_();
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(filas, { header: cab });
+    ws['!cols'] = [12, 12, 22, 12, 16, 16, 16, 18, 10, 10, 30, 13, 16, 8, 10, 12, 14, 26, 30, 11, 18, 18, 22, 38].map(wch => ({ wch }));
+    ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: filas.length, c: cab.length - 1 } }) };
+    XLSX.utils.book_append_sheet(wb, ws, 'Personas');
+    // Resumen por recurso: registradas vs N° personas y titular
+    const res = lista.map(r => { const ps = pers.filter(p => p.recurso_id === r.id), t = ps.find(p => p.titular); return {
+      'Clave radial': claveRecurso_(r) || '', 'ID recurso': r.codigo_ref || '', 'Tipo de recurso': r.tipo_recurso || '', 'Área': r.area || '',
+      'N° personas': r.n_personas == null ? '' : Number(r.n_personas), 'Registradas': ps.length,
+      'Faltan': r.n_personas ? Math.max(0, Number(r.n_personas) - ps.length) : '', 'Titular': t ? t.nombre : '',
+      'Conductores': ps.filter(p => p.conductor).length, 'Con curso Call Fire': ps.filter(p => p.curso_call_fire).length }; });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(res), 'Resumen por recurso');
+    const area = document.getElementById('gr-area').value;
+    XLSX.writeFile(wb, 'personas_recursos_' + tbHoyISO_() + (area ? '_' + normalizarBusqueda_(area).toUpperCase().replace(/[^\w.-]+/g, '_') : '') + '.xlsx');
+    mostrarToast_('✅ Descargadas ' + pers.length + ' persona(s) de ' + lista.length + ' recurso(s).');
+  } catch (e) {
+    mostrarToast_('No se pudo generar el Excel de personas: ' + (e.message || e));
+  }
+}
+
+/* ── 📋 PLANTILLA DE PERSONAS + ⬆️ CARGA MASIVA (02-11-2026, SQL 149) ──
+ * Plantilla: una fila por CUPO (N° personas) de cada recurso filtrado; trae las personas ya registradas y filas vacías
+ * para las que faltan. Se sube completa: vista previa (nuevas / actualizadas / sin cambios / errores) y se aplica con
+ * cargar_personas_masivo (cada fila con guardar_persona_recurso: mismas validaciones y permiso por área). No elimina personas. */
+const GRP_PLANTILLA = [
+  { h: 'ID recurso', k: 'codigo', w: 12 }, { h: 'Clave radial', w: 12 }, { h: 'Tipo de recurso', w: 22 }, { h: 'Área', w: 16 },
+  { h: 'Sector', w: 16 }, { h: 'N° personas', w: 10 }, { h: 'Cupo', w: 6 },
+  { h: 'Nombre completo *', k: 'nombre', w: 30 }, { h: 'RUT *', k: 'rut', w: 13 }, { h: 'Cargo *', k: 'cargo', w: 16 },
+  { h: 'Titular (Sí/No)', k: 'titular', w: 9 }, { h: 'Conductor (Sí/No)', k: 'conductor', w: 10 }, { h: 'Curso Call Fire (Sí/No)', k: 'curso_call_fire', w: 12 },
+  { h: 'Teléfono', k: 'telefono', w: 14 }, { h: 'Correo', k: 'correo', w: 26 }, { h: 'Dirección', k: 'direccion', w: 30 },
+  { h: 'N° temporadas trabajando', k: 'temporada', w: 12 }, { h: 'ID persona (no modificar)', k: 'id', w: 38 },
+];
+const grpNormH_ = s => normalizarBusqueda_(String(s || '')).replace(/\(.*?\)/g, '').replace(/[^a-z0-9]/g, '');
+const grpSiNo_ = v => /^(si|s|x|1|true|verdadero)$/.test(normalizarBusqueda_(String(v == null ? '' : v)).trim());
+
+async function grpPersonasDe_(ids) {
+  const pers = [];
+  for (let i = 0; i < ids.length; i += 150) {
+    const { data, error } = await supabaseClient.from('recurso_personas').select('*').in('recurso_id', ids.slice(i, i + 150));
+    if (error) throw error;
+    pers.push(...(data || []));
+  }
+  return pers;
+}
+
+async function descargarPlantillaPersonas_() {
+  if (state.gr.sinSql147) { mostrarToast_('⚠️ Falta ejecutar en Supabase el SQL 147.'); return; }
+  const lista = grFiltrados_().filter(grPuedeEditar_);
+  if (!lista.length) { mostrarToast_('No hay recursos editables con estos filtros.'); return; }
+  try {
+    mostrarToast_('Generando plantilla de personas…');
+    const pers = await grpPersonasDe_(lista.map(r => r.id));
+    const porRec = {}; pers.forEach(p => { (porRec[p.recurso_id] = porRec[p.recurso_id] || []).push(p); });
+    const sn = b => b ? 'Sí' : 'No';
+    const filas = [];
+    let vacias = 0;
+    lista.forEach(r => {
+      const cargos = grCargosDe_(r.tipo_recurso);
+      const ps = (porRec[r.id] || []).sort((a, b) => (b.titular - a.titular) || (cargos.indexOf(a.cargo) - cargos.indexOf(b.cargo)) || a.nombre.localeCompare(b.nombre, 'es'));
+      const total = Number(grValorActual_(r, 'n_personas')) || 0;
+      const cupos = Math.max(total, ps.length, 1);
+      const base = [r.codigo_ref || '', claveRecurso_(r) || '', r.tipo_recurso || '', r.area || '', r.sector || '', total || ''];
+      for (let i = 0; i < cupos; i++) {
+        const p = ps[i];
+        if (!p) vacias++;
+        filas.push(base.concat([i + 1,
+          p ? p.nombre : '', p ? p.rut : '', p ? p.cargo : (cargos.length === 1 ? cargos[0] : ''),
+          p ? sn(p.titular) : '', p ? sn(p.conductor) : '', p ? sn(p.curso_call_fire) : '',
+          p ? p.telefono || '' : '', p ? p.correo || '' : '', p ? p.direccion || '' : '',
+          p && p.temporada != null ? Number(p.temporada) : '', p ? p.id : '']));
+      }
+    });
+    const XLSX = await tbCargarSheetJs_();
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([GRP_PLANTILLA.map(c => c.h)].concat(filas));
+    ws['!cols'] = GRP_PLANTILLA.map(c => ({ wch: c.w }));
+    ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: filas.length, c: GRP_PLANTILLA.length - 1 } }) };
+    ws['!freeze'] = { xSplit: 2, ySplit: 1 };
+    XLSX.utils.book_append_sheet(wb, ws, 'Personas');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+      ['Tipo de recurso', 'Cargos válidos'],
+      ['Brigada Multipropósito', 'Jefe de Brigada · Motosierrista · Manual'],
+      ['Todos los demás tipos', 'Vigía'],
+    ]), 'Cargos');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+      ['Plantilla de personas por recurso — Gestión de Recursos'], [''],
+      ['1. Cada recurso tiene una fila por cupo (N° personas). Complete las filas vacías y corrija las que ya tienen datos.'],
+      ['2. Obligatorios: Nombre completo, RUT (con dígito verificador) y Cargo (ver hoja «Cargos»).'],
+      ['3. Titular: «Sí» en UNA sola persona por recurso (es la que aparece en la planilla del sistema). Conductor y Curso Call Fire: Sí / No.'],
+      ['4. N° temporadas trabajando: número entero desde 1 (1 = primera temporada).'],
+      ['5. NO modifique «ID recurso» ni «ID persona»: son las llaves para cruzar con el sistema. Las demás columnas del recurso son informativas.'],
+      ['6. Si faltan cupos, copie una fila del mismo recurso (con el mismo ID recurso), borre el «ID persona» y complete los datos.'],
+      ['7. Una fila sin nombre ni RUT se ignora. La carga NO elimina personas: para quitar a alguien use 🗑️ en 👥 Personas.'],
+      ['8. En el sistema: Gestión de Recursos › ⬆️ Subir personas. Verá una vista previa antes de aplicar.'],
+    ]), 'Instrucciones');
+    const area = document.getElementById('gr-area').value;
+    XLSX.writeFile(wb, 'plantilla_personas_' + tbHoyISO_() + (area ? '_' + normalizarBusqueda_(area).toUpperCase().replace(/[^\w.-]+/g, '_') : '') + '.xlsx');
+    mostrarToast_('✅ Plantilla: ' + lista.length + ' recurso(s), ' + pers.length + ' persona(s) registradas y ' + vacias + ' cupo(s) por completar.');
+  } catch (e) {
+    mostrarToast_('No se pudo generar la plantilla: ' + (e.message || e));
+  }
+}
+
+async function leerPlantillaPersonas_(archivo) {
+  if (state.gr.sinSql147) { mostrarToast_('⚠️ Falta ejecutar en Supabase el SQL 147.'); return; }
+  let filas;
+  try {
+    const XLSX = await tbCargarSheetJs_();
+    const wb = XLSX.read(await archivo.arrayBuffer(), { type: 'array' });
+    const hoja = wb.Sheets['Personas'] || wb.Sheets[wb.SheetNames[0]];
+    filas = XLSX.utils.sheet_to_json(hoja, { defval: '', raw: true });
+  } catch (e) { mostrarToast_('No se pudo leer el archivo: ' + (e.message || e)); return; }
+  if (!filas.length) { mostrarToast_('El archivo no tiene filas.'); return; }
+  // Encabezados → campos (tolera tildes, mayúsculas, «*» y textos entre paréntesis)
+  const mapa = {};
+  Object.keys(filas[0]).forEach(h => { const c = GRP_PLANTILLA.find(x => x.k && grpNormH_(x.h) === grpNormH_(h)); if (c) mapa[c.k] = h; });
+  if (!mapa.codigo) { mostrarToast_('El archivo no tiene la columna «ID recurso»: use la 📋 Plantilla personas.'); return; }
+  if (!mapa.nombre || !mapa.rut || !mapa.cargo) { mostrarToast_('Faltan columnas obligatorias (Nombre completo, RUT, Cargo): use la 📋 Plantilla personas.'); return; }
+  const val = (f, k) => mapa[k] ? String(f[mapa[k]] == null ? '' : f[mapa[k]]).trim() : '';
+
+  const porCodigo = {};
+  state.gr.recursos.forEach(r => { if (r.codigo_ref) porCodigo[grCodigo_(r.codigo_ref)] = r; });
+  const usados = [...new Set(filas.map(f => porCodigo[grCodigo_(val(f, 'codigo'))]).filter(Boolean).map(r => r.id))];
+  let existentes;
+  try { existentes = await grpPersonasDe_(usados); } catch (e) { mostrarToast_('No se pudieron leer las personas actuales: ' + (e.message || e)); return; }
+  const porRec = {}; existentes.forEach(p => { (porRec[p.recurso_id] = porRec[p.recurso_id] || []).push(p); });
+
+  const cambios = [], errores = [], noEnc = [];
+  let vacias = 0, iguales = 0;
+  filas.forEach((f, i) => {
+    const fila = i + 2, cod = val(f, 'codigo');
+    const nombre = val(f, 'nombre').replace(/\s+/g, ' '), rutTxt = val(f, 'rut');
+    if (!nombre && !rutTxt) { vacias++; return; }   // cupo sin completar
+    const err = msg => errores.push({ fila, codigo: cod, msg });
+    if (!cod) return err('Falta el ID recurso');
+    const r = porCodigo[grCodigo_(cod)];
+    if (!r) { noEnc.push(cod); return; }
+    if (!grPuedeEditar_(r)) return err('No puedes editar este recurso (fuera de tus áreas)');
+    if (!nombre) return err('Falta el nombre completo');
+    const rut = grRut_(rutTxt);
+    if (!rut.v) return err('Falta el RUT');
+    if (!rut.ok) return err(rut.msg + ': «' + rutTxt + '»');
+    const cargos = grCargosDe_(r.tipo_recurso);
+    const cargo = cargos.find(c => grpNormH_(c) === grpNormH_(val(f, 'cargo')));
+    if (!cargo) return err('Cargo «' + (val(f, 'cargo') || 'vacío') + '» no válido para ' + aTitulo_(r.tipo_recurso || '') + ' (' + cargos.join(', ') + ')');
+    const tel = grNormalizar_({ tipo: 'tel' }, val(f, 'telefono'));
+    if (!tel.ok) return err(tel.msg + ': «' + val(f, 'telefono') + '»');
+    const mail = grNormalizar_({ tipo: 'mail' }, val(f, 'correo'));
+    if (!mail.ok) return err('Correo inválido: «' + val(f, 'correo') + '»');
+    const tempTxt = val(f, 'temporada');
+    if (tempTxt && !(/^\d{1,2}$/.test(tempTxt) && Number(tempTxt) >= 1)) return err('N° temporadas debe ser un entero desde 1: «' + tempTxt + '»');
+    const persona = {
+      nombre, rut: rut.v, cargo, titular: grpSiNo_(val(f, 'titular')), conductor: grpSiNo_(val(f, 'conductor')),
+      curso_call_fire: grpSiNo_(val(f, 'curso_call_fire')), telefono: tel.v, correo: mail.v, direccion: val(f, 'direccion'),
+      temporada: tempTxt ? Number(tempTxt) : null };
+    // ¿Persona existente? Por «ID persona» y si no, por RUT dentro del mismo recurso
+    const ps = porRec[r.id] || [];
+    const idTxt = val(f, 'id');
+    const previa = ps.find(p => p.id === idTxt) || ps.find(p => grCodigo_(p.rut) === grCodigo_(rut.v));
+    if (previa) {
+      persona.id = previa.id;
+      const igual = previa.nombre === persona.nombre && grCodigo_(previa.rut) === grCodigo_(persona.rut) && previa.cargo === persona.cargo &&
+        !!previa.titular === persona.titular && !!previa.conductor === persona.conductor && !!previa.curso_call_fire === persona.curso_call_fire &&
+        (previa.telefono || '') === persona.telefono && (previa.correo || '') === persona.correo && (previa.direccion || '') === persona.direccion &&
+        (previa.temporada == null ? null : Number(previa.temporada)) === persona.temporada;
+      if (igual) { iguales++; return; }
+    }
+    cambios.push({ fila, r, codigo: cod, persona, previa });
+  });
+  // Coherencia por recurso: un RUT una sola vez y un solo titular en el archivo
+  const grupos = {};
+  cambios.forEach(c => { (grupos[c.r.id] = grupos[c.r.id] || []).push(c); });
+  const malas = new Set();
+  Object.values(grupos).forEach(cs => {
+    const ruts = {};
+    cs.forEach(c => { const k = grCodigo_(c.persona.rut); if (ruts[k]) { malas.add(c); errores.push({ fila: c.fila, codigo: c.codigo, msg: 'RUT repetido en el mismo recurso (fila ' + ruts[k] + ')' }); } else ruts[k] = c.fila; });
+    const tit = cs.filter(c => c.persona.titular);
+    if (tit.length > 1) tit.forEach(c => { malas.add(c); errores.push({ fila: c.fila, codigo: c.codigo, msg: 'Más de un titular en el recurso (filas ' + tit.map(x => x.fila).join(', ') + ')' }); });
+  });
+  const validos = cambios.filter(c => !malas.has(c));
+  errores.sort((a, b) => a.fila - b.fila);
+  state.gr.carga = { tipo: 'personas', cambios: validos };
+  mostrarVistaPreviaPersonas_(archivo.name, filas.length, validos, iguales, vacias, noEnc, errores);
+}
+
+function mostrarVistaPreviaPersonas_(nombre, nFilas, cambios, iguales, vacias, noEnc, errores) {
+  const nuevas = cambios.filter(c => !c.previa).length;
+  const sn = b => b ? 'Sí' : 'No';
+  let html = '<div><b>' + escapeHtml_(nombre) + '</b> · ' + nFilas + ' filas leídas · ' +
+      [...new Set(cambios.map(c => c.r.id))].length + ' recurso(s) con cambios</div>' +
+    '<div class="gr-kpis">' +
+    '<div class="gr-kpi" style="--c:#16A34A"><b>' + nuevas + '</b>personas nuevas</div>' +
+    '<div class="gr-kpi" style="--c:#2563EB"><b>' + (cambios.length - nuevas) + '</b>personas actualizadas</div>' +
+    '<div class="gr-kpi" style="--c:#64748B"><b>' + iguales + '</b>sin cambios</div>' +
+    '<div class="gr-kpi" style="--c:#94A3B8"><b>' + vacias + '</b>cupos vacíos (se ignoran)</div>' +
+    '<div class="gr-kpi" style="--c:#DC2626"><b>' + errores.length + '</b>filas con error (no se aplican)</div>' +
+    (noEnc.length ? '<div class="gr-kpi" style="--c:#F59E0B"><b>' + noEnc.length + '</b>ID recurso no encontrados</div>' : '') + '</div>';
+  if (errores.length) html += '<div><b>⚠️ Errores</b><table><tr><th>Fila</th><th>ID recurso</th><th>Detalle</th></tr>' +
+    errores.slice(0, 150).map(e => '<tr><td>' + e.fila + '</td><td>' + escapeHtml_(e.codigo) + '</td><td>' + escapeHtml_(e.msg) + '</td></tr>').join('') +
+    '</table>' + (errores.length > 150 ? '<small>… y ' + (errores.length - 150) + ' más</small>' : '') + '</div>';
+  if (noEnc.length) html += '<div><b>ID recurso no encontrados</b> (o fuera de tus áreas; la fila se omite): ' + escapeHtml_([...new Set(noEnc)].slice(0, 60).join(', ')) + '</div>';
+  if (cambios.length) {
+    const campos = [['nombre', 'Nombre'], ['rut', 'RUT'], ['cargo', 'Cargo'], ['titular', 'Titular', sn], ['conductor', 'Conductor', sn], ['curso_call_fire', 'Call Fire', sn],
+      ['telefono', 'Teléfono'], ['correo', 'Correo'], ['direccion', 'Dirección'], ['temporada', 'Temporadas']];
+    html += '<div><b>Cambios</b><table><tr><th>Fila</th><th>Recurso</th><th>Persona</th><th>Acción</th><th>Detalle</th></tr>' +
+      cambios.slice(0, 400).map(c => {
+        const det = c.previa
+          ? campos.filter(([k, , fmt]) => { const a = c.previa[k] == null ? '' : c.previa[k], b = c.persona[k] == null ? '' : c.persona[k]; return fmt ? !!a !== !!b : String(a) !== String(b); })
+              .map(([k, t, fmt]) => t + ': <span class="gr-antes">' + escapeHtml_(fmt ? fmt(c.previa[k]) : (c.previa[k] == null || c.previa[k] === '' ? '(vacío)' : String(c.previa[k]))) + '</span> → <span class="gr-despues">' +
+                escapeHtml_(fmt ? fmt(c.persona[k]) : (c.persona[k] == null || c.persona[k] === '' ? '(vacío)' : String(c.persona[k]))) + '</span>').join(' · ')
+          : escapeHtml_(c.persona.cargo) + (c.persona.titular ? ' · ⭐ titular' : '') + (c.persona.conductor ? ' · 🚗' : '') + (c.persona.curso_call_fire ? ' · 🎓' : '');
+        return '<tr><td>' + c.fila + '</td><td><b>📻 ' + escapeHtml_(claveRecurso_(c.r) || c.codigo) + '</b></td><td>' + escapeHtml_(c.persona.nombre) + '<br><small>' + escapeHtml_(c.persona.rut) + '</small></td>' +
+          '<td>' + (c.previa ? '✏️ Actualiza' : '➕ Nueva') + '</td><td>' + det + '</td></tr>';
+      }).join('') + '</table>' + (cambios.length > 400 ? '<small>… y ' + (cambios.length - 400) + ' más</small>' : '') + '</div>';
+  } else html += '<div class="tb-vacio">No hay personas nuevas ni cambios respecto de lo que está en el sistema.</div>';
+  document.getElementById('gr-modal-titulo').textContent = 'Vista previa · carga masiva de personas';
+  document.getElementById('gr-modal-cuerpo').innerHTML = html;
+  const ap = document.getElementById('gr-modal-aplicar');
+  ap.style.display = cambios.length ? '' : 'none';
+  ap.disabled = false;
+  ap.textContent = '✅ Aplicar ' + cambios.length + ' persona(s)';
+  document.getElementById('gr-modal').style.display = 'flex';
+}
+
+async function aplicarCargaPersonas_() {
+  const carga = state.gr.carga;
+  if (!carga || !carga.cambios.length) return;
+  const ap = document.getElementById('gr-modal-aplicar');
+  ap.disabled = true;
+  let ok = 0, nuevas = 0; const errores = [];
+  try {
+    for (let i = 0; i < carga.cambios.length; i += 100) {
+      ap.textContent = 'Aplicando ' + Math.min(i + 100, carga.cambios.length) + ' de ' + carga.cambios.length + '…';
+      const lote = carga.cambios.slice(i, i + 100).map(c => ({ fila: c.fila, recurso_id: c.r.id, persona: c.persona }));
+      const { data, error } = await supabaseClient.rpc('cargar_personas_masivo', { p_filas: lote });
+      if (error) throw error;
+      ok += Number(data && data.guardadas) || 0;
+      nuevas += Number(data && data.nuevas) || 0;
+      errores.push(...((data && data.errores) || []));
+    }
+  } catch (e) {
+    ap.disabled = false; ap.textContent = '✅ Reintentar';
+    mostrarToast_(/cargar_personas_masivo/.test(e.message || '') ? 'Falta ejecutar en Supabase el SQL 149.' : 'Error al aplicar la carga: ' + (e.message || e));
+    return;
+  }
+  document.getElementById('gr-modal').style.display = 'none';
+  state.gr.carga = null;
+  await cargarPersonasGestion_();
+  // La planilla muestra al titular: releer el contacto (lo actualiza el trigger del SQL 147)
+  try {
+    const { data: cs } = await supabaseClient.from('recurso_contacto').select('recurso_id, nombre_persona, rut, telefono, mail');
+    const m = {}; (cs || []).forEach(c => { m[c.recurso_id] = c; });
+    state.gr.recursos.forEach(r => { const c = m[r.id]; GR_CONTACTO.forEach(k => { r[k] = c ? c[k] : null; }); });
+  } catch (e) { /* se ve al recargar */ }
+  renderGestion_();
+  if (errores.length) { console.warn('Carga de personas, errores:', errores); mostrarToast_('⚠️ Guardadas ' + ok + ' (' + nuevas + ' nuevas); con error ' + errores.length + ' (fila ' + errores[0].fila + ': ' + errores[0].error + ')'); }
+  else mostrarToast_('✅ Carga de personas aplicada: ' + nuevas + ' nuevas y ' + (ok - nuevas) + ' actualizadas.');
+}
+
 /* ── Descarga ── */
 async function descargarGestion_() {
   const lista = grFiltrados_();
@@ -1057,6 +1593,27 @@ async function descargarGestion_() {
     ws['!cols'] = GR_COLS.map(c => ({ wch: Math.max(10, Math.min(36, Math.round((c.w || 110) / 6))) }));
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: filas.length, c: GR_COLS.length - 1 } }) };
     XLSX.utils.book_append_sheet(wb, ws, 'Recursos');
+    // 👥 Hoja «Personas» (SQL 147): todas las personas de los recursos descargados (solo informativa)
+    if (!state.gr.sinSql147) {
+      const ids = lista.map(r => r.id), pers = [];
+      for (let i = 0; i < ids.length; i += 150) {
+        const { data, error } = await supabaseClient.from('recurso_personas').select('*').in('recurso_id', ids.slice(i, i + 150));
+        if (error) break;
+        pers.push(...(data || []));
+      }
+      const porId = {}; lista.forEach(r => { porId[r.id] = r; });
+      const sn = b => b ? 'Sí' : 'No';
+      const filasP = pers.map(p => { const r = porId[p.recurso_id] || {}; return {
+        'Clave radial': claveRecurso_(r) || '', 'ID': r.codigo_ref || '', 'Tipo de recurso': r.tipo_recurso || '', 'Área': r.area || '',
+        'Nombre completo': p.nombre, 'RUT': p.rut, 'Cargo': p.cargo, 'Titular': sn(p.titular), 'Conductor': sn(p.conductor),
+        'Curso Call Fire': sn(p.curso_call_fire), 'Teléfono': p.telefono || '', 'Correo': p.correo || '', 'Dirección': p.direccion || '', 'N° temporadas': p.temporada == null ? '' : Number(p.temporada) }; })
+        .sort((a, b) => String(a['Área']).localeCompare(String(b['Área']), 'es') || String(a.ID).localeCompare(String(b.ID), 'es', { numeric: true }) ||
+          (a.Titular === 'Sí' ? -1 : b.Titular === 'Sí' ? 1 : 0));
+      const wsP = XLSX.utils.json_to_sheet(filasP, { header: ['Clave radial', 'ID', 'Tipo de recurso', 'Área', 'Nombre completo', 'RUT', 'Cargo', 'Titular',
+        'Conductor', 'Curso Call Fire', 'Teléfono', 'Correo', 'Dirección', 'N° temporadas'] });
+      wsP['!cols'] = [12, 12, 22, 16, 30, 13, 16, 8, 10, 14, 14, 26, 30, 11].map(wch => ({ wch }));
+      XLSX.utils.book_append_sheet(wb, wsP, 'Personas');
+    }
     const instr = [
       ['Gestión de Recursos — instrucciones para la carga masiva (Administrador y Jefe de Área)'], [''],
       ['1. Edite los datos en la hoja «Recursos» y guarde el archivo (.xlsx).'],
@@ -1065,6 +1622,7 @@ async function descargarGestion_() {
       ['4. Subgerencia y Área son informativas (no se actualizan desde el Excel).'],
       ['5. Una celda vacía borra el dato. Puede eliminar columnas que no quiera actualizar.'],
       ['6. Fechas: AAAA-MM-DD o DD-MM-AAAA. RUT: con o sin puntos, con guion y dígito verificador.'],
+      ['7. Las columnas del Titular y la hoja «Personas» son informativas: las personas se registran en el sistema con el botón 👥 Personas de cada recurso.'],
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(instr), 'Instrucciones');
     const area = document.getElementById('gr-area').value;
@@ -1323,6 +1881,7 @@ function mostrarVistaPreviaCarga_(nombre, nFilas, campos, cambios, noEnc, dup, e
 }
 
 async function aplicarCargaGestion_() {
+  if (state.gr.carga && state.gr.carga.tipo === 'personas') return aplicarCargaPersonas_();   // ⬆️ Subir personas (SQL 149)
   const carga = state.gr.carga;
   if (!carga || !carga.cambios.length) return;
   const ap = document.getElementById('gr-modal-aplicar');
@@ -1401,9 +1960,21 @@ function iniciarListenersGestion_() {
     state.gr.cambios = {}; state.gr.errores = {}; renderGestion_();
   });
   document.getElementById('gr-descargar').addEventListener('click', descargarGestion_);
+  document.getElementById('gr-descargar-personas').addEventListener('click', descargarPersonasGestion_);
+  document.getElementById('gr-plantilla-personas').addEventListener('click', descargarPlantillaPersonas_);
+  document.getElementById('gr-subir-personas').addEventListener('click', () => {
+    if (Object.keys(state.gr.cambios).length) { mostrarToast_('Guarda o descarta primero los cambios de la tabla.'); return; }
+    document.getElementById('gr-archivo-personas').click();
+  });
+  document.getElementById('gr-archivo-personas').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (f) leerPlantillaPersonas_(f);
+  });
   document.getElementById('gr-nuevo').addEventListener('click', abrirNuevoRecursoGestion_);
   document.getElementById('gr-tabla').addEventListener('click', e => {
     const b = e.target.closest('[data-gr-eliminar]'); if (b) eliminarRecursoGestion_(b.dataset.grEliminar);
+    const bp = e.target.closest('[data-gr-personas]'); if (bp) abrirPersonasRecurso_(bp.dataset.grPersonas);
   });
   document.getElementById('gr-pdf').addEventListener('click', descargarResumenGestionPdf_);
   document.getElementById('gr-subir').addEventListener('click', () => {
