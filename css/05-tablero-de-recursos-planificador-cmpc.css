@@ -187,6 +187,21 @@ body.tema-oscuro #planificador-panel .pat-toolbar .pl-filtro.activo{background-c
 .leaflet-control-zoom a.leaflet-control-zoom-lupa.deshab{opacity:.35;pointer-events:none;}
 .modo-lupa-in, .modo-lupa-in .leaflet-interactive{cursor:zoom-in !important;}
 .modo-lupa-out, .modo-lupa-out .leaflet-interactive{cursor:zoom-out !important;}
+/* 📍 Coordenadas de un punto (js/00): botón en la barra de zoom de todos los mapas */
+.leaflet-control-zoom a.leaflet-control-zoom-coord{display:flex;align-items:center;justify-content:center;color:#334155;}
+.leaflet-control-zoom a.leaflet-control-zoom-coord.activa{background:#DC2626;color:#fff;}
+.leaflet-container.modo-coordenadas, .leaflet-container.modo-coordenadas .leaflet-interactive{cursor:crosshair !important;}
+.coord-lectura{position:absolute;left:10px;bottom:28px;z-index:1000;background:rgba(15,23,42,.88);color:#fff;font:600 11.5px/1.3 ui-monospace,Consolas,monospace;
+  padding:5px 9px;border-radius:7px;pointer-events:none;max-width:calc(100% - 20px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.coord-pop{font-size:12px;min-width:270px;}
+.coord-pop > b{display:block;font-size:13px;margin-bottom:6px;}
+.coord-fila{margin-bottom:6px;}
+.coord-fila > span{display:block;font-size:10.5px;color:#64748B;font-weight:600;}
+.coord-fila > div{display:flex;align-items:center;gap:6px;}
+.coord-fila code{flex:1;background:#F1F5F9;border-radius:6px;padding:3px 7px;font-size:11.5px;user-select:all;word-break:break-all;}
+.coord-copiar{border:1px solid #CBD5E1;background:#fff;border-radius:6px;cursor:pointer;padding:2px 6px;font-size:12px;line-height:1.3;}
+.coord-copiar:hover{background:#EFF6FF;border-color:#93C5FD;}
+.coord-copiar.coord-todo{width:100%;margin-top:2px;padding:5px;font-weight:700;}
 .lupa-caja{position:absolute;z-index:1000;pointer-events:none;border:2px dashed #2563EB;background:rgba(37,99,235,.12);border-radius:3px;}
 .lupa-caja.alejar{border-color:#DC2626;background:rgba(220,38,38,.10);}
 /* 🎨 Modo CMPC (interruptor bajo la barra de zoom del mapa principal; aplicarModoCmpc_, js/26) */

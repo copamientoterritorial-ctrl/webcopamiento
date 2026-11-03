@@ -118,7 +118,7 @@ function terrDibujar_() {
     let ly;
     if (e.tipo_geometria === 'punto' && e.geojson.type === 'Point') {
       ly = L.marker([e.geojson.coordinates[1], e.geojson.coordinates[0]], { icon: terrIcono_(e.icono, color), draggable: true });
-      ly.dragging.disable();
+      ly.on('add', terrAlAgregarMarcador_);   // `dragging` recién existe al entrar al mapa
       ly._terrMovible = editable;
       ly.on('dragend', ev => terrMoverPunto_(e.id, ev.target.getLatLng()));
     } else {
@@ -138,7 +138,7 @@ function terrDibujar_() {
     let ly;
     if (i.geojson.type === 'Point') {
       ly = L.marker([i.geojson.coordinates[1], i.geojson.coordinates[0]], { icon: terrIcono_('🔥', '#fff', color), draggable: true });
-      ly.dragging.disable();
+      ly.on('add', terrAlAgregarMarcador_);   // `dragging` recién existe al entrar al mapa
       ly._terrMovible = editable;
       ly.on('dragend', ev => terrMoverPunto_(i.id, ev.target.getLatLng()));
     } else {
@@ -165,6 +165,12 @@ function terrAplicarVisibilidad_() {
     if (ver && !terrCapaElem.hasLayer(ly)) terrCapaElem.addLayer(ly);
     if (!ver && terrCapaElem.hasLayer(ly)) terrCapaElem.removeLayer(ly);
   });
+}
+/** Al agregarse un punto al mapa: arrastrable solo mientras se registra (y si el perfil puede editar). */
+function terrAlAgregarMarcador_(ev) {
+  const m = ev.target;
+  if (!m.dragging) return;
+  if (state.modoTerritorial && m._terrMovible) m.dragging.enable(); else m.dragging.disable();
 }
 function terrPuntosArrastrables_(on) {
   Object.values(terrById).forEach(ly => { if (ly.dragging && ly._terrMovible) { if (on) ly.dragging.enable(); else ly.dragging.disable(); } });
