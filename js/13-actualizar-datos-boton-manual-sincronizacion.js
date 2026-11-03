@@ -112,6 +112,7 @@ async function actualizarDatos_(origen) {
     else if (vista === 'seguimiento') tareas.push(correr(() => cargarSeguimiento_(true)));
     else if (vista === 'agricultores') tareas.push(correr(() => cargarAgricultores_()));
     else if (vista === 'turnosgestor') tareas.push(correr(() => cargarTurnosGestores_()));
+    else if (vista === 'agradmin') tareas.push(correr(() => abrirAdminAgricultores_(true)));
     else if (vista === 'planificador') {
       tareas.push(correr(async () => {
         await cargarRecursosPlanificador_();
@@ -137,7 +138,8 @@ async function actualizarDatos_(origen) {
 }
 
 function mostrarVista_(vista, modoMapa) {
-  if (esAsociacion_()) vista = 'agricultores';   // la Asociación de Agricultores solo tiene su tablero
+  if (esAsociacion_() && vista !== 'agradmin') vista = 'agricultores';   // la Asociación: su tablero y 🌾 Administración Agricultores
+  if (vista === 'agradmin' && !puedeAdminAgricultores_()) vista = 'dashboard';
   if (vista === 'agricultores' && !puedeAgricultores_()) vista = 'dashboard';
   if (vista === 'turnosgestor' && !puedeTurnosGestores_()) vista = 'dashboard';
   if (vista === 'admin' && state.perfil.perfil !== 'Administrador') vista = 'dashboard';
@@ -162,6 +164,7 @@ function mostrarVista_(vista, modoMapa) {
       planificador: puedeVerModulo_('planificador_mapa'),
       emergencia: puedeVerModulo_('periodo_critico'),
       visor: puedeVerModulo_('mapa'),
+      territorial: puedeTerritorial_(),
     };
     let modo = modoMapa || state.modoMapa || 'planificador';
     if (!puede[modo]) modo = ['planificador', 'emergencia', 'visor'].find(m => puede[m]) || null;
@@ -210,6 +213,8 @@ function mostrarVista_(vista, modoMapa) {
   if (agP) agP.classList.toggle('show', vista === 'agricultores');
   const tgP = document.getElementById('turnosgestor-panel');
   if (tgP) tgP.classList.toggle('show', vista === 'turnosgestor');
+  const apP = document.getElementById('agradmin-panel');
+  if (apP) apP.classList.toggle('show', vista === 'agradmin');
   document.body.classList.toggle('modo-dashboard', !esMapa);
   actualizarBotonLogoMunicipal_();
   const esVisor = esMapa && state.modoMapa === 'visor';
@@ -244,6 +249,7 @@ function mostrarVista_(vista, modoMapa) {
   else if (vista === 'seguimiento') abrirSeguimiento_();
   else if (vista === 'agricultores') abrirAgricultores_();
   else if (vista === 'turnosgestor') abrirTurnosGestores_();
+  else if (vista === 'agradmin') abrirAdminAgricultores_();
   else setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 60);
 
   // Mostrar/ocultar controles del mapa según la vista activa
@@ -366,11 +372,12 @@ state.modoMapa = state.modoMapa || 'planificador';
 state.panelMapaAbierto = false;   // panel desplegable bajo los íconos del mapa
 state.panelMapaTab = 'capas';      // 'capas' | 'copamiento'
 function aplicarModoMapa_(modo) {
-  modo = ['planificador', 'emergencia', 'visor'].includes(modo) ? modo : 'planificador';
+  modo = ['planificador', 'emergencia', 'visor', 'territorial'].includes(modo) ? modo : 'planificador';
   // Al cambiar de modo se sale de cualquier edición del modo anterior
   if (state.modoMapa && state.modoMapa !== modo) {
     try {
-      if (state.modoPlanificacion) salirModoPlanificacion_();
+      if (state.modoTerritorial) terrSalirDibujo_();   // 🗺️ Planificación Territorial Comuna (js/36)
+      else if (state.modoPlanificacion) salirModoPlanificacion_();
       else if (state.modoRecursosArea) salirModoRecursosArea_();
       else if (state.editorMode) toggleEditorMode();
     } catch (e) {}
@@ -385,6 +392,7 @@ function aplicarModoMapa_(modo) {
   }
   document.body.classList.toggle('mapa-visor', modo === 'visor');
   document.body.classList.toggle('mapa-emergencia', modo === 'emergencia');
+  document.body.classList.toggle('mapa-territorial', modo === 'territorial');
   actualizarBotonPlanificar_();
   aplicarAmbienteMapa_();
 }
@@ -408,6 +416,18 @@ function aplicarAmbienteMapa_() {
   state.alertaLayersOn = state.alertaLayersOn || { verde: false, amarilla: false, roja: false };
   state.periodoLayersOn = state.periodoLayersOn || {};
 
+  // 🗺️ Planificación Territorial Comuna (js/36): sin escenarios, periodos críticos ni incendios SIDCO; solo sus capas
+  if (state.modoMapa === 'territorial') {
+    if (!state._alertasGuardadas) state._alertasGuardadas = Object.assign({}, state.alertaLayersOn);
+    Object.keys(ALERTAS).forEach(k => { state.alertaLayersOn[k] = false; ALERTAS[k].forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); }); });
+    if (!state._periodosGuardados) state._periodosGuardados = Object.assign({}, state.periodoLayersOn);
+    Object.keys(periodoLayers).forEach(k => { if (map.hasLayer(periodoLayers[k])) map.removeLayer(periodoLayers[k]); state.periodoLayersOn[k] = false; });
+    if (panelSimb) panelSimb.style.display = 'none';
+    terrAlEntrarModo_();
+    if (state.vistaActual === 'mapa' && state.panelMapaAbierto && state.panelMapaTab === 'capas') renderTab('capas');
+    return;
+  }
+  if (typeof terrAlSalirModo_ === 'function') terrAlSalirModo_();
   if (state.modoMapa === 'emergencia') {
     // Fuera: escenarios (se guardan para volver a mostrarlos en Alertas)
     if (!state._alertasGuardadas) state._alertasGuardadas = Object.assign({}, state.alertaLayersOn);

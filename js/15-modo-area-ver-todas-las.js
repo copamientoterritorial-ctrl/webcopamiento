@@ -115,6 +115,8 @@ const MENU_MODULOS = [
     nivel: () => puedeEditarModulo_('planificador_mapa') && ['GRD', 'Administrador', 'Jefe de Área Relacionamiento'].includes(state.perfil && state.perfil.perfil) ? 'editar' : 'ver',
     nota: () => state.perfil && state.perfil.perfil === 'GRD' ? 'Edita Amarilla y Roja, sin CMPC' : (esAdminOJefe_() && state.perfil.perfil !== 'Administrador' ? 'Sus comunas/áreas' : '') },
   { id: 'sub-emergencia', grupo: '🗺️ Gestión SIG', nombre: 'Modo Emergencia (Periodo Crítico)', ver: () => puedeVerModulo_('periodo_critico'), nivel: () => nivelPermiso_('periodo_critico') },
+  { id: 'sub-territorial', grupo: '🗺️ Gestión SIG', nombre: 'Planificación Territorial Comuna (mapa)', ver: () => puedeTerritorial_(),
+    nivel: () => terrPuedeEditarPerfil_() ? 'editar' : 'ver', nota: () => terrPuedeEditarPerfil_() && state.perfil.perfil !== 'Administrador' ? 'Sus comunas/áreas' : '' },
   { id: 'sub-informe', grupo: '🗺️ Gestión SIG', nombre: 'Informe', ver: () => puedeVerModulo_('informe'), nivel: () => 'ver' },
   { id: 'tab-patrullajes', grupo: '🛡️ Prevención', nombre: 'Gestión Patrullajes SIGEI', ver: () => esAdminOJefe_() && puedeVerModulo_('patrullajes'), nivel: () => nivelPermiso_('patrullajes') },
   { id: 'tab-prioridad', grupo: '🛡️ Prevención', nombre: 'Comunas Prioritarias', ver: () => puedeVerModulo_('prioridad'), nivel: () => nivelPermiso_('prioridad') },
@@ -124,6 +126,8 @@ const MENU_MODULOS = [
   { id: 'tab-appreportes', grupo: '🛡️ Prevención', nombre: 'App de Patrullaje (en vivo y reportes)', ver: () => puedeReportesApp_(), nivel: () => 'editar' },
   { id: 'tab-bosques', grupo: '🛡️ Prevención', nombre: 'Gestión Bosque Recreativo', ver: () => puedeBosques_(), nivel: () => 'editar',
     nota: () => state.perfil.perfil === 'Administrador' ? '' : 'Su alcance' },
+  { id: 'tab-agradmin', grupo: '🛡️ Prevención', nombre: 'Administración Agricultores (predios)', ver: () => puedeAdminAgricultores_(),
+    nivel: () => agpEsAdmin_() ? 'editar' : 'ver', nota: () => agpEsAdmin_() ? 'Sube y elimina capas' : 'Solo consulta', asoc: true },
   { id: 'tab-turnos', grupo: '🌲 Planificador CMPC', nombre: 'Calendario de Turnos', ver: () => puedeVerModulo_('turnos'),
     nivel: () => puedeGestionarTurnos_() && puedeEditarModulo_('turnos') ? 'editar' : 'ver' },
   { id: 'tab-turnosgestor', grupo: '🌲 Planificador CMPC', nombre: 'Turnos de Gestores de relacionamiento', ver: () => puedeTurnosGestores_(),
@@ -136,9 +140,9 @@ const MENU_MODULOS = [
     nivel: () => agrPuedeRegistrar_() ? 'editar' : 'ver', nota: () => esAsociacion_() ? 'Registra; meta solo escuelas' : (esAdminPerfil_() ? '' : 'Área Victoria') },
   { id: 'tab-admin', grupo: '⚙️ Administración', nombre: 'Administración del sistema', ver: () => !!(state.perfil && state.perfil.perfil === 'Administrador'), nivel: () => 'editar' },
 ];
-/** ¿Se ve el menú? La Asociación de Agricultores ve SOLO 🌾 Agricultores. */
+/** ¿Se ve el menú? La Asociación de Agricultores ve SOLO 🌾 Agricultores (y los menús marcados con asoc: true). */
 function menuVisible_(m) {
-  if (esAsociacion_() && m.grupo !== '🌾 Agricultores') return false;
+  if (esAsociacion_() && m.grupo !== '🌾 Agricultores' && !m.asoc) return false;
   return !!m.ver();
 }
 
@@ -152,7 +156,7 @@ function aplicarPermisosMenu_() {
   // Botón 🔥 Crear Periodo Crítico dentro del mapa del Modo Emergencia
   document.body.classList.toggle('puede-crear-periodo', puedeEditarModulo_('periodo_critico') &&
     ['GRD', 'Administrador', 'Jefe de Área Relacionamiento'].includes(state.perfil && state.perfil.perfil));
-  ver('grupo-mapa', ['sub-mapa-visor', 'sub-emergencia', 'sub-informe']
+  ver('grupo-mapa', ['sub-mapa-visor', 'sub-emergencia', 'sub-territorial', 'sub-informe']
     .some(id => { const el = document.getElementById(id); return el && el.style.display !== 'none'; }));
   ver('grupo-cmpc', MENU_MODULOS.some(m => m.grupo === '🌲 Planificador CMPC' && menuVisible_(m)));
   actualizarBotonPlanificar_();
@@ -216,6 +220,7 @@ function aplicarPermisosCapas_(c) {
   const ocultas = new Set((p && Array.isArray(p.capas_ocultas)) ? p.capas_ocultas : []);
   capasOcultasPerfil_(state.perfil && state.perfil.perfil).forEach(k => ocultas.add(k));   // las del perfil (p. ej. GRD)
   if (state.modoMapa === 'emergencia') ocultas.add('alertas');
+  if (state.modoMapa === 'territorial') { ocultas.add('alertas'); ocultas.add('incendios'); }   // Planificación Territorial: sin alertas ni SIDCO
   if (!ocultas.size || !c) return;
   const SECCIONES = [['Capas por zona', 'capasZona'], ['Patrullaje', 'patrullaje'], ['App Móvil', 'appMovil'],
     ['Red de Prevención', 'redPrevencion'], ['Alertas Territoriales', 'alertas'], ['Incendios', 'incendios']];

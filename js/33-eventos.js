@@ -506,7 +506,8 @@ function bindEvents() {
   document.getElementById('btn-cancel-editar-recurso-plan').addEventListener('click', () => document.getElementById('editar-recurso-plan-overlay').classList.remove('show'));
   document.getElementById('btn-save-editar-recurso-plan').addEventListener('click', guardarEdicionRecursoPlanificado_);
   document.getElementById('btn-salir-planificacion').addEventListener('click', () => {
-    if (state.modoRecursosArea) salirModoRecursosArea_(); else salirModoPlanificacion_();
+    if (state.modoTerritorial) terrSalirDibujo_();   // 🗺️ Planificación Territorial (js/36)
+    else if (state.modoRecursosArea) salirModoRecursosArea_(); else salirModoPlanificacion_();
   });
 
   document.getElementById('btn-close-resumen-general').addEventListener('click', () => document.getElementById('resumen-general-overlay').classList.remove('show'));

@@ -165,6 +165,35 @@ body.con-comuna.mapa-emergencia:not(.modo-dashboard) #btn-copamiento-mapa{displa
 body.mapa-emergencia #escenario-switcher,
 body.mapa-emergencia #resumen-alertas,
 body.mapa-emergencia #simbologia-flotante{display:none !important;}
+/* 🗺️ Planificación Territorial Comuna (js/36): sin escenarios, copamiento, incendios SIDCO ni ✏️ Planificar; su propio botón 🗺️ */
+body.mapa-territorial #escenario-switcher,
+body.mapa-territorial #resumen-alertas,
+body.mapa-territorial #simbologia-flotante,
+body.mapa-territorial #wrap-planificar,
+body.mapa-territorial #panel-emergencia,
+body.mapa-territorial .modo-cmpc-ctrl{display:none !important;}
+#wrap-territorial{display:none;}
+body.mapa-territorial #wrap-territorial{display:block;}
+#terr-menu.show{display:block;}
+.terr-pin div{width:26px;height:26px;border-radius:50%;border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;font-size:14px;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.35);}
+.terr-pop{font-size:12px;min-width:230px;}
+.terr-pop > b{display:block;font-size:13.5px;margin-bottom:4px;}
+.terr-pop-tipo{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:700;}
+.terr-pop table{border-collapse:collapse;width:100%;margin-top:6px;}
+.terr-pop td{padding:2px 4px;border-bottom:1px solid #F1F5F9;vertical-align:top;}
+.terr-pop td:first-child{color:#64748B;white-space:nowrap;}
+.terr-pop-btns{display:flex;gap:6px;margin-top:8px;}
+.terr-cat-ico{width:46px;text-align:center;font-size:16px;padding:4px;border:1px solid var(--border);border-radius:7px;}
+.terr-exp{display:flex;flex-direction:column;gap:6px;}
+.terr-exp > b{margin-top:6px;font-size:12px;}
+.terr-tab-det{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin:4px 0 10px;}
+.terr-tab-det > div > b{display:block;margin-bottom:6px;}
+.terr-bar{display:flex;align-items:center;gap:8px;font-size:12px;margin-top:5px;}
+.terr-bar span{flex:0 0 170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.terr-bar i{height:10px;border-radius:99px;background:#0F766E;min-width:4px;}
+.terr-bar em{font-style:normal;font-weight:700;}
+.terr-bar-det{display:block;color:var(--text-tertiary);font-size:10.5px;margin:1px 0 0 178px;}
+@media (max-width:800px){ .terr-tab-det{grid-template-columns:1fr;} .terr-bar span{flex-basis:110px;} .terr-bar-det{margin-left:0;} }
 
 /* ===== Panel de validación de recursos (Modo Emergencia, 11-10-2026) ===== */
 #panel-emergencia{

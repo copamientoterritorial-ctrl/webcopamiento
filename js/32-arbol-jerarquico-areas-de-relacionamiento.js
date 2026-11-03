@@ -736,6 +736,7 @@ function renderTabInterno_(tab) {
         tg.classList.toggle('on', !visible);
       });
     });
+    if (state.modoMapa === 'territorial' && typeof terrSeccionCapas_ === 'function') terrSeccionCapas_(c);   // 🗺️ Planificación Territorial (js/36)
     aplicarPermisosCapas_(c);   // capas que el Administrador ocultó a este usuario (SQL 83)
   }
 

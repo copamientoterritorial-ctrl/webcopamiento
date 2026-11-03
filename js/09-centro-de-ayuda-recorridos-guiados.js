@@ -360,6 +360,53 @@ const AY_GUIAS = [
     ],
     tour: 'agricultores',
   },
+  {
+    k: 'territorial', ico: '🗺️', c: '#0F766E', titulo: 'Planificación Territorial Comuna', sub: 'Entidades de la comuna e incendios registrados',
+    perfiles: ['admin', 'subgerente', 'grt', 'jefe', 'grd', 'visor'],
+    intro: 'Levanta la información territorial de la comuna en el mismo mapa del Planificador de Alertas, pero <b>sin escenarios ni alertas</b>: cada punto, línea o área se identifica con una <b>entidad</b> (Junta de Vecinos, Junta de Vigilancia, fuente de agua, riesgo de inundación, escuela, sede, puente de madera, bomberos…). Los <b>incendios registrados</b> (interfaz o rural, familias afectadas, viviendas de emergencia) van en una capa aparte.',
+    paraTi: {
+      admin: ['Registras, importas, editas y eliminas en cualquier comuna, y administras el catálogo de entidades (📚).'],
+      jefe: ['Registras, importas y editas entidades e incendios, y puedes agregar entidades nuevas al catálogo (📚).'],
+      subgerente: ['Igual que un Jefe de Área: registras, importas, editas y amplías el catálogo.'],
+      grt: ['Registras las entidades de tu territorio y los incendios; puedes agregar entidades nuevas al catálogo.'],
+      grd: ['Registras y editas las entidades e incendios de <b>tu comuna</b>.'],
+      visor: ['Consultas las capas, exportas y ves el tablero.'],
+    },
+    flujo: [['🗺️ Gestión SIG ▾', 'menú superior'], ['Planificación Territorial', 'elige la comuna'], ['🗺️ en el mapa', 'registrar / importar'], ['Dibuja', 'punto · línea · área'], ['Entidad', 'identifica cada elemento'], ['📊 Tablero · 📤 Exportar', 'totales y descargas']],
+    pasos: [
+      ['Abre el módulo', '<b>🗺️ Gestión SIG ▾ › Planificación Territorial Comuna</b> y elige la comuna. Es el mismo mapa del Planificador de Alertas, sin escenarios, copamiento ni incendios SIDCO.', ['<span class="m">🗺️ Gestión SIG ▾</span>', '<span class="fl">›</span>', '<span class="m az">Planificación Territorial Comuna</span>']],
+      ['Registra entidades', 'Botón <b>🗺️</b> del mapa › <b>🏷️ Registrar entidades</b>. Elige <b>Punto, Línea o Área</b> y dibuja con las mismas herramientas: ✍️ trazo libre, 🧲 imán a la red vial (líneas), regla, ↶ deshacer, ✓ Finalizar. Al terminar eliges la <b>entidad</b> y completas nombre, contacto y teléfono.', ['<span class="m">🗺️</span>', '<span class="m v">🏷️ Registrar entidades</span>', '<span class="m">Punto · Línea · Área</span>', '<span class="m">✓ Finalizar</span>']],
+      ['Registra incendios (capa aparte)', '<b>🔥 Registrar incendio</b>: un punto (ubicación) o un área (zona afectada; calcula las hectáreas). Tipo <b>interfaz o rural</b>, fecha y hora, familias y personas afectadas, viviendas afectadas y <b>viviendas de emergencia asignadas</b>.', ['<span class="m r">🔥 Registrar incendio</span>', '<span class="m">Interfaz · Rural</span>']],
+      ['Edita lo registrado', 'Clic en un elemento: <b>✏️ Datos</b>, <b>📐 Forma</b> (líneas y áreas, arrastrando vértices) o <b>🗑️</b>. Mientras registras, los puntos se pueden arrastrar para moverlos.', ['<span class="m">✏️ Datos</span>', '<span class="m">📐 Forma</span>', '<span class="m">🗑️</span>']],
+      ['Entidades (catálogo)', '<b>📚 Entidades</b>: la lista de entidades por categoría (organización comunitaria, agua, riesgos, educación y salud, emergencia, infraestructura, población, productivo). Se agregan nuevas, se cambia su ícono, color y geometría, o se desactivan.', ['<span class="m">📚 Entidades</span>', '<span class="m">➕ Agregar entidad</span>']],
+      ['Importa y exporta', '<b>📥 Importar</b> puntos, líneas y áreas desde GeoJSON, KML o KMZ (eliges la entidad por tipo de geometría; si el archivo trae la columna «entidad», se usa). <b>📤 Exportar</b> en KML o GeoJSON, por capa y por tipo de geometría.', ['<span class="m">📥 Importar</span>', '<span class="m">📤 Exportar</span>', '<span class="m">KML · GeoJSON</span>']],
+      ['Revisa el tablero', '<b>📊 Tablero</b>: total de elementos (puntos, líneas, áreas), entidades por categoría, incendios (interfaz / rural, familias, viviendas de emergencia, hectáreas) por comuna y por mes; descarga a Excel. En <b>🗂️ Capas</b> enciendes o apagas cada categoría y los incendios.', ['<span class="m">📊 Tablero</span>', '<span class="m">🗂️ Capas</span>', '<span class="m">⬇️ Excel</span>']],
+    ],
+    notas: [['rol', '👥 Quién puede', ['Ven todos los perfiles con acceso al mapa.', 'Registran: Administrador, Jefes de Área, Subgerentes, GRT y GRD (su comuna).', 'Catálogo de entidades: Administrador, Jefes de Área, Subgerentes y GRT.']]],
+    tour: 'territorial',
+  },
+  {
+    k: 'agradmin', ico: '🌾', c: '#4D7C0F', titulo: 'Administración Agricultores', sub: 'Predios de agricultores en el mapa · capas y descargas',
+    perfiles: ['admin', 'subgerente', 'grt', 'jefe', 'asoc'],
+    intro: 'Capa de <b>predios de agricultores</b> (polígonos) con agricultor, celular, cultivo, superficie, riesgo, fundo CMPC vecino, área, sector y gestor. La primera capa cargada es <b>Nacimiento</b>.',
+    paraTi: {
+      admin: ['Sube capas con <b>⬆️ Subir GeoJSON</b> (en WGS84 / EPSG:4326). Si la capa ya existe con ese nombre, se reemplaza completa. <b>🗑️ Eliminar capa</b> borra la capa elegida en el filtro.'],
+      jefe: ['Consulta los predios en el mapa y descárgalos (Excel, KML, GeoJSON).'],
+      subgerente: ['Consulta los predios de las capas cargadas y descárgalos.'],
+      grt: ['Ubica los predios y agricultores que gestionas (filtro «Gestor») y descárgalos para terreno (KML en Google Earth).'],
+      asoc: ['Consulta los predios de los agricultores en el mapa (también en satélite) y descárgalos.'],
+    },
+    flujo: [['🛡️ Prevención ▾', 'menú superior'], ['🌾 Administración Agricultores', 'mapa y listado'], ['Filtros', 'capa, comuna, riesgo, gestor'], ['Clic en un predio', 'ficha completa'], ['⬇️ Descargar', 'Excel · KML · GeoJSON']],
+    pasos: [
+      ['Abre el módulo', '<b>🛡️ Prevención ▾ › 🌾 Administración Agricultores</b>.', ['<span class="m">🛡️ Prevención ▾</span>', '<span class="fl">›</span>', '<span class="m az">🌾 Administración Agricultores</span>']],
+      ['Filtra y busca', 'Por capa, comuna, riesgo y gestor, o escribe el predio, agricultor, ID o fundo. Arriba: predios, hectáreas, agricultores y cuántos hay por riesgo.', ['<span class="m">Capa ▾</span>', '<span class="m">Riesgo ▾</span>', '<span class="m">Gestor ▾</span>', '<span class="m">🔎 Buscar</span>']],
+      ['Revisa cada predio', 'Clic en la lista o en el mapa: se acerca y abre la ficha (celular con enlace para llamar). Color = riesgo: rojo alto, ámbar medio, verde bajo. Cambia a <b>Satélite</b> arriba a la derecha.', ['<span class="m r">Alto</span>', '<span class="m a">Medio</span>', '<span class="m v">Bajo</span>', '<span class="m">Satélite</span>']],
+      ['Descarga lo filtrado', '<b>⬇️ Excel</b>, <b>🌍 KML</b> (Google Earth) o <b>🧩 GeoJSON</b> (QGIS / ArcGIS). La capa también está en Planificador CMPC › 🗺️ Descargas geográficas.', ['<span class="m">⬇️ Excel</span>', '<span class="m">🌍 KML</span>', '<span class="m">🧩 GeoJSON</span>']],
+      ['Sube o reemplaza una capa (Administrador)', '<b>⬆️ Subir GeoJSON</b>: polígonos en WGS84; se pide el nombre de la capa (por defecto el del archivo). Con el mismo nombre, reemplaza la capa completa.', ['<span class="m osc">⬆️ Subir GeoJSON</span>', '<span class="m">🗑️ Eliminar capa</span>']],
+    ],
+    notas: [['rol', '👥 Quién puede', ['Ven: Administrador, Jefes de Área, Subgerentes, Gestores (GRT) y la Asociación de Agricultores.', 'Suben y eliminan capas: solo el Administrador.']]],
+    tour: 'agradmin',
+  },
 ];
 
 function abrirAyuda_(guia) {
@@ -434,6 +481,21 @@ function ayIrMapa_(modo) { try { if (state.vistaActual !== 'mapa' || state.modoM
 function ayIrVista_(v) { try { if (state.vistaActual !== v) mostrarVista_(v); } catch (e) { /* sin permiso: el paso lo explica */ } }
 function ayAbrirPlanificar_() { const b = document.getElementById('btn-planificar'), p = document.getElementById('planificar-panel'); if (b && p && ayVisible_(b)) p.classList.add('show'); }
 const AY_TOURS = {
+  territorial: [
+    { sel: '#grupo-mapa .vista-tab-grupo', t: '🗺️ Gestión SIG', d: 'Aquí está <b>Planificación Territorial Comuna</b>.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-mapa'); } },
+    { sel: '#sub-territorial', t: 'Planificación Territorial Comuna', d: 'El mismo mapa del Planificador de Alertas, para registrar las entidades de la comuna y los incendios.', antes: () => ayAbrirGrupo_('grupo-mapa'), aviso: 'Tu perfil no tiene acceso al mapa.' },
+    { sel: '#btn-territorial', t: '🗺️ Registrar, importar, exportar', d: 'Registrar entidades o incendios, el catálogo de entidades, importar / exportar y el tablero.',
+      antes: () => { ayCerrarMenus_(); try { mostrarVista_('mapa', 'territorial'); } catch (e) {} }, aviso: 'Aparece en el mapa de Planificación Territorial (elige una comuna).' },
+    { sel: '#btn-capas-visor', t: '🗂️ Capas', d: 'Arriba, la sección «Planificación Territorial»: enciende o apaga cada categoría de entidades y los incendios registrados.', antes: () => ayIrVista_('mapa'), aviso: 'Elige una comuna para ver las capas.' },
+  ],
+  agradmin: [
+    { sel: '#grupo-prevencion .vista-tab-grupo', t: '🛡️ Prevención', d: 'Aquí está <b>🌾 Administración Agricultores</b>.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-prevencion'); } },
+    { sel: '#tab-agradmin', t: '🌾 Administración Agricultores', d: 'Predios de agricultores en el mapa y en un listado.', antes: () => ayAbrirGrupo_('grupo-prevencion'), aviso: 'Tu perfil no tiene acceso a este módulo.' },
+    { sel: '#agp-capa', t: 'Filtros', d: 'Capa, comuna, riesgo, gestor y buscador. Los KPI de abajo se recalculan con lo filtrado.', antes: () => { ayCerrarMenus_(); ayIrVista_('agradmin'); } },
+    { sel: '#agp-lista', t: 'Listado de predios', d: 'Clic en un predio: el mapa se acerca y abre su ficha completa.', antes: () => ayIrVista_('agradmin') },
+    { sel: '#agp-excel', t: 'Descargas', d: 'Lo filtrado en Excel, KML (Google Earth) o GeoJSON (QGIS / ArcGIS).', antes: () => ayIrVista_('agradmin') },
+    { sel: '#agp-subir', t: '⬆️ Subir GeoJSON', d: 'Solo Administrador: sube una capa nueva de predios o reemplaza una existente con el mismo nombre.', antes: () => ayIrVista_('agradmin'), aviso: 'Solo lo ve el Administrador.' },
+  ],
   escenarios: [
     { sel: '#grupo-mapa .vista-tab-grupo', t: 'Menú Gestión SIG', d: 'Aquí están el <b>Planificador de Alertas</b>, el <b>Modo Emergencia</b> y el informe de copamiento.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-mapa'); } },
     { sel: '#sub-mapa-visor', t: 'Planificador de Alertas', d: 'Abre el mapa para planificar los escenarios Normal, Alerta Amarilla y Roja.', antes: () => ayAbrirGrupo_('grupo-mapa') },

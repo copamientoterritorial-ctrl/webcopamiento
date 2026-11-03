@@ -821,5 +821,6 @@ function onGeoData(comunaId, geo) {
   });
 
   if (document.querySelector('.rail-btn.active').dataset.tab === 'capas') renderTab('capas');
+  if (state.modoMapa === 'territorial' && typeof terrAlCambiarComuna_ === 'function') terrAlCambiarComuna_();   // 🗺️ Planificación Territorial (js/36)
 }
 

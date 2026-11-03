@@ -211,6 +211,7 @@ function iniciarEdicionForma_(tabla, id) {
   // Buscar el recurso y su geometría según la tabla
   let r, capa;
   if (tabla === 'copamiento') { r = state.recursos.find(x => x.id === id); capa = recursosMarkersById[id]; }
+  else if (tabla === 'territorial') { r = terrBuscar_(id); capa = terrCapaDe_(id); }   // 🗺️ Planificación Territorial (js/36)
   else { r = (state.planificacionRecursos || []).find(x => x.id === id); capa = (window.planRecursosMarkersById || {})[id]; }
   if (!r) { mostrarToast_('No se encontró el recurso.'); return; }
   if (r.tipo_geometria !== 'linea' && r.tipo_geometria !== 'area') { mostrarToast_('Solo se puede editar la forma de líneas o áreas.'); return; }
@@ -399,9 +400,13 @@ async function guardarEdicionForma_() {
 
   const puntos = tempDibujoVertices.map(ll => [ll.lng, ll.lat]);
   const nuevosLatLngs = tempDibujoVertices.slice(); // copia antes de limpiar
-  const rpc = ef.tabla === 'copamiento' ? 'actualizar_geometria_recurso' : 'actualizar_geometria_planificacion';
-  const { error } = await supabaseClient.rpc(rpc, { p_id: ef.id, p_puntos: puntos });
-  if (error) { mostrarToast_('Error: ' + error.message); return; }
+  if (ef.tabla === 'territorial') {   // 🗺️ Planificación Territorial (js/36)
+    if (!(await terrGuardarForma_(ef.id, ef.tipo, puntos))) return;
+  } else {
+    const rpc = ef.tabla === 'copamiento' ? 'actualizar_geometria_recurso' : 'actualizar_geometria_planificacion';
+    const { error } = await supabaseClient.rpc(rpc, { p_id: ef.id, p_puntos: puntos });
+    if (error) { mostrarToast_('Error: ' + error.message); return; }
+  }
 
   // Actualización INMEDIATA en el mapa: la figura original toma la nueva forma
   // sin esperar la recarga desde la BD (evita el parpadeo y la demora).
@@ -419,6 +424,8 @@ async function guardarEdicionForma_() {
   } else if (ef.tabla === 'planificacion' && state.activeComunaId) {
     // Recargar los RECURSOS planificados (polígonos/líneas), que es lo que se editó.
     loadPlanificacionRecursos_(state.activeComunaId);
+  } else if (ef.tabla === 'territorial') {
+    terrCargar_();
   }
 }
 

@@ -328,6 +328,7 @@ function extraerLineasKml_(textoKml) {
 }
 
 function abrirImportacionKml_() {
+  if (state.modoTerritorial) { terrAbrirImportar_(); return; }   // 🗺️ Planificación Territorial: puntos, líneas y áreas (js/36)
   if (!state.modoPlanificacion || !state.modoPlanificacion.planId) {
     mostrarToast_('📥 Entra primero al modo planificación del escenario donde quieres importar las rutas.');
     return;
@@ -798,6 +799,7 @@ function finalizarDibujo_() {
     abrirModalRecursoAreaDesdeDibujo_();
     return;
   }
+  if (state.modoTerritorial) { terrAbrirFormulario_(); return; }   // 🗺️ Planificación Territorial (js/36)
 
   if (state.modoPlanificacion) {
     const icoEscModal = state.modoPlanificacion.escenario === 'Verde' ? '🟢' : state.modoPlanificacion.escenario === 'Amarilla' ? '🟡' : '🔴';
@@ -868,6 +870,11 @@ map.on('click', (e) => {
     state.pendingLineaPuntos = null;
     state.pendingAreaPuntos = null;
     abrirModalRecursoAreaDesdeDibujo_();
+    return;
+  }
+  if (state.modoTerritorial) {   // 🗺️ Planificación Territorial (js/36): punto
+    state.editingIdPlan = null; state.pendingLatLng = e.latlng; state.pendingLineaPuntos = null; state.pendingAreaPuntos = null;
+    terrAbrirFormulario_();
     return;
   }
 

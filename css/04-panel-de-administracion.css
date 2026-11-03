@@ -542,6 +542,28 @@ body.modo-dashboard #btn-volver-sg{display:none !important;}   /* solo se ve sob
 /* 🗺️ Descargas geográficas (02-11-2026) */
 #descargas-panel{position:absolute;top:60px;left:0;right:0;bottom:0;z-index:350;background:var(--bg-light);display:none;flex-direction:column;color:var(--text-primary);}
 #descargas-panel.show{display:flex;}
+/* 🌾 Administración Agricultores (js/35, SQL 150): reutiliza el diseño de Descargas (lado + mapa) */
+#agradmin-panel{position:absolute;top:60px;left:0;right:0;bottom:0;z-index:350;background:var(--bg-light);display:none;flex-direction:column;color:var(--text-primary);}
+#agradmin-panel.show{display:flex;}
+.agp-lado{display:flex;flex-direction:column;}
+.agp-lado input.admin-search{width:100%;margin-top:6px;}
+.agp-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0;}
+.agp-kpis .gr-kpi{min-width:0;padding:6px 8px;}
+.agp-lista{flex:1;min-height:120px;overflow:auto;display:flex;flex-direction:column;gap:4px;}
+.agp-item{display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border:1px solid var(--border);border-radius:9px;background:var(--white);cursor:pointer;font-size:12px;line-height:1.35;}
+.agp-item:hover{border-color:#65A30D;}
+.agp-item.sel{border-color:#65A30D;box-shadow:0 0 0 2px rgba(101,163,13,.25);}
+.agp-item > i{flex:0 0 10px;height:10px;border-radius:3px;margin-top:4px;}
+.agp-item small{color:var(--text-secondary);}
+#agp-mapa{position:absolute;inset:0;}
+.agp-leyenda{position:absolute;left:10px;bottom:10px;z-index:500;background:var(--white);border:1px solid var(--border);border-radius:9px;padding:5px 9px;font-size:11.5px;display:flex;gap:10px;box-shadow:var(--shadow-soft);}
+.agp-leyenda span{display:flex;align-items:center;gap:4px;}
+.agp-leyenda i{width:12px;height:12px;border-radius:3px;display:inline-block;}
+.agp-pop{font-size:12px;min-width:240px;}
+.agp-pop > b{display:block;font-size:13.5px;margin-bottom:4px;}
+.agp-pop table{border-collapse:collapse;width:100%;margin-top:6px;}
+.agp-pop td{padding:2px 4px;border-bottom:1px solid #F1F5F9;vertical-align:top;}
+.agp-pop td:first-child{color:#64748B;white-space:nowrap;}
 .dg-cuerpo{flex:1;min-height:0;display:flex;gap:12px;padding:12px;}
 .dg-lado{width:390px;flex-shrink:0;overflow:auto;display:flex;flex-direction:column;gap:10px;}
 .dg-bloque{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:7px;font-size:12px;}

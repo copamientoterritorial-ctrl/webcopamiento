@@ -699,6 +699,7 @@ function actualizarBotonModoActivo_() {
 }
 
 function toggleEditorMode() {
+  if (state.modoTerritorial) { terrSalirDibujo_(); return; }   // 🗺️ Planificación Territorial (js/36)
   if (state.modoPlanificacion) { salirModoPlanificacion_(); return; }
   if (state.modoRecursosArea) { salirModoRecursosArea_(); return; }
   // Punto 5: bloquear modo edición de copamiento si no hay periodo activo.

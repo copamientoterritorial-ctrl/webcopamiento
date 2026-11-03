@@ -11,6 +11,7 @@ const DG_CAPAS = [
   { k: 'sigei', nom: '🚓 Rutas de Patrullaje SIGEI', color: '#DC2626' },
   { k: 'entidades', nom: '🧭 Entidades planificadas (escenarios)', color: '#7C3AED' },
   { k: 'comunas', nom: '🏘️ Límites de comunas', color: '#475569' },
+  { k: 'predios', nom: '🌾 Predios de agricultores', color: '#65A30D' },   // SQL 150 (agr_predios)
 ];
 function puedeDescargasGeo_() { return !!(state.perfil && state.perfil.perfil === 'Administrador'); }
 
@@ -241,6 +242,19 @@ async function dgAplicar_() {
       const filas = await dgLotes_(slugs, 15, lote => supabaseClient.from('v_comunas_limite').select('id, comuna, geometry').in('id', lote),
         f => prog(ic, f, 'Leyendo límites de comunas… ' + Math.round(f * 100) + '%'));
       res.comunas = filas.map(c => ({ geometry: dgGeom_(c.geometry), _nombre: c.comuna, _color: '#475569', _carpeta: 'Comunas', properties: { comuna: c.comuna, id: c.id } })).filter(x => x.geometry);
+    }
+    // 🌾 Predios de agricultores (SQL 150): filtro por subgerencia, área y comuna
+    if (F.capas.includes('predios')) {
+      const ic = iDe('predios');
+      prog(ic, 0, 'Leyendo predios de agricultores…');
+      let filas = [];
+      try { filas = await dgLeerTodo_(() => supabaseClient.from('v_agr_predios').select('*').order('capa')); }
+      catch (e) { console.warn('Descargas: predios no disponibles (¿falta el SQL 150?):', e.message || e); }
+      res.predios = filas.filter(p => (!F.subg || String(p.subgerencia || '').toUpperCase() === F.subg) && (!F.area || SG_KEY(p.area || '') === F.area) &&
+          (!F.idsComuna || F.idsComuna.has(Number(p.id_comuna))))
+        .map(p => ({ geometry: dgGeom_(p.geojson), _nombre: p.nombre_predio || p.nombre || p.id_bg || 'Predio', _color: agpColorRiesgo_(p.riesgo),
+          _carpeta: 'Capa ' + p.capa, properties: agpPropiedades_(p) })).filter(x => x.geometry);
+      prog(ic, 1, 'Predios listos');
     }
     dgProg_(99, 'Dibujando en el mapa…');
     state.dg.res = res;

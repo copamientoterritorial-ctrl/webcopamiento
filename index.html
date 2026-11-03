@@ -570,6 +570,27 @@
     <div class="dg-cuerpo" id="dg-cuerpo"><div class="tb-vacio">Cargando…</div></div>
   </div>
 
+  <!-- 🌾 Administración Agricultores (Prevención ▾, 03-11-2026, SQL 150): predios de agricultores (agr_predios) en mapa y listado.
+       Ven Admin, Jefes de Área (Subgerentes y GRT) y la Asociación; sube / elimina capas solo el Administrador (js/35). -->
+  <div id="agradmin-panel">
+    <div class="pat-toolbar">
+      <div class="pat-toolbar-left">
+        <strong>🌾 Administración Agricultores</strong>
+        <span class="turnos-estado" id="agp-estado">—</span>
+      </div>
+      <div class="pat-toolbar-right" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <button class="turnos-btn" id="agp-recargar" title="Volver a leer los predios">🔄 Actualizar</button>
+        <button class="turnos-btn" id="agp-excel" title="Predios filtrados a Excel">⬇️ Excel</button>
+        <button class="turnos-btn" id="agp-kml" title="Predios filtrados en KML (Google Earth)">🌍 KML</button>
+        <button class="turnos-btn" id="agp-geojson" title="Predios filtrados en GeoJSON (QGIS / ArcGIS)">🧩 GeoJSON</button>
+        <button class="turnos-btn" id="agp-eliminar" style="display:none;" title="Solo Administrador: eliminar la capa elegida en el filtro «Capa»">🗑️ Eliminar capa</button>
+        <button class="turnos-btn gr-btn-guardar" id="agp-subir" style="display:none;" title="Solo Administrador: subir un GeoJSON de predios (WGS84). Una capa con el mismo nombre se reemplaza">⬆️ Subir GeoJSON</button>
+        <input type="file" id="agp-archivo" accept=".geojson,.json" style="display:none;">
+      </div>
+    </div>
+    <div class="dg-cuerpo" id="agp-cuerpo"><div class="tb-vacio">Cargando…</div></div>
+  </div>
+
   <!-- 👥 Turnos de Gestores de relacionamiento (Planificador CMPC ▾, 20-10-2026, SQL 134): cada área programa día a día los
        turnos de sus gestores (gestores_relacionamiento). Editan Admin y Jefes / Subgerentes de esa área; los GRT solo ven. -->
   <div id="turnosgestor-panel">
@@ -821,6 +842,7 @@
           <div class="vista-submenu">
             <button class="vista-subitem" data-vista="mapa" data-modo="planificador" id="sub-mapa-visor"><span class="vs-ico">🧭</span><span><b>Planificador de Alertas</b><small>Planifica Condiciones Normales, Alerta Amarilla y Roja</small></span></button>
             <button class="vista-subitem" data-vista="mapa" data-modo="emergencia" id="sub-emergencia"><span class="vs-ico">🚨</span><span><b>Modo Emergencia</b><small>Copamiento en terreno durante el Periodo Crítico</small></span></button>
+            <button class="vista-subitem" data-vista="mapa" data-modo="territorial" id="sub-territorial" style="display:none;"><span class="vs-ico">🗺️</span><span><b>Planificación Territorial Comuna</b><small>Entidades de la comuna (puntos, líneas, áreas) e incendios registrados</small></span></button>
             <div class="vista-subsep"></div>
             <button class="vista-subitem" id="sub-informe"><span class="vs-ico">📄</span><span><b>Generar informe de copamiento</b><small>Por institución y sobre incendios</small></span></button>
           </div>
@@ -835,6 +857,7 @@
             <button class="vista-subitem" data-vista="implementacion" id="tab-implementacion" style="display:none;"><span class="vs-ico">🪜</span><span><b>Implementación por comuna</b><small>7 etapas en las 24 comunas · control interno</small></span></button>
             <button class="vista-subitem" data-vista="appreportes" id="tab-appreportes" style="display:none;"><span class="vs-ico">📱</span><span><b>App de Patrullaje</b><small>Patrullajes en vivo y reportes de los patrulleros</small></span></button>
             <button class="vista-subitem" data-vista="bosques" id="tab-bosques" style="display:none;"><span class="vs-ico">🌳</span><span><b>Gestión Bosque Recreativo</b><small>Visitas, implementación, acceso e inversión</small></span></button>
+            <button class="vista-subitem" data-vista="agradmin" id="tab-agradmin" style="display:none;"><span class="vs-ico">🌾</span><span><b>Administración Agricultores</b><small>Predios de agricultores en el mapa · capas y descargas</small></span></button>
           </div>
         </div>
         <!-- Planificador CMPC ▾: Turnos de Recursos + Planificador gráfico de Recursos -->
@@ -940,6 +963,38 @@
         <div class="dropdown-panel planificar-panel" id="zonas-recursos-panel">
           <div class="planificar-header">¿En qué zona quieres editar?</div>
           <div id="zonas-recursos-lista"></div>
+        </div>
+      </div>
+
+      <!-- 🗺️ PLANIFICACIÓN TERRITORIAL COMUNA (03-11-2026, SQL 151, js/36): solo en el modo del mapa «territorial» -->
+      <div class="dropdown-wrap controles-mapa" id="wrap-territorial">
+        <button class="icon-btn" id="btn-territorial" title="Planificación Territorial Comuna">🗺️</button>
+        <div class="dropdown-panel planificar-panel" id="terr-menu">
+          <div class="planificar-header">Planificación Territorial<small id="terr-menu-n" style="display:block;font-weight:500;color:var(--text-tertiary);margin-top:2px;"></small></div>
+          <button class="planificar-item" data-terr="elementos">
+            <span class="plan-icon" style="background:#CCFBF1;">🏷️</span>
+            <div><div class="plan-label">Registrar entidades</div><div class="plan-sub">Puntos, líneas y áreas con todas las herramientas de dibujo</div></div>
+          </button>
+          <button class="planificar-item" data-terr="incendios">
+            <span class="plan-icon" style="background:#FEE2E2;">🔥</span>
+            <div><div class="plan-label">Registrar incendio</div><div class="plan-sub">Interfaz o rural · familias afectadas · viviendas de emergencia</div></div>
+          </button>
+          <button class="planificar-item" data-terr="catalogo">
+            <span class="plan-icon" style="background:#E0E7FF;">📚</span>
+            <div><div class="plan-label">Entidades (catálogo)</div><div class="plan-sub">Juntas de vecinos, fuentes de agua, escuelas, puentes…</div></div>
+          </button>
+          <button class="planificar-item" data-terr="importar">
+            <span class="plan-icon" style="background:#DCFCE7;">📥</span>
+            <div><div class="plan-label">Importar</div><div class="plan-sub">Puntos, líneas y áreas desde GeoJSON, KML o KMZ</div></div>
+          </button>
+          <button class="planificar-item" data-terr="exportar">
+            <span class="plan-icon" style="background:#DBEAFE;">📤</span>
+            <div><div class="plan-label">Exportar</div><div class="plan-sub">Puntos, líneas y áreas en KML o GeoJSON</div></div>
+          </button>
+          <button class="planificar-item" data-terr="tablero">
+            <span class="plan-icon" style="background:#FEF3C7;">📊</span>
+            <div><div class="plan-label">Tablero</div><div class="plan-sub">Total de capas e incendios registrados</div></div>
+          </button>
         </div>
       </div>
 
@@ -2207,5 +2262,7 @@
 <script src="js/32-arbol-jerarquico-areas-de-relacionamiento.js"></script>
 <script src="js/33-eventos.js"></script>
 <script src="js/34-descargas-geograficas.js"></script>
+<script src="js/35-administracion-agricultores.js"></script>
+<script src="js/36-planificacion-territorial.js"></script>
 </body>
 </html>
