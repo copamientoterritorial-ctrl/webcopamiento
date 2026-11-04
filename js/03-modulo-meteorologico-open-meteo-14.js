@@ -657,6 +657,7 @@ function cargarSeccionAdmin_(seccion) {
     resumen: adminSeccionResumen_, usuarios: adminSeccionUsuarios_, permisosPerfil: adminSeccionPermisosPerfil_, instituciones: adminSeccionInstituciones_,
     recursos: adminSeccionRecursos_, tiposRecurso: adminSeccionTiposRecurso_, patrulleros: adminSeccionPatrulleros_, comunas: adminSeccionComunas_, areaComunas: adminSeccionAreaComunas_, auditoria: adminSeccionAuditoria_, auditoriaPerfiles: adminSeccionAuditoriaPerfiles_, modulosPerfil: adminSeccionModulosPerfil_, actividad: adminSeccionActividad_, sesiones: adminSeccionSesiones_,
     appPatrulleros: adminSeccionAppPatrulleros_, appAcciones: adminSeccionAppAcciones_,
+    limpieza: adminSeccionLimpieza_,   // js/37 (SQL 154)
   }[seccion];
   if (fn) fn(c);
 }
@@ -952,6 +953,7 @@ const AUD_CAPACIDADES = [
   ['📈 Seguimiento', 'Tablero de Seguimiento (comunas, recursos, turnos)', null, null, ['Ambas subgerencias', 'Su subgerencia', 'no', 'no', 'no', 'no', 'no']],
   ['🌾 Agricultores', 'Tablero Gestión Asociación Malleco (ver)', null, null, ['si', 'Si tiene el área Victoria', 'Área Victoria', 'Área Victoria', 'no', 'no', 'si']],
   ['🌾 Agricultores', 'Registrar actividades, agricultores y planificación (web y app de terreno)', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'si']],
+  ['🌾 Agricultores', 'Modificar o eliminar registros y planificaciones (SQL 154)', null, null, ['Todos', 'no', 'no', 'no', 'no', 'no', 'Solo los que creó']],
   ['🌾 Agricultores', 'Metas mensuales de las actividades', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'Solo escuelas (A8)']],
   ['🌾 Agricultores', 'Patrullaje en días de alerta desde la app (misma sesión)', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'si']],
   ['🌾 Agricultores', 'Resto del sistema (mapa, dashboard, planificadores)', null, null, ['si', 'si', 'si', 'si', 'si', 'si', 'no']],
@@ -960,6 +962,7 @@ const AUD_CAPACIDADES = [
   ['⚙️ Administración', 'Permisos por perfil y por usuario', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
   ['⚙️ Administración', 'Instituciones, catálogo, comunas por área', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
   ['⚙️ Administración', 'Sesiones, actividad y auditoría', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
+  ['⚙️ Administración', '🧹 Limpieza de datos: eliminar datos basura (con papelera y restaurar)', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
   ['⚙️ Administración', '«Ver como…» otro perfil', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
 ];
 state.audp = { vista: 'matriz', q: '', perfil: '', permPerfil: null, permUsuario: null };

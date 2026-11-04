@@ -697,6 +697,12 @@ body.modo-dashboard #btn-volver-sg{display:none !important;}   /* solo se ve sob
 .agv-full{bottom:28px;right:12px;}
 .agv-pop{position:absolute;top:58px;right:12px;z-index:600;background:#fff;border-radius:12px;padding:12px;box-shadow:0 4px 18px rgba(15,23,42,.2);width:220px;font-size:12.5px;color:#334155;}
 .agv-pop label{display:flex;align-items:center;gap:8px;padding:4px 2px;cursor:pointer;}
+/* 04-11-2026: más capas → panel más ancho y con desplazamiento */
+.agv-pop{width:250px;max-height:calc(100% - 76px);overflow-y:auto;}
+.agv-pop .t:not(:first-child){margin-top:10px;}
+.agv-pop .agv-sw{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none;}
+.agv-pop .agv-n{margin-left:auto;color:#94A3B8;font-size:11px;}
+.agv-pop .agv-nota{font-size:11.5px;color:#94A3B8;padding:2px 2px 4px;}
 .agv-bases{display:flex;gap:8px;margin-bottom:10px;}
 .agv-bases button{flex:1;border:2px solid transparent;background:none;border-radius:10px;padding:3px;font:inherit;font-size:11.5px;color:#475569;cursor:pointer;}
 .agv-bases button.on{border-color:#C2410C;color:#0F172A;font-weight:700;}

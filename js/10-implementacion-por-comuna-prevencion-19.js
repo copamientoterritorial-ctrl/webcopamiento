@@ -263,6 +263,8 @@ function puedeAgricultores_() {
   return (state.misAreasIds || []).some(a => SG_KEY(a) === SG_KEY(AGR_AREA_VISIBLE));
 }
 function agrPuedeRegistrar_() { return esAdminPerfil_() || esAsociacion_(); }
+/** 04-11-2026 (SQL 154): un registro o una planificación solo la modifica o elimina QUIEN LA CREÓ o el Administrador. */
+function agrPuedeModificar_(creadorId) { return esAdminPerfil_() || (agrPuedeRegistrar_() && !!creadorId && !!state.user && creadorId === state.user.id); }
 /** GPS real del teléfono al registrar (SQL 132): control de supervisión, lo ven el Administrador y los Jefes (no la Asociación). */
 function agrVeGpsReal_() { return !esAsociacion_() && (esAdminPerfil_() || !!(state.perfil && esJefeAreaPerfil_(state.perfil.perfil))); }
 function agrTxtGpsReal_(r) {
@@ -439,7 +441,9 @@ function renderAgDiario_() {
             (agrTxtGpsReal_(r) ? ' · <span style="color:' + (Number(r.ajuste_m) >= 30 ? '#B45309' : '#15803D') + ';font-weight:700;">' + agrTxtGpsReal_(r) + '</span>' : '') + '</small>' +
           (d.observaciones || d.acuerdos || d.incidencias || d.motivo ? '<div style="font-size:12px;margin-top:3px;">' + escapeHtml_(d.observaciones || d.acuerdos || d.incidencias || d.motivo) + '</div>' : '') +
           ((r.fotos || []).length ? '<div class="fotos" data-ag-fotos="' + r.id + '">' + r.fotos.map(() => '<span style="width:64px;height:64px;border-radius:8px;background:#F1F5F9;display:inline-block;"></span>').join('') + '</div>' : '') +
-          '</div>' + (r.lat != null ? '<button class="turnos-btn" data-ag-ver-mapa="' + r.id + '" title="Ver en el mapa">🗺️</button>' : '') + '</div>';
+          '</div>' + (r.lat != null ? '<button class="turnos-btn" data-ag-ver-mapa="' + r.id + '" title="Ver en el mapa">🗺️</button>' : '') +
+          (agrPuedeModificar_(r.usuario_id) ? '<button class="turnos-btn" data-ag-editar-reg="' + r.id + '" title="Modificar">✏️</button>' +
+            '<button class="turnos-btn" data-ag-borrar-reg="' + r.id + '" title="Eliminar" style="color:#B91C1C;">🗑️</button>' : '') + '</div>';
       }).join('') : '<div class="tb-vacio">Sin registros este día.</div>') + '</div>';
   agrCargarFotos_(regs.filter(r => (r.fotos || []).length));
 }
@@ -531,7 +535,8 @@ function renderAgListado_() {
 }
 
 /** 🗺️ Visor de gestión (20-10-2026): estilo sobrio (mapa base Esri Light Gray Canvas o satélite Esri), controles flotantes y una línea de
- *  tiempo a la izquierda (Hoy · 24 h · 48 h · 72 h · 7 días · Mes · Todo) que filtra los pinchos de las actividades. Sin rutas por ahora.
+ *  tiempo a la izquierda (Hoy · 24 h · 48 h · 72 h · 7 días · Mes · Todo) que filtra los pinchos de las actividades.
+ *  04-11-2026: + capas de contexto, rutas planificadas de Malleco e incendios por temporada (ver agvRenderPop_).
  *  Administrador y Jefes ven además el GPS real del teléfono cuando el pincho se movió ≥ 30 m. */
 const AGV_BASES = {
   mapa: () => L.layerGroup([
@@ -552,7 +557,11 @@ function renderAgMapa_() {
   const S = state.ag;
   if (!S.periodo || !AGV_PERIODOS.some(p => p[0] === S.periodo)) S.periodo = '168';
   S.base = S.base || 'mapa';
-  S.capasOn = S.capasOn || { act: true, agr: false, gps: true };
+  // 04-11-2026 (SQL 153): + contexto (predios, fundos CMPC, Red vial MOP, comunas de Malleco), rutas planificadas de la provincia
+  // de Malleco por alerta e incendios por temporada (estos parten APAGADOS)
+  S.capasOn = Object.assign({ act: true, agr: false, gps: true, predios: true, fundos: false, mop: true, comunas: true,
+    rutaVerde: true, rutaAmarilla: false, rutaRoja: false }, S.capasOn || {});
+  S.incOn = S.incOn || {};
   const supervisa = agrVeGpsReal_();
   cuerpo.innerHTML =
     '<div class="agv" id="agv">' +
@@ -562,14 +571,7 @@ function renderAgMapa_() {
         AGV_PERIODOS.map(([k, tx]) => '<button data-agv-per="' + k + '"' + (k === S.periodo ? ' class="on"' : '') + '><i></i>' + tx + '</button>').join('') + '</div>' +
       '<div class="agv-ley" id="agv-ley"></div>' +
       '<button class="agv-btn agv-capas-btn" id="agv-capas-btn" title="Mapa base y capas"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></button>' +
-      '<div class="agv-pop" id="agv-pop" hidden>' +
-        '<div class="t">Mapa base</div>' +
-        '<div class="agv-bases">' + [['mapa', 'Mapa'], ['satelite', 'Satélite']].map(([k, tx]) => '<button data-agv-base="' + k + '"' + (S.base === k ? ' class="on"' : '') + '><span class="pv pv-' + k + '"></span>' + tx + '</button>').join('') + '</div>' +
-        '<div class="t">Capas</div>' +
-        '<label><input type="checkbox" data-agv-capa="act"' + (S.capasOn.act ? ' checked' : '') + '> Actividades</label>' +
-        '<label><input type="checkbox" data-agv-capa="agr"' + (S.capasOn.agr ? ' checked' : '') + '> Agricultores (por riesgo)</label>' +
-        (supervisa ? '<label><input type="checkbox" data-agv-capa="gps"' + (S.capasOn.gps ? ' checked' : '') + '> GPS real (puntos movidos)</label>' : '') +
-      '</div>' +
+      '<div class="agv-pop" id="agv-pop" hidden></div>' +
       '<button class="agv-btn agv-full" id="agv-full" title="Pantalla completa"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>' +
     '</div>';
   const m = L.map('ag-mapa', { zoomControl: false, attributionControl: true }).setView([-38.15, -72.35], 10);
@@ -578,7 +580,10 @@ function renderAgMapa_() {
   L.control.scale({ position: 'bottomleft', imperial: false, maxWidth: 110 }).addTo(m);
   S.capaBase = AGV_BASES[S.base]().addTo(m);
   S.gAct = L.featureGroup(); S.gAgr = L.layerGroup(); S.gGps = L.layerGroup();
+  m.createPane('agvCtx'); m.getPane('agvCtx').style.zIndex = 390;   // contexto bajo las rutas y los pinchos
+  agvRenderPop_();
   pintarAgvCapas_(true);
+  agvCargarContexto_();
   const agv = document.getElementById('agv');
   agv.addEventListener('click', e => {
     const per = e.target.closest('[data-agv-per]');
@@ -588,13 +593,17 @@ function renderAgMapa_() {
       S.base = base.dataset.agvBase; m.removeLayer(S.capaBase); S.capaBase = AGV_BASES[S.base]().addTo(m); S.capaBase.bringToBack && S.capaBase.bringToBack();
       agv.querySelectorAll('[data-agv-base]').forEach(b => b.classList.toggle('on', b === base)); return;
     }
-    if (e.target.closest('#agv-capas-btn')) { const p = document.getElementById('agv-pop'); p.hidden = !p.hidden; return; }
+    if (e.target.closest('#agv-capas-btn')) { const p = document.getElementById('agv-pop'); p.hidden = !p.hidden; if (!p.hidden) agvRenderPop_(); return; }
     if (e.target.closest('#agv-full')) {
       if (document.fullscreenElement) document.exitFullscreen(); else if (agv.requestFullscreen) agv.requestFullscreen();
       setTimeout(() => m.invalidateSize(), 250); return;
     }
   });
-  agv.addEventListener('change', e => { const c = e.target.dataset.agvCapa; if (c) { S.capasOn[c] = e.target.checked; pintarAgvCapas_(false); } });
+  agv.addEventListener('change', e => {
+    const c = e.target.dataset.agvCapa, inc = e.target.dataset.agvInc;
+    if (c) { S.capasOn[c] = e.target.checked; if (['act', 'agr', 'gps'].includes(c)) pintarAgvCapas_(false); else agvMostrarContexto_(); }
+    else if (inc) { S.incOn[inc] = e.target.checked; agvMostrarContexto_(); }
+  });
   m.on('click', () => { const p = document.getElementById('agv-pop'); if (p) p.hidden = true; });
   setTimeout(() => m.invalidateSize(), 80);
   return Promise.resolve();
@@ -634,6 +643,123 @@ function pintarAgvCapas_(encuadrar) {
   if (encuadrar && regs.length && S.capasOn.act) m.fitBounds(S.gAct.getBounds(), { padding: [70, 70], maxZoom: 14 });
 }
 
+/* ── Contexto del visor (04-11-2026, SQL 153): predios de agricultores, fundos CMPC y Red vial MOP (agr_capas_offline, comunas
+ *    de la Asociación), límites y RUTAS PLANIFICADAS de la provincia de Malleco por alerta (agr_rutas_malleco) e incendios SIDCO
+ *    por temporada dentro de la provincia (archivo nacional, `cargarIncendiosNacional_`). Los datos se piden una vez por sesión
+ *    (state.agCtx); las capas se rehacen con cada mapa. */
+const AGV_CTX = [['predios', '🌾 Predios de agricultores'], ['fundos', '🌲 Fundos CMPC'], ['mop', '🛣️ Red vial MOP'], ['comunas', '🏘️ Comunas de la provincia de Malleco']];
+const AGV_RUTAS_ESC = [['Verde', '#16A34A'], ['Amarilla', '#F59E0B'], ['Roja', '#EF4444']];
+function agvRenderPop_() {
+  const S = state.ag, p = document.getElementById('agv-pop'); if (!p) return;
+  const X = state.agCtx || {}, C = X.capas || {}, on = S.capasOn || {}, supervisa = agrVeGpsReal_();
+  const n = { predios: C.predios && C.predios.length, fundos: C.fundos && C.fundos.length, mop: C.rutas && C.rutas.length, comunas: X.comunas && X.comunas.length };
+  AGV_RUTAS_ESC.forEach(([e]) => { n['ruta' + e] = X.rutas ? X.rutas.filter(r => r.escenario === e).length : null; });
+  const lbl = (k, tx, extra) => '<label><input type="checkbox" data-agv-capa="' + k + '"' + (on[k] ? ' checked' : '') + '> ' + (extra || '') + tx +
+    (n[k] != null ? '<small class="agv-n">' + Number(n[k]).toLocaleString('es-CL') + '</small>' : '') + '</label>';
+  p.innerHTML =
+    '<div class="t">Mapa base</div>' +
+    '<div class="agv-bases">' + [['mapa', 'Mapa'], ['satelite', 'Satélite']].map(([k, tx]) => '<button data-agv-base="' + k + '"' + (S.base === k ? ' class="on"' : '') + '><span class="pv pv-' + k + '"></span>' + tx + '</button>').join('') + '</div>' +
+    '<div class="t">Actividades</div>' + lbl('act', 'Actividades') + lbl('agr', 'Agricultores (por riesgo)') + (supervisa ? lbl('gps', 'GPS real (puntos movidos)') : '') +
+    '<div class="t">Contexto</div>' + AGV_CTX.map(([k, tx]) => lbl(k, tx)).join('') +
+    (C.predios && C.fundos === undefined ? '<div class="agv-nota">Fundos CMPC: falta el SQL 153.</div>' : '') +
+    '<div class="t">Rutas planificadas · Malleco</div>' +
+    AGV_RUTAS_ESC.map(([e, col]) => lbl('ruta' + e, nombreEscenario_(e), '<i class="agv-sw" style="background:' + col + '"></i>')).join('') +
+    (X.errorRutas ? '<div class="agv-nota">⚠️ ' + escapeHtml_(X.errorRutas) + '</div>' : '') +
+    '<div class="t">Incendios por temporada</div>' +
+    (X.incEstado === 'cargando' || X.cargando ? '<div class="agv-nota">Cargando incendios…</div>'
+      : X.incEstado === 'error' ? '<div class="agv-nota">⚠️ ' + escapeHtml_(X.incError || 'No se pudieron cargar') + '</div>'
+      : (X.temporadas || []).length ? X.temporadas.map(t => '<label><input type="checkbox" data-agv-inc="' + escapeHtml_(t.nombre) + '"' + (S.incOn[t.nombre] ? ' checked' : '') + '> <i class="agv-sw" style="background:' + t.color + '"></i>' +
+          escapeHtml_(String(t.nombre).replace(/^TEMP\.?\s*/i, 'Temporada ')) + '<small class="agv-n">' + t.n.toLocaleString('es-CL') + '</small></label>').join('')
+      : '<div class="agv-nota">Sin incendios en la provincia.</div>') +
+    (X.error ? '<div class="agv-nota">⚠️ Capas: ' + escapeHtml_(X.error) + '</div>' : X.cargando ? '<div class="agv-nota">Cargando capas…</div>' : '');
+}
+async function agvCargarContexto_() {
+  if (!state.agCtx) {
+    const X = state.agCtx = { cargando: true };
+    agvRenderPop_();
+    try {
+      const [capas, rutas, com] = await Promise.all([
+        supabaseClient.rpc('agr_capas_offline', { p_asociacion: 'MALLECO' }),
+        supabaseClient.rpc('agr_rutas_malleco'),
+        supabaseClient.from('comunas').select('id, comuna, id_comuna').gte('id_comuna', 9201).lte('id_comuna', 9299),
+      ]);
+      if (capas.error) throw capas.error;
+      X.capas = capas.data || {};
+      if (rutas.error) X.errorRutas = /agr_rutas_malleco|schema cache|does not exist/i.test(rutas.error.message) ? 'Rutas de Malleco: falta el SQL 153.' : rutas.error.message;
+      X.rutas = Array.isArray(rutas.data) ? rutas.data : [];
+      const ids = (com.data || []).map(c => c.id);
+      X.comunas = [];
+      if (ids.length) { const { data } = await supabaseClient.from('v_comunas_limite').select('id, comuna, geometry').in('id', ids); X.comunas = data || []; }
+    } catch (e) { X.error = (e && e.message) || String(e); }
+    X.cargando = false;
+    X.incEstado = 'cargando';
+    agvCargarIncendios_(X);
+  }
+  agvCrearCapasContexto_(); agvMostrarContexto_(); agvRenderPop_();
+}
+async function agvCargarIncendios_(X) {
+  try {
+    const focos = await cargarIncendiosNacional_();
+    const polys = [];
+    (X.comunas || []).forEach(c => {
+      let g = c.geometry; if (typeof g === 'string') { try { g = JSON.parse(g); } catch (e) { g = null; } }
+      poligonosDeGeojson_(g).forEach(pp => {
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        pp[0].forEach(([x, y]) => { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; });
+        pp.__bb = [x0, y0, x1, y1]; polys.push(pp);
+      });
+    });
+    const grupos = {};
+    if (polys.length) focos.forEach(f => { if (puntoEnPoligonos_(f.c[0], f.c[1], polys)) (grupos[f.t] = grupos[f.t] || []).push(f.c); });
+    X.temporadas = Object.keys(grupos).sort().reverse().map((t, i) => ({ nombre: t, color: TEMPORADA_PALETTE[i % TEMPORADA_PALETTE.length], n: grupos[t].length, puntos: grupos[t] }));
+    X.incEstado = 'ok';
+  } catch (e) { X.incEstado = 'error'; X.incError = 'Incendios: ' + ((e && e.message) || e); }
+  agvCrearCapasContexto_(); agvMostrarContexto_(); agvRenderPop_();
+}
+function agvColorRiesgo_(r) { const n = String(r || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); return n.startsWith('alt') ? '#DC2626' : n.startsWith('med') ? '#D97706' : n.startsWith('baj') ? '#16A34A' : '#7C3AED'; }
+/** Crea (para el mapa actual) las capas de contexto con lo que ya esté cargado. */
+function agvCrearCapasContexto_() {
+  const S = state.ag, m = S.mapa, X = state.agCtx; if (!m || !X || X.cargando) return;
+  if (S.ctxL && S.ctxL.mapa === m) Object.values(S.ctxL.g).forEach(l => m.removeLayer(l));
+  const C = X.capas || {}, g = {}, pane = 'agvCtx';
+  const fc = arr => ({ type: 'FeatureCollection', features: (arr || []).filter(x => x && x.geometry).map(x => {
+    const p = Object.assign({}, x); delete p.geometry;
+    let gm = x.geometry; if (typeof gm === 'string') { try { gm = JSON.parse(gm); } catch (e) { gm = null; } }
+    return { type: 'Feature', geometry: gm, properties: p }; }).filter(f => f.geometry) });
+  const ha = v => v != null && v !== '' ? Number(v).toLocaleString('es-CL', { maximumFractionDigits: 1 }) + ' ha' : '';
+  const pop = (tit, filas) => '<div class="agv-popup"><b>' + tit + '</b>' + filas.filter(Boolean).map(f => '<div>' + f + '</div>').join('') + '</div>';
+  g.comunas = L.geoJSON(fc(X.comunas), { pane, interactive: false, style: { color: '#334155', weight: 1.6, dashArray: '6 5', fill: false } });
+  g.fundos = L.geoJSON(fc(C.fundos), { pane, style: { color: '#059669', weight: 1.3, fillColor: '#34D399', fillOpacity: 0.15 },
+    onEachFeature: (f, l) => l.bindPopup(pop('🌲 ' + escapeHtml_(f.properties.nombre || 'Fundo CMPC'), [ha(f.properties.sup_ha), escapeHtml_(f.properties.sector || '')])) });
+  g.predios = L.geoJSON(fc(C.predios), { pane, style: f => { const c = agvColorRiesgo_(f.properties.riesgo); return { color: c, weight: 1.8, fillColor: c, fillOpacity: 0.22 }; },
+    onEachFeature: (f, l) => { const p = f.properties;
+      l.bindPopup(pop('🌾 ' + escapeHtml_(p.nombre || 'Predio'), [p.agricultor ? '👨‍🌾 ' + escapeHtml_(p.agricultor) : '',
+        escapeHtml_([p.riesgo ? 'Riesgo ' + p.riesgo : '', p.cultivo || '', ha(p.superficie_ha), p.comuna || ''].filter(Boolean).join(' · '))])); } });
+  g.mop = L.geoJSON(fc(C.rutas), { pane, style: { color: '#C2410C', weight: 2, opacity: 0.8 },
+    onEachFeature: (f, l) => l.bindPopup(pop('🛣️ ' + escapeHtml_(f.properties.rol_label || f.properties.rol || 'Ruta MOP'), [escapeHtml_(f.properties.nombre || ''), escapeHtml_(f.properties.clasificacion || '')])) });
+  AGV_RUTAS_ESC.forEach(([e]) => {
+    g['ruta' + e] = L.geoJSON(fc((X.rutas || []).filter(r => r.escenario === e)), {
+      style: f => ({ color: f.properties.color || '#64748B', weight: 3.5, opacity: 0.9, dashArray: e === 'Verde' ? null : e === 'Amarilla' ? '9 5' : '3 6' }),
+      onEachFeature: (f, l) => { const p = f.properties;
+        l.bindPopup(pop('<span style="display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;background:' + escapeHtml_(p.color || '#64748B') + ';"></span>' + escapeHtml_(p.institucion || 'Institución'),
+          [escapeHtml_(nombreEscenario_(e) + ' · ' + (p.comuna || '')), escapeHtml_([p.tipo, p.km != null ? String(p.km).replace('.', ',') + ' km' : ''].filter(Boolean).join(' · ')), escapeHtml_(p.descripcion || '')])); } });
+  });
+  const rnd = L.canvas({ padding: 0.3 });
+  (X.temporadas || []).forEach(t => {
+    const et = escapeHtml_(String(t.nombre).replace(/^TEMP\.?\s*/i, 'Temporada '));
+    g['inc:' + t.nombre] = L.layerGroup(t.puntos.map(([lng, lat]) => L.circleMarker([lat, lng], { renderer: rnd, radius: 4.5, color: '#fff', weight: 1, fillColor: t.color, fillOpacity: 0.95 })
+      .bindPopup('<div class="agv-popup"><b>🔥 Incendio</b><div>' + et + '</div></div>')));
+  });
+  S.ctxL = { mapa: m, g };
+}
+function agvMostrarContexto_() {
+  const S = state.ag, m = S.mapa; if (!m || !S.ctxL || S.ctxL.mapa !== m) return;
+  Object.keys(S.ctxL.g).forEach(k => {
+    const l = S.ctxL.g[k], on = k.startsWith('inc:') ? !!S.incOn[k.slice(4)] : !!S.capasOn[k];
+    if (on) { if (!m.hasLayer(l)) l.addTo(m); } else if (m.hasLayer(l)) m.removeLayer(l);
+  });
+}
+
 function clicAgricultores_(e) {
   const D = state.ag.datos; if (!D) return;
   const t = e.target;
@@ -657,6 +783,8 @@ function clicAgricultores_(e) {
     renderAgPlan_(); return;
   }
   const rp = t.closest('[data-ag-reg-plan]'); if (rp) { const p = D.plan.find(x => x.id === rp.dataset.agRegPlan); if (p) abrirRegistroAgr_({ plan: p }); return; }
+  const er = t.closest('[data-ag-editar-reg]'); if (er) { const r = D.registros.find(x => x.id === er.dataset.agEditarReg); if (r) abrirRegistroAgr_({ editar: r }); return; }
+  const br = t.closest('[data-ag-borrar-reg]'); if (br) { eliminarRegistroAgr_(br.dataset.agBorrarReg); return; }
   const tarea = t.closest('[data-ag-tarea]'); if (tarea) { e.stopPropagation(); abrirTareaAgr_(tarea.dataset.agTarea); return; }
   const np = t.closest('[data-ag-planificar]'); if (np) { abrirPlanificarAgr_(np.dataset.agPlanificar); return; }
   const dc = t.closest('[data-ag-dia-cal]'); if (dc && agrPuedeRegistrar_()) { abrirPlanificarAgr_(dc.dataset.agDiaCal); return; }
@@ -749,17 +877,50 @@ function abrirPlanificarAgr_(fecha) {
     agrCerrarModal_(); mostrarToast_('✅ ' + (data || []).length + ' actividad(es) planificada(s).'); renderAgricultores_();
   });
 }
-/** Clic en una actividad planificada: registrar, cancelar o eliminar (la serie completa, solo las pendientes). */
+/** 🗑️ Eliminar un registro (su autor o el Administrador; SQL 154): queda en la papelera del Administrador. */
+async function eliminarRegistroAgr_(id) {
+  const D = state.ag.datos, r = D && D.registros.find(x => x.id === id); if (!r) return;
+  if (!agrPuedeModificar_(r.usuario_id)) { mostrarToast_('Solo quien creó el registro (o el Administrador) puede eliminarlo.'); return; }
+  const a = agrAct_(r.actividad_id);
+  if (!confirm('¿Eliminar el registro «' + a.id + ' · ' + a.nombre + '» del ' + new Date(r.fecha).toLocaleString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) + '?\n\nSi estaba planificado, la tarea vuelve a quedar pendiente.')) return;
+  const { error } = await supabaseClient.rpc('agr_eliminar_registro', { p_id: id });
+  if (error) { mostrarToast_(/agr_eliminar_registro|schema cache|does not exist/i.test(error.message) ? 'Falta ejecutar el SQL 154 en Supabase.' : 'No se pudo eliminar: ' + error.message); return; }
+  mostrarToast_('🗑️ Registro eliminado.');
+  await cargarAgricultores_();
+}
+/** ✏️ Modificar una actividad planificada (su creador o el Administrador): fecha, detalle, comuna y responsable. */
+function modificarTareaAgr_(p) {
+  const D = state.ag.datos;
+  const ov = agrModal_('<h3>✏️ Modificar actividad planificada</h3>' +
+    '<div class="form-group"><label>Título / detalle</label><input id="agm-tit" value="' + escapeHtml_(p.titulo || '') + '"></div>' +
+    '<div class="fila"><div class="form-group"><label>Fecha</label><input type="date" id="agm-fecha" value="' + escapeHtml_(String(p.fecha).slice(0, 10)) + '"></div>' +
+      '<div class="form-group"><label>Comuna</label><select id="agm-comuna"><option value="">—</option>' + D.comunasAsoc.map(c => '<option value="' + c.id_comuna + '"' + (Number(c.id_comuna) === Number(p.id_comuna) ? ' selected' : '') + '>' + escapeHtml_(c.comuna) + '</option>').join('') + '</select></div></div>' +
+    '<div class="form-group"><label>Responsable</label><select id="agm-resp"><option value="">— Sin responsable —</option>' + D.gestores.map(g => '<option value="' + g + '"' + (g === p.responsable ? ' selected' : '') + '>' + escapeHtml_(agrNombre_(g)) + '</option>').join('') + '</select></div>' +
+    '<div class="modal-actions" style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn-secondary" id="agm-no">Cancelar</button><button class="btn-primary" id="agm-ok">Guardar</button></div>', 460);
+  ov.querySelector('#agm-no').addEventListener('click', agrCerrarModal_);
+  ov.querySelector('#agm-ok').addEventListener('click', async () => {
+    const cambios = { titulo: ov.querySelector('#agm-tit').value.trim() || null, fecha: ov.querySelector('#agm-fecha').value || p.fecha,
+      id_comuna: Number(ov.querySelector('#agm-comuna').value) || null, responsable: ov.querySelector('#agm-resp').value || null };
+    const { data, error } = await supabaseClient.from('agr_planificacion').update(cambios).eq('id', p.id).select();
+    if (error || !(data || []).length) { mostrarToast_('No se pudo modificar' + (error ? ': ' + error.message : ': solo su creador o el Administrador.')); return; }
+    Object.assign(p, cambios); D.plan.sort((x, y) => x.fecha.localeCompare(y.fecha));
+    agrCerrarModal_(); mostrarToast_('✅ Actividad modificada.'); renderAgricultores_();
+  });
+}
+/** Clic en una actividad planificada: registrar, modificar, cancelar o eliminar (la serie completa, solo las pendientes).
+ *  Modificar / cancelar / eliminar: solo su creador o el Administrador (SQL 154). */
 function abrirTareaAgr_(id) {
   const D = state.ag.datos, p = D.plan.find(x => x.id === id); if (!p) return;
-  const a = agrAct_(p.actividad_id), edita = agrPuedeRegistrar_();
-  const enSerie = p.serie_id ? D.plan.filter(x => x.serie_id === p.serie_id && x.estado === 'pendiente').length : 0;
+  const a = agrAct_(p.actividad_id), edita = agrPuedeModificar_(p.creado_por);
+  const enSerie = p.serie_id ? D.plan.filter(x => x.serie_id === p.serie_id && x.estado === 'pendiente' && (esAdminPerfil_() || x.creado_por === p.creado_por)).length : 0;
   const ov = agrModal_('<h3>' + (a.icono || '') + ' ' + escapeHtml_(a.id + ' · ' + a.nombre) + '</h3>' +
     '<p class="coords">' + escapeHtml_((p.titulo ? p.titulo + ' · ' : '') + agrFecha_(p.fecha).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' }) +
       ' · ' + (AGR_FRECUENCIAS.find(f => f[0] === p.frecuencia) || ['', p.frecuencia])[1] + ' · ' + nombreComunaAgr_(p.id_comuna) + (p.responsable ? ' · ' + agrNombre_(p.responsable) : '')) + '</p>' +
-    '<p><b>Estado:</b> ' + escapeHtml_(p.estado) + '</p>' +
+    '<p><b>Estado:</b> ' + escapeHtml_(p.estado) + ' · <small style="color:var(--text-tertiary);">Creada por ' + escapeHtml_(p.creado_por ? agrNombre_(p.creado_por) : '—') + '</small></p>' +
+    (!edita && agrPuedeRegistrar_() ? '<p class="coords">Solo quien la creó (o el Administrador) puede modificarla, cancelarla o eliminarla.</p>' : '') +
     '<div class="modal-actions" style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">' +
-      (edita && p.estado === 'pendiente' ? '<button class="btn-primary" data-x="reg">➕ Registrar ahora</button><button class="btn-secondary" data-x="cancelar">🚫 Cancelar esta</button>' : '') +
+      (agrPuedeRegistrar_() && p.estado === 'pendiente' ? '<button class="btn-primary" data-x="reg">➕ Registrar ahora</button>' : '') +
+      (edita && p.estado === 'pendiente' ? '<button class="btn-secondary" data-x="modificar">✏️ Modificar</button><button class="btn-secondary" data-x="cancelar">🚫 Cancelar esta</button>' : '') +
       (edita && p.estado === 'cancelada' ? '<button class="btn-secondary" data-x="reactivar">↩️ Reactivar</button>' : '') +
       (edita && p.estado !== 'realizada' ? '<button class="btn-secondary" data-x="eliminar" style="color:#B91C1C;">🗑️ Eliminar</button>' : '') +
       (edita && enSerie > 1 ? '<button class="btn-secondary" data-x="serie" style="color:#B91C1C;">🗑️ Eliminar la serie (' + enSerie + ' pendientes)</button>' : '') +
@@ -768,6 +929,7 @@ function abrirTareaAgr_(id) {
     const x = b.dataset.x;
     if (x === 'cerrar') { agrCerrarModal_(); return; }
     if (x === 'reg') { agrCerrarModal_(); abrirRegistroAgr_({ plan: p }); return; }
+    if (x === 'modificar') { agrCerrarModal_(); modificarTareaAgr_(p); return; }
     let q;
     if (x === 'cancelar' || x === 'reactivar') q = supabaseClient.from('agr_planificacion').update({ estado: x === 'cancelar' ? 'cancelada' : 'pendiente' }).eq('id', p.id);
     else if (x === 'eliminar') { if (!confirm('¿Eliminar esta actividad planificada?')) return; q = supabaseClient.from('agr_planificacion').delete().eq('id', p.id); }
@@ -776,7 +938,7 @@ function abrirTareaAgr_(id) {
     if (error) { mostrarToast_('No se pudo: ' + error.message); return; }
     if (x === 'cancelar' || x === 'reactivar') p.estado = x === 'cancelar' ? 'cancelada' : 'pendiente';
     else if (x === 'eliminar') D.plan = D.plan.filter(y => y.id !== p.id);
-    else D.plan = D.plan.filter(y => !(y.serie_id === p.serie_id && y.estado === 'pendiente'));
+    else D.plan = D.plan.filter(y => !(y.serie_id === p.serie_id && y.estado === 'pendiente' && (esAdminPerfil_() || y.creado_por === p.creado_por)));
     agrCerrarModal_(); renderAgricultores_();
   }));
 }
@@ -823,26 +985,49 @@ function agrComprimirFoto_(file) {
 function abrirRegistroAgr_(op) {
   const D = state.ag.datos; if (!D || !agrPuedeRegistrar_()) return;
   const plan = op.plan || null;
+  // 04-11-2026 (SQL 153/154): modo EDICIÓN de un registro (solo su autor o el Administrador) → agr_editar_registro
+  const R = op.editar || null;
+  if (R && !agrPuedeModificar_(R.usuario_id)) { mostrarToast_('Solo quien creó el registro (o el Administrador) puede modificarlo.'); return; }
+  const fotosPrevias = R ? (R.fotos || []).slice() : [];
+  const dtl = d => { d = new Date(d); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
   const ahora = new Date(); ahora.setMinutes(ahora.getMinutes() - ahora.getTimezoneOffset());
-  const fechaIni = plan ? plan.fecha + 'T' + ahora.toISOString().slice(11, 16) : ahora.toISOString().slice(0, 16);
-  const ov = agrModal_('<h3>➕ Registrar actividad</h3>' +
-    '<div class="fila"><div class="form-group"><label>Actividad</label><select id="agr-act">' + D.actividades.filter(a => a.activo !== false).map(a => '<option value="' + a.id + '"' + (plan && plan.actividad_id === a.id ? ' selected' : '') + '>' + escapeHtml_((a.icono || '') + ' ' + a.id + ' · ' + a.nombre) + '</option>').join('') + '</select></div>' +
+  const fechaIni = R ? dtl(R.fecha) : plan ? plan.fecha + 'T' + ahora.toISOString().slice(11, 16) : ahora.toISOString().slice(0, 16);
+  const actSel = R ? R.actividad_id : plan ? plan.actividad_id : null;
+  const ov = agrModal_('<h3>' + (R ? '✏️ Modificar registro' : '➕ Registrar actividad') + '</h3>' +
+    '<div class="fila"><div class="form-group"><label>Actividad</label><select id="agr-act"' + (R ? ' disabled' : '') + '>' + D.actividades.filter(a => a.activo !== false || (R && a.id === R.actividad_id)).map(a => '<option value="' + a.id + '"' + (actSel === a.id ? ' selected' : '') + '>' + escapeHtml_((a.icono || '') + ' ' + a.id + ' · ' + a.nombre) + '</option>').join('') + '</select></div>' +
       '<div class="form-group"><label>Fecha y hora</label><input type="datetime-local" id="agr-fecha" value="' + fechaIni + '"></div></div>' +
-    '<div class="form-group"><label>Planificada (opcional)</label><select id="agr-plan"></select></div>' +
-    '<div class="form-group" id="agr-agr-w"><label>Agricultor</label><select id="agr-agr"><option value="">➕ Nuevo agricultor</option>' +
+    '<div class="form-group"' + (R ? ' style="display:none;"' : '') + '><label>Planificada (opcional)</label><select id="agr-plan"></select></div>' +
+    '<div class="form-group" id="agr-agr-w"><label>Agricultor</label><select id="agr-agr"' + (R ? ' disabled' : '') + '><option value="">' + (R ? '—' : '➕ Nuevo agricultor') + '</option>' +
       D.agricultores.map(a => '<option value="' + a.id + '">' + escapeHtml_(a.codigo + ' · ' + a.nombre + (a.fundo ? ' (' + a.fundo + ')' : '')) + '</option>').join('') + '</select></div>' +
     '<div class="fila" id="agr-campos"></div>' +
     '<div class="form-group"><label>Ubicación (clic en el mapa)</label><div id="agr-mapa" style="height:220px;border-radius:10px;border:1px solid #CBD5E1;"></div>' +
       '<div class="fila" style="margin-top:6px;"><input id="agr-lat" placeholder="Latitud" type="number" step="any"><input id="agr-lng" placeholder="Longitud" type="number" step="any"></div></div>' +
-    '<div class="form-group"><label>Fotos (hasta 4)</label><input type="file" id="agr-fotos" accept="image/*" multiple></div>' +
+    '<div class="form-group"><label>Fotos (hasta 4' + (R ? ' en total' : '') + ')</label>' +
+      (R ? '<div class="fotos" id="agr-fotos-previas"></div>' : '') + '<input type="file" id="agr-fotos" accept="image/*" multiple></div>' +
     '<p id="agr-error" style="color:#B91C1C;font-size:12px;"></p>' +
-    '<div class="modal-actions" style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn-secondary" id="agr-cancelar">Cancelar</button><button class="btn-primary" id="agr-ok">Guardar registro</button></div>', 640);
+    '<div class="modal-actions" style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn-secondary" id="agr-cancelar">Cancelar</button><button class="btn-primary" id="agr-ok">' + (R ? 'Guardar cambios' : 'Guardar registro') + '</button></div>', 640);
   const selAct = ov.querySelector('#agr-act'), selAgr = ov.querySelector('#agr-agr');
+  if (R && R.agricultor_id) selAgr.value = R.agricultor_id;
+  // Fotos ya guardadas del registro: se conservan salvo que se quiten con ×
+  const pintarPrevias = async () => {
+    const cont = ov.querySelector('#agr-fotos-previas'); if (!cont) return;
+    if (!fotosPrevias.length) { cont.innerHTML = '<small style="color:var(--text-tertiary);">Sin fotos guardadas.</small>'; return; }
+    let urls = {};
+    try { const { data } = await supabaseClient.storage.from('agr-fotos').createSignedUrls(fotosPrevias, 900); (data || []).forEach(x => { if (x.signedUrl) urls[x.path] = x.signedUrl; }); } catch (e) {}
+    cont.innerHTML = fotosPrevias.map((p, i) => '<span style="position:relative;display:inline-block;">' + (urls[p] ? '<img src="' + escapeHtml_(urls[p]) + '" alt="Foto">' : '<span style="width:64px;height:64px;border-radius:8px;background:#F1F5F9;display:inline-block;"></span>') +
+      '<button type="button" data-quitar-previa="' + i + '" title="Quitar foto" style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:none;background:#DC2626;color:#fff;cursor:pointer;">×</button></span>').join('');
+  };
+  if (R) {
+    pintarPrevias();
+    ov.querySelector('#agr-fotos-previas').addEventListener('click', e => { const b = e.target.closest('[data-quitar-previa]'); if (!b) return; fotosPrevias.splice(Number(b.dataset.quitarPrevia), 1); pintarPrevias(); });
+  }
+  let primeraVez = true;
   const pintar = () => {
     const a = agrAct_(selAct.value), form = a.formulario;
     ov.querySelector('#agr-agr-w').style.display = form === 'agricultor' ? '' : 'none';
-    const ag = form === 'agricultor' && selAgr.value ? D.agricultores.find(x => x.id === selAgr.value) : null;
-    const pre = ag ? { nombre_agricultor: ag.nombre, fundo: ag.fundo, telefono: ag.telefono, superficie_ha: ag.superficie_ha, cultivos: ag.cultivos, nivel_riesgo: ag.nivel_riesgo,
+    const ag = !R && form === 'agricultor' && selAgr.value ? D.agricultores.find(x => x.id === selAgr.value) : null;
+    const usarR = R && primeraVez; primeraVez = false;
+    const pre = usarR ? (R.datos || {}) : ag ? { nombre_agricultor: ag.nombre, fundo: ag.fundo, telefono: ag.telefono, superficie_ha: ag.superficie_ha, cultivos: ag.cultivos, nivel_riesgo: ag.nivel_riesgo,
       recursos_proteccion: ag.recursos_proteccion, recursos_detalle: ag.recursos_detalle, cortafuegos: ag.cortafuegos, zona_poblada: ag.zona_poblada, vinculacion: ag.vinculacion,
       fecha_cosecha: ag.fecha_cosecha, fecha_quema: ag.fecha_quema } : {};
     ov.querySelector('#agr-campos').innerHTML = AGR_FORMULARIOS[form].campos.map(c => agrCampoHtml_(c, pre[c.k])).join('');
@@ -864,14 +1049,34 @@ function abrirRegistroAgr_(op) {
   mm.on('click', e => fijar(e.latlng.lat, e.latlng.lng));
   setTimeout(() => mm.invalidateSize(), 120);
   selAct.addEventListener('change', pintar); selAgr.addEventListener('change', pintar); pintar();
+  if (R && R.lat != null) fijar(R.lat, R.lng);
   ov.querySelector('#agr-cancelar').addEventListener('click', agrCerrarModal_);
   ov.querySelector('#agr-ok').addEventListener('click', async () => {
     const err = ov.querySelector('#agr-error'); err.textContent = '';
     const a = agrAct_(selAct.value), { datos, faltan } = agrLeerCampos_(ov, a.formulario);
     if (faltan.length) { err.textContent = 'Completa: ' + faltan.join(', ') + '.'; return; }
+    const fechaTxt = ov.querySelector('#agr-fecha').value;
+    if (fechaTxt && new Date(fechaTxt).getTime() > Date.now() + 10 * 60000) { err.textContent = 'La fecha no puede ser futura.'; return; }
     const lat = parseFloat(ov.querySelector('#agr-lat').value), lng = parseFloat(ov.querySelector('#agr-lng').value);
-    const files = [...ov.querySelector('#agr-fotos').files].slice(0, 4);
+    const files = [...ov.querySelector('#agr-fotos').files].slice(0, Math.max(0, 4 - fotosPrevias.length));
     const btn = ov.querySelector('#agr-ok'); btn.disabled = true; btn.textContent = 'Guardando…';
+    if (R) {
+      try {
+        const nuevas = [], marca = Date.now().toString(36);
+        for (let i = 0; i < files.length; i++) {
+          const path = R.id + '/w' + marca + '_' + (i + 1) + '.jpg';
+          const { error } = await supabaseClient.storage.from('agr-fotos').upload(path, await agrComprimirFoto_(files[i]), { contentType: 'image/jpeg', upsert: true });
+          if (error) throw new Error('Foto ' + (i + 1) + ': ' + error.message);
+          nuevas.push(path);
+        }
+        const { error } = await supabaseClient.rpc('agr_editar_registro', { p: { id: R.id, fecha: fechaTxt ? new Date(fechaTxt).toISOString() : R.fecha,
+          lat: isFinite(lat) ? lat : null, lng: isFinite(lng) ? lng : null, datos, fotos: fotosPrevias.concat(nuevas) } });
+        if (error) throw error;
+        agrCerrarModal_(); mostrarToast_('✅ Registro modificado.');
+        await cargarAgricultores_();
+      } catch (e) { btn.disabled = false; btn.textContent = 'Guardar cambios'; err.textContent = 'No se pudo guardar: ' + (e.message || e); }
+      return;
+    }
     try {
       const id = crypto.randomUUID(), fotos = [];
       for (let i = 0; i < files.length; i++) {

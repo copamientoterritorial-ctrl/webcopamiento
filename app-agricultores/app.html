@@ -142,6 +142,32 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px s
 #modal{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:2000;display:flex;align-items:flex-end;}
 #modal .caja{background:#fff;width:100%;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + var(--safe-b));max-height:85vh;overflow:auto;}
 #modal h3{margin-bottom:10px;}
+/* v1.4: buscador de lugares, panel de capas, fotos enviadas */
+.map-buscar{position:absolute;top:54px;left:10px;right:10px;z-index:1100;display:flex;gap:6px;align-items:flex-start;}
+.map-buscar>div{flex:1;min-width:0;position:relative;}
+.map-buscar>button{flex:none;width:42px;height:42px;border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(15,23,42,.25);font-size:18px;}
+.map-buscar>button.on{background:var(--verde-o);color:#fff;}
+#mapa .leaflet-top{top:104px;}
+.bus{position:relative;}
+.bus input{width:100%;height:42px;padding:0 36px 0 12px;border-radius:12px;border:1px solid #CBD5E1;background:#fff;font-size:15px;box-shadow:0 1px 4px rgba(15,23,42,.15);-webkit-appearance:none;}
+.bus-x{position:absolute;right:7px;top:7px;width:28px;height:28px;border-radius:50%;background:#E2E8F0;font-weight:900;}
+.bus-res{position:absolute;left:0;right:0;top:46px;background:#fff;border-radius:12px;box-shadow:0 6px 20px rgba(15,23,42,.25);max-height:50vh;overflow:auto;z-index:1200;}
+.bus-res button{display:block;width:100%;text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);font-size:14px;}
+.bus-res button small{display:block;color:var(--muted);font-size:12px;font-weight:400;}
+.bus-cargando{padding:9px 12px;color:var(--muted);font-size:13px;}
+#f-buscar{position:relative;margin-bottom:6px;}
+.map-capas{position:absolute;top:104px;right:10px;z-index:1050;width:270px;max-width:calc(100% - 20px);max-height:calc(100% - 200px);overflow:auto;background:#fff;border-radius:14px;padding:10px 12px;box-shadow:0 6px 20px rgba(15,23,42,.3);font-size:14px;}
+.map-capas .t{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin:10px 0 4px;}
+.map-capas .t:first-child{margin-top:0;}
+.map-capas label{display:flex;align-items:center;gap:7px;padding:5px 0;}
+.map-capas label small{color:var(--muted);margin-left:auto;}
+.map-capas label i{width:11px;height:11px;border-radius:50%;display:inline-block;flex:none;}
+.map-capas .seg{margin-bottom:2px;}
+.map-capas .nota{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35;}
+.map-base-btn{background:#fff !important;box-shadow:0 1px 4px rgba(15,23,42,.35);}
+.fotos .ph{width:76px;height:76px;border-radius:10px;background:#E2E8F0;display:flex;align-items:center;justify-content:center;font-size:26px;}
+.foto-btns{display:flex;gap:8px;}
+.foto-btns .btn{flex:1;}
 </style>
 </head>
 <body>
@@ -170,7 +196,10 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px s
   <main>
     <div class="vista" id="v-hoy"></div>
     <div class="vista hidden" id="v-plan"></div>
-    <div class="vista hidden" id="v-mapa" style="padding:0;"><div class="map-filtros" id="map-filtros"></div><div id="mapa"></div><div class="map-resumen" id="map-resumen"></div></div>
+    <div class="vista hidden" id="v-mapa" style="padding:0;"><div class="map-filtros" id="map-filtros"></div>
+      <div class="map-buscar"><div id="map-buscar-w"></div><button id="map-capas-btn" title="Mapa base y capas">🗂️</button></div>
+      <div class="map-capas hidden" id="map-capas"></div>
+      <div id="mapa"></div><div class="map-resumen" id="map-resumen"></div></div>
     <div class="vista hidden" id="v-registros"></div>
     <div class="vista hidden" id="v-perfil"></div>
   </main>
@@ -204,8 +233,11 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px s
 // · Mapa sin conexión: mosaicos Esri (caché compartida con la App de Patrullaje) + comunas, Red Vial MOP con su rol
 //   y predios (RPC agr_capas_offline).
 // · Día de alerta: «Ir a Patrullaje» abre la App de Patrullaje con una sesión para este mismo usuario (agr_token_patrullaje).
+// · v1.4 (04-11-2026, SQL 153): ✏️ editar los registros propios (fecha, lugar, datos, fotos; sin señal queda en la cola),
+//   fotos desde la cámara o la galería, mapa Satélite, capas Fundos CMPC · Red Vial MOP · Predios de agricultores ·
+//   Incendios por temporada (apagados por defecto) y buscador de lugares (datos del teléfono + Esri en línea).
 // ════════════════════════════════════════════════════════════════
-const APP_VERSION = '1.3.0';   // ⚠️ al publicar cambios: subir aquí, en sw-agricultores.js (VERSION) y en version.json
+const APP_VERSION = '1.5.0';   // ⚠️ al publicar cambios: subir aquí, en sw-agricultores.js (VERSION) y en version.json
 const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 // Sesión propia de la app (no se cierra al salir del sistema web en el mismo navegador)
@@ -374,6 +406,7 @@ async function entrar() {
   $('h-sub').textContent = (state.yo.esAdmin ? 'Administrador · modo Agricultor' : 'Asociación de Agricultores') + ' · ' + (state.yo.asociacion === 'MALLECO' ? 'Malleco' : state.yo.asociacion);
   state.inicio = (await DB.get('kv', 'inicio')) || null;
   state.capas = (await DB.get('kv', 'capas')) || null;
+  state.incendios = (await DB.get('kv', 'incendios')) || null;
   await contarPendientes();
   cambiarVista('hoy');
   if (navigator.onLine) { await cargarInicio().catch(() => {}); sincronizar(); }
@@ -437,14 +470,63 @@ async function cargarInicio() {
   state.inicio = { fecha: new Date().toISOString(), asoc, comunas, actividades: ac.data || [], metas: me.data || [], mes: mesIni.slice(0, 7), plan: pl.data || [],
     agricultores: ag.data || [], registros: re.data || [], gestores, nombres };
   await DB.put('kv', state.inicio, 'inicio');
-  // Capas del mapa sin conexión (una vez por semana o si no están)
-  if (!state.capas || Date.now() - new Date(state.capas.generado || 0) > 7 * 864e5) actualizarCapas().catch(() => {});
+  // Capas del mapa sin conexión (una vez por semana, si no están o si son de la versión anterior, sin fundos)
+  const capasViejas = state.capas && !state.capas.version && !state.capasPedidas;
+  if (!state.capas || capasViejas || Date.now() - new Date(state.capas.generado || 0) > 7 * 864e5) { state.capasPedidas = true; actualizarCapas().catch(() => {}); }
 }
 async function actualizarCapas() {
   const { data, error } = await sb.rpc('agr_capas_offline', { p_asociacion: state.yo.asociacion || 'MALLECO' });
   if (error) throw error;
   state.capas = data; await DB.put('kv', data, 'capas');
-  if (state.mapa) pintarCapasMapa();
+  if (state.mapa) { pintarReferencia(); renderCapasPanel(); }
+}
+/** Incendios por temporada de las comunas de la Asociación: se bajan una vez del archivo nacional (SIDCO, ~9 MB)
+ *  y se guarda en el teléfono SOLO lo de esas comunas (por código CUT; si faltara, por el límite comunal). */
+async function descargarIncendios(silencioso) {
+  if (state.descargandoInc) return;
+  if (!navigator.onLine) { if (!silencioso) toast('Necesitas señal (ideal Wi-Fi) para descargar los incendios.'); return; }
+  if (!(await sesionValida())) { pedirClave(); return; }
+  state.descargandoInc = true; renderCapasPanel();
+  try {
+    const { data, error } = await sb.storage.from('capas-nacionales').download('incendios_sidco.geojson');
+    if (error || !data) throw new Error(error ? error.message : 'archivo vacío');
+    const gj = JSON.parse(await data.text());
+    const cuts = new Set(((state.inicio && state.inicio.asoc && state.inicio.asoc.comunas) || [9211, 9207, 9202]).map(String));
+    const polis = ((state.capas && state.capas.comunas) || []).map(c => c.geometry).filter(Boolean);
+    const temporadas = {};
+    (gj.features || []).forEach(f => {
+      const g = f && f.geometry, p = (f && f.properties) || {};
+      if (!g || g.type !== 'Point' || !Array.isArray(g.coordinates)) return;
+      const lng = Number(g.coordinates[0]), lat = Number(g.coordinates[1]);
+      if (!isFinite(lng) || !isFinite(lat) || Math.abs(lat) > 90) return;
+      const cut = p.codigo_cut ?? p.CODIGO_CUT ?? p.cut ?? p.CUT;
+      const dentro = cut != null && cut !== '' ? cuts.has(String(Number(cut))) : polis.some(gm => puntoEnGeom(lng, lat, gm));
+      if (!dentro) return;
+      const t = String(p.Temporada || p.temporada || p.TEMPORADA || 'Sin temporada');
+      (temporadas[t] = temporadas[t] || []).push([Math.round(lng * 1e5) / 1e5, Math.round(lat * 1e5) / 1e5]);
+    });
+    state.incendios = { fecha: new Date().toISOString(), temporadas };
+    await DB.put('kv', state.incendios, 'incendios');
+    if (!silencioso) toast('🔥 Incendios descargados: ' + Object.values(temporadas).reduce((s, x) => s + x.length, 0) + ' en ' + Object.keys(temporadas).length + ' temporadas');
+  } catch (e) {
+    if (!silencioso) toast('No se pudieron descargar los incendios: ' + (e.message || e), 4000);
+  } finally {
+    state.descargandoInc = false;
+    if (state.mapa) pintarReferencia();
+    renderCapasPanel();
+  }
+}
+function puntoEnAnillo(x, y, an) {
+  let d = false;
+  for (let i = 0, j = an.length - 1; i < an.length; j = i++) {
+    const xi = an[i][0], yi = an[i][1], xj = an[j][0], yj = an[j][1];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) d = !d;
+  }
+  return d;
+}
+function puntoEnGeom(x, y, g) {
+  const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+  return polys.some(p => puntoEnAnillo(x, y, p[0]) && !p.slice(1).some(h => puntoEnAnillo(x, y, h)));
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -474,6 +556,9 @@ async function sincronizar() {
         if (item.tipo === 'registro') await enviarRegistro(item);
         else if (item.tipo === 'plan') await enviarPlan(item);
         else if (item.tipo === 'plan_estado') await enviarEstadoPlan(item);
+        else if (item.tipo === 'editar') await enviarEdicion(item);
+        else if (item.tipo === 'plan_editar') await enviarEdicionPlan(item);
+        else if (item.tipo === 'eliminar') await enviarEliminacion(item);
         await DB.del('cola', item.id);
         enviados++;
       } catch (e) {
@@ -502,15 +587,43 @@ async function enviarRegistro(item) {
   if (error) throw new Error(error.message);
   for (const k of item.fotos || []) await DB.del('fotos', k);
 }
+/** Edición de un registro ya enviado (SQL 153): sube las fotos nuevas y llama a agr_editar_registro. */
+async function enviarEdicion(item) {
+  const p = item.payload, nuevas = [];
+  for (let i = 0; i < (item.fotos || []).length; i++) {
+    const blob = await DB.get('fotos', item.fotos[i]);
+    if (!blob) continue;
+    const path = p.id + '/e' + String(item.id).slice(0, 8) + '_' + (i + 1) + '.jpg';   // nombre fijo: reenviar no duplica
+    const { error } = await sb.storage.from('agr-fotos').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+    if (error && !/exists|Duplicate/i.test(error.message)) throw new Error('Foto: ' + error.message);
+    nuevas.push(path);
+  }
+  const { error } = await sb.rpc('agr_editar_registro', { p: { id: p.id, fecha: p.fecha, lat: p.lat, lng: p.lng, datos: p.datos, fotos: (p.fotosPrevias || []).concat(nuevas) } });
+  if (error) throw new Error(/agr_editar_registro|does not exist|schema cache/i.test(error.message) ? 'La edición aún no está habilitada en el sistema (falta el SQL 153).' : error.message);
+  for (const k of item.fotos || []) await DB.del('fotos', k);
+}
 async function enviarPlan(item) {
   const { error } = await sb.from('agr_planificacion').upsert(item.filas, { onConflict: 'id' });
   if (error) throw new Error(error.message);
 }
 async function enviarEstadoPlan(item) {
-  const q = item.eliminar ? sb.from('agr_planificacion').delete().eq('id', item.planId) : sb.from('agr_planificacion').update({ estado: item.estado }).eq('id', item.planId);
-  const { error } = await q;
+  const q = item.eliminar ? sb.from('agr_planificacion').delete().eq('id', item.planId).select('id') : sb.from('agr_planificacion').update({ estado: item.estado }).eq('id', item.planId).select('id');
+  const { data, error } = await q;
   if (error) throw new Error(error.message);
+  if (!(data || []).length && !item.eliminar) throw new Error('Solo quien creó la actividad (o el Administrador) puede cambiarla.');
 }
+/** SQL 154: solo el creador o el Administrador modifican / eliminan (si la RLS no deja, no vuelve ninguna fila). */
+async function enviarEdicionPlan(item) {
+  const { data, error } = await sb.from('agr_planificacion').update(item.cambios).eq('id', item.planId).select('id');
+  if (error) throw new Error(error.message);
+  if (!(data || []).length) throw new Error('Solo quien creó la actividad (o el Administrador) puede modificarla.');
+}
+async function enviarEliminacion(item) {
+  const { error } = await sb.rpc('agr_eliminar_registro', { p_id: item.regId });
+  if (error) throw new Error(/agr_eliminar_registro|does not exist|schema cache/i.test(error.message) ? 'La eliminación aún no está habilitada en el sistema (falta el SQL 154).' : error.message);
+}
+/** Registros y planificaciones: los modifica o elimina solo quien los creó o el Administrador. */
+function puedeModificar(creadorId) { return !!state.yo && (state.yo.esAdmin || (!!creadorId && creadorId === state.yo.id)); }
 
 // ════════════════════════════════════════════════════════════════
 // Vistas
@@ -532,10 +645,18 @@ function render() {
 }
 /** Registros de la cola (pendientes) en el mismo formato que los del servidor. */
 function registrosLocales() { return state.cola.filter(i => i.tipo === 'registro').map(i => Object.assign({ _pend: true, _error: i.error, usuario_id: state.yo.id }, i.payload)); }
+/** Registros ya enviados, con las ediciones aún sin enviar aplicadas (se ven corregidos de inmediato). */
+function registrosServidor() {
+  const ed = {}; state.cola.filter(i => i.tipo === 'editar').forEach(i => { ed[i.regId] = i; });
+  const borrados = new Set(state.cola.filter(i => i.tipo === 'eliminar').map(i => i.regId));
+  return ((state.inicio && state.inicio.registros) || []).filter(r => !borrados.has(r.id)).map(r => { const e = ed[r.id]; if (!e) return r;
+    return Object.assign({}, r, { fecha: e.payload.fecha, lat: e.payload.lat, lng: e.payload.lng, datos: e.payload.datos, _edit: true, _error: e.error }); });
+}
 function planLocal() {
   const base = ((state.inicio && state.inicio.plan) || []).map(p => Object.assign({}, p)), ids = new Set(base.map(p => p.id));
   state.cola.filter(i => i.tipo === 'plan').forEach(i => i.filas.forEach(f => { if (!ids.has(f.id)) { base.push(Object.assign({ _pend: true }, f)); ids.add(f.id); } }));
   state.cola.filter(i => i.tipo === 'plan_estado').forEach(i => { const p = base.find(x => x.id === i.planId); if (p) { if (i.eliminar) p._eliminada = true; else p.estado = i.estado; } });
+  state.cola.filter(i => i.tipo === 'plan_editar').forEach(i => { const p = base.find(x => x.id === i.planId); if (p) Object.assign(p, i.cambios, { _pend: true }); });
   // Lo registrado sin enviar ya cuenta como realizada
   registrosLocales().forEach(r => { const p = base.find(x => x.id === r.planificacion_id); if (p) p.estado = 'realizada'; });
   return base.filter(p => !p._eliminada).sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -544,7 +665,7 @@ function planLocal() {
 function renderHoy() {
   const I = state.inicio, cont = $('v-hoy'), hoy = hoyISO();
   if (!I) { cont.innerHTML = '<div class="card"><div class="vacio">' + (navigator.onLine ? 'Cargando datos…' : 'Conéctate una vez para descargar las actividades y metas.') + '</div></div>'; return; }
-  const regs = I.registros.concat(registrosLocales().filter(r => !I.registros.some(x => x.id === r.id)));
+  const regs = registrosServidor().concat(registrosLocales().filter(r => !I.registros.some(x => x.id === r.id)));
   const delMes = regs.filter(r => diaDe(r.fecha).slice(0, 7) === I.mes);
   // Cumplimiento del mes (Asociación, tope 100 % por actividad) y mis registros
   let meta = 0, ok = 0;
@@ -602,18 +723,26 @@ function renderPlan() {
 
 function renderRegistros() {
   const cont = $('v-registros'), I = state.inicio;
-  const pend = registrosLocales(), otros = state.cola.filter(i => i.tipo !== 'registro');
-  const mios = ((I && I.registros) || []).filter(r => r.usuario_id === state.yo.id && !pend.some(p => p.id === r.id));
+  const pend = registrosLocales(), otros = state.cola.filter(i => i.tipo === 'plan' || i.tipo === 'plan_estado' || i.tipo === 'plan_editar');
+  const ediciones = state.cola.filter(i => i.tipo === 'editar' || i.tipo === 'eliminar');
+  const mios = registrosServidor().filter(r => r.usuario_id === state.yo.id && !pend.some(p => p.id === r.id));
   const fila = (r, estado) => { const a = act(r.actividad_id), d = r.datos || {};
     return '<div class="tarea"><span class="ico">' + (a.icono || '•') + '</span><div class="tx"><b>' + esc(d.nombre_agricultor || d.organizacion || d.ruta_rol || d.tipo_reunion || a.nombre) + '</b><small>' +
-      esc(fmtFechaHora(r.fecha) + ' · ' + a.id + ' · ' + (r.comuna || (r.lat != null ? 'con GPS' : 'sin GPS'))) + ' ' + estado + '</small>' +
-      (r._error ? '<small style="color:#B91C1C;">⚠️ ' + esc(r._error) + '</small>' : '') + '</div></div>'; };
+      esc(fmtFechaHora(r.fecha) + ' · ' + a.id + ' · ' + (r.comuna || (r.lat != null ? 'con ubicación' : 'sin ubicación'))) + ' ' + estado + '</small>' +
+      (r._error ? '<small style="color:#B91C1C;">⚠️ ' + esc(r._error) + '</small>' : '') + '</div>' +
+      '<button class="btn-mini" data-editar="' + r.id + '" title="Editar">✏️</button>' +
+      '<button class="btn-mini" data-borrar="' + r.id + '" title="Eliminar" style="margin-left:4px;color:#B91C1C;">🗑️</button></div>'; };
   cont.innerHTML =
-    '<div class="card"><h3>⏳ En el teléfono, por enviar (' + (pend.length + otros.length) + ')</h3>' +
+    '<div class="card"><h3>⏳ En el teléfono, por enviar (' + (pend.length + otros.length + ediciones.length) + ')</h3>' +
       (pend.length ? pend.map(r => fila(r, '<span class="tag ' + (r._error ? 'err' : 'pend') + '">' + (r._error ? 'Con error' : 'Pendiente') + '</span>')).join('') : '') +
+      (ediciones.length ? '<div class="lin"><span>✏️🗑️ Correcciones y eliminaciones de registros enviados</span><b>' + ediciones.length + '</b></div>' : '') +
+      state.cola.filter(i => (i.tipo === 'editar' || i.tipo === 'eliminar' || i.tipo === 'plan_editar' || i.tipo === 'plan_estado') && i.error)
+        .map(i => '<small style="display:block;color:#B91C1C;margin-top:4px;">⚠️ ' + esc(i.error) + ' <button class="btn-mini" data-descartar="' + i.id + '" style="margin-left:4px;">Descartar</button></small>').join('') +
       (otros.length ? '<div class="lin"><span>🗓️ Cambios de planificación</span><b>' + otros.length + '</b></div>' : '') +
-      (!pend.length && !otros.length ? '<div class="vacio">Todo enviado ✅</div>' : '<button class="btn btn-p" id="btn-sync" style="margin-top:10px;">🔄 Enviar ahora</button>') + '</div>' +
-    '<div class="card"><h3>✅ Mis registros enviados (últimos 30 días)</h3>' + (mios.length ? mios.map(r => fila(r, '<span class="tag ok">Enviado</span>')).join('') : '<div class="vacio">Aún no hay registros enviados.</div>') + '</div>';
+      (!pend.length && !otros.length && !ediciones.length ? '<div class="vacio">Todo enviado ✅</div>' : '<button class="btn btn-p" id="btn-sync" style="margin-top:10px;">🔄 Enviar ahora</button>') + '</div>' +
+    '<div class="card"><h3>✅ Mis registros enviados (últimos 30 días)</h3><p class="ayuda">Toca ✏️ para corregir la fecha, el lugar, un dato o las fotos.</p>' +
+      (mios.length ? mios.map(r => fila(r, r._edit ? '<span class="tag ' + (r._error ? 'err' : 'pend') + '">' + (r._error ? 'Corrección con error' : '✏️ Corrección por enviar') + '</span>' : '<span class="tag ok">Enviado</span>')).join('')
+        : '<div class="vacio">Aún no hay registros enviados.</div>') + '</div>';
 }
 
 async function renderPerfil() {
@@ -628,8 +757,10 @@ async function renderPerfil() {
       '<button class="btn btn-s" id="btn-actualizar" style="margin-top:10px;">🔄 Actualizar datos</button></div>' +
     '<div class="card"><h3>🗺️ Mapa sin conexión</h3>' +
       '<div class="lin"><span>Mosaicos del mapa</span><b>' + (d ? 'Descargando ' + Math.round(d.ok * 100 / Math.max(1, d.total)) + ' %' : mo ? (mo.completo ? '✅ ' : '⚠️ Parcial · ') + new Date(mo.fecha).toLocaleDateString('es-CL') + ' (zoom ' + mo.zoomMax + ')' : 'No descargado') + '</b></div>' +
+      '<div class="lin"><span>Capas (fundos, rutas, predios)</span><b>' + (state.capas ? new Date(state.capas.generado).toLocaleDateString('es-CL') : 'No descargadas') + '</b></div>' +
+      '<div class="lin"><span>Incendios por temporada</span><b>' + (state.descargandoInc ? 'Descargando…' : state.incendios ? new Date(state.incendios.fecha).toLocaleDateString('es-CL') : 'No descargados') + '</b></div>' +
       '<button class="btn btn-p" id="btn-offline" style="margin-top:10px;"' + (d ? ' disabled' : '') + '>⬇️ Descargar mapa de la Asociación</button>' +
-      '<p style="font-size:12px;color:var(--muted);margin-top:8px;">Descárgalo con Wi-Fi antes de salir a terreno (Victoria, Lumaco y Collipulli).</p></div>' +
+      '<p style="font-size:12px;color:var(--muted);margin-top:8px;">Descárgalo con Wi-Fi antes de salir a terreno (Victoria, Lumaco y Collipulli): baja el mapa, las capas y los incendios. Las imágenes satelitales se guardan solo de las zonas que ya miraste con señal.</p></div>' +
     '<div class="card"><h3>📲 Instalar en el celular</h3>' +
       (window.matchMedia && matchMedia('(display-mode: standalone)').matches ? '<p class="ayuda" style="margin:0;">✅ La app ya está instalada en este teléfono.</p>'
         : (state.instalarEvt ? '<button class="btn btn-p" id="btn-instalar-app">📲 Instalar ahora</button>' : '') +
@@ -648,34 +779,85 @@ function abrirFormulario(op) {
   const plan = op.planId ? planLocal().find(p => p.id === op.planId) : null;
   const actId = (plan && plan.actividad_id) || op.actividad || I.actividades[0].id;
   // gps = lectura real del teléfono (se guarda para control, NO se muestra) · pin = lugar de la actividad (el gestor lo puede mover)
-  state.form = { id: uuid(), actividad: actId, plan: plan ? plan.id : '', agricultor: '', fotos: [], gps: null, pin: null, pinMovido: false, datos: {} };
+  state.form = { id: uuid(), actividad: actId, plan: plan ? plan.id : '', agricultor: '', fotos: [], fotosPrevias: [], urlsPrevias: {}, gps: null, pin: null, pinMovido: false, datos: {},
+    fecha: dtLocal(new Date()), sat: state.baseMapa === 'sat' };
   $('s-form').classList.remove('hidden');
   pintarFormulario();
   tomarGps();
 }
+/** Fecha para <input type="datetime-local"> (hora local del teléfono). */
+function dtLocal(d) { d = new Date(d); if (isNaN(d)) d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); }
+/** ✏️ Editar un registro propio: si aún está en el teléfono se corrige en la cola; si ya se envió, la corrección
+ *  queda en la cola como «editar» y se envía con agr_editar_registro (SQL 153). La actividad no se cambia. */
+async function abrirEdicion(id) {
+  const I = state.inicio; if (!I) return;
+  const enCola = state.cola.find(i => i.tipo === 'registro' && i.id === id);
+  let base, blobs = [], previas = [], editar;
+  if (enCola) {
+    if (state.sincronizando) { toast('Enviando… intenta de nuevo en unos segundos.'); return; }
+    base = enCola.payload; editar = { id, pend: true };
+    for (const k of enCola.fotos || []) { const b = await DB.get('fotos', k); if (b) blobs.push(b); }
+  } else {
+    const r = (I.registros || []).find(x => x.id === id);
+    if (!r) { toast('No se encontró el registro.'); return; }
+    if (r.usuario_id !== state.yo.id && !state.yo.esAdmin) { toast('Solo puedes editar los registros que creaste.'); return; }
+    const ed = state.cola.find(i => i.tipo === 'editar' && i.regId === id);
+    base = ed ? Object.assign({}, r, ed.payload) : r;
+    previas = ed ? (ed.payload.fotosPrevias || []) : (r.fotos || []);
+    if (ed) for (const k of ed.fotos || []) { const b = await DB.get('fotos', k); if (b) blobs.push(b); }
+    editar = { id, pend: false };
+  }
+  state.form = { id, editar, actividad: base.actividad_id, plan: '', agricultor: base.agricultor_id || '',
+    fotos: blobs.map(b => ({ blob: b, url: URL.createObjectURL(b) })), fotosPrevias: previas.slice(), urlsPrevias: {},
+    gps: null, pin: base.lat != null ? { lat: Number(base.lat), lng: Number(base.lng) } : null, pinMovido: true,
+    datos: Object.assign({}, base.datos || {}), fecha: dtLocal(base.fecha), sat: state.baseMapa === 'sat' };
+  $('s-form').classList.remove('hidden');
+  pintarFormulario();
+  // Miniaturas de las fotos ya enviadas (bucket privado → enlaces firmados; sin señal se ve 📎)
+  if (previas.length && navigator.onLine) {
+    sb.storage.from('agr-fotos').createSignedUrls(previas, 900).then(({ data }) => {
+      const F = state.form; if (!F || F.id !== id) return;
+      (data || []).forEach(x => { if (x && x.signedUrl && x.path) F.urlsPrevias[x.path] = x.signedUrl; });
+      pintarFotos();
+    }).catch(() => {});
+  }
+}
 function pintarFormulario() {
-  const F = state.form, I = state.inicio, a = act(F.actividad), form = FORMULARIOS[a.formulario];
-  $('f-titulo').textContent = (a.icono || '') + ' ' + a.nombre; $('f-sub').textContent = form.nombre;
-  const pend = planLocal().filter(p => p.actividad_id === a.id && p.estado === 'pendiente');
-  const agr = a.formulario === 'agricultor' && F.agricultor ? listaAgricultores().find(x => x.id === F.agricultor) : null;
+  const F = state.form, I = state.inicio, a = act(F.actividad), form = FORMULARIOS[a.formulario], ed = !!F.editar;
+  $('f-titulo').textContent = (ed ? '✏️ ' : (a.icono || '') + ' ') + a.nombre; $('f-sub').textContent = ed ? 'Corregir registro · ' + form.nombre : form.nombre;
+  const pend = ed ? [] : planLocal().filter(p => p.actividad_id === a.id && p.estado === 'pendiente');
+  const agr = !ed && a.formulario === 'agricultor' && F.agricultor ? listaAgricultores().find(x => x.id === F.agricultor) : null;
   const pre = Object.assign({}, agr ? { nombre_agricultor: agr.nombre, fundo: agr.fundo, telefono: agr.telefono, superficie_ha: agr.superficie_ha, cultivos: agr.cultivos, nivel_riesgo: agr.nivel_riesgo,
     recursos_proteccion: agr.recursos_proteccion, recursos_detalle: agr.recursos_detalle, cortafuegos: agr.cortafuegos, zona_poblada: agr.zona_poblada, vinculacion: agr.vinculacion,
     fecha_cosecha: agr.fecha_cosecha, fecha_quema: agr.fecha_quema } : {}, F.datos);
   if (F.mapa) { F.mapa.remove(); F.mapa = null; F.marca = null; }
   $('f-cuerpo').innerHTML =
-    '<div class="paso"><span>1</span>¿Qué actividad hiciste?</div>' +
-    '<div class="campo"><select id="f-act">' + I.actividades.map(x => '<option value="' + x.id + '"' + (x.id === a.id ? ' selected' : '') + '>' + esc((x.icono || '') + ' ' + x.nombre) + '</option>').join('') + '</select></div>' +
+    '<div class="paso"><span>1</span>' + (ed ? 'Actividad y fecha' : '¿Qué actividad hiciste?') + '</div>' +
+    '<div class="campo"><select id="f-act"' + (ed ? ' disabled' : '') + '>' + I.actividades.map(x => '<option value="' + x.id + '"' + (x.id === a.id ? ' selected' : '') + '>' + esc((x.icono || '') + ' ' + x.nombre) + '</option>').join('') + '</select>' +
+      (ed ? '<p class="ayuda" style="margin:6px 0 0;">La actividad no se cambia. Si te equivocaste de actividad, registra una nueva.</p>' : '') + '</div>' +
+    '<div class="campo"><label>Fecha y hora en que se realizó</label><input type="datetime-local" id="f-fecha" value="' + esc(F.fecha || dtLocal(new Date())) + '" max="' + dtLocal(new Date(Date.now() + 5 * 60000)) + '"></div>' +
     (pend.length ? '<div class="campo"><label>¿Estaba planificada?</label><select id="f-plan"><option value="">No estaba planificada</option>' + pend.map(p => '<option value="' + p.id + '"' + (p.id === F.plan ? ' selected' : '') + '>' + esc(fmtDia(p.fecha) + (p.titulo ? ' · ' + p.titulo : '')) + '</option>').join('') + '</select></div>' : '') +
-    (a.formulario === 'agricultor' ? '<div class="campo"><label>Agricultor</label><select id="f-agr"><option value="">➕ Es un agricultor nuevo</option>' + listaAgricultores().map(x => '<option value="' + x.id + '"' + (x.id === F.agricultor ? ' selected' : '') + '>' + esc(x.nombre + (x.fundo ? ' · ' + x.fundo : '') + (x.codigo ? ' (' + x.codigo + ')' : '')) + '</option>').join('') + '</select></div>' : '') +
+    (a.formulario === 'agricultor' ? '<div class="campo"><label>Agricultor</label><select id="f-agr"' + (ed ? ' disabled' : '') + '><option value="">' + (ed ? '—' : '➕ Es un agricultor nuevo') + '</option>' + listaAgricultores().map(x => '<option value="' + x.id + '"' + (x.id === F.agricultor ? ' selected' : '') + '>' + esc(x.nombre + (x.fundo ? ' · ' + x.fundo : '') + (x.codigo ? ' (' + x.codigo + ')' : '')) + '</option>').join('') + '</select></div>' : '') +
     '<div class="paso"><span>2</span>¿Dónde fue?</div>' +
-    '<p class="ayuda">Arrastra el pincho 📍 hasta el lugar exacto, o toca el mapa.</p>' +
+    '<p class="ayuda">Busca el lugar, arrastra el pincho 📍 hasta el punto exacto o toca el mapa. Con 🛰️ cambias a imagen satelital.</p>' +
+    '<div id="f-buscar"></div>' +
     '<div id="f-mapa"></div>' +
     '<div class="gps"><b id="f-gps">📡 Buscando tu ubicación…</b><button class="btn-mini" id="f-gps-btn">🎯 Mi ubicación</button></div>' +
     '<div class="paso"><span>3</span>Datos de la actividad</div>' +
     form.campos.map(c => campoHtml(c, pre[c.k])).join('') +
     '<div class="paso"><span>4</span>Fotos <small style="font-weight:600;color:var(--muted);">(opcional, hasta ' + MAX_FOTOS + ')</small></div>' +
-    '<input type="file" id="f-foto" accept="image/*" capture="environment" class="hidden"><button class="btn btn-s" id="f-foto-btn">📷 Tomar o elegir foto</button><div class="fotos" id="f-fotos"></div>';
+    // Dos entradas: con «capture» Android abre directo la cámara; sin él ofrece la galería / archivos del teléfono
+    '<input type="file" id="f-foto-cam" accept="image/*" capture="environment" class="hidden">' +
+    '<input type="file" id="f-foto-gal" accept="image/*" multiple class="hidden">' +
+    '<div class="foto-btns" id="f-foto-btns"><button class="btn btn-s" id="f-foto-cam-btn">📷 Cámara</button><button class="btn btn-s" id="f-foto-gal-btn">🖼️ Galería</button></div>' +
+    '<div class="fotos" id="f-fotos"></div>';
   mapaFormulario(); pintarGps(); pintarFotos();
+  widgetBuscar($('f-buscar'), r => {
+    const F2 = state.form; if (!F2 || !F2.mapa) return;
+    F2.pin = { lat: r.lat, lng: r.lng }; F2.pinMovido = true; centrarPin(false);
+    if (r.bounds) F2.mapa.fitBounds(r.bounds, { padding: [20, 20], maxZoom: 17, animate: false }); else F2.mapa.setView([r.lat, r.lng], 17, { animate: false });
+    pintarGps();
+  });
 }
 function listaAgricultores() {
   const base = ((state.inicio && state.inicio.agricultores) || []).slice(), ids = new Set(base.map(x => x.id));
@@ -737,12 +919,25 @@ function centrarPin(centrar) {
     F.marca = L.marker(ll, { draggable: true, autoPan: true }).addTo(F.mapa);
     F.marca.on('dragend', () => { const p = F.marca.getLatLng(); F.pin = { lat: p.lat, lng: p.lng }; F.pinMovido = true; pintarGps(); });
   }
-  if (centrar) F.mapa.setView(ll, Math.max(F.mapa.getZoom(), 16));
+  if (centrar) F.mapa.setView(ll, Math.max(F.mapa.getZoom(), 16), { animate: false });   // sin animación: el mapa se rehace al cambiar la actividad
 }
 function mapaFormulario() {
   const F = state.form, div = $('f-mapa'); if (!F || !div || F.mapa) return;
   F.mapa = L.map(div, { zoomControl: true, attributionControl: false }).setView(F.pin ? [F.pin.lat, F.pin.lng] : [-38.15, -72.35], F.pin ? 16 : 10);
-  L.tileLayer(CARTO, { maxZoom: 19, maxNativeZoom: 17 }).addTo(F.mapa);
+  F.base = capaBase(F.sat ? 'sat' : 'mapa').addTo(F.mapa);
+  // Botón Mapa ↔ Satélite
+  const ctl = L.control({ position: 'topright' });
+  ctl.onAdd = () => {
+    const b = L.DomUtil.create('button', 'btn-mini map-base-btn');
+    const rotular = () => { b.textContent = F.sat ? '🗺️ Mapa' : '🛰️ Satélite'; };
+    rotular(); L.DomEvent.disableClickPropagation(b);
+    L.DomEvent.on(b, 'click', e => { L.DomEvent.stop(e); F.sat = !F.sat; F.mapa.removeLayer(F.base); F.base = capaBase(F.sat ? 'sat' : 'mapa').addTo(F.mapa); rotular(); });
+    return b;
+  };
+  ctl.addTo(F.mapa);
+  // Capas de referencia (las mismas que estén encendidas en el Mapa; sin ventanas para no estorbar al marcar el punto)
+  const on = capasOn(), ref = crearCapasRef(true);
+  ['comunas', 'fundos', 'predios', 'mop'].forEach(k => { if (on[k] && ref[k]) ref[k].addTo(F.mapa); });
   F.mapa.on('click', e => { F.pin = { lat: e.latlng.lat, lng: e.latlng.lng }; F.pinMovido = true; centrarPin(false); pintarGps(); });
   centrarPin(true);
   setTimeout(() => F.mapa && F.mapa.invalidateSize(), 120);
@@ -761,24 +956,30 @@ function comprimirFoto(file) {
   });
 }
 function pintarFotos() {
-  const cont = $('f-fotos'); if (!cont) return;
-  cont.innerHTML = state.form.fotos.map((f, i) => '<div><img src="' + f.url + '" alt="Foto ' + (i + 1) + '"><button data-quitar-foto="' + i + '">×</button></div>').join('');
-  $('f-foto-btn').classList.toggle('hidden', state.form.fotos.length >= MAX_FOTOS);
+  const F = state.form, cont = $('f-fotos'); if (!cont || !F) return;
+  const previas = (F.fotosPrevias || []).map((p, i) => '<div>' + (F.urlsPrevias && F.urlsPrevias[p] ? '<img src="' + esc(F.urlsPrevias[p]) + '" alt="Foto enviada ' + (i + 1) + '">' : '<span class="ph" title="Foto ya enviada">📎</span>') +
+    '<button data-quitar-previa="' + i + '">×</button></div>').join('');
+  cont.innerHTML = previas + F.fotos.map((f, i) => '<div><img src="' + f.url + '" alt="Foto ' + (i + 1) + '"><button data-quitar-foto="' + i + '">×</button></div>').join('');
+  $('f-foto-btns').classList.toggle('hidden', (F.fotosPrevias || []).length + F.fotos.length >= MAX_FOTOS);
 }
 function cerrarFormulario() {
   if (gpsWatch != null) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; }
-  if (state.form) { state.form.fotos.forEach(f => URL.revokeObjectURL(f.url)); if (state.form.mapa) state.form.mapa.remove(); }
+  if (state.form) { state.form.fotos.forEach(f => URL.revokeObjectURL(f.url)); if (state.form.mapa) { try { state.form.mapa.stop(); state.form.mapa.remove(); } catch (e) {} state.form.mapa = null; state.form.marca = null; } }
   state.form = null; $('s-form').classList.add('hidden'); $('f-cuerpo').innerHTML = '';
 }
 async function guardarFormulario() {
   const F = state.form, a = act(F.actividad), { datos, faltan } = leerCampos();
   if (faltan.length) { toast('Completa: ' + faltan.join(', ')); return; }
+  const fv = $('f-fecha') ? $('f-fecha').value : '', fechaD = fv ? new Date(fv) : new Date();
+  if (isNaN(fechaD)) { toast('Revisa la fecha y hora.'); return; }
+  if (fechaD.getTime() > Date.now() + 10 * 60000) { toast('La fecha no puede ser futura.'); return; }
   if (!F.pin && !confirm('Aún no hay ubicación. Toca el mapa para marcar el lugar, o guarda sin ubicación. ¿Guardar igual?')) return;
+  if (F.editar) { await guardarEdicion(F, datos, fechaD.toISOString()); return; }
   const fotos = [];
   for (let i = 0; i < F.fotos.length; i++) { const k = F.id + '_' + i; await DB.put('fotos', F.fotos[i].blob, k); fotos.push(k); }
   const agricultorId = a.formulario === 'agricultor' ? (F.agricultor || uuid()) : null;
   const item = { id: F.id, tipo: 'registro', creado: new Date().toISOString(), fotos,
-    payload: { id: F.id, actividad_id: a.id, fecha: new Date().toISOString(),
+    payload: { id: F.id, actividad_id: a.id, fecha: fechaD.toISOString(),
       lat: F.pin ? F.pin.lat : null, lng: F.pin ? F.pin.lng : null, precision_m: F.pin && !F.pinMovido && F.gps ? F.gps.precision : null,
       // Control del sistema (no se muestra en la app): dónde estaba realmente el teléfono al registrar
       gps_lat: F.gps ? F.gps.lat : null, gps_lng: F.gps ? F.gps.lng : null, gps_precision_m: F.gps ? F.gps.precision : null, gps_fecha: F.gps ? F.gps.fecha : null,
@@ -789,6 +990,61 @@ async function guardarFormulario() {
   toast(navigator.onLine ? '💾 Guardado. Enviando…' : '💾 Guardado en el teléfono. Se enviará al haber señal.', 3200);
   render();
   sincronizar();
+}
+/** Guarda la corrección: en la cola (registro aún sin enviar) o como «editar» (registro ya enviado). */
+async function guardarEdicion(F, datos, fechaISO) {
+  const E = F.editar, lat = F.pin ? F.pin.lat : null, lng = F.pin ? F.pin.lng : null;
+  if (E.pend) {
+    const item = state.cola.find(i => i.id === E.id && i.tipo === 'registro');
+    if (!item || state.sincronizando) { toast('Este registro se está enviando: ábrelo de nuevo en unos segundos.'); return; }
+    for (const k of item.fotos || []) await DB.del('fotos', k);
+    const fotos = [];
+    for (let i = 0; i < F.fotos.length; i++) { const k = F.id + '_' + i; await DB.put('fotos', F.fotos[i].blob, k); fotos.push(k); }
+    const mismoLugar = item.payload.lat === lat && item.payload.lng === lng;
+    Object.assign(item.payload, { fecha: fechaISO, lat, lng, datos, precision_m: mismoLugar ? item.payload.precision_m : null });
+    item.fotos = fotos; delete item.error; item.intentos = 0;
+    await DB.put('cola', item);
+  } else {
+    const prev = state.cola.find(i => i.tipo === 'editar' && i.regId === E.id);
+    if (prev) for (const k of prev.fotos || []) await DB.del('fotos', k);
+    const qid = prev ? prev.id : uuid(), fotos = [];
+    for (let i = 0; i < F.fotos.length; i++) { const k = qid + '_' + i; await DB.put('fotos', F.fotos[i].blob, k); fotos.push(k); }
+    await DB.put('cola', { id: qid, tipo: 'editar', regId: E.id, creado: prev ? prev.creado : new Date().toISOString(), fotos,
+      payload: { id: E.id, fecha: fechaISO, lat, lng, datos, fotosPrevias: (F.fotosPrevias || []).slice() } });
+  }
+  cerrarFormulario();
+  await contarPendientes();
+  toast(navigator.onLine ? '✏️ Corrección guardada. Enviando…' : '✏️ Corrección guardada en el teléfono. Se enviará al haber señal.', 3200);
+  render();
+  sincronizar();
+}
+
+/** 🗑️ Eliminar un registro propio (SQL 154). Sin enviar: se quita del teléfono. Ya enviado: queda en la cola y se elimina
+ *  en el sistema con agr_eliminar_registro (el Administrador lo puede recuperar desde la papelera). */
+async function eliminarRegistro(id) {
+  const enCola = state.cola.find(i => i.tipo === 'registro' && i.id === id);
+  if (enCola) {
+    if (state.sincronizando) { toast('Enviando… intenta de nuevo en unos segundos.'); return; }
+    if (!confirm('¿Eliminar este registro? Aún no se ha enviado: se borra del teléfono.')) return;
+    for (const k of enCola.fotos || []) await DB.del('fotos', k);
+    await DB.del('cola', id);
+  } else {
+    const r = ((state.inicio && state.inicio.registros) || []).find(x => x.id === id);
+    if (!r) { toast('No se encontró el registro.'); return; }
+    if (!puedeModificar(r.usuario_id)) { toast('Solo quien creó el registro (o el Administrador) puede eliminarlo.'); return; }
+    if (!confirm('¿Eliminar este registro del sistema? Si estaba planificado, la tarea vuelve a quedar pendiente.')) return;
+    const ed = state.cola.find(i => i.tipo === 'editar' && i.regId === id);   // una corrección pendiente ya no sirve
+    if (ed) { for (const k of ed.fotos || []) await DB.del('fotos', k); await DB.del('cola', ed.id); }
+    await DB.put('cola', { id: uuid(), tipo: 'eliminar', regId: id, creado: new Date().toISOString() });
+  }
+  await contarPendientes(); toast('🗑️ Registro eliminado' + (enCola ? '.' : navigator.onLine ? '. Enviando…' : '. Se enviará al haber señal.')); render(); sincronizar();
+}
+/** Quita de la cola un cambio que el sistema rechazó (p. ej. sin permiso). */
+async function descartarDeCola(id) {
+  const i = state.cola.find(x => x.id === id); if (!i) return;
+  if (!confirm('¿Descartar este cambio? No se enviará.')) return;
+  for (const k of i.fotos || []) await DB.del('fotos', k);
+  await DB.del('cola', id); await contarPendientes(); render();
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -834,16 +1090,21 @@ function abrirPlanificar() {
 }
 function menuTarea(id) {
   const p = planLocal().find(x => x.id === id); if (!p) return;
-  const a = act(p.actividad_id);
-  modal('<h3>' + (a.icono || '') + ' ' + esc(p.titulo || a.nombre) + '</h3><p style="color:var(--muted);margin-bottom:12px;">' + esc(fmtDia(p.fecha)) + '</p>' +
+  const a = act(p.actividad_id), puede = puedeModificar(p.creado_por);
+  modal('<h3>' + (a.icono || '') + ' ' + esc(p.titulo || a.nombre) + '</h3><p style="color:var(--muted);margin-bottom:12px;">' + esc(fmtDia(p.fecha)) +
+      (p.creado_por ? ' · creada por ' + esc(nombreDe(p.creado_por)) : '') + '</p>' +
     '<button class="btn btn-p" data-t="reg">➕ Registrar ahora</button>' +
-    '<button class="btn btn-s" data-t="cancelada" style="margin-top:8px;">🚫 Cancelar</button>' +
-    '<button class="btn btn-s" data-t="eliminar" style="margin-top:8px;color:#B91C1C;">🗑️ Eliminar</button>' +
+    (puede ? '<button class="btn btn-s" data-t="modificar" style="margin-top:8px;">✏️ Modificar fecha, detalle o comuna</button>' +
+      '<button class="btn btn-s" data-t="cancelada" style="margin-top:8px;">🚫 Cancelar</button>' +
+      '<button class="btn btn-s" data-t="eliminar" style="margin-top:8px;color:#B91C1C;">🗑️ Eliminar</button>'
+      : '<p class="ayuda" style="margin-top:10px;">Solo quien creó esta actividad (o el Administrador) puede modificarla, cancelarla o eliminarla.</p>') +
     '<button class="btn btn-s" data-t="no" style="margin-top:8px;">Volver</button>');
   $('modal-caja').querySelectorAll('[data-t]').forEach(b => b.onclick = async () => {
     const t = b.dataset.t; cerrarModal();
     if (t === 'reg') { abrirFormulario({ planId: id }); return; }
     if (t === 'no') return;
+    if (!puede) return;
+    if (t === 'modificar') { modificarTarea(p); return; }
     // Si aún no se envió la planificación, se corrige en la misma cola
     const enCola = state.cola.find(i => i.tipo === 'plan' && i.filas.some(f => f.id === id));
     if (enCola) {
@@ -852,6 +1113,27 @@ function menuTarea(id) {
     } else await DB.put('cola', { id: uuid(), tipo: 'plan_estado', creado: new Date().toISOString(), planId: id, estado: t === 'eliminar' ? null : t, eliminar: t === 'eliminar' });
     await contarPendientes(); render(); sincronizar();
   });
+}
+/** ✏️ Modificar una actividad planificada propia (o cualquiera, si es Administrador): fecha, detalle y comuna. */
+function modificarTarea(p) {
+  const I = state.inicio;
+  modal('<h3>✏️ Modificar actividad</h3>' +
+    '<div class="campo"><label>Detalle (opcional)</label><input id="pm-tit" value="' + esc(p.titulo || '') + '"></div>' +
+    '<div class="campo"><label>Fecha</label><input type="date" id="pm-fecha" value="' + esc(String(p.fecha).slice(0, 10)) + '"></div>' +
+    '<div class="campo"><label>Comuna</label><select id="pm-com"><option value="">—</option>' + ((I && I.comunas) || []).map(x => '<option value="' + x.id_comuna + '"' + (Number(x.id_comuna) === Number(p.id_comuna) ? ' selected' : '') + '>' + esc(x.comuna) + '</option>').join('') + '</select></div>' +
+    '<button class="btn btn-p" id="pm-ok">Guardar</button><button class="btn btn-s" id="pm-no" style="margin-top:8px;">Cancelar</button>');
+  $('pm-no').onclick = cerrarModal;
+  $('pm-ok').onclick = async () => {
+    const cambios = { titulo: $('pm-tit').value.trim() || null, fecha: $('pm-fecha').value || p.fecha, id_comuna: Number($('pm-com').value) || null };
+    cerrarModal();
+    const enCola = state.cola.find(i => i.tipo === 'plan' && i.filas.some(f => f.id === p.id));
+    if (enCola) { enCola.filas.forEach(f => { if (f.id === p.id) Object.assign(f, cambios); }); await DB.put('cola', enCola); }
+    else {
+      const prev = state.cola.find(i => i.tipo === 'plan_editar' && i.planId === p.id);
+      await DB.put('cola', { id: prev ? prev.id : uuid(), tipo: 'plan_editar', creado: prev ? prev.creado : new Date().toISOString(), planId: p.id, cambios: Object.assign({}, prev ? prev.cambios : {}, cambios) });
+    }
+    await contarPendientes(); toast('✏️ Actividad modificada'); render(); sincronizar();
+  };
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -862,12 +1144,181 @@ const ESRI = s => 'https://server.arcgisonline.com/ArcGIS/rest/services/' + s + 
 const CARTO = ESRI('World_Street_Map');
 const CACHE_MOSAICOS = 'mosaicos-v1';   // misma caché que la App de Patrullaje
 const OFFLINE_MAX = 4000;
+/** Mapa base: 'mapa' (calles Esri, el que se descarga sin conexión) o 'sat' (imagen Esri + nombres de lugares). */
+function capaBase(tipo) {
+  if (tipo === 'sat') return L.layerGroup([
+    L.tileLayer(ESRI('World_Imagery'), { maxZoom: 19, maxNativeZoom: 18, attribution: 'Imágenes © Esri' }),
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 18 })]);
+  return L.tileLayer(CARTO, { maxZoom: 19, maxNativeZoom: 17, attribution: 'Tiles © Esri' });
+}
+// Capas del mapa (encendidas por defecto salvo Fundos; los incendios van aparte y parten APAGADOS)
+const CAPAS_DEF = [['act', '📍 Actividades registradas', true], ['predios', '🌾 Predios de agricultores', true], ['fundos', '🌲 Fundos CMPC', false],
+  ['mop', '🛣️ Red vial MOP', true], ['comunas', '🏘️ Límites comunales', true]];
+const PALETA_TEMP = ['#EF4444', '#F59E0B', '#94A3B8', '#3B82F6', '#7C3AED', '#059669'];
+function capasOn() {
+  if (!state.capasOn) {
+    let g = {}; try { g = JSON.parse(localStorage.getItem('agr-capas-mapa') || '{}') || {}; } catch (e) {}
+    state.capasOn = Object.assign({}, ...CAPAS_DEF.map(c => ({ [c[0]]: c[2] })), g.c || {});
+    state.incOn = g.i || {}; state.baseMapa = g.b || 'mapa';
+  }
+  return state.capasOn;
+}
+function guardarCapasOn() { try { localStorage.setItem('agr-capas-mapa', JSON.stringify({ c: state.capasOn, i: state.incOn, b: state.baseMapa })); } catch (e) {} }
+function colorRiesgoPredio(r) { const n = normTxt(r); return n.startsWith('alt') ? '#DC2626' : n.startsWith('med') ? '#D97706' : n.startsWith('baj') ? '#16A34A' : '#7C3AED'; }
+function fcDe(arr) {
+  return { type: 'FeatureCollection', features: (arr || []).filter(x => x && x.geometry).map(x => { const p = Object.assign({}, x); delete p.geometry; return { type: 'Feature', geometry: x.geometry, properties: p }; }) };
+}
+/** Capas de referencia desde state.capas (agr_capas_offline). sinVentanas = para el mapa del formulario. */
+function crearCapasRef(sinVentanas) {
+  const C = state.capas || {}, it = !sinVentanas, g = {};
+  g.comunas = L.geoJSON(fcDe(C.comunas), { interactive: false, style: { color: '#14532D', weight: 2, dashArray: '6 5', fill: false } });
+  g.fundos = L.geoJSON(fcDe(C.fundos), { interactive: it, style: { color: '#059669', weight: 1.4, fillColor: '#34D399', fillOpacity: 0.15 },
+    onEachFeature: (f, l) => { if (it) l.bindPopup('<b>🌲 ' + esc(f.properties.nombre || 'Fundo CMPC') + '</b>' + (f.properties.sup_ha ? '<br><small>' + Number(f.properties.sup_ha).toLocaleString('es-CL', { maximumFractionDigits: 1 }) + ' ha</small>' : '')); } });
+  g.predios = L.geoJSON(fcDe(C.predios), { interactive: it,
+    style: f => { const c = colorRiesgoPredio(f.properties.riesgo); return { color: c, weight: 2, fillColor: c, fillOpacity: 0.22 }; },
+    onEachFeature: (f, l) => { if (!it) return; const p = f.properties;
+      l.bindPopup('<b>🌾 ' + esc(p.nombre || 'Predio') + '</b>' + (p.agricultor ? '<br>👨‍🌾 ' + esc(p.agricultor) : '') +
+        '<br><small>' + [p.riesgo ? 'Riesgo ' + p.riesgo : '', p.cultivo || '', p.superficie_ha ? Number(p.superficie_ha).toLocaleString('es-CL', { maximumFractionDigits: 1 }) + ' ha' : '', p.comuna || ''].filter(Boolean).map(esc).join(' · ') + '</small>'); } });
+  g.mop = L.geoJSON(fcDe(C.rutas), { interactive: it, style: { color: '#C2410C', weight: 2.4, opacity: 0.85 },
+    onEachFeature: (f, l) => { if (it) l.bindPopup('<b>🛣️ ' + esc(f.properties.rol_label || f.properties.rol || 'Ruta') + '</b>' + (f.properties.nombre ? '<br>' + esc(f.properties.nombre) : '') +
+      (f.properties.clasificacion ? '<br><small>' + esc(f.properties.clasificacion) + '</small>' : '')); } });
+  return g;
+}
+function temporadasOrden() { return Object.keys((state.incendios && state.incendios.temporadas) || {}).sort().reverse(); }
+function etTemp(t) { return String(t).replace(/^TEMP\.?\s*/i, 'Temporada '); }
+function crearCapasIncendios() {
+  const out = {}, inc = state.incendios; if (!inc) return out;
+  const rnd = L.canvas({ padding: 0.3 });
+  temporadasOrden().forEach((t, i) => {
+    const col = PALETA_TEMP[i % PALETA_TEMP.length];
+    out[t] = L.layerGroup(inc.temporadas[t].map(([lng, lat]) => L.circleMarker([lat, lng], { renderer: rnd, radius: 4.5, color: '#fff', weight: 1, fillColor: col, fillOpacity: 0.95 })
+      .bindPopup('🔥 Incendio · ' + esc(etTemp(t)))));
+  });
+  return out;
+}
+/** Enciende / apaga en el mapa principal las capas de referencia, los incendios y las actividades. */
+function pintarReferencia() {
+  const m = state.mapa, C = state.capasMapa; if (!m) return;
+  const on = capasOn(), gen = state.capas && state.capas.generado;
+  if (!C.ref || C.refGen !== gen) { if (C.ref) Object.values(C.ref).forEach(l => m.removeLayer(l)); C.ref = crearCapasRef(false); C.refGen = gen; }
+  ['comunas', 'fundos', 'predios', 'mop'].forEach(k => { const l = C.ref[k]; if (on[k]) { if (!m.hasLayer(l)) l.addTo(m); } else m.removeLayer(l); });
+  const incGen = state.incendios && state.incendios.fecha;
+  if (C.incGen !== incGen) { if (C.inc) Object.values(C.inc).forEach(l => m.removeLayer(l)); C.inc = crearCapasIncendios(); C.incGen = incGen; }
+  Object.keys(C.inc || {}).forEach(t => { const l = C.inc[t]; if (state.incOn[t]) { if (!m.hasLayer(l)) l.addTo(m); } else m.removeLayer(l); });
+  if (C.reg) { if (on.act) { if (!m.hasLayer(C.reg)) C.reg.addTo(m); } else m.removeLayer(C.reg); }
+}
+function renderCapasPanel() {
+  const p = $('map-capas'); if (!p || p.classList.contains('hidden')) return;
+  const on = capasOn(), C = state.capas || {}, inc = state.incendios;
+  const n = { act: null, comunas: (C.comunas || []).length, predios: (C.predios || []).length, fundos: (C.fundos || []).length, mop: (C.rutas || []).length };
+  p.innerHTML = '<div class="t">Mapa base</div><div class="seg">' + [['mapa', '🗺️ Mapa'], ['sat', '🛰️ Satélite']].map(([k, t]) => '<button data-base="' + k + '"' + (state.baseMapa === k ? ' class="on"' : '') + '>' + t + '</button>').join('') + '</div>' +
+    '<div class="t">Capas</div>' + CAPAS_DEF.map(([k, t]) => '<label><input type="checkbox" data-capa="' + k + '"' + (on[k] ? ' checked' : '') + '> ' + t +
+      (n[k] === null ? '' : '<small>' + (n[k] ? n[k].toLocaleString('es-CL') : state.capas ? '0' : '—') + '</small>') + '</label>').join('') +
+    (!state.capas ? '<div class="nota">Las capas se descargan solas con señal (o en Yo › Descargar mapa).</div>' : C.fundos === undefined ? '<div class="nota">Fundos: se verán cuando el sistema tenga el SQL 153.</div>' : '') +
+    '<div class="t">🔥 Incendios por temporada</div>' +
+    (state.descargandoInc ? '<div class="nota">Descargando incendios… (puede tardar con señal débil)</div>'
+      : !inc ? '<button class="btn-mini" data-inc-bajar="1">⬇️ Descargar incendios</button><div class="nota">Una vez, con señal (ideal Wi-Fi). Quedan guardados en el teléfono.</div>'
+      : temporadasOrden().map((t, i) => '<label><input type="checkbox" data-inc="' + esc(t) + '"' + (state.incOn[t] ? ' checked' : '') + '> <i style="background:' + PALETA_TEMP[i % PALETA_TEMP.length] + '"></i>' + esc(etTemp(t)) +
+          '<small>' + inc.temporadas[t].length + '</small></label>').join('') + (temporadasOrden().length ? '' : '<div class="nota">Sin incendios registrados en las comunas de la Asociación.</div>') +
+        '<button class="btn-mini" data-inc-bajar="1" style="margin-top:6px;">🔄 Actualizar incendios</button>');
+}
+function irAResultado(r) {
+  const m = state.mapa, C = state.capasMapa; if (!m) return;
+  if (C.busq) m.removeLayer(C.busq);
+  C.busq = L.marker([r.lat, r.lng]).addTo(m).bindPopup('<b>' + esc(r.nombre) + '</b>' + (r.sub ? '<br><small>' + esc(r.sub) + '</small>' : ''));
+  if (r.bounds) m.fitBounds(r.bounds, { padding: [40, 40], maxZoom: 16 }); else m.setView([r.lat, r.lng], 16);
+  C.busq.openPopup();
+}
+
+// ── Buscador de lugares: primero lo que hay en el teléfono (agricultores, predios, fundos, comunas, rutas MOP,
+//    coordenadas) y, con señal, el buscador de direcciones y lugares de Esri (sin clave; OpenStreetMap bloquea el sitio).
+function normTxt(s) { return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
+function coordsDeTexto(q) {
+  const m = String(q).trim().match(/^(-?\d{1,3}(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:[.,]\d+)?)$/);
+  if (!m) return null;
+  let a = parseFloat(m[1].replace(',', '.')), b = parseFloat(m[2].replace(',', '.'));
+  // En Chile la latitud va de -17 a -56 y la longitud de -66 a -110: si vienen al revés (lng, lat) se invierten
+  if ((Math.abs(a) > 90 && Math.abs(b) <= 90) || (Math.abs(a) >= 60 && Math.abs(b) < 60)) [a, b] = [b, a];
+  if (!isFinite(a) || !isFinite(b) || Math.abs(a) > 90 || Math.abs(b) > 180) return null;
+  return { lat: a, lng: b };
+}
+function conExtension(obj, geoms) {
+  let w = 180, e = -180, s = 90, n = -90;
+  const rec = c => { if (!c) return; if (typeof c[0] === 'number') { w = Math.min(w, c[0]); e = Math.max(e, c[0]); s = Math.min(s, c[1]); n = Math.max(n, c[1]); } else c.forEach(rec); };
+  (Array.isArray(geoms) ? geoms : [geoms]).forEach(g => g && rec(g.coordinates));
+  if (w > e) return null;
+  return Object.assign(obj, { lat: (s + n) / 2, lng: (w + e) / 2, bounds: [[s, w], [n, e]] });
+}
+function buscarLocal(q) {
+  const out = [], nq = normTxt(q), C = state.capas || {}, I = state.inicio || {}, ok = s => s != null && normTxt(s).includes(nq);
+  const c = coordsDeTexto(q);
+  if (c) out.push({ icono: '📌', nombre: c.lat.toFixed(5) + ', ' + c.lng.toFixed(5), sub: 'Coordenadas', lat: c.lat, lng: c.lng });
+  (I.agricultores || []).filter(a => a.lat != null && (ok(a.nombre) || ok(a.fundo) || ok(a.codigo))).slice(0, 5)
+    .forEach(a => out.push({ icono: '👨‍🌾', nombre: a.nombre, sub: 'Agricultor' + (a.fundo ? ' · ' + a.fundo : '') + (a.comuna ? ' · ' + a.comuna : ''), lat: Number(a.lat), lng: Number(a.lng) }));
+  (C.predios || []).filter(p => ok(p.nombre) || ok(p.agricultor) || ok(p.codigo)).slice(0, 5)
+    .forEach(p => { const r = conExtension({ icono: '🌾', nombre: p.nombre || p.agricultor || 'Predio', sub: 'Predio' + (p.agricultor ? ' · ' + p.agricultor : '') }, p.geometry); if (r) out.push(r); });
+  (C.fundos || []).filter(f => ok(f.nombre)).slice(0, 5)
+    .forEach(f => { const r = conExtension({ icono: '🌲', nombre: f.nombre, sub: 'Fundo CMPC' }, f.geometry); if (r) out.push(r); });
+  (C.comunas || []).filter(x => ok(x.comuna))
+    .forEach(x => { const r = conExtension({ icono: '🏘️', nombre: x.comuna, sub: 'Comuna' }, x.geometry); if (r) out.push(r); });
+  const porRol = {};
+  (C.rutas || []).forEach(r => { const et = r.rol_label || r.rol; if (et && (ok(et) || ok(r.nombre))) (porRol[et] = porRol[et] || []).push(r); });
+  Object.keys(porRol).slice(0, 5).forEach(et => { const x = conExtension({ icono: '🛣️', nombre: et, sub: 'Ruta MOP' + (porRol[et][0].nombre ? ' · ' + porRol[et][0].nombre : '') }, porRol[et].map(r => r.geometry)); if (x) out.push(x); });
+  return out.slice(0, 15);
+}
+async function buscarEnLinea(q) {
+  const u = 'https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&maxLocations=6&countryCode=CHL&outFields=Region,City' +
+    '&location=-72.4,-38.1&SingleLine=' + encodeURIComponent(q);
+  const r = await fetch(u); if (!r.ok) return [];
+  const j = await r.json();
+  return (j.candidates || []).filter(c => c.score >= 75 && c.location).map(c => ({ icono: '📍', nombre: c.address,
+    sub: 'Lugar' + (c.attributes && c.attributes.Region ? ' · ' + c.attributes.Region : ''), lat: c.location.y, lng: c.location.x,
+    bounds: c.extent ? [[c.extent.ymin, c.extent.xmin], [c.extent.ymax, c.extent.xmax]] : null }));
+}
+/** Caja de búsqueda con resultados; onElegir(resultado {nombre, lat, lng, bounds?}). */
+function widgetBuscar(cont, onElegir) {
+  if (!cont) return;
+  cont.innerHTML = '<div class="bus"><input type="search" placeholder="🔎 Buscar lugar, agricultor, predio, ruta o coordenadas" enterkeyhint="search" autocomplete="off">' +
+    '<button type="button" class="bus-x hidden" aria-label="Borrar">×</button><div class="bus-res hidden"></div></div>';
+  const inp = cont.querySelector('input'), res = cont.querySelector('.bus-res'), x = cont.querySelector('.bus-x');
+  let timer = null, n = 0, lista = [];
+  const pintar = (items, nota) => {
+    lista = items;
+    res.innerHTML = items.map((r, i) => '<button type="button" data-bi="' + i + '"><b>' + esc(r.icono + ' ' + r.nombre) + '</b><small>' + esc(r.sub || '') + '</small></button>').join('') +
+      (nota ? '<div class="bus-cargando">' + esc(nota) + '</div>' : '');
+    res.classList.toggle('hidden', !items.length && !nota);
+  };
+  const buscar = async () => {
+    const q = inp.value.trim(), id = ++n;
+    x.classList.toggle('hidden', !q);
+    if (q.length < 2) { pintar([]); return; }
+    const loc = buscarLocal(q);
+    if (!navigator.onLine) { pintar(loc, loc.length ? '' : 'Sin resultados. Sin señal solo se busca en los datos del teléfono.'); return; }
+    pintar(loc, 'Buscando lugares…');
+    const web = await buscarEnLinea(q).catch(() => []);
+    if (id !== n) return;
+    const todo = loc.concat(web);
+    pintar(todo, todo.length ? '' : 'Sin resultados.');
+  };
+  inp.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(buscar, 450); });
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(timer); buscar(); } });
+  inp.addEventListener('focus', () => { if (lista.length) res.classList.remove('hidden'); });
+  x.addEventListener('click', () => { inp.value = ''; pintar([]); x.classList.add('hidden'); inp.focus(); });
+  res.addEventListener('click', e => {
+    const b = e.target.closest('[data-bi]'); if (!b) return;
+    e.stopPropagation();
+    const r = lista[Number(b.dataset.bi)]; res.classList.add('hidden'); inp.blur();
+    if (r) onElegir(r);
+  });
+}
+
 function abrirMapa() {
   if (!state.mapa) {
+    capasOn();
     state.mapa = L.map('mapa', { zoomControl: true }).setView([-38.05, -72.4], 10);
-    const calles = L.tileLayer(CARTO, { maxZoom: 19, maxNativeZoom: 17, attribution: 'Tiles © Esri' }).addTo(state.mapa);
-    const sat = L.tileLayer(ESRI('World_Imagery'), { maxZoom: 19, maxNativeZoom: 17, attribution: 'Tiles © Esri' });
-    state.capasMapa.control = L.control.layers({ 'Mapa': calles, 'Satélite': sat }, {}, { collapsed: true }).addTo(state.mapa);
+    state.capasMapa.base = capaBase(state.baseMapa).addTo(state.mapa);
+    widgetBuscar($('map-buscar-w'), irAResultado);
+    state.mapa.on('click', () => { $('map-capas').classList.add('hidden'); $('map-capas-btn').classList.remove('on'); const r = document.querySelector('#map-buscar-w .bus-res'); if (r) r.classList.add('hidden'); });
     const yo = L.control({ position: 'bottomright' });
     yo.onAdd = () => { const b = L.DomUtil.create('button', 'btn-mini'); b.textContent = '📍 Yo'; b.style.background = '#fff'; b.style.boxShadow = '0 1px 4px #0004';
       L.DomEvent.on(b, 'click', e => { L.DomEvent.stop(e); navigator.geolocation && navigator.geolocation.getCurrentPosition(p => { const ll = [p.coords.latitude, p.coords.longitude];
@@ -878,8 +1329,8 @@ function abrirMapa() {
   } else pintarCapasMapa();
   setTimeout(() => state.mapa.invalidateSize(), 80);
 }
-/** Mapa de gestión: solo los pinchos de las actividades registradas por la Asociación (incluye lo aún no enviado),
- *  filtrados por periodo (Hoy 24 h · 2 días · 3 días · 7 días · Último mes). Por ahora sin rutas ni otras capas. */
+/** Mapa de gestión: pinchos de las actividades registradas por la Asociación (incluye lo aún no enviado),
+ *  filtrados por periodo (Hoy 24 h · 2 días · 3 días · 7 días · Último mes), más las capas del panel 🗂️ (pintarReferencia). */
 function pintarCapasMapa() {
   const m = state.mapa, C = state.capasMapa; if (!m) return;
   if (!state.periodoMapa) state.periodoMapa = '24';
@@ -887,7 +1338,7 @@ function pintarCapasMapa() {
   $('map-filtros').innerHTML = PERIODOS_MAPA.map(([k, t]) => '<button data-periodo="' + k + '"' + (k === per[0] ? ' class="on"' : '') + '>' + t + '</button>').join('');
   if (C.reg) { m.removeLayer(C.reg); C.reg = null; }
   const desde = Date.now() - per[2] * 3600e3;
-  const base = ((state.inicio && state.inicio.registros) || []).filter(r => !registrosLocales().some(x => x.id === r.id));
+  const base = registrosServidor().filter(r => !registrosLocales().some(x => x.id === r.id));
   const regs = base.concat(registrosLocales()).filter(r => r.lat != null && new Date(r.fecha).getTime() >= desde);
   C.reg = L.featureGroup(regs.map(r => {
     const a = act(r.actividad_id), d = r.datos || {}, col = COLOR_FORM[a.formulario] || '#475569';
@@ -895,13 +1346,14 @@ function pintarCapasMapa() {
     return L.marker([r.lat, r.lng], { icon: L.divIcon({ className: '', html: '<div class="pin-g' + (r._pend ? ' pend' : '') + '" style="background:' + col + '"><span>' + (a.icono || '📍') + '</span></div>', iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -28] }) })
       .bindPopup('<b>' + esc(a.nombre) + '</b>' + (titulo ? '<br>' + esc(titulo) : '') + '<br><small>🕒 ' + esc(fmtFechaHora(r.fecha)) + '<br>👤 ' + esc(nombreDe(r.usuario_id)) +
         (r.comuna ? ' · 📍 ' + esc(r.comuna) : '') + (r.participantes ? '<br>👥 ' + r.participantes + ' participantes' : '') + (r._pend ? '<br>⏳ Aún sin enviar' : '') + '</small>');
-  })).addTo(m);
+  }));
+  pintarReferencia();
   // Resumen: total del periodo y leyenda por tipo de formulario
   const porForm = {}; regs.forEach(r => { const f = act(r.actividad_id).formulario; porForm[f] = (porForm[f] || 0) + 1; });
   $('map-resumen').innerHTML = '<b>' + regs.length + '</b> actividad(es) · ' + esc(per[1].toLowerCase()) +
     (regs.length ? '<div class="ley">' + Object.keys(porForm).map(f => '<span><i style="background:' + (COLOR_FORM[f] || '#475569') + '"></i>' + esc(FORMULARIOS[f] ? FORMULARIOS[f].nombre.split(' /')[0] : f) + ' ' + porForm[f] + '</span>').join('') + '</div>'
       : '<div style="color:var(--muted);margin-top:3px;">No hay actividades en este periodo. Prueba con un periodo más largo.</div>');
-  if (regs.length) m.fitBounds(C.reg.getBounds(), { padding: [60, 60], maxZoom: 15 });
+  if (regs.length && capasOn().act) m.fitBounds(C.reg.getBounds(), { padding: [60, 60], maxZoom: 15 });
 }
 function mosaicosDe(bbox, z) {
   const n = 2 ** z, rad = Math.PI / 180;
@@ -924,6 +1376,7 @@ async function descargarMapaOffline() {
   if (!navigator.onLine) { toast('Necesitas señal (ideal Wi-Fi) para descargar el mapa.'); return; }
   if (!('caches' in window)) { toast('Este navegador no permite guardar el mapa.'); return; }
   try { await actualizarCapas(); } catch (e) { toast('No se pudieron bajar las capas: ' + (e.message || e)); }
+  descargarIncendios(true);   // en paralelo con los mosaicos
   const bbox = areaAsociacion();
   let lista = [];
   for (let z = 9; z <= 16; z++) { const t = mosaicosDe(bbox, z); if (lista.length + t.length > OFFLINE_MAX) break; lista = lista.concat(t); }
@@ -982,6 +1435,9 @@ document.querySelector('main').addEventListener('click', e => {
   const t = e.target;
   const n = t.closest('[data-nuevo]'); if (n) { abrirFormulario({ actividad: n.dataset.nuevo }); return; }
   const rp = t.closest('[data-reg-plan]'); if (rp) { abrirFormulario({ planId: rp.dataset.regPlan }); return; }
+  const edr = t.closest('[data-editar]'); if (edr) { abrirEdicion(edr.dataset.editar); return; }
+  const bor = t.closest('[data-borrar]'); if (bor) { eliminarRegistro(bor.dataset.borrar); return; }
+  const des = t.closest('[data-descartar]'); if (des) { descartarDeCola(des.dataset.descartar); return; }
   const pm = t.closest('[data-plan-menu]'); if (pm) { menuTarea(pm.dataset.planMenu); return; }
   const pv = t.closest('[data-pvista]'); if (pv) { state.planVista = pv.dataset.pvista; renderPlan(); return; }
   const pm2 = t.closest('[data-periodo]'); if (pm2) { state.periodoMapa = pm2.dataset.periodo; pintarCapasMapa(); return; }
@@ -1000,6 +1456,29 @@ document.querySelector('main').addEventListener('click', e => {
     toast('🔄 Actualizando…'); cargarInicio().then(() => { render(); toast('✅ Datos actualizados'); }, err => toast('No se pudo: ' + (err.message || err)));
   }
 });
+// Panel de capas del mapa
+$('map-capas-btn').addEventListener('click', () => {
+  const p = $('map-capas'), abrir = p.classList.contains('hidden');
+  p.classList.toggle('hidden', !abrir); $('map-capas-btn').classList.toggle('on', abrir);
+  if (abrir) renderCapasPanel();
+});
+$('map-capas').addEventListener('click', e => {
+  e.stopPropagation();
+  const b = e.target.closest('[data-base]');
+  if (b && state.mapa) {
+    state.baseMapa = b.dataset.base; guardarCapasOn();
+    state.mapa.removeLayer(state.capasMapa.base); state.capasMapa.base = capaBase(state.baseMapa).addTo(state.mapa);
+    renderCapasPanel(); return;
+  }
+  if (e.target.closest('[data-inc-bajar]')) { descargarIncendios(false); return; }
+});
+$('map-capas').addEventListener('change', e => {
+  const t = e.target; capasOn();
+  if (t.dataset.capa) state.capasOn[t.dataset.capa] = t.checked;
+  else if (t.dataset.inc) state.incOn[t.dataset.inc] = t.checked;
+  else return;
+  guardarCapasOn(); pintarReferencia();
+});
 $('f-volver').addEventListener('click', () => { if (confirm('¿Salir sin guardar?')) cerrarFormulario(); });
 $('f-guardar').addEventListener('click', guardarFormulario);
 $('f-cuerpo').addEventListener('change', e => {
@@ -1015,10 +1494,14 @@ $('f-cuerpo').addEventListener('change', e => {
     pintarFormulario(); return;
   }
   if (t.id === 'f-plan') { F.plan = t.value; return; }
-  if (t.id === 'f-foto' && t.files && t.files[0]) {
-    const files = [...t.files].slice(0, MAX_FOTOS - F.fotos.length);
+  if (t.id === 'f-fecha') { F.fecha = t.value; return; }
+  if ((t.id === 'f-foto-cam' || t.id === 'f-foto-gal') && t.files && t.files[0]) {
+    const libres = MAX_FOTOS - F.fotos.length - (F.fotosPrevias || []).length;
+    if (t.files.length > libres) toast('Máximo ' + MAX_FOTOS + ' fotos por registro: se agregan las primeras ' + Math.max(0, libres) + '.');
+    const files = [...t.files].slice(0, Math.max(0, libres));
     Promise.all(files.map(comprimirFoto)).then(blobs => { blobs.forEach(b => F.fotos.push({ blob: b, url: URL.createObjectURL(b) })); pintarFotos(); });
     t.value = '';
+    return;
   }
 });
 $('f-cuerpo').addEventListener('click', e => {
@@ -1026,7 +1509,9 @@ $('f-cuerpo').addEventListener('click', e => {
   const sn = t.closest('[data-sn]');
   if (sn) { const g = sn.parentElement, ya = g.dataset.v === sn.dataset.sn; g.dataset.v = ya ? '' : sn.dataset.sn; g.querySelectorAll('button').forEach(b => b.classList.toggle('on', !ya && b === sn)); return; }
   const q = t.closest('[data-quitar-foto]'); if (q) { const i = Number(q.dataset.quitarFoto); URL.revokeObjectURL(F.fotos[i].url); F.fotos.splice(i, 1); pintarFotos(); return; }
-  if (t.closest('#f-foto-btn')) { $('f-foto').click(); return; }
+  const qp = t.closest('[data-quitar-previa]'); if (qp) { if (confirm('¿Quitar esta foto del registro?')) { F.fotosPrevias.splice(Number(qp.dataset.quitarPrevia), 1); pintarFotos(); } return; }
+  if (t.closest('#f-foto-cam-btn')) { $('f-foto-cam').click(); return; }
+  if (t.closest('#f-foto-gal-btn')) { $('f-foto-gal').click(); return; }
   if (t.closest('#f-gps-btn')) {   // volver a la ubicación del GPS
     F.pinMovido = false;
     if (F.gps) { F.pin = { lat: F.gps.lat, lng: F.gps.lng }; centrarPin(true); }
