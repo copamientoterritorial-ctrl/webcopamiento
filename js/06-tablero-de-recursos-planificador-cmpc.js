@@ -1343,7 +1343,7 @@ async function descargarPersonasGestion_() {
  * para las que faltan. Se sube completa: vista previa (nuevas / actualizadas / sin cambios / errores) y se aplica con
  * cargar_personas_masivo (cada fila con guardar_persona_recurso: mismas validaciones y permiso por área). No elimina personas. */
 const GRP_PLANTILLA = [
-  { h: 'ID recurso', k: 'codigo', w: 12 }, { h: 'Clave radial', w: 12 }, { h: 'Tipo de recurso', w: 22 }, { h: 'Área', w: 16 },
+  { h: 'ID recurso', k: 'codigo', w: 12 }, { h: 'Clave radial', k: 'clave', w: 12 }, { h: 'Tipo de recurso', w: 22 }, { h: 'Área', w: 16 },
   { h: 'Sector', w: 16 }, { h: 'N° personas', w: 10 }, { h: 'Cupo', w: 6 },
   { h: 'Nombre completo *', k: 'nombre', w: 30 }, { h: 'RUT *', k: 'rut', w: 13 }, { h: 'Cargo *', k: 'cargo', w: 16 },
   { h: 'Titular (Sí/No)', k: 'titular', w: 9 }, { h: 'Conductor (Sí/No)', k: 'conductor', w: 10 }, { h: 'Curso Call Fire (Sí/No)', k: 'curso_call_fire', w: 12 },
@@ -1434,13 +1434,24 @@ async function leerPlantillaPersonas_(archivo) {
   // Encabezados → campos (tolera tildes, mayúsculas, «*» y textos entre paréntesis)
   const mapa = {};
   Object.keys(filas[0]).forEach(h => { const c = GRP_PLANTILLA.find(x => x.k && grpNormH_(x.h) === grpNormH_(h)); if (c) mapa[c.k] = h; });
-  if (!mapa.codigo) { mostrarToast_('El archivo no tiene la columna «ID recurso»: use la 📋 Plantilla personas.'); return; }
+  // 03-11-2026: también se acepta la columna renombrada «ID» / «Código» (el recurso), o se cruza por la Clave radial
+  if (!mapa.codigo) {
+    const alias = ['id', 'idrecurso', 'codigo', 'codigorecurso', 'idbg', 'codigoidbg'];
+    const h = Object.keys(filas[0]).find(x => alias.includes(grpNormH_(x)));
+    if (h) mapa.codigo = h;
+  }
+  if (!mapa.codigo && !mapa.clave) { mostrarToast_('El archivo no tiene la columna «ID recurso» ni «Clave radial»: use la 📋 Plantilla personas.'); return; }
   if (!mapa.nombre || !mapa.rut || !mapa.cargo) { mostrarToast_('Faltan columnas obligatorias (Nombre completo, RUT, Cargo): use la 📋 Plantilla personas.'); return; }
   const val = (f, k) => mapa[k] ? String(f[mapa[k]] == null ? '' : f[mapa[k]]).trim() : '';
 
-  const porCodigo = {};
-  state.gr.recursos.forEach(r => { if (r.codigo_ref) porCodigo[grCodigo_(r.codigo_ref)] = r; });
-  const usados = [...new Set(filas.map(f => porCodigo[grCodigo_(val(f, 'codigo'))]).filter(Boolean).map(r => r.id))];
+  const porCodigo = {}, porClave = {};
+  state.gr.recursos.forEach(r => {
+    if (r.codigo_ref) porCodigo[grCodigo_(r.codigo_ref)] = r;
+    const cl = claveRecurso_(r); if (cl) porClave[grCodigo_(cl)] = r;
+  });
+  // El recurso de la fila: por su ID y, si no viene o no coincide, por su Clave radial
+  const recursoDe = f => porCodigo[grCodigo_(val(f, 'codigo'))] || (val(f, 'clave') ? porClave[grCodigo_(val(f, 'clave'))] : null) || null;
+  const usados = [...new Set(filas.map(recursoDe).filter(Boolean).map(r => r.id))];
   let existentes;
   try { existentes = await grpPersonasDe_(usados); } catch (e) { mostrarToast_('No se pudieron leer las personas actuales: ' + (e.message || e)); return; }
   const porRec = {}; existentes.forEach(p => { (porRec[p.recurso_id] = porRec[p.recurso_id] || []).push(p); });
@@ -1448,12 +1459,12 @@ async function leerPlantillaPersonas_(archivo) {
   const cambios = [], errores = [], noEnc = [];
   let vacias = 0, iguales = 0;
   filas.forEach((f, i) => {
-    const fila = i + 2, cod = val(f, 'codigo');
+    const fila = i + 2, cod = val(f, 'codigo') || val(f, 'clave');
     const nombre = val(f, 'nombre').replace(/\s+/g, ' '), rutTxt = val(f, 'rut');
     if (!nombre && !rutTxt) { vacias++; return; }   // cupo sin completar
     const err = msg => errores.push({ fila, codigo: cod, msg });
-    if (!cod) return err('Falta el ID recurso');
-    const r = porCodigo[grCodigo_(cod)];
+    if (!cod) return err('Falta el ID recurso (o la Clave radial)');
+    const r = recursoDe(f);
     if (!r) { noEnc.push(cod); return; }
     if (!grPuedeEditar_(r)) return err('No puedes editar este recurso (fuera de tus áreas)');
     if (!nombre) return err('Falta el nombre completo');
