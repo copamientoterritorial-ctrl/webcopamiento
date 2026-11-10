@@ -423,7 +423,7 @@ async function renderGestorRutaPat_(ruta) {
     return;
   }
   cont.innerHTML = '<label>👤 <b>Gestor de relacionamiento</b></label><select id="pat-gestor-sel" class="admin-search" style="width:100%;min-width:0;">' +
-    '<option value="">— Sin gestor —</option>' + (state.gest.lista || []).filter(x => x.activo || x.id === id).map(x =>
+    '<option value="">— Sin gestor —</option>' + (state.gest.lista || []).filter(x => (x.activo && x.rol !== 'Jefe de Área') || x.id === id).map(x =>   // los Jefes (SQL 157) solo van en Turnos de Gestores
       '<option value="' + x.id + '"' + (x.id === id ? ' selected' : '') + '>' + escapeHtml_(x.codigo + ' · ' + x.nombre + (x.area ? ' (' + aTitulo_(x.area) + ')' : '')) + '</option>').join('') + '</select>';
   document.getElementById('pat-gestor-sel').onchange = async e => {
     const nuevo = e.target.value ? Number(e.target.value) : null;

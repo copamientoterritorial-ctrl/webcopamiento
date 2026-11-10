@@ -6,8 +6,9 @@
  * guardar_ficha_recurso, guardar_rutas_recurso, mover_recurso_referencia y
  * actualizar_inicio_recurso (51).
  * Edita: Administrador (todo) y Jefe de Área (sus áreas). Resto: solo lectura.
- * Ojo: perfil_areas guarda las áreas SIN tilde ('MULCHEN') y los recursos CON
- * tilde ('MULCHÉN'): toda comparación de área pasa por plNorm_. */
+ * Áreas (SQL 156): mismo id_area 1..16 y mismo nombre en todas las tablas; igual toda
+ * comparación de área pasa por esMiArea_ / areaClave_ (js/01), nunca por el texto exacto.
+ * Solo el Administrador ve los recursos de todas las áreas. */
 let plMap = null, plRutasLayer = null, plRecursosLayer = null, plSelLayer = null;
 // Capas de contexto del Planificador (06-10-2026), cada una en su pane para un orden fijo:
 // comunas del área (fondo, tenue) < áreas de relacionamiento < fundos CMPC < rutas < recursos.
@@ -51,7 +52,7 @@ function plPuedeEditar_(r) {
   if (!puedeEditarModulo_('planificador_grafico')) return false;   // permiso por usuario (SQL 83)
   if (state.perfil.perfil === 'Administrador') return true;
   if (!esJefeAreaPerfil_(state.perfil.perfil)) return false;
-  return (state.misAreasIds || []).map(plNorm_).includes(plNorm_(r.area));
+  return esMiArea_(r.area, r.id_area);   // por id homologado o clave (sin tildes, espacios ni guiones)
 }
 function plColorTipo_(tipo) {
   const t = (state.tiposRecursoCatalogo || []).find(x => plNorm_(x.nombre) === plNorm_(tipo));
@@ -155,22 +156,21 @@ async function refrescarRecursoPlanificador_(id) {
   if (i >= 0) state.pl.recursos[i] = data; else state.pl.recursos.push(data);
 }
 
-/** Áreas que ve el usuario: Admin y perfiles de consulta, todas; Jefe de Área, las suyas. */
+/** Áreas que ve el usuario (06-11-2026): SOLO el Administrador ve todas; el resto, únicamente las suyas
+ *  (perfil_areas, por id homologado del SQL 156 o por clave del nombre). */
 function plAreasVisibles_() {
   const nombres = {};
   state.pl.recursos.forEach(r => { if (r.id_area != null && !nombres[r.id_area]) nombres[r.id_area] = r.area; });
   let lista = Object.keys(nombres).map(id => ({ id: Number(id), nombre: nombres[id] }));
-  const p = state.perfil && state.perfil.perfil;
-  if (p !== 'Administrador' && esJefeAreaPerfil_(p)) {
-    const mias = (state.misAreasIds || []).map(plNorm_);
-    lista = lista.filter(a => mias.includes(plNorm_(a.nombre)));
-  }
+  if (!(state.perfil && state.perfil.perfil === 'Administrador')) lista = lista.filter(a => esMiArea_(a.nombre, a.id));
   return lista.sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
 }
 
 function poblarAreasPlanificador_() {
   const sel = document.getElementById('pl-area');
   const todas = plAreasVisibles_();
+  if (!todas.length && state.pl.cargado && !(state.perfil && state.perfil.perfil === 'Administrador'))
+    plEstado_('Tu usuario no tiene áreas asignadas: pide al Administrador que te asigne tu área.', 'error');
   // Subgerencias de las áreas visibles (filtro superior)
   const subgDe = id => { const r = state.pl.recursos.find(x => x.id_area === id && x.subgerencia); return r ? r.subgerencia : ''; };
   const subgs = [...new Set(todas.map(a => subgDe(a.id)).filter(Boolean))].sort();
@@ -683,7 +683,7 @@ function abrirCalendarioDesdePlanificador_() {
   if (!r) return;
   // El selector del calendario usa los nombres de su catálogo / perfil_areas (pueden venir sin tilde).
   const areas = state.perfil.perfil === 'Administrador' ? (state.areasCatalogo || []) : (state.misAreasIds || []);
-  const igual = areas.find(a => plNorm_(a) === plNorm_(r.area));
+  const igual = areas.find(a => areaClave_(a) === areaClave_(r.area));
   if (igual) state.turnosArea = igual;
   mostrarVista_('turnos');
 }

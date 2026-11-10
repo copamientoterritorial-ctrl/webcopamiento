@@ -96,6 +96,7 @@
               <select id="meteo-comparar-select" class="comuna-select" style="padding:6px 10px;font-size:11.5px;"><option value="">+ Comparar con otra comuna…</option></select>
               <div id="meteo-comparadas" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
               <span class="dash-fuente">Fuente: Open-Meteo API · Actualizado: <span id="dash-meteo-actualizado">—</span></span>
+              <button type="button" onclick="abrirFuenteMeteo_()" style="font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--cobalt);cursor:pointer;font-weight:700;">ℹ️ Fuente de datos</button>
             </div>
           </div>
           <div id="dash-meteo"></div>
@@ -503,6 +504,7 @@
           <button data-sg-vista="comunas" class="on">🏘️ Comunas y copamiento</button>
           <button data-sg-vista="recursos">🌲 Inicio de recursos</button>
           <button data-sg-vista="turnos">📅 Turnos</button>
+          <button data-sg-vista="personas">👥 Personas</button>
         </div>
       </div>
       <div class="pat-toolbar-right" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -590,6 +592,25 @@
       </div>
     </div>
     <div class="dg-cuerpo" id="agp-cuerpo"><div class="tb-vacio">Cargando…</div></div>
+  </div>
+
+  <!-- 📋 PPA · Plan de Prevención por Área (menú 📋 PPA ▾, 06-11-2026, SQL 160/161; js/38). 1ª etapa: solo Administrador.
+       Un panel con 5 vistas: Detalle, Tablero de Avance, Resumen, Metas por fecha y Tablero de Gestión. -->
+  <div id="ppa-panel">
+    <div class="pat-toolbar">
+      <div class="pat-toolbar-left">
+        <strong id="ppa-titulo">📋 PPA</strong>
+        <span class="turnos-estado" id="ppa-estado">—</span>
+      </div>
+      <div class="pat-toolbar-right" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <button class="turnos-btn" id="ppa-recargar" title="Volver a leer el PPA">🔄 Actualizar</button>
+        <button class="turnos-btn" id="ppa-excel" title="Acciones filtradas en Excel, con el mismo formato del Consolidado PPA (se puede volver a subir)">⬇️ Excel</button>
+        <button class="turnos-btn gr-btn-guardar" id="ppa-subir" style="display:none;" title="Solo Administrador: subir el Excel del PPA (mismo formato)">⬆️ Subir Excel</button>
+        <input type="file" id="ppa-archivo" accept=".xlsx,.xls" style="display:none;">
+      </div>
+    </div>
+    <div class="ppa-filtros" id="ppa-filtros"></div>
+    <div class="ppa-cuerpo" id="ppa-cuerpo"><div class="tb-vacio">Cargando…</div></div>
   </div>
 
   <!-- 👥 Turnos de Gestores de relacionamiento (Planificador CMPC ▾, 20-10-2026, SQL 134): cada área programa día a día los
@@ -878,6 +899,18 @@
           <button class="vista-tab vista-tab-grupo" title="Agricultores"><span class="vt-ico">🌾</span><span class="vt-txt">Agricultores</span><span class="vt-caret">▾</span></button>
           <div class="vista-submenu">
             <button class="vista-subitem" data-vista="agricultores" id="tab-agricultores" style="display:none;"><span class="vs-ico">🌾</span><span><b>Gestión Asociación Malleco</b><small>Tablero de seguimiento · control diario · planificación</small></span></button>
+          </div>
+        </div>
+        <!-- 📋 PPA ▾ (06-11-2026, SQL 160/161): Plan de Prevención por Área. 1ª etapa: solo Administrador -->
+        <div class="vista-grupo" id="grupo-ppa" style="display:none;">
+          <button class="vista-tab vista-tab-grupo" title="Plan de Prevención por Área"><span class="vt-ico">📋</span><span class="vt-txt">PPA</span><span class="vt-caret">▾</span></button>
+          <div class="vista-submenu">
+            <button class="vista-subitem" data-vista="ppadetalle" id="tab-ppadetalle" style="display:none;"><span class="vs-ico">📄</span><span><b>Detalle del PPA</b><small>Acciones por área y sector · ficha y avances</small></span></button>
+            <button class="vista-subitem" data-vista="ppaavance" id="tab-ppaavance" style="display:none;"><span class="vs-ico">📊</span><span><b>Tablero de Avance</b><small>Meta vs avance por quincena y por mes</small></span></button>
+            <button class="vista-subitem" data-vista="pparesumen" id="tab-pparesumen" style="display:none;"><span class="vs-ico">🧾</span><span><b>Resumen del PPA</b><small>Totales por subgerencia, área, grupo y causa</small></span></button>
+            <button class="vista-subitem" data-vista="ppagestion" id="tab-ppagestion" style="display:none;"><span class="vs-ico">🧭</span><span><b>Tablero de Gestión</b><small>Semáforo por área, atrasadas y plazos próximos</small></span></button>
+            <div class="vista-subsep"></div>
+            <button class="vista-subitem" data-vista="ppametas" id="tab-ppametas" style="display:none;"><span class="vs-ico">🎯</span><span><b>Metas por fecha</b><small>Metas por quincena y mes de cada acción</small></span></button>
           </div>
         </div>
         <button class="vista-tab" data-vista="admin" id="tab-admin" style="display:none;" title="Administración"><span class="vt-ico">⚙️</span><span class="vt-txt">Administración</span></button>
@@ -1469,6 +1502,32 @@
     </div>
   </div>
   <!-- MODAL METEOROLOGÍA HORARIA + 7 DÍAS -->
+  <!-- ℹ️ Fuente de datos del pronóstico (botón del tablero de meteorología) -->
+  <div class="modal-overlay" id="meteo-fuente-overlay" onclick="if(event.target===this)cerrarFuenteMeteo_()">
+    <div class="modal-card" style="max-width:560px;width:94vw;padding:0;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;border-bottom:1px solid var(--border);">
+        <span style="font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--text-primary);">ℹ️ Fuente de datos meteorológicos</span>
+        <button type="button" onclick="cerrarFuenteMeteo_()" aria-label="Cerrar" style="border:none;background:none;font-size:18px;cursor:pointer;color:var(--text-secondary);">✕</button>
+      </div>
+      <div style="padding:16px 20px;font-size:13px;line-height:1.55;color:var(--text-primary);">
+        <p><b>Proveedor:</b> Open-Meteo (API pública de pronóstico meteorológico).</p>
+        <p style="margin-top:8px;"><b>Qué se consulta:</b> temperatura, humedad relativa, viento (velocidad, ráfagas y dirección), precipitación, probabilidad de precipitación, código de tiempo, CAPE e índice de levantamiento (para tormentas eléctricas).</p>
+        <p style="margin-top:8px;"><b>Horizonte:</b> 14 días, con hora de Chile continental (America/Santiago).</p>
+        <p style="margin-top:8px;"><b>Actualización:</b> cada vez que se abre el tablero o se presiona Actualizar.</p>
+        <p style="margin-top:8px;"><b>Índice de riesgo de incendio:</b> es un índice simplificado propio del sistema (temperatura, humedad y viento). No es un índice oficial.</p>
+        <p style="margin-top:8px;"><b>Atribución:</b> los datos de Open-Meteo se publican bajo licencia CC BY 4.0. Al usarlos en informes, cita la fuente.</p>
+        <p style="margin-top:14px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">🗂️ Base de datos meteorológica</p>
+        <ul style="margin:6px 0 0 18px;padding:0;">
+          <li style="margin-bottom:5px;"><b>Pronóstico:</b> <a href="https://open-meteo.com/" target="_blank" rel="noopener" style="color:var(--cobalt);">Open-Meteo</a>, que combina modelos de servicios meteorológicos nacionales (ECMWF, NOAA, DWD, Météo-France y UKMO, entre otros).</li>
+          <li style="margin-bottom:5px;"><b>Sensores:</b> el sistema no tiene estaciones propias. Las condiciones actuales son estimadas por los modelos, que integran observaciones de estaciones, radar y satélites.</li>
+          <li style="margin-bottom:5px;"><b>Referencia visual:</b> <a href="https://www.windy.com/" target="_blank" rel="noopener" style="color:var(--cobalt);">Windy</a>, para comparar mapas de viento y lluvia.</li>
+          <li style="margin-bottom:5px;"><b>Punto consultado:</b> el centro de la comuna (vista <b>v_comunas_centro</b>) o el centro de su límite cargado.</li>
+          <li style="margin-bottom:5px;"><b>Horizonte:</b> 14 días, hora de Chile continental.</li>
+          <li style="margin-bottom:5px;"><b>Cálculos propios:</b> riesgo de incendio, horas críticas, puelche y riesgo de tormentas.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
   <div class="modal-overlay" id="meteo-horaria-overlay">
     <div class="modal-card meteo-modal-card" id="meteo-modal-inner" style="max-width:960px;width:96vw;padding:0;overflow:hidden;">
       <!-- Header -->
@@ -2267,5 +2326,6 @@
 <script src="js/35-administracion-agricultores.js"></script>
 <script src="js/36-planificacion-territorial.js"></script>
 <script src="js/37-limpieza-de-datos.js"></script>
+<script src="js/38-ppa.js"></script>
 </body>
 </html>

@@ -31,6 +31,7 @@ function aplicarSimulacionPerfil_(perfilReal) {
 
 async function cargarAsignacionSimulada_() {
   const s = state.simulacion;
+  state.misAreaNums = [];   // en «Ver como…» las áreas van por nombre (esMiArea_ compara por clave)
   if (s.subgerencia) {
     // Modo Subgerente: todas las áreas de la subgerencia (según los recursos) y sus comunas (SQL 94)
     const { data: rr } = await supabaseClient.from('referencia_recursos').select('area_nombre, subgerencia').not('subgerencia', 'is', null);
@@ -155,7 +156,7 @@ async function abrirModalSimulacionSubgerente_(ov) {
   ov.classList.add('show');
   const { data } = await supabaseClient.from('referencia_recursos').select('subgerencia, area_nombre').not('subgerencia', 'is', null);
   const cat = {};
-  (data || []).forEach(r => { const s = String(r.subgerencia).trim().toUpperCase(); if (s) (cat[s] = cat[s] || new Set()).add(plNorm_(r.area_nombre)); });
+  (data || []).forEach(r => { const s = String(r.subgerencia).trim().toUpperCase(); if (s) (cat[s] = cat[s] || new Set()).add(String(r.area_nombre || '').trim()); });   // nombre homologado (SQL 156) = catálogo
   const subgs = Object.keys(cat).sort();
   ov.innerHTML =
     '<div class="modal-card" style="max-width:440px;">' +

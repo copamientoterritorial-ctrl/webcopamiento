@@ -168,6 +168,9 @@ function cerrarMeteoHoraria_() {
   // restaurar tamaño si estaba ampliado
   if (meteoModalAmpliado_) toggleMeteoAmpliar_();
 }
+// Ventana «Fuente de datos» del tablero de meteorología (botón ℹ️ junto a «Fuente: Open-Meteo API»)
+function abrirFuenteMeteo_() { document.getElementById('meteo-fuente-overlay').classList.add('show'); }
+function cerrarFuenteMeteo_() { document.getElementById('meteo-fuente-overlay').classList.remove('show'); }
 
 function toggleMeteoAmpliar_() {
   meteoModalAmpliado_ = !meteoModalAmpliado_;
@@ -927,7 +930,11 @@ const AUD_CAPACIDADES = [
   ['🔥 Periodo Crítico', 'Eliminar periodos (activos o cerrados)', 'periodo_critico', 'editar', ['si', 'si', 'si', 'si', 'Solo los que creó (activos)', 'no', 'no']],
   ['📄 Informe', 'Ver y descargar el informe de copamiento', 'informe', 'ver', ['si', 'si', 'si', 'si', 'si', 'si', 'no']],
   ['📅 Turnos', 'Calendario de turnos de recursos', 'turnos', 'editar', ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
-  ['🌲 Planificador CMPC', 'Planificador gráfico / Tablero de recursos', 'planificador_grafico', 'ver', ['si', 'si', 'si', 'si', 'no', 'si (consulta)', 'no']],
+  ['📋 PPA', 'Ver el PPA: detalle, tableros de avance y gestión, resumen (fase de validación)', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
+  ['📋 PPA', 'Subir / descargar el Excel del PPA y editar metas por fecha', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
+  ['📋 PPA', 'Editar directamente las acciones del PPA (área, sector, acción, grupo, causa, plazo, meta…)', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
+  ['📋 PPA', 'Registrar avances del PPA (SOLO desde la PWA; la web no los registra)', null, null, ['PWA', 'no', 'no', 'no', 'no', 'no', 'no']],
+  ['🌲 Planificador CMPC', 'Planificador gráfico / Tablero de recursos (solo el Admin ve todas las áreas)', 'planificador_grafico', 'ver', ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'Sus áreas (consulta)', 'no']],
   ['🌲 Planificador CMPC', 'Mover / ubicar recursos en el mapa', 'planificador_grafico', 'editar', ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
   ['🌲 Planificador CMPC', 'Gestión de Recursos: editar datos y contacto', null, null, ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
   ['🌲 Planificador CMPC', 'Gestión de Recursos: 👥 personas del recurso y titular (SQL 147)', null, null, ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
@@ -950,7 +957,7 @@ const AUD_CAPACIDADES = [
   ['🚓 Prevención', 'Bosques recreativos: consultar', null, null, ['si', 'Su subgerencia', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
   ['🚓 Prevención', 'Bosques recreativos: administración, acceso e inversión', null, null, ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
   ['🚓 Prevención', 'Bosques recreativos: crear o eliminar bosques', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
-  ['📈 Seguimiento', 'Tablero de Seguimiento (comunas, recursos, turnos)', null, null, ['Ambas subgerencias', 'Su subgerencia', 'no', 'no', 'no', 'no', 'no']],
+  ['📈 Seguimiento', 'Tablero de Seguimiento (comunas, recursos, turnos, personas por área)', null, null, ['Ambas subgerencias', 'Su subgerencia', 'no', 'no', 'no', 'no', 'no']],
   ['🌾 Agricultores', 'Tablero Gestión Asociación Malleco (ver)', null, null, ['si', 'Si tiene el área Victoria', 'Área Victoria', 'Área Victoria', 'no', 'no', 'si']],
   ['🌾 Agricultores', 'Registrar actividades, agricultores y planificación (web y app de terreno)', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'si']],
   ['🌾 Agricultores', 'Modificar o eliminar registros y planificaciones (SQL 154)', null, null, ['Todos', 'no', 'no', 'no', 'no', 'no', 'Solo los que creó']],
@@ -985,8 +992,9 @@ function audCelda_(fila, i) {
  *  MISMAS reglas de los menús (MENU_MODULOS) simulando cada perfil con sus permisos guardados (permisos_perfil). ── */
 function conPerfilSimulado_(perfilVisible, permPerfil, fn) {
   const g = { perfil: state.perfil, subgerencia: state.subgerencia, esGRT: state.esGRT, pp: state.permisosPerfilRol, pu: state.permisosUsuario,
-    asoc: state.asociacion, areas: state.misAreasIds };
+    asoc: state.asociacion, areas: state.misAreasIds, nums: state.misAreaNums };
   try {
+    state.misAreaNums = [];
     state.perfil = Object.assign({}, state.perfil || {}, { perfil: perfilBase_(perfilVisible) });
     state.subgerencia = perfilVisible === 'Subgerente de Relacionamiento' ? 'NORTE' : null;
     state.esGRT = perfilVisible === PERFIL_GRT;
@@ -998,7 +1006,7 @@ function conPerfilSimulado_(perfilVisible, permPerfil, fn) {
     return fn();
   } finally {
     state.perfil = g.perfil; state.subgerencia = g.subgerencia; state.esGRT = g.esGRT; state.permisosPerfilRol = g.pp; state.permisosUsuario = g.pu;
-    state.asociacion = g.asoc; state.misAreasIds = g.areas;
+    state.asociacion = g.asoc; state.misAreasIds = g.areas; state.misAreaNums = g.nums;
   }
 }
 function matrizModulosPerfil_(permPerfil) {
@@ -1789,7 +1797,7 @@ async function adminSeccionPatrulleros_(c) {
     const q = normalizarBusqueda_((document.getElementById('adm-p-search') || {}).value || '');
     const L = state.patrulleros;
     const lista = L.filter(p => !q || normalizarBusqueda_([p.nombre_colaborador, p.correo_colaborador, p.cargo, p.area_relacionamiento, p.gerencia].join(' ')).includes(q));
-    const enAreas = L.filter(p => p.id_area_trabajo >= 1 && p.id_area_trabajo <= 14).length;
+    const enAreas = L.filter(p => p.id_area_trabajo >= 1 && p.id_area_trabajo <= 16).length;   // ids de área homologados 1..16 (SQL 156)
     const conCam = L.filter(p => /^si/i.test(p.tiene_camioneta || '')).length;
     const vigentes = L.filter(p => /^s/i.test(p.vigente || '')).length;
     c.innerHTML = adminHead_('Patrulleros', 'Consolidado de personal de patrullaje y corporativo',

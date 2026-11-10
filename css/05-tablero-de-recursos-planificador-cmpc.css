@@ -438,3 +438,65 @@ body.tema-oscuro .pl-tipo-fila.activo{background:#172554;}
 body.tema-oscuro .pl-tag.ok,body.tema-oscuro .pl-aviso.ok{background:#0B2A17;}
 body.tema-oscuro .pl-tag.warn,body.tema-oscuro .pl-aviso.warn{background:#3B2A0A;color:#FCD34D;}
 
+/* ==================== 📋 PPA (06-11-2026, js/38) ==================== */
+#ppa-panel{position:absolute;top:60px;left:0;right:0;bottom:0;z-index:350;background:var(--bg-light);display:none;flex-direction:column;color:var(--text-primary);}
+#ppa-panel.show{display:flex;}
+.ppa-filtros{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--white);}
+.ppa-filtros .admin-search{min-width:0;max-width:220px;font-size:12px;padding:6px 8px;}
+.ppa-nfil{font-size:11.5px;color:var(--text-tertiary);font-weight:700;margin-left:auto;}
+.ppa-cuerpo{flex:1;min-height:0;overflow:auto;padding:10px 14px 18px;}
+.ppa-pestanas{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;}
+.ppa-pestanas button{border:1px solid var(--border);background:var(--white);border-radius:999px;padding:5px 12px;font:inherit;font-size:12px;font-weight:700;color:var(--text-secondary);cursor:pointer;}
+.ppa-pestanas button.on{background:#1E3A8A;border-color:#1E3A8A;color:#fff;}
+.ppa-per{margin-left:auto;font-size:11.5px;color:var(--text-tertiary);}
+.ppa-kpis{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));}
+.ppa-tabla-wrap{overflow:auto;max-height:calc(100vh - 250px);border:1px solid var(--border);border-radius:10px;background:var(--white);}
+.ppa-tabla td,.ppa-metas td{vertical-align:top;}
+.ppa-tabla td small,.ppa-metas td small,.ppa-grilla td small{display:block;font-size:10.5px;color:var(--text-tertiary);font-weight:500;}
+.ppa-acc{white-space:normal !important;min-width:220px;max-width:340px;text-align:left !important;}
+.ppa-fila{cursor:pointer;}
+.ppa-chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:800;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);white-space:nowrap;}
+.ppa-toggle{margin-left:auto;display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.ppa-toggle button{border:0;background:var(--white);padding:4px 10px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;color:var(--text-secondary);}
+.ppa-toggle button.on{background:#2563EB;color:#fff;}
+.ppa-grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:12px;}
+.ppa-calidad{display:flex;flex-wrap:wrap;gap:8px;}
+.ppa-calidad span{background:var(--bg-light);border:1px solid var(--border);border-radius:10px;padding:6px 10px;font-size:12px;}
+.ppa-calidad b{font-size:15px;margin-right:3px;}
+.ppa-ficha-datos{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:6px 0;}
+.ppa-ficha-datos div{background:var(--bg-light);border-radius:10px;padding:6px 10px;}
+.ppa-ficha-datos span{display:block;font-size:10.5px;color:var(--text-tertiary);font-weight:700;}
+.ppa-ficha-datos b{font-size:13px;}
+.ppa-grilla td{text-align:center;}
+.ppa-grilla td.ppa-falta{background:color-mix(in srgb,#DC2626 12%,transparent);}
+.ppa-form-av{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;}
+.ppa-form-av label{display:flex;flex-direction:column;font-size:11px;font-weight:700;color:var(--text-secondary);gap:3px;}
+.ppa-form-av input{padding:6px 8px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:12.5px;}
+.ppa-masivo{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;margin-bottom:8px;}
+.ppa-metas input{width:46px;padding:3px 4px;border:1px solid var(--border);border-radius:6px;font:inherit;font-size:12px;text-align:center;background:var(--white);color:var(--text-primary);}
+.ppa-metas td.ppa-colm{background:color-mix(in srgb,#7C3AED 6%,transparent);}
+.ppa-metas td.ppa-cambio input{border-color:#D97706;background:#FEF3C7;font-weight:800;}
+.ppa-semaforo{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;}
+.ppa-sem{border:1px solid var(--border);border-left:5px solid var(--c);border-radius:10px;padding:8px 10px;cursor:pointer;background:var(--white);}
+.ppa-sem b{font-size:13px;}
+.ppa-sem span{display:block;font-size:11px;color:var(--text-tertiary);margin-top:3px;}
+.ppa-barra{height:7px;border-radius:5px;background:var(--bg-light);margin-top:5px;overflow:hidden;}
+.ppa-barra i{display:block;height:100%;background:var(--c);}
+.ppa-mchips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px;}
+.ppa-mchip{border:1px solid color-mix(in srgb,var(--c,#64748B) 45%,transparent);background:color-mix(in srgb,var(--c,#64748B) 8%,var(--white));color:var(--c,#475569);border-radius:999px;padding:4px 10px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;}
+.ppa-mchip b{font-size:13px;margin-right:2px;}
+.ppa-mchip.on{background:var(--c);color:#fff;}
+.ppa-sep{width:1px;height:22px;background:var(--border);margin:0 4px;}
+.ppa-metas td.ppa-bloq{background:repeating-linear-gradient(135deg,#F1F5F9 0 6px,#E2E8F0 6px 12px);color:#94A3B8;cursor:not-allowed;}
+.ppa-metas td.ppa-bloq span{text-decoration:line-through;}
+.ppa-metas tr.ppa-sinfrec td{background:#FFFBEB;}
+.ppa-metas tr.ppa-sinfrec td.ppa-bloq{background:repeating-linear-gradient(135deg,#FEF3C7 0 6px,#FDE68A 6px 12px);}
+.ppa-adv{color:#B45309 !important;font-weight:700 !important;}
+body.tema-oscuro .ppa-metas td.ppa-bloq{background:repeating-linear-gradient(135deg,#1E293B 0 6px,#0F172A 6px 12px);}
+.ppa-edicion td{padding:4px 5px;}
+.ppa-edicion select,.ppa-edicion input[type=date],.ppa-edicion input[type=number],.ppa-edicion textarea{font:inherit;font-size:11.5px;padding:3px 4px;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text-primary);max-width:190px;}
+.ppa-edicion textarea{width:240px;max-width:none;resize:vertical;}
+.ppa-edicion td.ppa-cambio select,.ppa-edicion td.ppa-cambio input,.ppa-edicion td.ppa-cambio textarea{border-color:#D97706;background:#FEF3C7;}
+.ppa-reglas{font-size:12px;color:var(--text-secondary);padding-left:18px;margin:10px 0;}
+@media (max-width:700px){ .ppa-grid2{grid-template-columns:1fr;} .ppa-filtros .admin-search{max-width:100%;flex:1 1 140px;} }
+

@@ -559,7 +559,7 @@ function renderAgMapa_() {
   S.base = S.base || 'mapa';
   // 04-11-2026 (SQL 153): + contexto (predios, fundos CMPC, Red vial MOP, comunas de Malleco), rutas planificadas de la provincia
   // de Malleco por alerta e incendios por temporada (estos parten APAGADOS)
-  S.capasOn = Object.assign({ act: true, agr: false, gps: true, predios: true, fundos: false, mop: true, comunas: true,
+  S.capasOn = Object.assign({ act: true, agr: false, gps: true, predios: true, mop: true, comunas: true,
     rutaVerde: true, rutaAmarilla: false, rutaRoja: false }, S.capasOn || {});
   S.incOn = S.incOn || {};
   const supervisa = agrVeGpsReal_();
@@ -647,12 +647,13 @@ function pintarAgvCapas_(encuadrar) {
  *    de la Asociación), límites y RUTAS PLANIFICADAS de la provincia de Malleco por alerta (agr_rutas_malleco) e incendios SIDCO
  *    por temporada dentro de la provincia (archivo nacional, `cargarIncendiosNacional_`). Los datos se piden una vez por sesión
  *    (state.agCtx); las capas se rehacen con cada mapa. */
-const AGV_CTX = [['predios', '🌾 Predios de agricultores'], ['fundos', '🌲 Fundos CMPC'], ['mop', '🛣️ Red vial MOP'], ['comunas', '🏘️ Comunas de la provincia de Malleco']];
+const AGV_CTX = [['predios', '🌾 Predios de agricultores'], ['mop', '🛣️ Red vial MOP'],   // 06-11-2026: sin Fundos CMPC
+  ['comunas', '🏘️ Comunas de la provincia de Malleco']];
 const AGV_RUTAS_ESC = [['Verde', '#16A34A'], ['Amarilla', '#F59E0B'], ['Roja', '#EF4444']];
 function agvRenderPop_() {
   const S = state.ag, p = document.getElementById('agv-pop'); if (!p) return;
   const X = state.agCtx || {}, C = X.capas || {}, on = S.capasOn || {}, supervisa = agrVeGpsReal_();
-  const n = { predios: C.predios && C.predios.length, fundos: C.fundos && C.fundos.length, mop: C.rutas && C.rutas.length, comunas: X.comunas && X.comunas.length };
+  const n = { predios: C.predios && C.predios.length, mop: C.rutas && C.rutas.length, comunas: X.comunas && X.comunas.length };
   AGV_RUTAS_ESC.forEach(([e]) => { n['ruta' + e] = X.rutas ? X.rutas.filter(r => r.escenario === e).length : null; });
   const lbl = (k, tx, extra) => '<label><input type="checkbox" data-agv-capa="' + k + '"' + (on[k] ? ' checked' : '') + '> ' + (extra || '') + tx +
     (n[k] != null ? '<small class="agv-n">' + Number(n[k]).toLocaleString('es-CL') + '</small>' : '') + '</label>';
@@ -661,7 +662,6 @@ function agvRenderPop_() {
     '<div class="agv-bases">' + [['mapa', 'Mapa'], ['satelite', 'Satélite']].map(([k, tx]) => '<button data-agv-base="' + k + '"' + (S.base === k ? ' class="on"' : '') + '><span class="pv pv-' + k + '"></span>' + tx + '</button>').join('') + '</div>' +
     '<div class="t">Actividades</div>' + lbl('act', 'Actividades') + lbl('agr', 'Agricultores (por riesgo)') + (supervisa ? lbl('gps', 'GPS real (puntos movidos)') : '') +
     '<div class="t">Contexto</div>' + AGV_CTX.map(([k, tx]) => lbl(k, tx)).join('') +
-    (C.predios && C.fundos === undefined ? '<div class="agv-nota">Fundos CMPC: falta el SQL 153.</div>' : '') +
     '<div class="t">Rutas planificadas · Malleco</div>' +
     AGV_RUTAS_ESC.map(([e, col]) => lbl('ruta' + e, nombreEscenario_(e), '<i class="agv-sw" style="background:' + col + '"></i>')).join('') +
     (X.errorRutas ? '<div class="agv-nota">⚠️ ' + escapeHtml_(X.errorRutas) + '</div>' : '') +
@@ -729,8 +729,6 @@ function agvCrearCapasContexto_() {
   const ha = v => v != null && v !== '' ? Number(v).toLocaleString('es-CL', { maximumFractionDigits: 1 }) + ' ha' : '';
   const pop = (tit, filas) => '<div class="agv-popup"><b>' + tit + '</b>' + filas.filter(Boolean).map(f => '<div>' + f + '</div>').join('') + '</div>';
   g.comunas = L.geoJSON(fc(X.comunas), { pane, interactive: false, style: { color: '#334155', weight: 1.6, dashArray: '6 5', fill: false } });
-  g.fundos = L.geoJSON(fc(C.fundos), { pane, style: { color: '#059669', weight: 1.3, fillColor: '#34D399', fillOpacity: 0.15 },
-    onEachFeature: (f, l) => l.bindPopup(pop('🌲 ' + escapeHtml_(f.properties.nombre || 'Fundo CMPC'), [ha(f.properties.sup_ha), escapeHtml_(f.properties.sector || '')])) });
   g.predios = L.geoJSON(fc(C.predios), { pane, style: f => { const c = agvColorRiesgo_(f.properties.riesgo); return { color: c, weight: 1.8, fillColor: c, fillOpacity: 0.22 }; },
     onEachFeature: (f, l) => { const p = f.properties;
       l.bindPopup(pop('🌾 ' + escapeHtml_(p.nombre || 'Predio'), [p.agricultor ? '👨‍🌾 ' + escapeHtml_(p.agricultor) : '',

@@ -474,8 +474,8 @@ function grGuardarCols_() { try { localStorage.setItem(GR_COLS_KEY, JSON.stringi
 /** Empresas activas que trabajan en el área (comparación sin tildes); null si no hay catálogo (SQL 100). */
 function grEmpresasDeArea_(area) {
   if (!state.gr.empresas) return null;
-  const k = plNorm_(area);
-  return state.gr.empresas.filter(e => e.activo && e.areas.some(a => plNorm_(a) === k))
+  const k = areaClave_(area);
+  return state.gr.empresas.filter(e => e.activo && e.areas.some(a => areaClave_(a) === k))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 }
 async function cargarEmpresasGestion_() {
@@ -587,12 +587,11 @@ async function abrirGestionRecursos_(forzar) {
     else (cs || []).forEach(c => { contactos[c.recurso_id] = c; });
     await cargarPersonasGestion_();
     const esAdmin = grEsAdmin_();
-    const mias = (state.misAreasIds || []).map(plNorm_);
     state.gr.recursos = filas
       .map(r => Object.assign({}, r, { area: r.area_nombre || '', comuna: r.comuna_corma || '' },
         GR_CONTACTO.reduce((o, k) => { o[k] = contactos[r.id] ? contactos[r.id][k] : null; return o; }, {}),
         { contacto_en: contactos[r.id] ? contactos[r.id].actualizado_en : null }))
-      .filter(r => esAdmin || mias.includes(plNorm_(r.area)))
+      .filter(r => esAdmin || esMiArea_(r.area, r.id_area))   // por id homologado o clave (SQL 156)
       .sort((a, b) => String(a.area).localeCompare(String(b.area), 'es') || compararTipoRecurso_(a.tipo_recurso, b.tipo_recurso) ||
         String(claveRecurso_(a) || '').localeCompare(String(claveRecurso_(b) || ''), 'es', { numeric: true }));
     state.gr.cambios = {}; state.gr.errores = {};
@@ -776,7 +775,7 @@ function renderColsGestion_() {
 /* ── 🏢 Empresas (solo Administrador; SQL 100): catálogo y áreas donde trabaja cada una ── */
 function grAreasConocidas_() {
   const m = new Map();
-  const add = a => { if (a && !m.has(plNorm_(a))) m.set(plNorm_(a), a); };
+  const add = a => { if (a && !m.has(areaClave_(a))) m.set(areaClave_(a), a); };
   state.gr.recursos.forEach(r => add(r.area));
   (state.gr.empresas || []).forEach(e => e.areas.forEach(add));
   return [...m.values()].sort((a, b) => a.localeCompare(b, 'es'));
@@ -823,7 +822,7 @@ function renderEmpresasGestion_() {
       '<td style="text-align:center;white-space:nowrap;">' + n + '</td>' +
       '<td style="text-align:center;"><input type="checkbox" data-emp-activo="1" data-id="' + id + '"' + (e.activo ? ' checked' : '') + ' title="Inactiva: no aparece en el desplegable"></td>' +
       '<td><div class="emp-areas">' + areas.map(a => {
-        const on = e.areas.some(x => plNorm_(x) === plNorm_(a));
+        const on = e.areas.some(x => areaClave_(x) === areaClave_(a));
         return '<label class="emp-area' + (on ? ' on' : '') + '"><input type="checkbox" data-emp-area="' + escapeHtml_(a) + '" data-id="' + id + '"' + (on ? ' checked' : '') + '>' + escapeHtml_(aTitulo_(a)) + '</label>';
       }).join('') + '</div></td>' +
       '<td>' + (n ? '<button class="gr-del" disabled title="La usan ' + n + ' recurso(s): desactívala en vez de eliminarla">🔒</button>'
@@ -859,9 +858,9 @@ async function alternarAreaEmpresa_(id, area, on, chk) {
   const e = state.gr.empresas.find(x => x.id === id); if (!e) return;
   const res = on
     ? await supabaseClient.from('empresa_areas').insert({ empresa_id: id, area })
-    : await supabaseClient.from('empresa_areas').delete().eq('empresa_id', id).in('area', e.areas.filter(x => plNorm_(x) === plNorm_(area)));
+    : await supabaseClient.from('empresa_areas').delete().eq('empresa_id', id).in('area', e.areas.filter(x => areaClave_(x) === areaClave_(area)));
   if (res.error) { chk.checked = !on; mostrarToast_('No se pudo guardar: ' + res.error.message); return; }
-  e.areas = on ? e.areas.concat(area) : e.areas.filter(x => plNorm_(x) !== plNorm_(area));
+  e.areas = on ? e.areas.concat(area) : e.areas.filter(x => areaClave_(x) !== areaClave_(area));
   chk.closest('.emp-area').classList.toggle('on', on);
 }
 async function actualizarEmpresaGestion_(id, cambios) {

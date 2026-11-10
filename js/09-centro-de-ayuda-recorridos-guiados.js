@@ -229,7 +229,7 @@ const AY_GUIAS = [
     ],
     notas: [
       ['tip', '💡 Consejos', ['En el mapa, los Recursos disponibles muestran solo su <b>clave radial</b> y el punto 🟢 con ruta / 🔴 sin ruta. El detalle (comuna, tipo, empresa) está en su ventana.', 'Los filtros de tipo, sector y empresa admiten <b>varias opciones a la vez</b>.', 'Los tipos siempre aparecen en el mismo orden: Brigada Multipropósito, Disuasiva, Vigía Camioneta, Motorizado, Montado, Infantería, Dron.']],
-      ['rol', '👥 Quién puede', ['Administrador: todo, incluida la carga masiva.', 'Jefe de Área: Turnos, Planificador gráfico, Tablero y Gestión de sus áreas.', 'GRD y Visor: según los permisos de su perfil (consulta).']],
+      ['rol', '👥 Quién puede', ['Administrador: todo, incluida la carga masiva.', 'Jefe de Área: Turnos, Planificador gráfico, Tablero y Gestión de sus áreas.', 'GRD y Visor: según los permisos de su perfil (consulta), solo en sus áreas.', 'Solo el Administrador ve los recursos de todas las áreas.']],
     ],
     tour: 'cmpc',
   },
@@ -351,11 +351,11 @@ const AY_GUIAS = [
       ['🗓️ Planifica las actividades', 'Vista semanal, quincenal o mensual. <b>➕ Planificar actividad</b> (o clic en un día) asigna actividad, responsable y comuna. Azul = planificada, verde = realizada, rojo = vencida sin registrar.', ['<span class="m">🗓️ Planificación</span>', '<span class="m">Semanal · Quincenal · Mensual</span>', '<span class="m osc">➕ Planificar actividad</span>']],
       ['📱 Registra en terreno', 'El gestor abre la <b>📱 App de terreno</b> con su mismo correo y clave, elige la actividad (visita a agricultor, capacitación, operativo carretero, reunión…), completa el formulario y la fecha y hora en que se hizo, agrega fotos (📷 Cámara o 🖼️ Galería) y ubica el pincho en el mapa: se puede mover, buscar el lugar con 🔎 o cambiar a 🛰️ Satélite. <b>Sin señal</b> guarda todo en el teléfono y lo envía al volver la conexión. En <b>📝 Registros</b>, con <b>✏️</b> el gestor corrige sus registros: fecha, lugar, datos y fotos. Desde el web, <b>➕ Registrar</b> usa los mismos formularios.', ['<span class="m">📱 App de terreno</span>', '<span class="m">✏️ Editar registro</span>', '<span class="m">➕ Registrar</span>', '<span class="m v">Funciona sin señal</span>']],
       ['📅 Revisa el control diario', 'La bitácora de cada día: quién registró qué, dónde, con fotos y si estaba planificado. Arriba aparecen las <b>planificadas sin registrar</b> para completarlas.', ['<span class="m">📅 Control diario</span>', '<span class="m">◀ Hoy ▶</span>', '<span class="m r">⏳ Planificadas sin registrar</span>']],
-      ['👨‍🌾 Agricultores y 🗺️ Mapa', '<b>Agricultores</b>: ficha de cada uno (fundo, cultivos, nivel de riesgo, cortafuegos, fechas de cosecha y quema) con buscador y filtro por riesgo; avisa las quemas de los próximos 14 días. <b>Mapa</b>: las actividades por periodo (Hoy · 24 h · 48 h · 72 h · 7 días · Mes) sobre mapa sobrio o satélite. En el botón de capas se encienden los predios de agricultores, los fundos CMPC, la Red vial MOP, las <b>rutas planificadas de la provincia de Malleco</b> por alerta y los <b>incendios por temporada</b>, que parten apagados.', ['<span class="m">👨‍🌾 Agricultores</span>', '<span class="m">🗺️ Mapa</span>', '<span class="m">Hoy · 24 h · 7 días · Mes</span>', '<span class="m">Capas: predios · fundos · rutas · incendios</span>']],
+      ['👨‍🌾 Agricultores y 🗺️ Mapa', '<b>Agricultores</b>: ficha de cada uno (fundo, cultivos, nivel de riesgo, cortafuegos, fechas de cosecha y quema) con buscador y filtro por riesgo; avisa las quemas de los próximos 14 días. <b>Mapa</b>: las actividades por periodo (Hoy · 24 h · 48 h · 72 h · 7 días · Mes) sobre mapa sobrio o satélite. En el botón de capas se encienden los predios de agricultores, la Red vial MOP, las <b>rutas planificadas de la provincia de Malleco</b> por alerta y los <b>incendios por temporada</b>, que parten apagados.', ['<span class="m">👨‍🌾 Agricultores</span>', '<span class="m">🗺️ Mapa</span>', '<span class="m">Hoy · 24 h · 7 días · Mes</span>', '<span class="m">Capas: predios · fundos · rutas · incendios</span>']],
       ['Descarga el respaldo', '<b>⬇️ Excel</b> descarga metas, registros, planificación y agricultores. <b>🔄</b> vuelve a leer los datos.', ['<span class="m">⬇️ Excel</span>', '<span class="m">🔄</span>']],
     ],
     notas: [
-      ['tip', '💡 Instalar la app en el celular', ['Abre <b>copamientoterritorial.cl/app-agricultores/instalar.html</b> y sigue los pasos para Android (Chrome) o iPhone (Safari).', 'La app se actualiza sola; en «Yo» está <b>🔄 Buscar actualización</b>. Actualizar no borra lo pendiente por enviar.', 'Descarga el mapa de tu zona antes de salir a terreno para usarlo sin señal: en «Yo › ⬇️ Descargar mapa» bajan también los fundos, rutas, predios e incendios.', 'En el 🗺️ Mapa de la app, 🗂️ enciende las capas y 🔎 busca lugares, agricultores, predios, rutas o coordenadas.']],
+      ['tip', '💡 Instalar la app en el celular', ['Abre <b>copamientoterritorial.cl/app-agricultores/instalar.html</b> y sigue los pasos para Android (Chrome) o iPhone (Safari).', 'La app se actualiza sola; en «Yo» está <b>🔄 Buscar actualización</b>. Actualizar no borra lo pendiente por enviar.', 'Descarga el mapa de tu zona antes de salir a terreno para usarlo sin señal: en «Yo › ⬇️ Descargar mapa» bajan también las rutas, los predios y los incendios.', 'En el 🗺️ Mapa de la app, 🗂️ enciende las capas y 🔎 busca lugares, agricultores, predios, rutas o coordenadas.']],
       ['rol', '👥 Quién puede', ['Asociación de Agricultores: registra, planifica e ingresa la meta de escuelas (A8).',
         'Cada registro y cada actividad planificada solo la modifica o elimina <b>quien la creó</b> o el <b>Administrador</b> (✏️ y 🗑️ en la app, en el Control diario y en la Planificación).', 'Administrador: todo, incluidas las metas.', 'Jefes de Área, Subgerente y GRT del área Victoria: ven el tablero (solo consulta). El Administrador y los Jefes ven además el GPS real cuando el pincho se movió ≥ 30 m.']],
     ],
@@ -407,6 +407,30 @@ const AY_GUIAS = [
     ],
     notas: [['rol', '👥 Quién puede', ['Ven: Administrador, Jefes de Área, Subgerentes, Gestores (GRT) y la Asociación de Agricultores.', 'Suben y eliminan capas: solo el Administrador.']]],
     tour: 'agradmin',
+  },
+  {
+    // 📋 PPA (06-11-2026, js/38). 1ª etapa: solo Administrador. Al abrirlo a Jefes de Área y Gestores: sumar 'jefe', 'subgerente', 'grt'
+    // en «perfiles» y su texto en «paraTi» (registrar avances desde la PWA, ver solo su área).
+    k: 'ppa', ico: '📋', c: '#1E3A8A', titulo: 'PPA · Plan de Prevención por Área', sub: 'Acciones, metas por quincena y avance',
+    perfiles: ['admin'],
+    intro: 'El <b>PPA</b> reúne las acciones de prevención de cada área y sector (id_ppa AC###) con sus <b>metas por quincena</b> (Q1 = días 1-15, Q2 = 16-fin) y <b>mensuales</b>, ' +
+      'de octubre a marzo. Cada avance se registra con su <b>fecha</b> y el sistema lo ubica solo en su quincena. Hoy está en <b>fase de validación</b>: solo lo ve el Administrador.',
+    paraTi: {
+      admin: ['Revisa que las acciones, áreas, sectores y metas estén correctos (🧾 Resumen › Calidad de los datos). Ajusta las metas en <b>🎯 Metas por fecha</b> y sube o baja el Excel con el mismo formato del Consolidado PPA.'],
+    },
+    flujo: [['📋 PPA ▾', 'menú superior'], ['📄 Detalle', 'acciones y ficha'], ['🎯 Metas por fecha', 'Q1 · Q2 · Mensual'], ['📱 Avance (PWA)', 'con su fecha'], ['📊 🧭 Tableros', 'cumplimiento']],
+    pasos: [
+      ['Abre el PPA', '<b>📋 PPA ▾</b> tiene Detalle, Tablero de Avance, Resumen, Tablero de Gestión y Metas por fecha. Los filtros (subgerencia, área, sector, grupo, acción general, causa, frecuencia, estado) sirven para todas las vistas.', ['<span class="m">📋 PPA ▾</span>', '<span class="m">Área ▾</span>', '<span class="m">Sector ▾</span>']],
+      ['Revisa cada acción', '<b>📄 Detalle del PPA</b>: clic en una fila abre su ficha con la meta y el avance de cada quincena y mes (en rojo lo vencido sin cumplir) y la lista de avances.', ['<span class="m az">📄 Detalle</span>', '<span class="m">Ficha</span>']],
+      ['Edita las acciones (Administrador)', 'En el Detalle, <b>✏️ Editar datos</b>: cambia área, sector (del área), acción, acción general, grupo, causa (o crea una nueva), frecuencia, plazo, meta general y si está activa. Lo cambiado queda en ámbar hasta <b>💾 Guardar cambios</b>.', ['<span class="m">✏️ Editar datos</span>', '<span class="m osc">💾 Guardar</span>']],
+      ['Avances: solo desde la App', 'Los avances se registran <b>únicamente desde la PWA</b>, cada uno con su fecha; el sistema lo ubica en su quincena (Q1 o Q2 del mes). En la web se ven en la ficha y en los tableros.', ['<span class="m v">📱 PWA</span>', '<span class="m">Q1 / Q2</span>']],
+      ['Distribuye las metas', '<b>🎯 Metas por fecha</b>: el total es la <b>Meta gral.</b>; tú distribuyes el plan en las celdas que permite la <b>frecuencia</b> (Quincenal / Semanal → Q1 y Q2 · Mensual → Mes; lo demás queda bloqueado). «Distribuido» se pone en <b>rojo</b> si no cuadra con la Meta gral. Las acciones sin frecuencia quedan bloqueadas con una advertencia. Carga masiva: <b>⬇️ Plantilla de metas</b> → complétala → <b>⬆️ Subir metas</b> → revisa y <b>💾 Guardar cambios</b>.', ['<span class="m">🎯 Metas</span>', '<span class="m r">≠ Meta gral.</span>', '<span class="m">⬇️ Plantilla</span>', '<span class="m osc">💾 Guardar</span>']],
+      ['Sigue el cumplimiento', '<b>📊 Tablero de Avance</b> (meta vs avance por quincena o mes y por área) y <b>🧭 Tablero de Gestión</b> (semáforo por área, acciones atrasadas, plazos próximos). «Exigible a la fecha» = metas de las quincenas ya terminadas.', ['<span class="m">📊 Avance</span>', '<span class="m">🧭 Gestión</span>']],
+      ['Excel', '<b>⬇️ Excel</b> baja lo filtrado con el mismo formato del Consolidado PPA (más una hoja con cada avance). <b>⬆️ Subir Excel</b> (Administrador) carga acciones y metas con vista previa; las columnas AVANCE se ignoran (los avances llegan solo desde la PWA).', ['<span class="m">⬇️ Excel</span>', '<span class="m osc">⬆️ Subir Excel</span>']],
+    ],
+    notas: [['rol', '👥 Quién puede', ['Fase de validación: solo el Administrador.', 'Luego: Jefes de Área y Gestores verán y registrarán avances de SU área (también desde la PWA).']],
+            ['tip', '📅 Quincenas y frecuencia', ['Q1 = días 1 al 15 · Q2 = día 16 al fin de mes.', 'Quincenal / Semanal: metas en Q1 y Q2. Mensual: meta del Mes, que vence en la Q2.', 'Sin frecuencia: las metas quedan bloqueadas hasta definirla (Detalle › ✏️ Editar datos).']]],
+    tour: 'ppa',
   },
 ];
 
@@ -497,6 +521,14 @@ const AY_TOURS = {
     { sel: '#agp-excel', t: 'Descargas', d: 'Lo filtrado en Excel, KML (Google Earth) o GeoJSON (QGIS / ArcGIS).', antes: () => ayIrVista_('agradmin') },
     { sel: '#agp-subir', t: '⬆️ Subir GeoJSON', d: 'Solo Administrador: sube una capa nueva de predios o reemplaza una existente con el mismo nombre.', antes: () => ayIrVista_('agradmin'), aviso: 'Solo lo ve el Administrador.' },
   ],
+  ppa: [
+    { sel: '#grupo-ppa .vista-tab-grupo', t: '📋 PPA', d: 'Plan de Prevención por Área: detalle, tableros, resumen y metas por fecha.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-ppa'); }, aviso: 'Por ahora solo lo ve el Administrador.' },
+    { sel: '#tab-ppadetalle', t: '📄 Detalle del PPA', d: 'Todas las acciones con su meta, lo exigible a la fecha, el avance y su estado.', antes: () => ayAbrirGrupo_('grupo-ppa') },
+    { sel: '#ppa-filtros', t: 'Filtros', d: 'Subgerencia, área, sector, grupo, acción general, causa, frecuencia y estado. Valen para todas las vistas del PPA.', antes: () => { ayCerrarMenus_(); ayIrVista_('ppadetalle'); } },
+    { sel: '#ppa-cuerpo', t: 'Vistas y ficha', d: 'Cambia de vista con las pestañas. En el Detalle, clic en una acción abre su ficha con sus metas y avances (los avances llegan desde la PWA); el Administrador edita los datos con ✏️ Editar datos.', antes: () => ayIrVista_('ppadetalle') },
+    { sel: '#ppa-excel', t: '⬇️ Excel', d: 'Baja lo filtrado con el mismo formato del Consolidado PPA.', antes: () => ayIrVista_('ppadetalle') },
+    { sel: '#ppa-subir', t: '⬆️ Subir Excel', d: 'Solo Administrador: carga acciones y metas con vista previa (los avances llegan solo desde la PWA).', antes: () => ayIrVista_('ppadetalle'), aviso: 'Solo lo ve el Administrador.' },
+  ],
   escenarios: [
     { sel: '#grupo-mapa .vista-tab-grupo', t: 'Menú Gestión SIG', d: 'Aquí están el <b>Planificador de Alertas</b>, el <b>Modo Emergencia</b> y el informe de copamiento.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-mapa'); } },
     { sel: '#sub-mapa-visor', t: 'Planificador de Alertas', d: 'Abre el mapa para planificar los escenarios Normal, Alerta Amarilla y Roja.', antes: () => ayAbrirGrupo_('grupo-mapa') },
@@ -557,6 +589,7 @@ const AY_TOURS = {
     { sel: '.sg-com', t: 'Avance de una comuna', d: 'Tres tarjetas con el <b>nivel de copamiento</b> de Normal, Amarilla y Roja. A la derecha: ⛔ sin iniciar / 🟠 en curso / ✅ 3 escenarios y los usuarios que han trabajado.', antes: () => ayIrVista_('seguimiento'), aviso: 'Aparece cuando el tablero termina de cargar.' },
     { sel: '[data-sg-vista="recursos"]', t: '🌲 Inicio de recursos', d: 'Fechas de inicio de operación por área: línea de tiempo, inicios por semana y filtros rápidos (ya iniciados, próximos 7 / 30 días, sin fecha).', antes: () => ayIrVista_('seguimiento') },
     { sel: '[data-sg-vista="turnos"]', t: '📅 Turnos', d: 'Qué áreas tienen el calendario de turnos completo. Un recurso queda incompleto si tiene más de 4 días libres seguidos en el periodo.', antes: () => ayIrVista_('seguimiento') },
+    { sel: '[data-sg-vista="personas"]', t: '👥 Personas', d: 'Avance de la carga de personas de los recursos por área: personas registradas sobre las esperadas, recursos completos (con todas sus personas y titular), Call Fire, conductores y 1ª temporada. Abre un área para ver los recursos que faltan.', antes: () => ayIrVista_('seguimiento') },
     { sel: '#sg-excel', t: '⬇️ Excel', d: 'Descarga comunas, inicio de recursos y, si abriste la vista Turnos, la completitud del calendario por recurso.', antes: () => ayIrVista_('seguimiento') },
     { sel: '#grupo-mapa .vista-tab-grupo', t: 'Actúa en tus áreas', d: 'Con permisos de Jefe de Área: planifica alertas (Gestión SIG), revisa recursos y turnos (Planificador CMPC) y da seguimiento en Prevención.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-mapa'); } },
     { sel: '#user-chip', t: 'Probar la vista (Administrador)', d: 'El Administrador puede ver el sistema como un Subgerente: menú de usuario › <b>Ver el sistema como… › 📈 Modo Subgerente</b>.', antes: ayCerrarMenus_ },

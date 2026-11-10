@@ -511,6 +511,18 @@ const PERFIL_GRT = 'Gestor de Relacionamiento Territorial';
 /* 20-10-2026 (SQL 129): «Asociación de Agricultores». En la BD es un Visor + fila en perfil_asociacion: solo ve el menú
  * 🌾 Agricultores (registra actividades, planificación y la meta de escuelas). No es configurable en Permisos por perfil. */
 const PERFIL_ASOC = 'Asociación de Agricultores';
+/** Clave de un área para COMPARAR (= clave_area_red_vial_ del SQL 71): sin tildes, mayúsculas y sin espacios ni guiones.
+ *  'Los Ríos - Los Lagos' y 'LOS RÍOS-LOS LAGOS' → 'LOSRIOSLOSLAGOS'; 'Cañete' → 'CANETE'. Usarla SIEMPRE al comparar áreas. */
+function areaClave_(s) {
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+/** ¿El área (nombre o id) es una de las del usuario? El Administrador las ve todas. */
+function esMiArea_(nombre, idArea) {
+  if (state.perfil && state.perfil.perfil === 'Administrador') return true;
+  if (idArea != null && (state.misAreaNums || []).includes(Number(idArea))) return true;
+  const k = areaClave_(nombre);
+  return !!k && (state.misAreasIds || []).some(a => areaClave_(a) === k);
+}
 const AGR_AREA_VISIBLE = 'VICTORIA';   // = agr_asociaciones.area_visible: los Jefes de esta área ven el tablero
 const PERFILES_CONFIGURABLES = ['Administrador', 'Subgerente de Relacionamiento', 'Jefe de Área Relacionamiento', PERFIL_GRT, 'GRD', 'Visor'];
 /** Perfil que se muestra y que usan los permisos por perfil. */
@@ -709,8 +721,10 @@ async function entrarAlSistemaInterno_() {
     } else {
       const { data: misComunas } = await supabaseClient.from('perfil_comunas').select('comuna_id').eq('perfil_id', state.user.id);
       state.misComunaIds = (misComunas || []).map(r => r.comuna_id);
-      const { data: misAreas } = await supabaseClient.from('perfil_areas').select('area').eq('perfil_id', state.user.id);
+      const { data: misAreas } = await supabaseClient.from('perfil_areas').select('area, id_area').eq('perfil_id', state.user.id);
       state.misAreasIds = (misAreas || []).map(r => r.area);
+      // ID homologado de cada área del usuario (SQL 156: 1..16, el mismo de recursos, rutas y catálogo)
+      state.misAreaNums = (misAreas || []).map(r => Number(r.id_area)).filter(n => n > 0);
       // Subgerente: sus comunas = las de todas las áreas de su subgerencia (Comunas por área, SQL 94)
       if (state.subgerencia && state.misAreasIds.length) {
         try {

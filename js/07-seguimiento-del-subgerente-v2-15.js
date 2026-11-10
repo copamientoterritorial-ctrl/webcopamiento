@@ -76,11 +76,15 @@ async function abrirSeguimiento_() {
       }
       const c = e.target.closest('[data-sg-f]'); if (!c) return;
       const [k, v] = c.dataset.sgF.split('|');
+      if (k === 'pRecargar') { state.sg.personas = null; renderSeguimiento_(); return; }
       state.sg[k] = state.sg[k] === v && k !== 'area' && k !== 'rArea' && k !== 'tPer' ? '' : v;
       renderSeguimiento_();
     });
     cuerpo.addEventListener('input', e => { if (e.target.id === 'sg-q') { clearTimeout(state.sg.tq); state.sg.tq = setTimeout(() => { state.sg.q = e.target.value; renderSeguimiento_(true); }, 200); } });
-    cuerpo.addEventListener('change', e => { if (e.target.id === 'sg-rtipo') { state.sg.rTipo = e.target.value; renderSeguimiento_(); } });
+    cuerpo.addEventListener('change', e => {
+      if (e.target.id === 'sg-rtipo') { state.sg.rTipo = e.target.value; renderSeguimiento_(); }
+      else if (e.target.id === 'sg-ptipo') { state.sg.pTipo = e.target.value; state.sg.pArea = ''; renderSeguimiento_(); }
+    });
   }
   if (!state.sg.listenerSubg) {
     state.sg.listenerSubg = true;
@@ -96,6 +100,7 @@ async function cargarSeguimiento_(forzar) {
   const est = document.getElementById('sg-estado'), cuerpo = document.getElementById('sg-cuerpo');
   if (state.sg.datos && !forzar) { renderSeguimiento_(); return; }
   state.sg.turnos = {};   // los calendarios se vuelven a leer al abrir la vista Turnos
+  state.sg.personas = null;   // y las personas, al abrir la vista Personas
   est.textContent = 'Calculando…';
   if (!state.sg.datos) cuerpo.innerHTML = '<div class="tb-vacio">Reuniendo comunas, copamiento y recursos de la subgerencia…</div>';
   try {
@@ -108,7 +113,7 @@ async function cargarSeguimiento_(forzar) {
         const out = [];
         for (let d = 0; ; d += 1000) {
           const { data, error } = await supabaseClient.from('referencia_recursos')
-            .select('id, codigo_ref, alias, area_nombre, subgerencia, tipo_recurso, fecha_inicio_operacion, fecha_termino_operacion').range(d, d + 999);
+            .select('id, codigo_ref, alias, area_nombre, subgerencia, tipo_recurso, n_personas, fecha_inicio_operacion, fecha_termino_operacion').range(d, d + 999);
           if (error) throw error;
           out.push(...(data || [])); if (!data || data.length < 1000) break;
         }
@@ -281,6 +286,7 @@ function renderSeguimiento_(soloLista) {
   document.querySelectorAll('#sg-vistas [data-sg-vista]').forEach(b => b.classList.toggle('on', b.dataset.sgVista === state.sg.vista));
   if (state.sg.vista === 'recursos') renderSgRecursos_();
   else if (state.sg.vista === 'turnos') renderSgTurnos_();
+  else if (state.sg.vista === 'personas') renderSgPersonas_();
   else renderSgComunas_(soloLista);
 }
 
@@ -381,6 +387,100 @@ async function renderSgTurnos_() {
     '</div>' +
     '<div class="sg-tu-lista">' + html + '</div>';
   S.ultimoTurnos = { P, areas };
+}
+
+/* ── 👥 Vista Personas por Área (04-11-2026, SQL 147–149) ──
+ * Avance de la actualización de las personas de cada recurso (Gestión de Recursos › 👥): mismo cálculo del KPI de js/06
+ * (avance = Σ mín(registradas, N° personas) / Σ N° personas). Por área: avance, recursos completos (N° personas cubierto + titular),
+ * titulares, curso Call Fire, conductores y primera temporada; al abrir un área, los recursos que faltan. */
+async function cargarSgPersonas_(forzar) {
+  const S = state.sg;
+  if (S.personas && !forzar) return S.personas;
+  const ids = Object.values(S.datos.areas).flatMap(a => a.rec.map(r => r.id));
+  const porRec = {};
+  for (let i = 0; i < ids.length; i += 150) {
+    const { data, error } = await supabaseClient.from('recurso_personas').select('recurso_id, cargo, titular, conductor, curso_call_fire, temporada')
+      .in('recurso_id', ids.slice(i, i + 150));
+    if (error) throw new Error(/recurso_personas|does not exist/i.test(error.message) ? 'Falta el SQL 147 (personas por recurso).' : error.message);
+    (data || []).forEach(p => { (porRec[p.recurso_id] = porRec[p.recurso_id] || []).push(p); });
+  }
+  return (S.personas = porRec);
+}
+function sgPersonasArea_(a, porRec) {
+  const x = { a, recursos: a.rec.length, esperadas: 0, cubiertas: 0, registradas: 0, completos: 0, titulares: 0, callFire: 0, conductores: 0, primera: 0, sinN: 0, faltan: [], cargos: {} };
+  a.rec.forEach(r => {
+    const ps = porRec[r.id] || [], total = Number(r.n_personas) || 0, tit = ps.some(p => p.titular);
+    x.registradas += ps.length; if (tit) x.titulares++;
+    ps.forEach(p => { if (p.curso_call_fire) x.callFire++; if (p.conductor) x.conductores++; if (Number(p.temporada) === 1) x.primera++; x.cargos[p.cargo] = (x.cargos[p.cargo] || 0) + 1; });
+    const ok = total ? ps.length >= total && tit : ps.length > 0 && tit;
+    if (ok) x.completos++; else x.faltan.push({ r, n: ps.length, total, tit });
+    if (!total) { x.sinN++; return; }
+    x.esperadas += total; x.cubiertas += Math.min(ps.length, total);
+  });
+  x.pct = x.esperadas ? Math.round(x.cubiertas * 1000 / x.esperadas) / 10 : null;
+  x.faltan.sort((p, q) => (p.n / (p.total || 1)) - (q.n / (q.total || 1)) || compararTipoRecurso_(p.r.tipo_recurso, q.r.tipo_recurso));
+  return x;
+}
+async function renderSgPersonas_() {
+  const S = state.sg, D = S.datos, cuerpo = document.getElementById('sg-cuerpo');
+  if (!S.personas) {
+    cuerpo.innerHTML = '<div class="tb-vacio">Leyendo las personas de los recursos…</div>';
+    try { await cargarSgPersonas_(); }
+    catch (e) { cuerpo.innerHTML = '<div class="tb-vacio">No se pudieron leer las personas: ' + escapeHtml_(e.message || String(e)) + '</div>'; return; }
+    if (S.vista !== 'personas') return;
+  }
+  // 06-11-2026: filtro por Tipo de recurso (Brigada Multipropósito, Disuasiva, Vigía…): las áreas y los KPI se calculan solo con ese tipo
+  const tipoKey = t => normalizarBusqueda_(t || '');
+  const tiposAll = {};
+  Object.values(D.areas).forEach(a => a.rec.forEach(r => { const k = tipoKey(r.tipo_recurso); if (k && !tiposAll[k]) tiposAll[k] = r.tipo_recurso; }));
+  if (S.pTipo && !tiposAll[S.pTipo]) S.pTipo = '';
+  const conTipo = a => S.pTipo ? Object.assign({}, a, { rec: a.rec.filter(r => tipoKey(r.tipo_recurso) === S.pTipo) }) : a;
+  const areas = Object.values(D.areas).map(conTipo).filter(a => a.rec.length).map(a => sgPersonasArea_(a, S.personas))
+    .sort((p, q) => (p.pct == null ? 101 : p.pct) - (q.pct == null ? 101 : q.pct) || p.a.nombre.localeCompare(q.a.nombre, 'es'));
+  const T = areas.reduce((t, x) => { ['recursos', 'esperadas', 'cubiertas', 'registradas', 'completos', 'titulares', 'callFire', 'conductores', 'primera'].forEach(k => { t[k] += x[k]; }); return t; },
+    { recursos: 0, esperadas: 0, cubiertas: 0, registradas: 0, completos: 0, titulares: 0, callFire: 0, conductores: 0, primera: 0 });
+  const pctTot = T.esperadas ? Math.round(T.cubiertas * 1000 / T.esperadas) / 10 : 0;
+  const colP = p => p == null ? '#94A3B8' : p >= 90 ? '#16A34A' : p >= 50 ? '#D97706' : '#DC2626';
+  const pc = (n, d) => d ? Math.round(n * 100 / d) + '%' : '—';
+  const html = areas.map(x => {
+    const abierta = S.pArea === x.a.k, col = colP(x.pct);
+    const est = !x.faltan.length ? '<span class="sg-estado ok">✅ Personas al día</span>' : '<span class="sg-estado sin">⚠️ Faltan ' + x.faltan.length + ' recurso(s)</span>';
+    const detalle = abierta && x.faltan.length ? '<div class="sg-tu-det">' + x.faltan.map(f =>
+      '<div><b>📻 ' + escapeHtml_(claveIdRecurso_(f.r) || '—') + '</b><span>' + escapeHtml_(aTitulo_(f.r.tipo_recurso || '')) + '</span>' +
+      '<em>' + f.n + ' de ' + (f.total || '¿?') + ' persona(s)' + (f.tit ? '' : ' · sin titular') + '</em>' +
+      '<small>' + (f.total ? Math.round(Math.min(f.n, f.total) * 100 / f.total) + '% registrado' : 'sin N° de personas') + '</small></div>').join('') + '</div>' : '';
+    return '<div class="sg-tu-area" style="--c:' + col + '">' +
+      '<div class="cab" ' + (x.faltan.length ? 'data-sg-f="pArea|' + escapeHtml_(x.a.k) + '" title="Ver los recursos que faltan"' : '') + '>' +
+        '<div class="nom"><b>' + escapeHtml_(aTitulo_(x.a.nombre)) + '</b><small>' + (x.a.jefes.length ? 'Jefe de Área: ' + escapeHtml_(x.a.jefes.join(', ')) : 'Sin Jefe de Área asignado') + '</small></div>' +
+        '<div class="barra"><i><em style="width:' + (x.pct || 0) + '%"></em></i><span>' + x.registradas + ' de ' + x.esperadas + ' personas · ' + x.completos + ' de ' + x.recursos + ' recursos completos</span>' +
+          '<span style="display:block;margin-top:2px;font-size:11px;font-weight:500;color:var(--text-tertiary);">👤 Titulares ' + x.titulares + '/' + x.recursos + ' · 🔥 Call Fire ' + pc(x.callFire, x.registradas) + ' · 🚗 Conductores ' + x.conductores + ' · 🆕 1ª temporada ' + x.primera +
+            (Object.keys(x.cargos).length ? ' · ' + Object.keys(x.cargos).sort().map(c => escapeHtml_(c) + ' ' + x.cargos[c]).join(' · ') : '') + '</span></div>' +
+        '<div class="pct">' + (x.pct == null ? '—' : String(x.pct).replace('.', ',') + '%') + '</div>' +
+        '<div>' + est + (x.sinN ? '<div class="sg-tu-nota">' + x.sinN + ' sin N° de personas</div>' : '') + '</div>' +
+        '<div class="flecha">' + (x.faltan.length ? (abierta ? '▲' : '▼') : '') + '</div>' +
+      '</div>' + detalle + '</div>';
+  }).join('') || '<div class="tb-vacio">' + (S.pTipo ? 'No hay recursos de ese tipo en la subgerencia.' : 'La subgerencia no tiene recursos.') + '</div>';
+  const alDia = areas.filter(x => !x.faltan.length).length;
+  cuerpo.innerHTML =
+    '<div class="sg-chips"><span class="tit">Tipo de recurso</span><select id="sg-ptipo" class="admin-search" style="max-width:260px;">' +
+      '<option value="">Todos los tipos (' + Object.keys(tiposAll).length + ')</option>' +
+      Object.keys(tiposAll).sort((a, b) => compararTipoRecurso_(tiposAll[a], tiposAll[b])).map(k => {
+        const n = Object.values(D.areas).reduce((s, a) => s + a.rec.filter(r => tipoKey(r.tipo_recurso) === k).length, 0);
+        return '<option value="' + escapeHtml_(k) + '"' + (S.pTipo === k ? ' selected' : '') + '>' + escapeHtml_(aTitulo_(tiposAll[k])) + ' (' + n + ')</option>';
+      }).join('') + '</select></div>' +
+    '<div class="sg-chips"><span style="font-size:11.5px;color:var(--text-tertiary);">Avance = personas registradas (hasta el N° de personas de cada recurso) / personas esperadas. ' +
+      'Un recurso está <b>completo</b> con todas sus personas y su titular. Se cargan en <b>Gestión de Recursos › 👥</b>.</span>' +
+      '<button class="sg-chip" data-sg-f="pRecargar|1" style="margin-left:auto;">🔄 Volver a leer</button></div>' +
+    '<div class="sg-resumen">' +
+      '<div style="--c:' + colP(pctTot) + '"><b>' + String(pctTot).replace('.', ',') + '%</b><span>avance de personas (' + T.cubiertas + ' de ' + T.esperadas + ')</span></div>' +
+      '<div style="--c:' + (alDia === areas.length ? '#16A34A' : '#DC2626') + '"><b>' + alDia + ' / ' + areas.length + '</b><span>áreas con las personas al día</span></div>' +
+      '<div style="--c:' + colP(T.recursos ? T.completos * 100 / T.recursos : 0) + '"><b>' + T.completos + ' / ' + T.recursos + '</b><span>recursos completos</span></div>' +
+      '<div style="--c:#2563EB"><b>' + T.titulares + '</b><span>👤 recursos con titular</span></div>' +
+      '<div style="--c:#EA580C"><b>' + pc(T.callFire, T.registradas) + '</b><span>🔥 con curso Call Fire (' + T.callFire + ')</span></div>' +
+      '<div style="--c:#7C3AED"><b>' + T.conductores + '</b><span>🚗 conductores · 🆕 ' + T.primera + ' en 1ª temporada</span></div>' +
+    '</div>' +
+    '<div class="sg-tu-lista">' + html + '</div>';
+  S.ultimoPersonas = areas;
 }
 
 /* ── 🏘️ Vista Comunas y copamiento ── */
@@ -690,6 +790,18 @@ async function descargarSeguimiento_() {
       'Días que opera': i.operan, 'Días en turno': i.turnos, 'Máx. días libres seguidos': i.max,
       'Calendario': i.completo ? 'Completo' : 'Falta completar', 'Racha libre': i.max ? i.maxIni + ' a ' + i.maxFin : '',
     })))), 'Turnos');
+    // Personas por área (si ya se abrió la vista 👥 Personas)
+    const PA = state.sg.ultimoPersonas;
+    if (PA) {
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(PA.map(x => ({
+        'Área': aTitulo_(x.a.nombre), 'Tipo de recurso': state.sg.pTipo ? aTitulo_(state.sg.pTipo) : 'Todos', 'Jefe de Área': x.a.jefes.join(', '), 'Avance %': x.pct, 'Personas registradas': x.registradas, 'Personas esperadas': x.esperadas,
+        'Recursos': x.recursos, 'Recursos completos': x.completos, 'Con titular': x.titulares, 'Curso Call Fire': x.callFire, 'Conductores': x.conductores,
+        '1ª temporada': x.primera, 'Sin N° de personas': x.sinN,
+      }))), 'Personas por área');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(PA.flatMap(x => x.faltan.map(f => ({
+        'Área': aTitulo_(x.a.nombre), 'Clave · ID': claveIdRecurso_(f.r), 'Tipo': aTitulo_(f.r.tipo_recurso || ''), 'Registradas': f.n, 'N° personas': f.total || '', 'Titular': f.tit ? 'Sí' : 'No',
+      })))), 'Personas faltantes');
+    }
     XLSX.writeFile(wb, 'seguimiento_subgerencia_' + tbHoyISO_() + '.xlsx');
     mostrarToast_('✅ Seguimiento descargado.');
   } catch (e) { mostrarToast_('No se pudo generar el Excel: ' + (e.message || e)); }

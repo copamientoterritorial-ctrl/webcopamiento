@@ -471,7 +471,7 @@ async function plCargarAlertas_(vigente) {
       supabaseClient.from('planes_contingencia').select('id, escenario, area').eq('ambito', 'area'),
     ]);
     if (zonas.error) throw zonas.error;
-    const planes = (planesCom.data || []).concat((planesArea.data || []).filter(p => plNorm_(p.area) === plNorm_(nombre)));
+    const planes = (planesCom.data || []).concat((planesArea.data || []).filter(p => areaClave_(p.area) === areaClave_(nombre)));
     const escPorPlan = {}; planes.forEach(p => { escPorPlan[p.id] = p.escenario; });
     let recursos = [];
     if (planes.length) {
@@ -551,7 +551,7 @@ async function cargarCapasAreaPlanificador_() {
       if (res && res.areaRelacionamiento && res.areaRelacionamiento.ok) state.areaRelGeojson = res.areaRelacionamiento.data;
     }
     const feats = (state.areaRelGeojson && state.areaRelGeojson.features) || [];
-    return feats.filter(f => plNorm_((f.properties || {}).AREA) === plNorm_(nombre));
+    return feats.filter(f => areaClave_((f.properties || {}).AREA) === areaClave_(nombre));
   })();
 
   const [comunas, fundos, areaRel] = await Promise.all([
