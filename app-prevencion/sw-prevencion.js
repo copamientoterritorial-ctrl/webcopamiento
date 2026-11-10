@@ -1,7 +1,8 @@
 // Service worker de «Prevención Territorial»: abre la app sin señal (la última versión publicada cuando hay red).
 // Los datos y evidencias NUNCA se guardan en caché: van siempre al servidor (Supabase).
-const VERSION = 'prevencion-v1.0.3';   // = version de app.html (cuando se publique)
-const CDN = ['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js'];
+const VERSION = 'prevencion-v1.0.4';   // = version de app.html (cuando se publique)
+const CDN = ['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js',
+  'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js', 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'];
 const PROPIOS = /\/(app\.html|manifest\.json|icon-192\.png|icon-512\.png|icon-maskable-512\.png|apple-touch-icon\.png)$/;
 
 self.addEventListener('install', e => {

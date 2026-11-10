@@ -13,6 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
   :root { --azul:#1E3A8A; --azul2:#2563EB; --bg:#F1F5F9; --card:#FFFFFF; --txt:#0F172A; --sub:#64748B; --ok:#16A34A; --warn:#D97706; --err:#DC2626; --borde:#E2E8F0; }
   /* Tema SIEMPRE claro (10-11-2026): aunque el teléfono esté en modo oscuro, la app se ve igual que en el simulador. */
@@ -127,16 +128,24 @@
   .av-arch { font-size:12px; margin-top:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
   .av-quitar { border:0; background:transparent; color: var(--err); font-weight:800; cursor:pointer; padding:0 4px; }
   .av-mapa { position:relative; height:160px; border-radius:12px; overflow:hidden; border:1px solid var(--borde); background: var(--bg); display:flex; align-items:center; justify-content:center; }
-  .av-mapa img { width:100%; height:100%; object-fit:cover; display:block; }
-  .av-mapa .av-base, .av-mapa .av-relieve { position:absolute; left:0; top:0; width:100%; height:100%; object-fit:cover; display:block; }
-  .av-mapa .av-relieve { mix-blend-mode:multiply; opacity:.45; }
-  .av-mapa .av-relieve[hidden] { display:none; }
-  .av-mapa-in { position:absolute; inset:0; }
-  .av-capas { position:absolute; top:8px; right:8px; display:flex; background: rgba(255,255,255,.94); border-radius:999px; padding:3px; box-shadow: 0 2px 8px rgba(2,6,23,.3); z-index:2; }
+  .av-leaf { position:absolute; inset:0; background:#DDE3EA; }
+  .av-relieve-capa { mix-blend-mode:multiply; opacity:.45; }
+  .av-capas { position:absolute; top:8px; left:8px; display:flex; background: rgba(255,255,255,.94); border-radius:999px; padding:3px; box-shadow: 0 2px 8px rgba(2,6,23,.3); z-index:1000; }
   .av-capas button { border:0; background:none; color:#0F172A; font:inherit; font-size:12px; font-weight:700; padding:6px 10px; border-radius:999px; cursor:pointer; min-height:32px; }
   .av-capas button.on { background: var(--azul2); color:#fff; }
-  .av-pin { position:absolute; left:50%; top:50%; width:26px; height:34px; transform: translate(-50%, -100%); filter: drop-shadow(0 3px 4px rgba(0,0,0,.45)); pointer-events:none; }
-  .av-cap { position:absolute; left:8px; bottom:8px; background: rgba(15,23,42,.72); color:#fff; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; pointer-events:none; }
+  .av-grande { position:absolute; top:8px; right:8px; z-index:1000; width:40px; height:40px; border:0; border-radius:10px; background: rgba(255,255,255,.94); color:#0F172A; font-size:20px; font-weight:800; cursor:pointer; box-shadow: 0 2px 8px rgba(2,6,23,.3); }
+  .av-pin-ico { background:none; border:0; filter: drop-shadow(0 3px 4px rgba(0,0,0,.45)); }
+  .av-cap { position:absolute; left:8px; bottom:8px; z-index:1000; max-width:calc(100% - 70px); background: rgba(15,23,42,.78); color:#fff; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:999px; pointer-events:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .av-ayuda { position:absolute; left:50%; top:52px; transform:translateX(-50%); z-index:1000; background: rgba(15,23,42,.72); color:#fff; font-size:11px; padding:3px 10px; border-radius:999px; pointer-events:none; white-space:nowrap; display:none; }
+  .av-mapa.grande .av-ayuda { display:block; }
+  /* ⛶ Mapa agrandado: ocupa toda la pantalla, respetando la barra de estado y la zona inferior del teléfono */
+  .av-mapa.grande { position:fixed; inset:0; height:auto !important; z-index:60; border-radius:0; border:0; }
+  .av-mapa.grande .av-capas { top:calc(10px + env(safe-area-inset-top)); left:calc(10px + env(safe-area-inset-left)); }
+  .av-mapa.grande .av-grande { top:calc(10px + env(safe-area-inset-top)); right:calc(10px + env(safe-area-inset-right)); }
+  .av-mapa.grande .av-ayuda { top:calc(62px + env(safe-area-inset-top)); }
+  .av-mapa.grande .av-cap { bottom:calc(14px + env(safe-area-inset-bottom)); font-size:13px; padding:6px 12px; }
+  .av-mapa.grande .leaflet-bottom { bottom: env(safe-area-inset-bottom); }
+  .av-mapa .leaflet-control-zoom a { width:34px; height:34px; line-height:34px; font-size:18px; }
   .av-geo-row { display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; font-size:12px; }
   .av-geo-row .av-btn { flex:0 0 auto; }
   .av-hist { margin-top:12px; font-size:12px; }
@@ -205,6 +214,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // Clave pública (anon): por diseño es pública; el acceso real lo controla RLS (SQL 130–164).
 const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
@@ -330,7 +340,7 @@ function pintarPerfil() {
     pendientesHtml() +
     '<div class="card"><button class="btn" data-actualizar="1" style="width:100%;margin-bottom:8px;">🔄 Actualizar datos</button>' +
       '<button class="btn" data-salir="1" style="width:100%;color:var(--err);">⏻ Cerrar sesión</button></div>' +
-    '<p class="muted" style="text-align:center;">Prevención Territorial · v1.0.3</p>';
+    '<p class="muted" style="text-align:center;">Prevención Territorial · v1.0.4</p>';
 }
 // Jefes, GRT y GRD ven por defecto su área (si tienen una sola). El Administrador ve todo.
 async function aplicarFiltroPorDefecto() {
@@ -575,7 +585,7 @@ function pintarMeteo() {
       '<div class="kpi"><b>' + Math.round(hoy.gMax) + ' km/h</b><span>Ráfagas máx. hoy</span></div>' +
       '<div class="kpi"><b>' + (hoy.lluvia ? hoy.lluvia.toFixed(1) + ' mm' : 'Sin lluvia') + '</b><span>Lluvia hoy</span></div>' +
     '</div>' +
-    '<div class="card"><div class="av-mapa" style="height:150px;">' + mapaUbicacion(m.pos.lat, m.pos.lng) + '</div>' +
+    '<div class="card"><div class="av-mapa" id="mr-mapa" style="height:190px;"></div>' +
       '<div class="muted" style="margin-top:6px;">GPS ±' + Math.round(m.pos.precision) + ' m · actualizado ' + hace + '</div></div>' +
     '<h3 class="mr-h">Recomendaciones de hoy</h3>' +
     '<div class="card">' + rec.map(r => '<div class="mr-rec">• ' + r + '</div>').join('') + '</div>' +
@@ -585,6 +595,7 @@ function pintarMeteo() {
       '<span class="mr-sem" style="background:' + MR_COLOR[x.riesgo.nivel] + ';">' + x.riesgo.etiqueta + '</span></div>').join('') +
     '<div class="row-foot"><button class="btn" data-meteo="1">🔄 Actualizar</button></div>' +
     '<p class="muted" style="text-align:center;margin-top:10px;">Pronóstico: Open-Meteo</p>';
+  montarMapa($('mr-mapa'), m.pos.lat, m.pos.lng);
 }
 // Actualiza datos y perfil; mientras dura, el contenido queda tenue y no responde a toques
 async function actualizarDatos() {
@@ -622,35 +633,85 @@ function regHtml(v) {
     '</div>';
 }
 function cerrarAvance() { $('ov-avance').classList.remove('show'); document.body.style.overflow = ''; }
-// Mapa estático (Esri) centrado en la ubicación, con el pin en el centro. El usuario elige la base:
+// ───────── Mapa interactivo (Leaflet + mosaicos Esri) ─────────
+// Zoom con dos dedos / botones, ⛶ pantalla completa y base elegible:
 //   🛰️ Imagen  = satelital (World_Imagery)
 //   ⛰️ Relieve = topográfico (World_Topo_Map) + relieve sombreado (World_Hillshade) en modo multiplicar
-// La elección se recuerda en este equipo (localStorage 'prev_mapa_base') y aplica a todos los mapas de la app.
+// La base se recuerda en este equipo (localStorage 'prev_mapa_base') y aplica a todos los mapas de la app.
+// Con opts.editable el pincho se arrastra o se ubica tocando el mapa (opts.onMove(lat, lng)).
+const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
 const MAPA_BASES = {
-  imagen:  { txt: '🛰️ Imagen',  base: 'World_Imagery', relieve: false },
-  relieve: { txt: '⛰️ Relieve', base: 'World_Topo_Map', relieve: true }
+  imagen:  { txt: '🛰️ Imagen',  capas: [{ s: 'World_Imagery', nz: 18 }] },
+  relieve: { txt: '⛰️ Relieve', capas: [{ s: 'World_Topo_Map', nz: 17 }, { s: 'Elevation/World_Hillshade', nz: 16, relieve: true }] }
 };
+const MAPA_CENTRO_DEF = [-37.8, -72.7];   // La Araucanía / Biobío, si aún no hay punto
+let MAPAS_VIVOS = [];
 function mapaBaseActual() {
   let m = null; try { m = localStorage.getItem('prev_mapa_base'); } catch (e) {}
   return MAPA_BASES[m] ? m : 'imagen';
 }
-function mapaUrls(lat, lng, modo) {
-  const d = 0.0035;
-  const q = 'bbox=' + [lng - d, lat - d, lng + d, lat + d].join(',') + '&bboxSR=4326&imageSR=4326&size=640,360&format=jpg&f=image';
-  const srv = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
-  const b = MAPA_BASES[modo];
-  return { base: srv + b.base + '/MapServer/export?' + q, relieve: b.relieve ? srv + 'Elevation/World_Hillshade/MapServer/export?' + q : '' };
+// Grados, minutos y segundos: 37° 48′ 12,3″ S · 72° 42′ 05,1″ O
+function gms(v, pos, neg) {
+  const h = v < 0 ? neg : pos; let a = Math.abs(v);
+  let g = Math.floor(a), m = Math.floor((a - g) * 60), s = Math.round(((a - g) * 60 - m) * 600) / 10;
+  if (s >= 60) { s = 0; m++; } if (m >= 60) { m = 0; g++; }
+  return g + '° ' + String(m).padStart(2, '0') + '′ ' + s.toFixed(1).padStart(4, '0').replace('.', ',') + '″ ' + h;
 }
-function mapaUbicacion(lat, lng) {
-  const modo = mapaBaseActual(), u = mapaUrls(lat, lng, modo);
-  return '<div class="av-mapa-in" data-lat="' + lat + '" data-lng="' + lng + '">' +
-    '<img class="av-base" src="' + u.base + '" alt="">' +
-    '<img class="av-relieve" src="' + u.relieve + '" alt=""' + (u.relieve ? '' : ' hidden') + '>' +
+function coordGms(lat, lng) { return gms(lat, 'N', 'S') + ' · ' + gms(lng, 'E', 'O'); }
+const PIN_SVG = '<svg viewBox="0 0 24 32" width="30" height="40"><path d="M12 0C5.4 0 0 5.3 0 11.8 0 20.6 12 32 12 32s12-11.4 12-20.2C24 5.3 18.6 0 12 0z" fill="#E8553A" stroke="#fff" stroke-width="1.5"/><circle cx="12" cy="12" r="4.5" fill="#fff"/></svg>';
+function montarMapa(cont, lat, lng, opts) {
+  opts = opts || {};
+  const hay = lat != null && lng != null;
+  if (typeof L === 'undefined') {   // Leaflet no cargó (sin señal la primera vez)
+    cont.innerHTML = '<span class="muted" style="padding:0 12px;text-align:center;">' + (hay ? '📍 ' + coordGms(lat, lng) + '<br>' : '') + 'Mapa no disponible sin conexión.</span>';
+    return { mover() {} };
+  }
+  const modo = mapaBaseActual();
+  cont.innerHTML = '<div class="av-leaf"></div>' +
     '<div class="av-capas" role="group" aria-label="Tipo de mapa">' +
       Object.keys(MAPA_BASES).map(k => '<button type="button" data-mapa-base="' + k + '"' + (k === modo ? ' class="on" aria-pressed="true"' : ' aria-pressed="false"') + '>' + MAPA_BASES[k].txt + '</button>').join('') +
     '</div>' +
-    '<svg class="av-pin" viewBox="0 0 24 32" aria-label="Ubicación de la actividad"><path d="M12 0C5.4 0 0 5.3 0 11.8 0 20.6 12 32 12 32s12-11.4 12-20.2C24 5.3 18.6 0 12 0z" fill="#E8553A" stroke="#fff" stroke-width="1.5"/><circle cx="12" cy="12" r="4.5" fill="#fff"/></svg>' +
-    '<span class="av-cap">📍 ' + lat.toFixed(5) + ', ' + lng.toFixed(5) + '</span></div>';
+    '<button type="button" class="av-grande" title="Agrandar mapa" aria-label="Agrandar mapa">⛶</button>' +
+    '<span class="av-cap"></span>' +
+    (opts.editable ? '<span class="av-ayuda">Toca el mapa o arrastra el pincho para elegir el lugar</span>' : '');
+  const map = L.map(cont.querySelector('.av-leaf'), { zoomControl: true, attributionControl: false, tap: true })
+    .setView(hay ? [lat, lng] : MAPA_CENTRO_DEF, hay ? 16 : 8);
+  map.zoomControl.setPosition('bottomright');
+  let capas = [];
+  const ponerBase = m => {
+    capas.forEach(c => map.removeLayer(c));
+    capas = MAPA_BASES[m].capas.map(c => L.tileLayer(ESRI + c.s + '/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 19, maxNativeZoom: c.nz, className: c.relieve ? 'av-relieve-capa' : '' }).addTo(map));
+    cont.querySelectorAll('[data-mapa-base]').forEach(x => { const on = x.dataset.mapaBase === m; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); });
+  };
+  ponerBase(modo);
+  const cap = cont.querySelector('.av-cap');
+  let pin = null;
+  const pintarCap = () => { cap.textContent = pin ? '📍 ' + coordGms(pin.getLatLng().lat, pin.getLatLng().lng) : 'Sin ubicación'; };
+  const icono = L.divIcon({ className: 'av-pin-ico', html: PIN_SVG, iconSize: [30, 40], iconAnchor: [15, 40] });
+  const mover = (la, ln, centrar) => {
+    if (!pin) {
+      pin = L.marker([la, ln], { icon: icono, draggable: !!opts.editable, autoPan: true }).addTo(map);
+      if (opts.editable) pin.on('dragend', () => { const p = pin.getLatLng(); pintarCap(); opts.onMove && opts.onMove(p.lat, p.lng, 'mano'); });
+    } else pin.setLatLng([la, ln]);
+    if (centrar) map.setView([la, ln], Math.max(map.getZoom(), 16));
+    pintarCap();
+  };
+  if (hay) mover(lat, lng, false); else pintarCap();
+  if (opts.editable) map.on('click', e => { mover(e.latlng.lat, e.latlng.lng, false); opts.onMove && opts.onMove(e.latlng.lat, e.latlng.lng, 'mano'); });
+  const btnG = cont.querySelector('.av-grande');
+  const grande = on => {
+    cont.classList.toggle('grande', on);
+    btnG.textContent = on ? '✕' : '⛶'; btnG.title = on ? 'Cerrar mapa grande' : 'Agrandar mapa'; btnG.setAttribute('aria-label', btnG.title);
+    setTimeout(() => { map.invalidateSize(); if (pin) map.panTo(pin.getLatLng()); }, 60);
+  };
+  btnG.onclick = e => { e.stopPropagation(); grande(!cont.classList.contains('grande')); };
+  // Los toques sobre los controles no deben mover el pincho
+  cont.querySelectorAll('.av-capas, .av-grande').forEach(el => L.DomEvent.disableClickPropagation(el));
+  setTimeout(() => map.invalidateSize(), 80);
+  const vivo = { cont, ponerBase, map };
+  MAPAS_VIVOS = MAPAS_VIVOS.filter(x => document.body.contains(x.cont)).concat(vivo);
+  return { mover, map };
 }
 // Cambio de base (un solo oyente para todos los mapas, también los que se dibujan después)
 document.addEventListener('click', e => {
@@ -658,13 +719,11 @@ document.addEventListener('click', e => {
   e.preventDefault(); e.stopPropagation();
   const modo = b.dataset.mapaBase; if (!MAPA_BASES[modo]) return;
   try { localStorage.setItem('prev_mapa_base', modo); } catch (er) {}
-  document.querySelectorAll('.av-mapa-in').forEach(m => {
-    const u = mapaUrls(Number(m.dataset.lat), Number(m.dataset.lng), modo);
-    m.querySelector('.av-base').src = u.base;
-    const r = m.querySelector('.av-relieve'); r.hidden = !u.relieve; if (u.relieve) r.src = u.relieve;
-    m.querySelectorAll('[data-mapa-base]').forEach(x => { const on = x.dataset.mapaBase === modo; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); });
-  });
+  MAPAS_VIVOS = MAPAS_VIVOS.filter(x => document.body.contains(x.cont));
+  MAPAS_VIVOS.forEach(x => x.ponerBase(modo));
 }, true);
+// Atrás / Escape cierran el mapa agrandado
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { const g = document.querySelector('.av-mapa.grande .av-grande'); if (g) g.click(); } });
 // Registrar avance (reg = undefined) o modificar un registro existente (reg = registro original): mismo formulario
 function abrirAvance(id, reg) {
   const a = S.ppa.find(x => x.id_ppa === id); if (!a) return;
@@ -695,8 +754,8 @@ function abrirAvance(id, reg) {
       '<div id="av-arch" class="av-arch">' + arcInicial + '</div>' +
       '<label>Observación</label><textarea id="av-obs" rows="2" placeholder="Qué se hizo, dónde, con quién…">' + esc(editando ? (reg.observacion || '') : '') + '</textarea>' +
       '<label>Ubicación</label>' +
-      '<div class="av-mapa" id="av-mapa">' + (tieneGeo ? mapaUbicacion(reg.lat, reg.lng) : '<span class="muted">Sin ubicación registrada</span>') + '</div>' +
-      '<div class="av-geo-row"><button type="button" class="av-btn" id="av-geo">📍 Usar mi ubicación</button><span class="muted" id="av-geo-info">' + (tieneGeo ? reg.lat.toFixed(5) + ', ' + reg.lng.toFixed(5) : 'Opcional') + '</span></div>' +
+      '<div class="av-mapa" id="av-mapa" style="height:210px;"></div>' +
+      '<div class="av-geo-row"><button type="button" class="av-btn" id="av-geo">📍 Usar mi ubicación</button><span class="muted" id="av-geo-info">' + (tieneGeo ? coordGms(reg.lat, reg.lng) : 'Opcional · toca el mapa para elegir el lugar') + '</span></div>' +
       '<div id="av-err" class="aviso err" style="display:none;"></div>' +
       (!editando && hist.length ? '<details class="av-hist"><summary>Historial (' + hist.length + ')</summary>' + historialHtml(id) + '</details>' : '') +
     '</div>' +
@@ -706,13 +765,20 @@ function abrirAvance(id, reg) {
   const cant = () => Number($('av-cant').value) || 0;
   $('av-cant').oninput = () => { $('av-pct').textContent = pct(base + cant(), a.meta_general) ?? '—'; };
   $('av-x').onclick = () => (editando ? abrirRegistros(id) : cerrarAvance());
+  // Mapa: el pincho se arrastra o se ubica tocando el mapa; sin punto se centra en la última ubicación conocida
+  const mp = (S.meteo && S.meteo.pos) || null;
+  const mapaAv = montarMapa($('av-mapa'), tieneGeo ? reg.lat : null, tieneGeo ? reg.lng : null, {
+    editable: true,
+    onMove: (la, ln) => { geo = { lat: la, lng: ln }; $('av-geo-info').textContent = coordGms(la, ln) + ' · elegido en el mapa'; }
+  });
+  if (!tieneGeo && mp && mapaAv.map) mapaAv.map.setView([mp.lat, mp.lng], 14);
   $('av-geo').onclick = () => {
     if (!navigator.geolocation) { $('av-geo-info').textContent = 'Este equipo no entrega ubicación.'; return; }
     $('av-geo-info').textContent = 'Obteniendo ubicación…';
     navigator.geolocation.getCurrentPosition(p => {
       geo = { lat: p.coords.latitude, lng: p.coords.longitude };
-      $('av-mapa').innerHTML = mapaUbicacion(geo.lat, geo.lng);
-      $('av-geo-info').textContent = geo.lat.toFixed(5) + ', ' + geo.lng.toFixed(5) + ' · precisión ±' + Math.round(p.coords.accuracy) + ' m';
+      mapaAv.mover(geo.lat, geo.lng, true);
+      $('av-geo-info').textContent = coordGms(geo.lat, geo.lng) + ' · precisión ±' + Math.round(p.coords.accuracy) + ' m';
     }, () => { $('av-geo-info').textContent = 'No se pudo obtener la ubicación (permiso denegado o sin señal).'; }, { enableHighAccuracy: true, timeout: 12000 });
   };
   const mostrarArchivo = () => {
