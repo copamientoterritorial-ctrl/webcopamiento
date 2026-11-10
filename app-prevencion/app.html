@@ -4,7 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1E3A8A">
+<meta name="color-scheme" content="light only">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Prevención Territorial">
 <title>Prevención Territorial</title>
 <link rel="manifest" href="manifest.json">
@@ -12,12 +15,14 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
   :root { --azul:#1E3A8A; --azul2:#2563EB; --bg:#F1F5F9; --card:#FFFFFF; --txt:#0F172A; --sub:#64748B; --ok:#16A34A; --warn:#D97706; --err:#DC2626; --borde:#E2E8F0; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0B1220; --card:#162238; --txt:#E2E8F0; --sub:#94A3B8; --borde:#24344F; } }
-  :root[data-theme="dark"] { --bg:#0B1220; --card:#162238; --txt:#E2E8F0; --sub:#94A3B8; --borde:#24344F; }
+  /* Tema SIEMPRE claro (10-11-2026): aunque el teléfono esté en modo oscuro, la app se ve igual que en el simulador. */
+  :root { color-scheme: light; }
   * { box-sizing: border-box; }
   body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--txt); }
   #v-app { height:100vh; height:100dvh; display:flex; flex-direction:column; }
-  header { background: var(--azul); color:#fff; padding: 12px 16px; display:flex; align-items:center; gap:10px; flex:0 0 auto; }
+  /* El encabezado deja libre la barra de estado del teléfono (hora, señal, batería) y la muesca / isla. */
+  header { background: var(--azul); color:#fff; padding: calc(10px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left)); display:flex; align-items:center; gap:10px; flex:0 0 auto; position:relative; z-index:7; }
+  header .btn-w { flex:0 0 auto; min-width:44px; min-height:40px; }
   header h1 { font-size:17px; margin:0; flex:1; }
   header small { opacity:.8; font-size:11px; display:block; font-weight:500; }
   main { flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding: 12px 14px 18px; width:100%; max-width: 760px; margin: 0 auto; box-sizing:border-box; }
@@ -55,7 +60,7 @@
   .ok { background:#DCFCE7; color:#14532D; }
   .err { background:#FEE2E2; color:#7F1D1D; }
   .vacio { text-align:center; color: var(--sub); padding:30px 10px; }
-  .login { position:fixed; inset:0; overflow:auto; display:flex; align-items:center; justify-content:center; padding:24px 16px calc(24px + env(safe-area-inset-bottom)); background: radial-gradient(circle at 15% 10%, #2563EB 0%, transparent 50%), linear-gradient(160deg, #1E3A8A 0%, #0F766E 100%); z-index:20; }
+  .login { position:fixed; inset:0; overflow:auto; display:flex; align-items:center; justify-content:center; padding:calc(24px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom)); background: radial-gradient(circle at 15% 10%, #2563EB 0%, transparent 50%), linear-gradient(160deg, #1E3A8A 0%, #0F766E 100%); z-index:20; }
   .lg-card { width:100%; max-width:380px; background: var(--card); border-radius:22px; padding:26px 22px 20px; box-shadow: 0 24px 60px rgba(2,6,23,.35); }
   .lg-logo { display:block; width:80px; height:80px; margin:0 auto 10px; border-radius:20px; box-shadow: 0 8px 20px rgba(2,6,23,.25); }
   .lg-titulo { text-align:center; font-size:21px; font-weight:800; color: var(--azul); margin:0; letter-spacing:.2px; }
@@ -124,7 +129,12 @@
   .av-mapa { position:relative; height:160px; border-radius:12px; overflow:hidden; border:1px solid var(--borde); background: var(--bg); display:flex; align-items:center; justify-content:center; }
   .av-mapa img { width:100%; height:100%; object-fit:cover; display:block; }
   .av-mapa .av-base, .av-mapa .av-relieve { position:absolute; left:0; top:0; width:100%; height:100%; object-fit:cover; display:block; }
-  .av-mapa .av-relieve { mix-blend-mode:multiply; opacity:.5; }
+  .av-mapa .av-relieve { mix-blend-mode:multiply; opacity:.45; }
+  .av-mapa .av-relieve[hidden] { display:none; }
+  .av-mapa-in { position:absolute; inset:0; }
+  .av-capas { position:absolute; top:8px; right:8px; display:flex; background: rgba(255,255,255,.94); border-radius:999px; padding:3px; box-shadow: 0 2px 8px rgba(2,6,23,.3); z-index:2; }
+  .av-capas button { border:0; background:none; color:#0F172A; font:inherit; font-size:12px; font-weight:700; padding:6px 10px; border-radius:999px; cursor:pointer; min-height:32px; }
+  .av-capas button.on { background: var(--azul2); color:#fff; }
   .av-pin { position:absolute; left:50%; top:50%; width:26px; height:34px; transform: translate(-50%, -100%); filter: drop-shadow(0 3px 4px rgba(0,0,0,.45)); pointer-events:none; }
   .av-cap { position:absolute; left:8px; bottom:8px; background: rgba(15,23,42,.72); color:#fff; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; pointer-events:none; }
   .av-geo-row { display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; font-size:12px; }
@@ -320,7 +330,7 @@ function pintarPerfil() {
     pendientesHtml() +
     '<div class="card"><button class="btn" data-actualizar="1" style="width:100%;margin-bottom:8px;">🔄 Actualizar datos</button>' +
       '<button class="btn" data-salir="1" style="width:100%;color:var(--err);">⏻ Cerrar sesión</button></div>' +
-    '<p class="muted" style="text-align:center;">Prevención Territorial · v1.0.1</p>';
+    '<p class="muted" style="text-align:center;">Prevención Territorial · v1.0.3</p>';
 }
 // Jefes, GRT y GRD ven por defecto su área (si tienen una sola). El Administrador ve todo.
 async function aplicarFiltroPorDefecto() {
@@ -612,17 +622,49 @@ function regHtml(v) {
     '</div>';
 }
 function cerrarAvance() { $('ov-avance').classList.remove('show'); document.body.style.overflow = ''; }
-// Mapa estático (Esri World Imagery) centrado en la ubicación, con el pin en el centro
-// Base satelital (Esri World Imagery) + relieve sombreado (Esri World Hillshade) en modo multiplicar, y pin de la actividad
-function mapaUbicacion(lat, lng) {
+// Mapa estático (Esri) centrado en la ubicación, con el pin en el centro. El usuario elige la base:
+//   🛰️ Imagen  = satelital (World_Imagery)
+//   ⛰️ Relieve = topográfico (World_Topo_Map) + relieve sombreado (World_Hillshade) en modo multiplicar
+// La elección se recuerda en este equipo (localStorage 'prev_mapa_base') y aplica a todos los mapas de la app.
+const MAPA_BASES = {
+  imagen:  { txt: '🛰️ Imagen',  base: 'World_Imagery', relieve: false },
+  relieve: { txt: '⛰️ Relieve', base: 'World_Topo_Map', relieve: true }
+};
+function mapaBaseActual() {
+  let m = null; try { m = localStorage.getItem('prev_mapa_base'); } catch (e) {}
+  return MAPA_BASES[m] ? m : 'imagen';
+}
+function mapaUrls(lat, lng, modo) {
   const d = 0.0035;
   const q = 'bbox=' + [lng - d, lat - d, lng + d, lat + d].join(',') + '&bboxSR=4326&imageSR=4326&size=640,360&format=jpg&f=image';
-  const base = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
-  return '<img class="av-base" src="' + base + 'World_Imagery/MapServer/export?' + q + '" alt="">' +
-    '<img class="av-relieve" src="' + base + 'Elevation/World_Hillshade/MapServer/export?' + q + '" alt="">' +
-    '<svg class="av-pin" viewBox="0 0 24 32" aria-label="Ubicación de la actividad"><path d="M12 0C5.4 0 0 5.3 0 11.8 0 20.6 12 32 12 32s12-11.4 12-20.2C24 5.3 18.6 0 12 0z" fill="#E8553A" stroke="#fff" stroke-width="1.5"/><circle cx="12" cy="12" r="4.5" fill="#fff"/></svg>' +
-    '<span class="av-cap">📍 ' + lat.toFixed(5) + ', ' + lng.toFixed(5) + '</span>';
+  const srv = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
+  const b = MAPA_BASES[modo];
+  return { base: srv + b.base + '/MapServer/export?' + q, relieve: b.relieve ? srv + 'Elevation/World_Hillshade/MapServer/export?' + q : '' };
 }
+function mapaUbicacion(lat, lng) {
+  const modo = mapaBaseActual(), u = mapaUrls(lat, lng, modo);
+  return '<div class="av-mapa-in" data-lat="' + lat + '" data-lng="' + lng + '">' +
+    '<img class="av-base" src="' + u.base + '" alt="">' +
+    '<img class="av-relieve" src="' + u.relieve + '" alt=""' + (u.relieve ? '' : ' hidden') + '>' +
+    '<div class="av-capas" role="group" aria-label="Tipo de mapa">' +
+      Object.keys(MAPA_BASES).map(k => '<button type="button" data-mapa-base="' + k + '"' + (k === modo ? ' class="on" aria-pressed="true"' : ' aria-pressed="false"') + '>' + MAPA_BASES[k].txt + '</button>').join('') +
+    '</div>' +
+    '<svg class="av-pin" viewBox="0 0 24 32" aria-label="Ubicación de la actividad"><path d="M12 0C5.4 0 0 5.3 0 11.8 0 20.6 12 32 12 32s12-11.4 12-20.2C24 5.3 18.6 0 12 0z" fill="#E8553A" stroke="#fff" stroke-width="1.5"/><circle cx="12" cy="12" r="4.5" fill="#fff"/></svg>' +
+    '<span class="av-cap">📍 ' + lat.toFixed(5) + ', ' + lng.toFixed(5) + '</span></div>';
+}
+// Cambio de base (un solo oyente para todos los mapas, también los que se dibujan después)
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-mapa-base]'); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const modo = b.dataset.mapaBase; if (!MAPA_BASES[modo]) return;
+  try { localStorage.setItem('prev_mapa_base', modo); } catch (er) {}
+  document.querySelectorAll('.av-mapa-in').forEach(m => {
+    const u = mapaUrls(Number(m.dataset.lat), Number(m.dataset.lng), modo);
+    m.querySelector('.av-base').src = u.base;
+    const r = m.querySelector('.av-relieve'); r.hidden = !u.relieve; if (u.relieve) r.src = u.relieve;
+    m.querySelectorAll('[data-mapa-base]').forEach(x => { const on = x.dataset.mapaBase === modo; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); });
+  });
+}, true);
 // Registrar avance (reg = undefined) o modificar un registro existente (reg = registro original): mismo formulario
 function abrirAvance(id, reg) {
   const a = S.ppa.find(x => x.id_ppa === id); if (!a) return;

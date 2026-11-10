@@ -11,11 +11,10 @@
 <link rel="manifest" href="manifest.json">
 <style>
 :root{--bg:#F1F5F9;--card:#fff;--text:#0F172A;--muted:#64748B;--line:#E2E8F0;--azul:#1E3A8A;--azul2:#2563EB;--suave:#EFF6FF;}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0B1220;--card:#162238;--text:#E2E8F0;--muted:#94A3B8;--line:#24344F;--suave:#1A2A47;}}
-:root[data-theme="dark"]{--bg:#0B1220;--card:#162238;--text:#E2E8F0;--muted:#94A3B8;--line:#24344F;--suave:#1A2A47;}
+:root{color-scheme:light;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:16px;line-height:1.5;}
-header{background:linear-gradient(160deg,#1E3A8A,#0F766E);color:#fff;padding:28px 16px 24px;text-align:center;}
+header{background:linear-gradient(160deg,#1E3A8A,#0F766E);color:#fff;padding:calc(28px + env(safe-area-inset-top)) 16px 24px;text-align:center;}
 header img{width:76px;height:76px;border-radius:20px;box-shadow:0 6px 18px rgba(0,0,0,.28);}
 header h1{font-size:22px;margin-top:10px;}
 header p{opacity:.92;font-size:14.5px;margin-top:4px;}
