@@ -16,8 +16,7 @@ function tgAreasDe_(g) { return String((g && g.area) || '').split(/\s*\/\s*/).ma
 function tgPuedeEditar_(g) {
   if (state.perfil && state.perfil.perfil === 'Administrador') return true;
   if (!esAdminOJefe_() || state.esGRT) return false;
-  const mias = new Set((state.misAreasIds || []).map(SG_KEY));
-  return tgAreasDe_(g).some(a => mias.has(SG_KEY(a)));
+  return tgAreasDe_(g).some(a => esMiArea_(a));
 }
 function tgMesISO_(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
 
@@ -82,7 +81,8 @@ async function cargarTurnosGestores_() {
 function tgGestoresVisibles_() {
   const S = state.tg, misClaves = new Set((state.misAreasIds || []).map(SG_KEY)), esAdmin = state.perfil && state.perfil.perfil === 'Administrador';
   return (state.gest.lista || []).filter(g => g.activo !== false && tgAreasDe_(g).some(a => S.area ? SG_KEY(a) === S.area : (esAdmin || misClaves.has(SG_KEY(a)))))
-    .sort((a, b) => String(a.codigo).localeCompare(String(b.codigo)));
+    // Jefes de Área primero, luego los GRT / gestores (SQL 157: rol desde los usuarios)
+    .sort((a, b) => (a.rol === 'Jefe de Área' ? 0 : 1) - (b.rol === 'Jefe de Área' ? 0 : 1) || String(a.codigo).localeCompare(String(b.codigo)));
 }
 function tgCeldaHtml_(g, f, editable) {
   const t = state.tg.turnos[g.id + '|' + f], e = t && TG_ESTADOS[t.estado];
@@ -96,7 +96,7 @@ function renderTurnosGestores_() {
   const nDias = new Date(S.mes.getFullYear(), S.mes.getMonth() + 1, 0).getDate(), hoy = tbHoyISO_();
   const dias = []; for (let d = 1; d <= nDias; d++) { const f = tgMesISO_(S.mes) + '-' + String(d).padStart(2, '0'); dias.push({ d, f, dow: new Date(S.mes.getFullYear(), S.mes.getMonth(), d).getDay() }); }
   if (!gestores.length) {
-    cuerpo.innerHTML = '<div class="tb-vacio">No hay gestores de relacionamiento ' + (S.area ? 'en esta área' : 'en tus áreas') + '. Se agregan en Gestión Patrullajes SIGEI › 👥 Gestores (columna «Área»).</div>';
+    cuerpo.innerHTML = '<div class="tb-vacio">No hay gestores de relacionamiento ' + (S.area ? 'en esta área' : 'en tus áreas') + '. Aparecen solos los usuarios GRT y Jefes de Área con su área asignada (Administración › Usuarios; SQL 157).</div>';
     return;
   }
   const algunoEditable = gestores.some(tgPuedeEditar_);
@@ -106,7 +106,8 @@ function renderTurnosGestores_() {
       '<th>Turnos</th></tr></thead><tbody>' +
       gestores.map(g => {
         const ed = tgPuedeEditar_(g);
-        return '<tr><td class="tg-nom"><b>' + escapeHtml_(g.codigo + ' · ' + g.nombre) + '</b><small>' + escapeHtml_(tgAreasDe_(g).map(aTitulo_).join(' / ') || 'Sin área') + (g.telefono ? ' · ' + escapeHtml_(g.telefono) : '') + (ed ? '' : ' · 👁️ solo lectura') + '</small></td>' +
+        return '<tr><td class="tg-nom"><b>' + escapeHtml_(g.codigo + ' · ' + g.nombre) + '</b><small>' +
+          (g.rol === 'Jefe de Área' ? '⭐ Jefe de Área · ' : g.rol === 'GRT' ? 'GRT · ' : '') + escapeHtml_(tgAreasDe_(g).map(aTitulo_).join(' / ') || 'Sin área') + (g.telefono ? ' · ' + escapeHtml_(g.telefono) : '') + (ed ? '' : ' · 👁️ solo lectura') + '</small></td>' +
           dias.map(x => '<td class="' + (x.dow === 0 || x.dow === 6 ? 'finde' : '') + '">' + tgCeldaHtml_(g, x.f, ed) + '</td>').join('') +
           '<td class="tg-tot" data-tg-tot="' + g.id + '"></td></tr>';
       }).join('') +
@@ -992,7 +993,7 @@ function iniciarListenersSeguimiento_() {
 function irAlCalendarioDesdeSeguimiento_(area, idRec) {
   // Abre el calendario en el área, el mes evaluado y el recurso (filtro por clave radial)
   const areas = (state.perfil.perfil === 'Administrador' ? (state.areasCatalogo || []) : (state.misAreasIds || []));
-  state.turnosArea = areas.find(a => plNorm_(a) === plNorm_(area)) || area;
+  state.turnosArea = areas.find(a => areaClave_(a) === areaClave_(area)) || area;
   state.turnosFiltroTipo = ''; state.turnosFiltroRecurso = idRec || ''; document.getElementById('turnos-tipo-select').value = '';
   state.turnosVista = 'mes'; state.turnosFechaBase = new Date(state.seg.mes);
   document.getElementById('turnos-area-select').value = state.turnosArea;
@@ -1018,7 +1019,7 @@ async function cargarSeguimientoTurnos_() {
         const { data: pf } = ids.length ? await supabaseClient.from('perfiles').select('id, nombre_completo, perfil').in('id', ids) : { data: [] };
         const nom = {}; (pf || []).forEach(p => { if (esJefeAreaPerfil_(p.perfil)) nom[p.id] = p.nombre_completo || 'Jefe de Área'; });
         state.seg.responsables = {};
-        (pa || []).forEach(x => { if (!nom[x.perfil_id]) return; const k = plNorm_(x.area); (state.seg.responsables[k] = state.seg.responsables[k] || new Set()).add(nom[x.perfil_id]); });
+        (pa || []).forEach(x => { if (!nom[x.perfil_id]) return; const k = areaClave_(x.area); (state.seg.responsables[k] = state.seg.responsables[k] || new Set()).add(nom[x.perfil_id]); });
       } catch (e) { state.seg.responsables = {}; }
     }
     const desde = fechaISO_(mes), hasta = fechaISO_(new Date(mes.getFullYear(), mes.getMonth() + 1, 0));
@@ -1083,7 +1084,7 @@ function renderSeguimientoTurnos_() {
       const rs = base.filter(r => r.area === a), ca = cuenta(rs), op = ca.pendiente + ca.al_dia;
       const ult = rs.map(r => state.seg.ultima[String(r.id)]).filter(Boolean).sort().pop();
       const p = op ? Math.round(100 * ca.al_dia / op) : 0;
-      const resp = [...(state.seg.responsables[plNorm_(a)] || [])].join(', ');
+      const resp = [...(state.seg.responsables[areaClave_(a)] || [])].join(', ');
       return '<tr class="clic' + (fA === a ? ' sel' : '') + '" data-seg-area-fila="' + escapeHtml_(a) + '"><td><b>' + escapeHtml_(a) + '</b></td><td>' + escapeHtml_(resp || '—') + '</td>' +
         '<td class="num">' + op + '</td><td class="num" style="color:#16A34A;">' + ca.al_dia + '</td><td class="num" style="color:' + (ca.pendiente ? '#DC2626' : 'inherit') + ';">' + ca.pendiente + '</td>' +
         '<td><span class="seg-barra"><i style="width:' + p + '%"></i></span>' + (op ? p + '%' : '—') + '</td><td>' + fecha(ult) + '</td></tr>';

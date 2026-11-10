@@ -1,0 +1,880 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1E3A8A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Prevención Territorial">
+<title>Prevención Territorial</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root { --azul:#1E3A8A; --azul2:#2563EB; --bg:#F1F5F9; --card:#FFFFFF; --txt:#0F172A; --sub:#64748B; --ok:#16A34A; --warn:#D97706; --err:#DC2626; --borde:#E2E8F0; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0B1220; --card:#162238; --txt:#E2E8F0; --sub:#94A3B8; --borde:#24344F; } }
+  :root[data-theme="dark"] { --bg:#0B1220; --card:#162238; --txt:#E2E8F0; --sub:#94A3B8; --borde:#24344F; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--txt); }
+  #v-app { height:100vh; height:100dvh; display:flex; flex-direction:column; }
+  header { background: var(--azul); color:#fff; padding: 12px 16px; display:flex; align-items:center; gap:10px; flex:0 0 auto; }
+  header h1 { font-size:17px; margin:0; flex:1; }
+  header small { opacity:.8; font-size:11px; display:block; font-weight:500; }
+  main { flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding: 12px 14px 18px; width:100%; max-width: 760px; margin: 0 auto; box-sizing:border-box; }
+  .btn { border:0; border-radius:10px; padding:11px 14px; font:inherit; font-weight:700; cursor:pointer; background: var(--card); color: var(--txt); border:1px solid var(--borde); }
+  .btn-p { background: var(--azul2); color:#fff; border-color: var(--azul2); }
+  .btn-w { background: transparent; color:#fff; border-color: rgba(255,255,255,.4); padding:8px 10px; }
+  .btn:disabled { opacity:.5; }
+  .card { background: var(--card); border:1px solid var(--borde); border-radius:14px; padding:12px 14px; margin-bottom:10px; }
+  .muted { color: var(--sub); font-size:12px; }
+  input, select, textarea { width:100%; font:inherit; padding:10px 11px; border:1px solid var(--borde); border-radius:10px; background: var(--card); color: var(--txt); }
+  label { display:block; font-size:12px; font-weight:700; color: var(--sub); margin: 10px 0 4px; }
+  .fila { display:flex; gap:8px; }
+  .fila > * { flex:1; min-width:0; }
+  .kpis { display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; }
+  .kpi { background: var(--card); border:1px solid var(--borde); border-radius:12px; padding:10px; }
+  .kpi b { font-size:22px; display:block; }
+  .kpi span { font-size:11px; color: var(--sub); font-weight:700; }
+  .barra { height:8px; background: var(--borde); border-radius:6px; overflow:hidden; margin-top:6px; }
+  .barra i { display:block; height:100%; background: var(--c, var(--azul2)); }
+  .acc { border-left:5px solid var(--c, var(--azul2)); }
+  .acc h3 { font-size:14px; margin:0 0 4px; }
+  .chip { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; background: color-mix(in srgb, var(--c) 15%, transparent); color: var(--c); }
+  nav.tabs { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; margin-bottom:10px; }
+  nav.tabs button { flex:0 0 auto; border:1px solid var(--borde); background: var(--card); color: var(--txt); border-radius:999px; padding:7px 12px; font:inherit; font-weight:700; font-size:13px; cursor:pointer; }
+  nav.tabs button.on { background: var(--azul); color:#fff; border-color: var(--azul); }
+  .menu { flex:0 0 auto; display:grid; grid-template-columns: repeat(5,1fr); background: var(--card); border-top:1px solid var(--borde); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); z-index:6; }
+  .menu button { border:0; background:none; color: var(--sub); font:inherit; font-size:11px; font-weight:700; padding:6px 2px; cursor:pointer; }
+  .menu button.on { color: var(--azul2); }
+  .menu .ico { font-size:20px; display:block; }
+  .overlay { position:fixed; inset:0; background: rgba(15,23,42,.6); display:none; align-items:flex-end; justify-content:center; z-index:20; }
+  .overlay.show { display:flex; }
+  .sheet { background: var(--card); width:100%; max-width:760px; max-height:92vh; overflow:auto; border-radius:18px 18px 0 0; padding:16px 16px calc(16px + env(safe-area-inset-bottom)); }
+  .sheet h2 { font-size:16px; margin:0 0 4px; }
+  .aviso { background:#FEF3C7; color:#92400E; border-radius:10px; padding:9px 11px; font-size:12.5px; margin:8px 0; }
+  .ok { background:#DCFCE7; color:#14532D; }
+  .err { background:#FEE2E2; color:#7F1D1D; }
+  .vacio { text-align:center; color: var(--sub); padding:30px 10px; }
+  .login { position:fixed; inset:0; overflow:auto; display:flex; align-items:center; justify-content:center; padding:24px 16px calc(24px + env(safe-area-inset-bottom)); background: radial-gradient(circle at 15% 10%, #2563EB 0%, transparent 50%), linear-gradient(160deg, #1E3A8A 0%, #0F766E 100%); z-index:20; }
+  .lg-card { width:100%; max-width:380px; background: var(--card); border-radius:22px; padding:26px 22px 20px; box-shadow: 0 24px 60px rgba(2,6,23,.35); }
+  .lg-logo { display:block; width:80px; height:80px; margin:0 auto 10px; border-radius:20px; box-shadow: 0 8px 20px rgba(2,6,23,.25); }
+  .lg-titulo { text-align:center; font-size:21px; font-weight:800; color: var(--azul); margin:0; letter-spacing:.2px; }
+  .lg-sub { text-align:center; font-size:13px; color: var(--sub); margin:6px 0 18px; }
+  .lg-input { position:relative; }
+  .lg-input input { padding-left:40px; height:46px; font-size:15px; }
+  .lg-input .ic { position:absolute; left:13px; top:50%; transform:translateY(-50%); font-size:15px; opacity:.6; pointer-events:none; }
+  .lg-check { display:flex; gap:10px; align-items:flex-start; font-size:13px; font-weight:600; color: var(--txt); margin:16px 0 2px; cursor:pointer; }
+  .lg-check input { width:18px; height:18px; margin:1px 0 0; accent-color: var(--azul2); flex:0 0 auto; }
+  .lg-nota { font-size:11.5px; color: var(--sub); margin:4px 0 0 28px; line-height:1.4; }
+  .lg-btn { width:100%; height:48px; margin-top:16px; border:0; border-radius:12px; font-size:15px; letter-spacing:.2px; background: linear-gradient(90deg, #2563EB, #0F766E); color:#fff; box-shadow: 0 8px 18px rgba(37,99,235,.3); }
+  .lg-btn:disabled { opacity:.6; }
+  .lg-pie { text-align:center; font-size:11px; color: var(--sub); margin-top:16px; }
+  .enDes { text-align:center; padding:40px 16px; }
+  .enDes .ico { font-size:42px; }
+  .hist { font-size:12px; border-top:1px solid var(--borde); padding:7px 0; }
+  .card { transition: opacity .15s; }
+  .dim { opacity:.38; }
+  .btn-mini { padding:5px 9px; font-size:12px; border-radius:8px; line-height:1.2; white-space:nowrap; }
+  .mr-hero { border-left:5px solid var(--rc, var(--azul2)); }
+  .mr-top { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .mr-temp { font-size:40px; font-weight:800; line-height:1.1; }
+  .mr-sub { font-size:11px; color: var(--sub); font-weight:700; text-transform:uppercase; letter-spacing:.4px; margin-bottom:2px; }
+  .mr-sem { display:inline-block; color:#fff; font-size:11px; font-weight:800; padding:3px 10px; border-radius:999px; white-space:nowrap; }
+  .mr-h { font-size:14px; margin:14px 0 8px; }
+  .mr-rec { font-size:13px; margin:4px 0; line-height:1.4; }
+  .mr-dia { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; }
+  .mr-dia-fecha { display:flex; flex-direction:column; min-width:0; font-size:12px; color: var(--sub); }
+  .mr-dia-fecha b { font-size:13px; color: var(--txt); text-transform:capitalize; }
+  .mr-dia-datos { display:flex; flex-direction:column; gap:2px; font-size:11.5px; color: var(--sub); text-align:right; flex:1; }
+  .row-foot { display:flex; justify-content:center; margin-top:10px; }
+  .pend-item { border-top:1px solid var(--borde); padding:9px 0; font-size:13px; }
+  .pend-err { color: var(--err); font-size:12px; margin-top:3px; }
+  .pend-acc { display:flex; justify-content:flex-end; margin-top:6px; }
+  .rg-item { border-bottom:1px solid var(--borde); padding:10px 0; font-size:13px; }
+  .rg-item:last-child { border-bottom:0; }
+  .rg-top { display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:2px; }
+  .rg-obs { margin:6px 0; padding:8px 10px; background: var(--bg); border-radius:10px; }
+  .rg-acc { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
+  .av-modo { font-size:12px; font-weight:700; color: var(--azul2); background: color-mix(in srgb, var(--azul2) 10%, transparent); padding:6px 10px; border-radius:10px; margin-top:8px; }
+  /* Actualización de datos: contenido tenue hasta terminar, con aviso y el ícono girando */
+  body.cargando #m-cuerpo { opacity:.4; pointer-events:none; transition: opacity .2s ease; }
+  body.cargando #h-actualizar { animation: giro 1s linear infinite; }
+  body.cargando::after { content:'⟳  Actualizando datos…'; position:fixed; top:68px; left:50%; transform:translateX(-50%); background:#0F172A; color:#fff; padding:9px 18px; border-radius:999px; font-size:13px; font-weight:700; z-index:25; box-shadow: 0 12px 28px rgba(2,6,23,.35); white-space:nowrap; }
+  .toast-msg { position:fixed; left:50%; bottom:96px; transform:translateX(-50%); max-width:calc(100% - 32px); background:#0F172A; color:#fff; padding:11px 18px; border-radius:14px; font-size:14px; font-weight:700; text-align:center; box-shadow: 0 12px 28px rgba(2,6,23,.35); z-index:30; animation: toastIn .25s ease; }
+  @keyframes toastIn { from { opacity:0; transform: translate(-50%, 12px); } to { opacity:1; transform: translate(-50%, 0); } }
+  @keyframes giro { to { transform: rotate(360deg); } }
+  /* Formulario Registrar avance: encabezado y pie fijos, solo el cuerpo se desplaza */
+  #av-sheet.sheet { padding:0; display:flex; flex-direction:column; max-height:86vh; overflow:hidden; border-radius:20px; width:calc(100% - 24px); margin:0 12px 12px; box-sizing:border-box; }
+  .av-top { display:flex; gap:10px; align-items:flex-start; padding:14px 16px 12px; border-bottom:1px solid var(--borde); flex:0 0 auto; }
+  .av-grupo { display:inline-block; font-size:11px; font-weight:700; color: var(--azul2); background: color-mix(in srgb, var(--azul2) 12%, transparent); padding:2px 9px; border-radius:999px; margin-bottom:5px; }
+  .av-accion { font-size:15px; font-weight:700; margin:0; line-height:1.3; }
+  .av-meta { font-size:11.5px; color: var(--sub); margin-top:3px; }
+  .av-x { border:0; background: var(--bg); color: var(--sub); width:32px; height:32px; border-radius:50%; font-size:14px; cursor:pointer; flex:0 0 auto; }
+  .av-body { flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:12px 16px; }
+  .av-avance { display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:13px; }
+  .av-fila2 { display:grid; grid-template-columns: 1fr 1.5fr; gap:10px; }
+  .av-fila2 input { height:40px; padding:8px 10px; }
+  .av-body label { margin-top:10px; }
+  .av-nuevo { font-size:11.5px; margin-top:4px; }
+  .av-adj { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+  .av-btn { border:1px solid var(--borde); background: var(--card); color: var(--txt); border-radius:10px; padding:9px 8px; font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+  .av-btn:active { background: var(--bg); }
+  .av-arch { font-size:12px; margin-top:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .av-quitar { border:0; background:transparent; color: var(--err); font-weight:800; cursor:pointer; padding:0 4px; }
+  .av-mapa { position:relative; height:160px; border-radius:12px; overflow:hidden; border:1px solid var(--borde); background: var(--bg); display:flex; align-items:center; justify-content:center; }
+  .av-mapa img { width:100%; height:100%; object-fit:cover; display:block; }
+  .av-mapa .av-base, .av-mapa .av-relieve { position:absolute; left:0; top:0; width:100%; height:100%; object-fit:cover; display:block; }
+  .av-mapa .av-relieve { mix-blend-mode:multiply; opacity:.5; }
+  .av-pin { position:absolute; left:50%; top:50%; width:26px; height:34px; transform: translate(-50%, -100%); filter: drop-shadow(0 3px 4px rgba(0,0,0,.45)); pointer-events:none; }
+  .av-cap { position:absolute; left:8px; bottom:8px; background: rgba(15,23,42,.72); color:#fff; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; pointer-events:none; }
+  .av-geo-row { display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; font-size:12px; }
+  .av-geo-row .av-btn { flex:0 0 auto; }
+  .av-hist { margin-top:12px; font-size:12px; }
+  .av-hist summary { cursor:pointer; font-weight:700; color: var(--sub); padding:6px 0; }
+  .av-foot { flex:0 0 auto; padding:10px 16px calc(12px + env(safe-area-inset-bottom)); border-top:1px solid var(--borde); background: var(--card); }
+  .av-guardar { width:100%; height:46px; border-radius:12px; font-size:15px; border:0; background: linear-gradient(90deg, #2563EB, #0F766E); box-shadow: 0 8px 18px rgba(37,99,235,.28); }
+  .perfil-head { display:flex; gap:12px; align-items:center; }
+  .avatar { width:56px; height:56px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:19px; color:#fff; background: linear-gradient(135deg, #2563EB, #0F766E); }
+  .fila-dato { display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px solid var(--borde); font-size:14px; }
+  .fila-dato:last-child { border-bottom:0; }
+  .pill { display:inline-block; padding:4px 10px; border-radius:999px; background: var(--borde); font-size:12px; font-weight:700; margin:2px 3px 2px 0; }
+  /* Desplazamiento: suave, barra discreta y espacio libre sobre el menú inferior */
+  html { scroll-behavior: smooth; scroll-padding-top: 72px; -webkit-text-size-adjust: 100%; }
+  * { scrollbar-width: thin; scrollbar-color: var(--borde) transparent; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--borde); border-radius: 8px; border: 2px solid var(--bg); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--sub); }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  .pct { display:inline-block; min-width:40px; text-align:center; padding:1px 7px; border-radius:999px; font-size:11px; font-weight:700; color: var(--c, #94A3B8); background: color-mix(in srgb, var(--c, #94A3B8) 13%, transparent); white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<!-- ───────── Login ───────── -->
+<section id="v-login" class="login" style="display:none;">
+  <div class="lg-card">
+    <img class="lg-logo" src="icon-192.png" alt="Prevención Territorial">
+    <h1 class="lg-titulo">Prevención Territorial</h1>
+    <p class="lg-sub">Ingresa con tu correo y clave de la plataforma</p>
+    <label for="l-mail">Correo</label>
+    <div class="lg-input"><span class="ic">✉️</span><input id="l-mail" type="email" autocomplete="username" placeholder="nombre@empresa.cl"></div>
+    <label for="l-clave">Clave</label>
+    <div class="lg-input"><span class="ic">🔒</span><input id="l-clave" type="password" autocomplete="current-password" placeholder="Tu clave"></div>
+    <label class="lg-check"><input type="checkbox" id="l-recordar" checked><span>Recordar mi correo y mantener la sesión en este equipo</span></label>
+    <div class="lg-nota">Por seguridad la clave no se guarda en la app. Si el navegador te ofrece guardarla, acepta.</div>
+    <div id="l-err" class="aviso err" style="display:none;margin-top:12px;"></div>
+    <button class="btn btn-p lg-btn" id="l-entrar">Ingresar</button>
+    <div class="lg-pie">Acceso restringido · Uso interno</div>
+  </div>
+</section>
+
+<!-- ───────── App ───────── -->
+<div id="v-app" style="display:none;">
+  <header>
+    <div style="flex:1;">
+      <h1 id="h-titulo">📋 PPA</h1>
+      <small id="h-sub">Plan de Prevención por Área</small>
+    </div>
+    <button class="btn btn-w" id="h-actualizar" title="Actualizar datos">🔄</button>
+    <button class="btn btn-w" id="h-salir" title="Cerrar sesión">⏻</button>
+  </header>
+  <main id="m-cuerpo"><div class="vacio">Cargando…</div></main>
+  <nav class="menu" id="menu">
+    <button data-s="ppa" class="on"><span class="ico">📋</span>PPA</button>
+    <button data-s="recursos"><span class="ico">🚒</span>Recursos</button>
+    <button data-s="meteo"><span class="ico">🌦️</span>Meteorología</button>
+    <button data-s="copamiento"><span class="ico">🗺️</span>Copamiento</button>
+    <button data-s="perfil"><span class="ico">👤</span>Mi perfil</button>
+  </nav>
+</div>
+
+<!-- ───────── Registrar avance ───────── -->
+<div class="overlay" id="ov-avance">
+  <div class="sheet" id="av-sheet"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+// Clave pública (anon): por diseño es pública; el acceso real lo controla RLS (SQL 130–164).
+const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-prevencion-app', detectSessionInUrl: false } });
+const EVID_BUCKET = 'ppa-evidencias', EVID_MAX = 20 * 1024 * 1024;
+const TIPOS_OK = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'];
+
+const S = { ppa: [], avances: [], filtros: { subg: '', area: '', sector: '', grupo: '', q: '' }, vista: 'tablero', sec: 'meteo', solo: false, ultimaDescarga: null, filAbierto: false, areaDefault: '', defaultAplicado: false, grupoAbierto: '', esAdmin: false, puedeElegirArea: true, meteo: { cargando: false, error: '', pos: null, datos: null, hora: null }, pendientes: [], sincronizando: false };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = v => Math.round((Number(v) || 0) * 100) / 100;
+const pct = (a, m) => m > 0 ? Math.round(a / m * 100) : null;
+const colorPct = p => p == null ? '#94A3B8' : p >= 100 ? '#16A34A' : p >= 50 ? '#D97706' : '#DC2626';
+const fmtFecha = iso => { if (!iso) return '—'; const p = String(iso).slice(0, 10).split('-'); return p[2] + '-' + p[1] + '-' + p[0]; };
+const hoyISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+function toast(m) { const t = document.createElement('div'); t.className = 'toast-msg'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+
+/* ───────── Sesión ───────── */
+async function entrar() {
+  const mail = $('l-mail').value.trim(), clave = $('l-clave').value;
+  $('l-err').style.display = 'none';
+  if (!mail || !clave) { $('l-err').textContent = 'Escribe correo y clave.'; $('l-err').style.display = ''; return; }
+  $('l-entrar').disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email: mail, password: clave });
+  $('l-entrar').disabled = false;
+  if (error) { $('l-err').textContent = 'No se pudo ingresar: ' + error.message; $('l-err').style.display = ''; return; }
+  try { if ($('l-recordar').checked) localStorage.setItem('pta-correo', mail); else localStorage.removeItem('pta-correo'); } catch (e) { /* navegador sin almacenamiento */ }
+  await mostrarApp();
+}
+async function mostrarApp() {
+  $('v-login').style.display = 'none'; $('v-app').style.display = '';
+  await cargarDatos();
+  await cargarPerfil();
+  if (S.sec === 'meteo' && !S.meteo.datos) obtenerMeteo(); else pintar();
+  if (navigator.onLine) sincronizarPendientes();
+}
+async function salir() { await sb.auth.signOut(); location.reload(); }
+
+/* ───────── Datos ───────── */
+async function leerTodo(tabla, select, filtro) {
+  const out = [];
+  for (let d = 0; ; d += 1000) {
+    let q = sb.from(tabla).select(select).range(d, d + 999);
+    if (filtro) q = filtro(q);
+    const { data, error } = await q;
+    if (error) throw error;
+    out.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  return out;
+}
+// Datos del PPA: se guardan en el teléfono; sin señal se muestran los últimos datos guardados
+async function cargarDatos() {
+  try {
+    S.ppa = await leerTodo('v_ppa', '*', q => q.order('id_ppa'));
+    S.avances = await leerTodo('ppa_avances', 'id, id_ppa, fecha, cantidad, observacion, evidencia_ruta, evidencia_nombre, evidencia_tipo, origen, mes, quincena, creado_en');
+    S.ultimaDescarga = new Date();
+    cacheSet('ppa', { ppa: S.ppa, avances: S.avances, fecha: new Date().toISOString() });
+    if (!S.defaultAplicado) await aplicarFiltroPorDefecto();
+  } catch (e) {
+    const c = await cacheGet('ppa');
+    if (c && c.ppa) { S.ppa = c.ppa; S.avances = c.avances || []; toast('📵 Sin señal: datos guardados del ' + fmtFecha(c.fecha)); }
+    else toast('No se pudieron cargar los datos: ' + (e.message || e));
+  }
+}
+// Datos de la cuenta conectada (nombre, perfil, correo, subgerencia y áreas) para «Mi perfil»
+async function cargarPerfil() {
+  const info = { nombre: '', correo: '', perfil: '', telefono: '', subgerencia: '', areas: [] };
+  try {
+    const { data: ses } = await sb.auth.getSession();
+    const usuario = ses && ses.session ? ses.session.user : null;
+    if (usuario) {
+      const uid = usuario.id;
+      info.correo = usuario.email || '';
+      const { data: p } = await sb.from('perfiles').select('nombre_completo, perfil, telefono').eq('id', uid).maybeSingle();
+      if (p) { info.nombre = p.nombre_completo || ''; info.perfil = p.perfil || ''; info.telefono = p.telefono || ''; }
+      const { data: pa } = await sb.from('perfil_areas').select('area').eq('perfil_id', uid);
+      info.areas = [...new Set((pa || []).map(r => r.area).filter(Boolean))];
+      const { data: ps } = await sb.from('perfil_subgerencias').select('subgerencia').eq('perfil_id', uid).maybeSingle();
+      if (ps) info.subgerencia = ps.subgerencia || '';
+    }
+    if (info.nombre || info.perfil) cacheSet('perfil', info);
+    else { const c = await cacheGet('perfil'); if (c) Object.assign(info, c); }
+  } catch (e) { const c = await cacheGet('perfil'); if (c) Object.assign(info, c); }
+  S.perfilInfo = info;
+  await refrescarPendientes();
+}
+// Tarjeta «Pendientes de enviar» (Mi perfil): avances y modificaciones guardados sin señal
+function pendientesHtml() {
+  const lista = S.pendientes || [], n = lista.length;
+  const estado = navigator.onLine
+    ? '<span class="pill" style="background:#DCFCE7;color:#166534;">🟢 Con señal</span>'
+    : '<span class="pill" style="background:#FEE2E2;color:#991B1B;">🔴 Sin señal</span>';
+  const items = lista.map(it => {
+    const a = S.ppa.find(x => x.id_ppa === it.id_ppa);
+    return '<div class="pend-item"><div><b>' + (it.tipo === 'editar' ? '✏️ Modificación' : '➕ Avance') + '</b> · ' + esc(it.id_ppa) +
+        ' · ' + num(it.cantidad) + ' · ' + esc(fmtFecha(it.fecha)) + '</div>' +
+      '<div class="muted">' + esc(a ? a.accion : '') + '</div>' +
+      (it.error ? '<div class="pend-err">Último intento: ' + esc(it.error) + '</div>' : '') +
+      '<div class="pend-acc"><button class="av-btn" data-desc="' + it.id + '">Descartar</button></div></div>';
+  }).join('');
+  return '<div class="card">' +
+    '<div class="fila" style="align-items:center;justify-content:space-between;"><b>📤 Pendientes de enviar (' + n + ')</b>' + estado + '</div>' +
+    (n ? items : '<div class="muted" style="margin-top:6px;">Todo está enviado ✅</div>') +
+    '<button class="btn btn-p" data-sync="1" style="width:100%;margin-top:10px;"' + (navigator.onLine && n ? '' : ' disabled') + '>🔄 Sincronizar ahora</button>' +
+    '<div class="muted" style="margin-top:6px;font-size:11px;">Los avances y modificaciones sin señal se guardan en el teléfono y se envían al recuperar la conexión.</div>' +
+    '</div>';
+}
+function pintarPerfil() {
+  const p = S.perfilInfo;
+  if (!p) { $('m-cuerpo').innerHTML = '<div class="vacio">Cargando perfil…</div>'; return; }
+  const ini = (p.nombre || p.correo || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+  const areas = p.areas.length ? p.areas.map(a => '<span class="pill">' + esc(a) + '</span>').join('') : '<span class="muted">Sin áreas asignadas</span>';
+  $('m-cuerpo').innerHTML =
+    '<div class="card perfil-head"><div class="avatar">' + esc(ini || '👤') + '</div><div style="min-width:0;"><b>' + esc(p.nombre || 'Sin nombre registrado') + '</b><div class="muted" style="word-break:break-all;">' + esc(p.correo) + '</div></div></div>' +
+    '<div class="card">' +
+      '<div class="fila-dato"><span class="muted">Perfil</span><b>' + esc(p.perfil || '—') + '</b></div>' +
+      (p.subgerencia ? '<div class="fila-dato"><span class="muted">Subgerencia</span><b>' + esc(p.subgerencia) + '</b></div>' : '') +
+      (p.telefono ? '<div class="fila-dato"><span class="muted">Teléfono</span><b>' + esc(p.telefono) + '</b></div>' : '') +
+    '</div>' +
+    '<div class="card"><div class="muted" style="margin-bottom:8px;">Áreas asignadas</div>' + areas + '</div>' +
+    pendientesHtml() +
+    '<div class="card"><button class="btn" data-actualizar="1" style="width:100%;margin-bottom:8px;">🔄 Actualizar datos</button>' +
+      '<button class="btn" data-salir="1" style="width:100%;color:var(--err);">⏻ Cerrar sesión</button></div>' +
+    '<p class="muted" style="text-align:center;">Prevención Territorial · v1.0.1</p>';
+}
+// Jefes, GRT y GRD ven por defecto su área (si tienen una sola). El Administrador ve todo.
+async function aplicarFiltroPorDefecto() {
+  S.defaultAplicado = true;
+  try {
+    const { data: u } = await sb.auth.getUser();
+    const uid = u && u.user && u.user.id; if (!uid) return;
+    const { data: p } = await sb.from('perfiles').select('perfil').eq('id', uid).maybeSingle();
+    if (!p) return;
+    S.esAdmin = /administrador/i.test(p.perfil || '');
+    if (S.esAdmin) { S.puedeElegirArea = true; return; }
+    const { data: pa } = await sb.from('perfil_areas').select('id_area').eq('perfil_id', uid);
+    const ids = [...new Set((pa || []).map(r => r.id_area).filter(v => v != null).map(String))];
+    S.puedeElegirArea = ids.length > 1;
+    if (ids.length === 1) { S.areaDefault = ids[0]; S.filtros.area = ids[0]; }
+  } catch (e) { /* sin filtro por defecto: puede elegir área */ }
+}
+function avancesDe(id) { return S.avances.filter(a => a.id_ppa === id).sort((x, y) => String(y.fecha).localeCompare(String(x.fecha))); }
+function avanceTotal(id) { return avancesDe(id).reduce((s, a) => s + (Number(a.cantidad) || 0), 0); }
+function valoresUnicos(k, n) { const m = new Map(); S.ppa.forEach(a => { if (a[k] != null && a[k] !== '') m.set(String(a[k]), a[n] || a[k]); }); return [...m.entries()].sort((x, y) => String(x[1]).localeCompare(String(y[1]), 'es')); }
+function filtradas() {
+  const f = S.filtros, q = (f.q || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  return S.ppa.filter(a =>
+    (!f.subg || String(a.id_subg) === f.subg) && (!f.area || String(a.id_area) === f.area) &&
+    (!f.sector || (a.sector || 'Toda el área') === f.sector) && (!f.grupo || a.id_grupo === f.grupo) &&
+    (!S.solo || !!a.activo) &&
+    (!q || norm([a.id_ppa, a.accion, a.area_nombre, a.sector, a.grupo, a.causa].join(' ')).includes(q)));
+}
+
+/* ───────── Pintado ───────── */
+function pintar() {
+  document.querySelectorAll('#menu button').forEach(b => b.classList.toggle('on', b.dataset.s === S.sec));
+  const t = { ppa: ['📋 PPA', 'Plan de Prevención por Área'], recursos: ['🚒 Gestión Recursos', 'Disponibilidad de recursos'], meteo: ['🌦️ Meteorología', 'Tu ubicación · pronóstico 7 días'], copamiento: ['🗺️ Copamiento', 'Rutas y patrullajes'], perfil: ['👤 Mi perfil', 'Tu cuenta y tus áreas'] }[S.sec];
+  $('h-titulo').textContent = t[0]; $('h-sub').textContent = t[1];
+  if (S.sec === 'ppa') return pintarPpa();
+  if (S.sec === 'perfil') return pintarPerfil();
+  if (S.sec === 'meteo') return pintarMeteo();
+  $('m-cuerpo').innerHTML = '<div class="card enDes"><div class="ico">🚧</div><h3>En desarrollo</h3><p class="muted">Este ítem se incorporará en una próxima etapa de Prevención Territorial.</p></div>';
+}
+function pintarPpa() {
+  const tabs = '<nav class="tabs"><button data-v="tablero" class="' + (S.vista === 'tablero' ? 'on' : '') + '">📊 Tablero</button><button data-v="registro" class="' + (S.vista === 'registro' ? 'on' : '') + '">📝 Registro de Acciones</button></nav>';
+  const f = S.filtros;
+  const sel = (id, todos, ops, val) => '<select id="' + id + '"><option value="">' + todos + '</option>' + ops.map(([v, t]) => '<option value="' + esc(v) + '"' + (v === val ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select>';
+  const subgs = [...new Set(S.ppa.map(a => a.subgerencia).filter(Boolean))].sort().map(s => [s, 'Subgerencia ' + s]);
+  const areas = valoresUnicos('id_area', 'area_nombre'), grupos = valoresUnicos('id_grupo', 'grupo');
+  const visibles = f.area ? S.ppa.filter(a => String(a.id_area) === f.area) : S.ppa;
+  const sectores = [...new Set(visibles.map(a => a.sector || 'Toda el área'))].sort((x, y) => x.localeCompare(y, 'es')).map(s => [s, s]);
+  const activos = (f.subg ? 1 : 0) + (f.area && f.area !== S.areaDefault ? 1 : 0) + (f.sector ? 1 : 0) + (f.grupo ? 1 : 0);
+  const barra = '<div class="fila" style="align-items:center;margin-top:4px;">' +
+    '<button class="btn" data-fil="1" style="flex:0 0 auto;">🔎 Filtros' + (activos ? ' (' + activos + ')' : '') + (S.filAbierto ? ' ▴' : ' ▾') + '</button>' +
+    '<input id="f-q" placeholder="🔍 Buscar acción, id, sector…" value="' + esc(f.q) + '" style="min-width:0;"></div>';
+  const panel = '<div class="card" id="f-panel" style="' + (S.filAbierto ? '' : 'display:none;') + '">' +
+    '<div class="fila">' + sel('f-sector', 'Sector', sectores, f.sector) + sel('f-grupo', 'Grupo plan', grupos, f.grupo) + '</div>' +
+    ((S.puedeElegirArea || S.esAdmin) ? '<div class="fila" style="margin-top:8px;">' + (S.puedeElegirArea ? sel('f-area', 'Área', areas, f.area) : '') + (S.esAdmin ? sel('f-subg', 'Subgerencia', subgs, f.subg) : '') + '</div>' : '') +
+    '<div class="fila" style="margin-top:8px;justify-content:flex-end;"><button class="btn" data-limpiar="1">Limpiar filtros</button></div></div>';
+  const filtros = barra + panel;
+  $('m-cuerpo').innerHTML = tabs + filtros + (S.vista === 'registro' ? listaRegistro() : tableroEjecutivo());
+}
+// Agrupa las acciones filtradas por Grupo Plan, con avance y cumplimiento de cada grupo
+function gruposDe(lista) {
+  const m = new Map();
+  lista.forEach(a => {
+    const k = a.id_grupo || 'SIN';
+    if (!m.has(k)) m.set(k, { id: k, nombre: a.grupo || 'Sin grupo', acciones: [] });
+    m.get(k).acciones.push(a);
+  });
+  return [...m.values()].map(g => {
+    g.meta = g.acciones.reduce((s, a) => s + (Number(a.meta_general) || 0), 0);
+    g.av = g.acciones.reduce((s, a) => s + avanceTotal(a.id_ppa), 0);
+    g.p = pct(g.av, g.meta);
+    g.cumplidas = g.acciones.filter(a => (a.meta_general || 0) > 0 && avanceTotal(a.id_ppa) >= a.meta_general).length;
+    return g;
+  }).sort((x, y) => String(x.id).localeCompare(String(y.id), 'es'));
+}
+function tarjetaAccion(a) {
+  const av = avanceTotal(a.id_ppa), p = pct(av, a.meta_general), c = colorPct(p);
+  return '<div class="card acc" style="--c:' + c + '" data-id="' + esc(a.id_ppa) + '">' +
+    '<h3 style="margin:2px 0 3px;">' + esc(a.accion) + ' <span class="muted" style="font-weight:400;font-size:11px;">(' + esc(a.id_ppa) + ')</span></h3>' +
+    '<div class="muted">' + esc(a.sector || 'Toda el área') + ' · Plazo ' + esc(fmtFecha(a.plazo)) + (a.frecuencia ? ' · ' + esc(a.frecuencia) : '') + '</div>' +
+    '<div class="fila" style="margin-top:6px;align-items:center;"><span><b>' + num(av) + '</b> de ' + num(a.meta_general) + ' · <span class="pct" style="--c:' + c + ';">' + (p == null ? 'sin meta' : p + ' %') + '</span></span>' +
+    '<span style="display:flex;gap:5px;flex:0 0 auto;"><button class="btn btn-mini" data-regs="' + esc(a.id_ppa) + '" title="Ver registros">📋 ' + avancesDe(a.id_ppa).length + '</button>' +
+    '<button class="btn btn-p btn-mini" data-reg="' + esc(a.id_ppa) + '">➕ Registrar</button></span></div>' +
+    '<div class="barra"><i style="width:' + Math.min(100, p || 0) + '%"></i></div></div>';
+}
+function listaRegistro() {
+  const lista = filtradas();
+  if (!lista.length) return '<div class="vacio">No hay acciones con estos filtros.</div>';
+  const grupos = gruposDe(lista);
+  return '<p class="muted">' + grupos.length + ' grupo(s) · ' + lista.length + ' medida(s). Toca un grupo para ver sus medidas.</p>' +
+    grupos.map(g => {
+      const c = colorPct(g.p), abierto = S.grupoAbierto === g.id;
+      return '<div class="card' + (S.grupoAbierto && !abierto ? ' dim' : '') + '" style="border-left:5px solid ' + c + ';">' +
+        '<div data-gid="' + esc(g.id) + '" style="cursor:pointer;">' +
+          '<div class="fila" style="align-items:center;"><b>' + esc(g.nombre) + '</b><span class="pct" style="--c:' + c + ';">' + (g.p == null ? 'sin meta' : g.p + ' %') + '</span></div>' +
+          '<div class="muted">' + g.acciones.length + ' medida(s) · ' + num(g.av) + ' de ' + num(g.meta) + ' · ' + g.cumplidas + ' cumplida(s) · ' + (abierto ? '▴ ocultar' : '▾ ver medidas') + '</div>' +
+          '<div class="barra"><i style="width:' + Math.min(100, g.p || 0) + '%;--c:' + c + '"></i></div>' +
+        '</div>' +
+        (abierto ? '<div style="margin-top:10px;">' + g.acciones.map(tarjetaAccion).join('') + '</div>' : '') +
+      '</div>';
+    }).join('');
+}
+// Resumen ejecutivo: KPIs generales y avance por Grupo Plan (toca un grupo para ir a sus medidas)
+function tableroEjecutivo() {
+  const lista = filtradas();
+  if (!lista.length) return '<div class="vacio">No hay acciones con estos filtros.</div>';
+  const meta = lista.reduce((s, a) => s + (Number(a.meta_general) || 0), 0);
+  const av = lista.reduce((s, a) => s + avanceTotal(a.id_ppa), 0), p = pct(av, meta);
+  const cerr = lista.filter(a => (a.meta_general || 0) > 0 && avanceTotal(a.id_ppa) >= a.meta_general).length;
+  const grupos = gruposDe(lista);
+  const filas = grupos.map(g => {
+    const c = colorPct(g.p);
+    return '<div class="card" data-ir="' + esc(g.id) + '" style="cursor:pointer;border-left:5px solid ' + c + ';">' +
+      '<div class="fila" style="align-items:center;"><b>' + esc(g.nombre) + '</b><span class="pct" style="--c:' + c + ';">' + (g.p == null ? 'sin meta' : g.p + ' %') + '</span></div>' +
+      '<div class="barra"><i style="width:' + Math.min(100, g.p || 0) + '%;--c:' + c + '"></i></div>' +
+      '<div class="muted" style="margin-top:6px;">' + g.acciones.length + ' medida(s) · ' + num(g.av) + ' de ' + num(g.meta) + ' · ' + g.cumplidas + ' cumplida(s)</div></div>';
+  }).join('');
+  return '<h3 style="margin:6px 0 10px;font-size:15px;">Resumen ejecutivo</h3>' +
+    '<div class="kpis"><div class="kpi"><b>' + grupos.length + '</b><span>Grupos plan</span></div><div class="kpi"><b>' + lista.length + '</b><span>Medidas</span></div>' +
+    '<div class="kpi"><b style="color:' + colorPct(p) + '">' + (p == null ? '—' : p + ' %') + '</b><span>Cumplimiento</span></div>' +
+    '<div class="kpi"><b>' + cerr + '</b><span>Medidas cumplidas</span></div></div>' +
+    '<h3 style="margin:14px 0 8px;font-size:14px;">Avance por grupo plan</h3>' + filas;
+}
+
+/* ───────── Registrar avance ───────── */
+/* ───────── Meteorología: tablero del pronóstico en la ubicación GPS del teléfono ───────── */
+// Misma lógica que el módulo meteorológico del sistema (riesgo de incendio por temperatura, humedad y viento; puelche; Open-Meteo)
+const MR_COLOR = { bajo: '#16A34A', moderado: '#F59E0B', alto: '#EA580C', extremo: '#DC2626' };
+const MR_ETIQ = { bajo: 'BAJO', moderado: 'MODERADO', alto: 'ALTO', extremo: 'EXTREMO' };
+const MR_ORDEN = { bajo: 0, moderado: 1, alto: 2, extremo: 3 };
+function mrRiesgo(temp, hum, viento) {
+  temp = temp || 0; hum = hum == null ? 50 : hum; viento = viento || 0;
+  let s = 0;
+  if (temp >= 30) s += 3; else if (temp >= 25) s += 2; else if (temp >= 20) s += 1;
+  if (hum <= 20) s += 3; else if (hum <= 30) s += 2; else if (hum <= 40) s += 1;
+  if (viento >= 40) s += 3; else if (viento >= 25) s += 2; else if (viento >= 15) s += 1;
+  const nivel = s >= 7 ? 'extremo' : s >= 5 ? 'alto' : s >= 3 ? 'moderado' : 'bajo';
+  return { nivel, etiqueta: MR_ETIQ[nivel], color: MR_COLOR[nivel] };
+}
+function mrCielo(wc) {
+  if (wc == null) return ['🌤️', 'Variable'];
+  if (wc >= 95) return ['⛈️', 'Tormentas'];
+  if (wc >= 85 || (wc >= 71 && wc <= 77)) return ['🌨️', 'Nieve'];
+  if (wc >= 80) return ['🌦️', 'Chubascos'];
+  if (wc >= 61) return ['🌧️', 'Lluvia'];
+  if (wc >= 51) return ['🌦️', 'Llovizna'];
+  if (wc >= 45) return ['🌫️', 'Niebla'];
+  if (wc === 3) return ['🌥️', 'Nublado'];
+  if (wc >= 1) return ['🌤️', 'Parcial'];
+  return ['☀️', 'Despejado'];
+}
+function mrDir(deg) { return deg == null ? '—' : ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO'][Math.round(deg / 22.5) % 16]; }
+const mrDiaCorto = iso => new Date(iso + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'short', day: '2-digit', month: '2-digit' });
+// Análisis de un día: riesgo de la hora más crítica, franja de riesgo alto, puelche y datos diarios
+function mrDia(m, i) {
+  const h = m.hourly, d = m.daily, dia = d.time[i], horas = [];
+  h.time.forEach((t, j) => { if (t.slice(0, 10) === dia) horas.push(j); });
+  let peor = null, kMax = -1e9, franja = [], pue = 0;
+  horas.forEach(j => {
+    const r = mrRiesgo(h.temperature_2m[j], h.relative_humidity_2m[j], h.wind_speed_10m[j]);
+    const k = MR_ORDEN[r.nivel] * 100 + (h.temperature_2m[j] || 0) + (h.wind_speed_10m[j] || 0) - (h.relative_humidity_2m[j] || 0) / 2;
+    if (k > kMax) { kMax = k; peor = { j, r }; }
+    if (r.nivel === 'alto' || r.nivel === 'extremo') franja.push(j);
+    const dd = h.wind_direction_10m[j], vv = h.wind_speed_10m[j] || 0, hh = h.relative_humidity_2m[j];
+    if (dd != null && dd >= 45 && dd <= 135 && vv >= 12 && hh != null && hh <= 45) pue++;
+  });
+  const hora = j => h.time[j].slice(11, 13) + ':00';
+  const fin = j => String((parseInt(h.time[j].slice(11, 13), 10) + 1) % 24).padStart(2, '0') + ':00';
+  return {
+    dia,
+    riesgo: peor ? peor.r : mrRiesgo(d.temperature_2m_max[i], d.relative_humidity_2m_min[i], d.wind_speed_10m_max[i]),
+    horaCritica: peor ? hora(peor.j) : '',
+    franja: franja.length ? hora(franja[0]) + ' a ' + fin(franja[franja.length - 1]) : '',
+    puelche: pue > 0,
+    tMax: d.temperature_2m_max[i], tMin: d.temperature_2m_min[i], humMin: d.relative_humidity_2m_min[i],
+    vMax: d.wind_speed_10m_max[i], gMax: d.wind_gusts_10m_max[i], dir: mrDir(d.wind_direction_10m_dominant[i]),
+    lluvia: d.precipitation_sum[i] || 0,
+    cielo: mrCielo(d.weather_code ? d.weather_code[i] : null)
+  };
+}
+async function mrConsultar(lat, lng) {
+  const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lng +
+    '&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code' +
+    '&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m' +
+    '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,relative_humidity_2m_min,wind_direction_10m_dominant,weather_code' +
+    '&timezone=America%2FSantiago&forecast_days=7';
+  const r = await fetch(url); if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+function obtenerPosicion() {
+  return new Promise((ok, mal) => {
+    if (!navigator.geolocation) return mal({ code: 'NOGEO' });
+    navigator.geolocation.getCurrentPosition(
+      p => ok({ lat: p.coords.latitude, lng: p.coords.longitude, precision: p.coords.accuracy }),
+      mal, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+  });
+}
+async function obtenerMeteo() {
+  S.meteo = Object.assign({}, S.meteo, { cargando: true, error: '' });
+  pintar();
+  try {
+    const pos = await obtenerPosicion();
+    const datos = await mrConsultar(pos.lat.toFixed(4), pos.lng.toFixed(4));
+    S.meteo = { cargando: false, error: '', pos, datos, hora: new Date() };
+  } catch (e) {
+    let msg = 'No se pudo consultar el pronóstico. Revisa la conexión a internet y vuelve a intentar.';
+    if (e && e.code === 1) msg = 'El permiso de ubicación está desactivado. Actívalo para esta app (candado de la barra de dirección o ajustes del teléfono) y vuelve a intentar.';
+    else if (e && e.code === 2) msg = 'El teléfono no logra ubicarte. Activa el GPS del teléfono (alta precisión) y vuelve a intentar.';
+    else if (e && e.code === 3) msg = 'No se obtuvo la ubicación a tiempo. Verifica que el GPS esté activo y vuelve a intentar.';
+    else if (e && e.code === 'NOGEO') msg = 'Este equipo no entrega ubicación. Usa un teléfono con GPS.';
+    S.meteo = { cargando: false, error: msg, pos: null, datos: null, hora: null };
+  }
+  pintar();
+}
+function pintarMeteo() {
+  const m = S.meteo;
+  if (m.cargando) { $('m-cuerpo').innerHTML = '<div class="card enDes"><div class="ico">📡</div><h3>Obteniendo tu ubicación…</h3><p class="muted">Acepta el permiso de ubicación si el teléfono lo pide.</p></div>'; return; }
+  if (!m.datos || !m.pos) {
+    $('m-cuerpo').innerHTML = '<div class="card enDes"><div class="ico">📍</div><h3>No se pudo mostrar el clima</h3><p class="muted">' + esc(m.error || 'Sin datos todavía.') + '</p><button class="btn btn-p" data-meteo="1" style="margin-top:12px;">🔄 Reintentar</button></div>';
+    return;
+  }
+  const d = m.datos, c = d.current;
+  const hoy = mrDia(d, 0), ahora = mrRiesgo(c.temperature_2m, c.relative_humidity_2m, c.wind_speed_10m);
+  const [icoC, txtC] = mrCielo(c.weather_code);
+  const dias = d.daily.time.map((_, i) => mrDia(d, i));
+  const hace = m.hora.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  const rec = [];
+  if (hoy.riesgo.nivel === 'alto' || hoy.riesgo.nivel === 'extremo') rec.push('Reforzar la vigilancia' + (hoy.franja ? ' entre las <b>' + hoy.franja + '</b>' : '') + ': franja de mayor riesgo de hoy.');
+  if (hoy.puelche) rec.push('Hay viento puelche (cálido y seco desde la cordillera): vigilar cambios bruscos de dirección.');
+  if (hoy.lluvia >= 1) rec.push('Lluvia prevista de ' + hoy.lluvia.toFixed(1) + ' mm: ayuda a bajar el riesgo.');
+  const altos = dias.slice(1).filter(x => x.riesgo.nivel === 'alto' || x.riesgo.nivel === 'extremo');
+  if (altos.length) rec.push('Próximos días de riesgo alto o extremo: ' + altos.map(x => mrDiaCorto(x.dia)).join(', ') + '.');
+  if (!rec.length) rec.push('Sin acciones especiales para hoy.');
+  $('m-cuerpo').innerHTML =
+    '<div class="card mr-hero" style="--rc:' + ahora.color + ';">' +
+      '<div class="mr-top"><div><div class="mr-sub">Ahora en tu ubicación</div><div class="mr-temp">' + Math.round(c.temperature_2m) + ' °C</div>' +
+      '<div class="muted">' + icoC + ' ' + txtC + ' · Humedad ' + Math.round(c.relative_humidity_2m) + ' % · Viento ' + Math.round(c.wind_speed_10m) + ' km/h ' + mrDir(c.wind_direction_10m) + '</div></div>' +
+      '<span class="mr-sem" style="background:' + ahora.color + ';">' + ahora.etiqueta + '</span></div></div>' +
+    '<div class="kpis">' +
+      '<div class="kpi"><b>' + hoy.riesgo.etiqueta + '</b><span>Riesgo hoy</span></div>' +
+      '<div class="kpi"><b>' + (hoy.horaCritica || '—') + '</b><span>Hora más crítica</span></div>' +
+      '<div class="kpi"><b>' + Math.round(hoy.gMax) + ' km/h</b><span>Ráfagas máx. hoy</span></div>' +
+      '<div class="kpi"><b>' + (hoy.lluvia ? hoy.lluvia.toFixed(1) + ' mm' : 'Sin lluvia') + '</b><span>Lluvia hoy</span></div>' +
+    '</div>' +
+    '<div class="card"><div class="av-mapa" style="height:150px;">' + mapaUbicacion(m.pos.lat, m.pos.lng) + '</div>' +
+      '<div class="muted" style="margin-top:6px;">GPS ±' + Math.round(m.pos.precision) + ' m · actualizado ' + hace + '</div></div>' +
+    '<h3 class="mr-h">Recomendaciones de hoy</h3>' +
+    '<div class="card">' + rec.map(r => '<div class="mr-rec">• ' + r + '</div>').join('') + '</div>' +
+    '<h3 class="mr-h">Próximos 7 días</h3>' +
+    dias.map(x => '<div class="card mr-dia"><div class="mr-dia-fecha"><b>' + esc(mrDiaCorto(x.dia)) + '</b><span>' + x.cielo[0] + ' ' + x.cielo[1] + '</span></div>' +
+      '<div class="mr-dia-datos"><span>' + Math.round(x.tMin) + '° / ' + Math.round(x.tMax) + '°</span><span>💨 ' + Math.round(x.vMax) + ' km/h ' + x.dir + '</span><span>💧 ' + (x.lluvia ? x.lluvia.toFixed(1) + ' mm' : '—') + '</span></div>' +
+      '<span class="mr-sem" style="background:' + MR_COLOR[x.riesgo.nivel] + ';">' + x.riesgo.etiqueta + '</span></div>').join('') +
+    '<div class="row-foot"><button class="btn" data-meteo="1">🔄 Actualizar</button></div>' +
+    '<p class="muted" style="text-align:center;margin-top:10px;">Pronóstico: Open-Meteo</p>';
+}
+// Actualiza datos y perfil; mientras dura, el contenido queda tenue y no responde a toques
+async function actualizarDatos() {
+  const btn = $('h-actualizar');
+  btn.disabled = true; document.body.classList.add('cargando');
+  try { await cargarDatos(); await cargarPerfil(); if (S.sec === 'meteo') await obtenerMeteo(); pintar(); toast('Datos actualizados'); }
+  finally { document.body.classList.remove('cargando'); btn.disabled = false; }
+}
+// Modal de registros de una medida: quién registró cada avance y modificación (solo quien lo registró o el Administrador)
+async function abrirRegistros(id) {
+  const a = S.ppa.find(x => x.id_ppa === id); if (!a) return;
+  $('av-sheet').innerHTML =
+    '<div class="av-top"><div style="min-width:0;flex:1;"><div class="av-grupo">' + esc(a.grupo || 'Sin grupo') + '</div>' +
+      '<h2 class="av-accion">' + esc(a.accion) + '</h2><div class="av-meta">Registros · ' + esc(a.id_ppa) + '</div></div>' +
+    '<button class="av-x" id="av-x" aria-label="Cerrar">✕</button></div>' +
+    '<div class="av-body" id="rg-body"><div class="muted">Cargando registros…</div></div>';
+  $('av-x').onclick = cerrarAvance;
+  $('ov-avance').classList.add('show'); document.body.style.overflow = 'hidden';
+  const { data, error } = await sb.rpc('ppa_avances_pwa', { p_id_ppa: id });
+  if (error) { $('rg-body').innerHTML = '<div class="aviso err">No se pudieron cargar los registros: ' + esc(error.message) + '</div>'; return; }
+  const lista = data || [];
+  $('rg-body').innerHTML = lista.length ? lista.map(regHtml).join('') : '<div class="vacio">Aún no hay registros para esta medida.</div>';
+  $('rg-body').onclick = e => {
+    const ed = e.target.closest('[data-edit]');
+    if (ed) abrirAvance(id, lista.find(x => String(x.id) === ed.dataset.edit));
+  };
+}
+function regHtml(v) {
+  return '<div class="rg-item" id="rg-' + esc(v.id) + '">' +
+    '<div class="rg-top"><b>' + fmtFecha(v.fecha) + '</b><span>Cantidad <b>' + num(v.cantidad) + '</b></span></div>' +
+    '<div class="muted">Registrado por <b>' + esc(v.registrado_nombre || '—') + '</b>' + (v.creado_en ? ' · ' + esc(fmtFecha(v.creado_en)) : '') + '</div>' +
+    (v.observacion ? '<div class="rg-obs">' + esc(v.observacion) + '</div>' : '') +
+    (v.evidencia_ruta ? '<div style="margin-top:4px;"><a href="#" data-evid="' + esc(v.evidencia_ruta) + '">📎 ' + esc(v.evidencia_nombre || 'evidencia') + '</a></div>' : '') +
+    (v.puede_editar ? '<div class="rg-acc"><button class="av-btn" data-edit="' + esc(v.id) + '">✏️ Modificar</button></div>' : '') +
+    '</div>';
+}
+function cerrarAvance() { $('ov-avance').classList.remove('show'); document.body.style.overflow = ''; }
+// Mapa estático (Esri World Imagery) centrado en la ubicación, con el pin en el centro
+// Base satelital (Esri World Imagery) + relieve sombreado (Esri World Hillshade) en modo multiplicar, y pin de la actividad
+function mapaUbicacion(lat, lng) {
+  const d = 0.0035;
+  const q = 'bbox=' + [lng - d, lat - d, lng + d, lat + d].join(',') + '&bboxSR=4326&imageSR=4326&size=640,360&format=jpg&f=image';
+  const base = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
+  return '<img class="av-base" src="' + base + 'World_Imagery/MapServer/export?' + q + '" alt="">' +
+    '<img class="av-relieve" src="' + base + 'Elevation/World_Hillshade/MapServer/export?' + q + '" alt="">' +
+    '<svg class="av-pin" viewBox="0 0 24 32" aria-label="Ubicación de la actividad"><path d="M12 0C5.4 0 0 5.3 0 11.8 0 20.6 12 32 12 32s12-11.4 12-20.2C24 5.3 18.6 0 12 0z" fill="#E8553A" stroke="#fff" stroke-width="1.5"/><circle cx="12" cy="12" r="4.5" fill="#fff"/></svg>' +
+    '<span class="av-cap">📍 ' + lat.toFixed(5) + ', ' + lng.toFixed(5) + '</span>';
+}
+// Registrar avance (reg = undefined) o modificar un registro existente (reg = registro original): mismo formulario
+function abrirAvance(id, reg) {
+  const a = S.ppa.find(x => x.id_ppa === id); if (!a) return;
+  const editando = !!reg;
+  const base = avanceTotal(id) - (editando ? (Number(reg.cantidad) || 0) : 0);
+  const pAct = pct(base, a.meta_general), pNuevo = pct(base + (editando ? Number(reg.cantidad) || 0 : 1), a.meta_general);
+  const hist = avancesDe(id);
+  const tieneGeo = editando && reg.lat != null && reg.lng != null;
+  const arcInicial = editando && reg.evidencia_ruta
+    ? '📎 <a href="#" data-evid="' + esc(reg.evidencia_ruta) + '">' + esc(reg.evidencia_nombre || 'evidencia') + '</a> <span class="muted">(actual; elige otra para reemplazarla)</span>'
+    : 'Sin archivo adjunto.';
+  $('av-sheet').innerHTML =
+    '<div class="av-top"><div style="min-width:0;flex:1;">' +
+      '<div class="av-grupo">' + esc(a.grupo || 'Sin grupo') + '</div>' +
+      '<h2 class="av-accion">' + esc(a.accion) + '</h2>' +
+      '<div class="av-meta">' + esc(a.sector || 'Toda el área') + ' · Plazo ' + esc(fmtFecha(a.plazo)) + (a.frecuencia ? ' · ' + esc(a.frecuencia) : '') + '</div>' +
+    '</div><button class="av-x" id="av-x" aria-label="' + (editando ? 'Volver' : 'Cerrar') + '">✕</button></div>' +
+    '<div class="av-body">' +
+      '<div class="av-avance">Avance <b>' + num(base) + '</b> de ' + num(a.meta_general) + ' <span class="pct" style="--c:' + colorPct(pAct) + ';">' + (pAct == null ? 'sin meta' : pAct + ' %') + '</span></div>' +
+      (editando ? '<div class="av-modo">✏️ Modificando el registro del ' + esc(fmtFecha(reg.fecha)) + ' · registrado por ' + esc(reg.registrado_nombre || '—') + '</div>' : '') +
+      '<div class="av-fila2"><div><label>Cantidad</label><input id="av-cant" type="number" min="1" step="1" value="' + (editando ? num(reg.cantidad) : 1) + '" inputmode="numeric"></div>' +
+      '<div><label>Fecha</label><input id="av-fecha" type="date" max="' + hoyISO() + '" value="' + esc(editando ? reg.fecha : hoyISO()) + '"></div></div>' +
+      '<div class="muted av-nuevo">' + (editando ? 'Avance total con este registro' : 'Nuevo avance') + ': <b id="av-pct">' + (pNuevo ?? '—') + '</b> %</div>' +
+      '<label>Evidencia <span class="muted" style="font-weight:400;">(foto o PDF · máx. 20 MB)</span></label>' +
+      '<div class="av-adj"><button type="button" class="av-btn" id="av-cam">📷 Cámara</button><button type="button" class="av-btn" id="av-gal">🖼️ Galería</button></div>' +
+      '<input type="file" id="av-f-cam" accept="image/*" capture="environment" hidden>' +
+      '<input type="file" id="av-f-gal" accept="image/*,application/pdf" hidden>' +
+      '<div id="av-arch" class="av-arch">' + arcInicial + '</div>' +
+      '<label>Observación</label><textarea id="av-obs" rows="2" placeholder="Qué se hizo, dónde, con quién…">' + esc(editando ? (reg.observacion || '') : '') + '</textarea>' +
+      '<label>Ubicación</label>' +
+      '<div class="av-mapa" id="av-mapa">' + (tieneGeo ? mapaUbicacion(reg.lat, reg.lng) : '<span class="muted">Sin ubicación registrada</span>') + '</div>' +
+      '<div class="av-geo-row"><button type="button" class="av-btn" id="av-geo">📍 Usar mi ubicación</button><span class="muted" id="av-geo-info">' + (tieneGeo ? reg.lat.toFixed(5) + ', ' + reg.lng.toFixed(5) : 'Opcional') + '</span></div>' +
+      '<div id="av-err" class="aviso err" style="display:none;"></div>' +
+      (!editando && hist.length ? '<details class="av-hist"><summary>Historial (' + hist.length + ')</summary>' + historialHtml(id) + '</details>' : '') +
+    '</div>' +
+    '<div class="av-foot"><button class="btn btn-p av-guardar" id="av-guardar">' + (editando ? '💾 Guardar cambios' : '💾 Guardar avance') + '</button></div>';
+  $('ov-avance').classList.add('show'); document.body.style.overflow = 'hidden';
+  let geo = tieneGeo ? { lat: reg.lat, lng: reg.lng } : null, archivo = null;
+  const cant = () => Number($('av-cant').value) || 0;
+  $('av-cant').oninput = () => { $('av-pct').textContent = pct(base + cant(), a.meta_general) ?? '—'; };
+  $('av-x').onclick = () => (editando ? abrirRegistros(id) : cerrarAvance());
+  $('av-geo').onclick = () => {
+    if (!navigator.geolocation) { $('av-geo-info').textContent = 'Este equipo no entrega ubicación.'; return; }
+    $('av-geo-info').textContent = 'Obteniendo ubicación…';
+    navigator.geolocation.getCurrentPosition(p => {
+      geo = { lat: p.coords.latitude, lng: p.coords.longitude };
+      $('av-mapa').innerHTML = mapaUbicacion(geo.lat, geo.lng);
+      $('av-geo-info').textContent = geo.lat.toFixed(5) + ', ' + geo.lng.toFixed(5) + ' · precisión ±' + Math.round(p.coords.accuracy) + ' m';
+    }, () => { $('av-geo-info').textContent = 'No se pudo obtener la ubicación (permiso denegado o sin señal).'; }, { enableHighAccuracy: true, timeout: 12000 });
+  };
+  const mostrarArchivo = () => {
+    $('av-arch').innerHTML = archivo
+      ? '📎 ' + esc(archivo.name) + ' <span class="muted">(' + Math.round(archivo.size / 1024) + ' KB)</span> <button type="button" class="av-quitar" id="av-quitar">✕</button>'
+      : arcInicial;
+    const q = $('av-quitar'); if (q) q.onclick = () => { archivo = null; mostrarArchivo(); };
+  };
+  const alElegir = e => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    if (!TIPOS_OK.includes(f.type)) { $('av-arch').innerHTML = '<span style="color:var(--err)">Formato no permitido (usa foto o PDF).</span>'; return; }
+    if (f.size > EVID_MAX) { $('av-arch').innerHTML = '<span style="color:var(--err)">Supera los 20 MB.</span>'; return; }
+    archivo = f; mostrarArchivo();
+  };
+  $('av-f-cam').onchange = alElegir;
+  $('av-f-gal').onchange = alElegir;
+  $('av-cam').onclick = () => $('av-f-cam').click();
+  $('av-gal').onclick = () => $('av-f-gal').click();
+  const v = { cant, fecha: () => $('av-fecha').value, obs: () => $('av-obs').value, geo: () => geo, archivo: () => archivo };
+  $('av-guardar').onclick = () => (editando ? guardarEdicion(a, reg, v) : guardarAvance(a, v));
+}
+// Guarda la modificación de un registro: mismos campos que el avance nuevo; lo no cambiado se conserva
+/* ───────── Modo sin señal: cola de pendientes y caché de datos (IndexedDB) ───────── */
+function dbAbrir() {
+  return new Promise((ok, mal) => {
+    const r = indexedDB.open('prevencion-pwa', 1);
+    r.onupgradeneeded = () => { const db = r.result; db.createObjectStore('cola', { keyPath: 'id', autoIncrement: true }); db.createObjectStore('cache'); };
+    r.onsuccess = () => ok(r.result); r.onerror = () => mal(r.error);
+  });
+}
+async function idb(store, modo, fn) {
+  const db = await dbAbrir();
+  return new Promise((ok, mal) => {
+    const t = db.transaction(store, modo);
+    const req = fn(t.objectStore(store));
+    t.oncomplete = () => { db.close(); ok(req ? req.result : undefined); };
+    t.onerror = t.onabort = () => { db.close(); mal(t.error || new Error('Error de almacenamiento local')); };
+  });
+}
+const colaListar = () => idb('cola', 'readonly', s => s.getAll()).then(l => (l || []).sort((x, y) => x.id - y.id));
+const colaAgregar = it => idb('cola', 'readwrite', s => s.add(it));
+const colaActualizar = it => idb('cola', 'readwrite', s => s.put(it));
+const colaQuitar = id => idb('cola', 'readwrite', s => s.delete(id));
+const cacheSet = (k, v) => idb('cache', 'readwrite', s => s.put(v, k)).catch(() => {});
+const cacheGet = k => idb('cache', 'readonly', s => s.get(k)).catch(() => null);
+const esSinSenal = e => !navigator.onLine || /fetch|network|load failed|failed to/i.test((e && e.message) || '');
+async function refrescarPendientes() { S.pendientes = await colaListar().catch(() => []); }
+async function encolar(tipo, p) {
+  await colaAgregar({ tipo, creado: new Date().toISOString(), id_ppa: p.id_ppa, reg_id: p.reg_id || null, fecha: p.fecha, cantidad: p.cantidad,
+    observacion: p.observacion || null, geo: p.geo || null, archivo: p.archivo || null, archivoNombre: p.archivoNombre || null, intentos: 0, error: '' });
+  await refrescarPendientes();
+}
+// Envía un avance nuevo (reg_id vacío) o una modificación (reg_id); lanza error si no se pudo
+async function enviarAvance(p) {
+  let ruta = null, nombre = null, tipo = null;
+  if (p.archivo) {
+    ruta = p.id_ppa + '/' + Date.now() + '-' + p.archivo.name.replace(/[^\w.\-]+/g, '_');
+    const { error: eUp } = await sb.storage.from(EVID_BUCKET).upload(ruta, p.archivo, { contentType: p.archivo.type, upsert: false });
+    if (eUp) throw new Error(esSinSenal(eUp) ? 'Failed to fetch' : 'No se pudo subir la evidencia: ' + eUp.message);
+    nombre = p.archivoNombre; tipo = p.archivo.type;
+  }
+  const lat = p.geo ? p.geo.lat : null, lng = p.geo ? p.geo.lng : null;
+  const r = p.reg_id
+    ? await sb.rpc('ppa_editar_avance_pwa', { p_id: Number(p.reg_id), p_cantidad: p.cantidad, p_fecha: p.fecha, p_observacion: p.observacion || null,
+        p_evidencia_ruta: ruta, p_evidencia_nombre: nombre, p_evidencia_tipo: tipo, p_lat: lat, p_lng: lng })
+    : await sb.rpc('ppa_registrar_avance_pwa', { p_id_ppa: p.id_ppa, p_fecha: p.fecha, p_cantidad: p.cantidad, p_observacion: p.observacion || null,
+        p_evidencia_ruta: ruta, p_evidencia_nombre: nombre, p_evidencia_tipo: tipo, p_lat: lat, p_lng: lng });
+  if (r.error) throw r.error;
+}
+// Envía lo pendiente en orden; si vuelve a caer la señal, se detiene y queda para después
+async function sincronizarPendientes() {
+  if (S.sincronizando || !navigator.onLine) return;
+  await refrescarPendientes();
+  if (!S.pendientes.length) return;
+  S.sincronizando = true; pintar();
+  let enviados = 0;
+  for (const it of S.pendientes) {
+    try {
+      await enviarAvance({ id_ppa: it.id_ppa, reg_id: it.reg_id, fecha: it.fecha, cantidad: it.cantidad, observacion: it.observacion, geo: it.geo, archivo: it.archivo, archivoNombre: it.archivoNombre });
+      await colaQuitar(it.id); enviados++;
+    } catch (e) {
+      if (esSinSenal(e)) break;
+      await colaActualizar(Object.assign({}, it, { intentos: (it.intentos || 0) + 1, error: e.message || String(e) }));
+    }
+  }
+  S.sincronizando = false;
+  await refrescarPendientes();
+  if (enviados) { await cargarDatos(); toast('✅ ' + enviados + ' pendiente(s) enviado(s)'); }
+  pintar();
+}
+async function guardarEdicion(a, reg, v) {
+  const err = m => { $('av-err').textContent = m; $('av-err').style.display = ''; };
+  const cant = v.cant(), fecha = v.fecha();
+  if (!(cant > 0)) return err('La cantidad debe ser mayor que 0.');
+  if (!fecha || fecha > hoyISO()) return err('Elige una fecha válida (no futura).');
+  $('av-err').style.display = 'none';
+  const btn = $('av-guardar'); btn.disabled = true; btn.textContent = 'Guardando…';
+  const arch = v.archivo();
+  const p = { id_ppa: a.id_ppa, reg_id: reg.id, fecha, cantidad: cant, observacion: v.obs(), geo: v.geo(), archivo: null, archivoNombre: arch ? arch.name : null };
+  try {
+    if (arch) p.archivo = await reducirImagen(arch);
+    if (!navigator.onLine) throw new Error('Failed to fetch');
+    await enviarAvance(p);
+    toast('✅ Registro modificado');
+    await cargarDatos();
+  } catch (e) {
+    if (!esSinSenal(e)) { err(e.message || String(e)); btn.disabled = false; btn.textContent = '💾 Guardar cambios'; return; }
+    await encolar('editar', p);
+    toast('📵 Sin señal: modificación guardada en pendientes');
+  }
+  pintar();
+  abrirRegistros(a.id_ppa);
+}
+function historialHtml(id) {
+  const l = avancesDe(id);
+  if (!l.length) return '<div class="muted">Esta acción aún no tiene avances registrados.</div>';
+  return l.map(v => '<div class="hist"><b>' + fmtFecha(v.fecha) + '</b> · ' + num(v.cantidad) + ' · ' + esc(v.origen) + (v.observacion ? '<br>' + esc(v.observacion) : '') +
+    (v.evidencia_ruta ? '<br><a href="#" data-evid="' + esc(v.evidencia_ruta) + '">📎 ' + esc(v.evidencia_nombre || 'evidencia') + '</a>' : '') + '</div>').join('');
+}
+async function reducirImagen(file) {
+  if (!file.type.startsWith('image/')) return file;
+  const img = await new Promise((ok, mal) => { const i = new Image(); i.onload = () => ok(i); i.onerror = mal; i.src = URL.createObjectURL(file); });
+  const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.8));
+  return new File([blob || file], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
+}
+async function guardarAvance(a, v) {
+  const err = m => { $('av-err').textContent = m; $('av-err').style.display = ''; };
+  const cant = v.cant(), fecha = v.fecha();
+  if (!(cant > 0)) return err('La cantidad debe ser mayor que 0.');
+  if (!fecha || fecha > hoyISO()) return err('Elige una fecha válida (no futura).');
+  $('av-err').style.display = 'none';
+  const btn = $('av-guardar'); btn.disabled = true; btn.textContent = 'Guardando…';
+  const arch = v.archivo();
+  const p = { id_ppa: a.id_ppa, fecha, cantidad: cant, observacion: v.obs(), geo: v.geo(), archivo: null, archivoNombre: arch ? arch.name : null };
+  try {
+    if (arch) p.archivo = await reducirImagen(arch);
+    if (!navigator.onLine) throw new Error('Failed to fetch');
+    await enviarAvance(p);
+    toast('✅ Avance registrado');
+    await cargarDatos();
+  } catch (e) {
+    if (!esSinSenal(e)) { err(e.message || String(e)); btn.disabled = false; btn.textContent = '💾 Guardar avance'; return; }
+    await encolar('registrar', p);
+    toast('📵 Sin señal: avance guardado en pendientes');
+  }
+  cerrarAvance();
+  pintar();
+}
+async function verEvidencia(ruta) {
+  const { data, error } = await sb.storage.from(EVID_BUCKET).createSignedUrl(ruta, 300);
+  if (error) return toast('No se pudo abrir la evidencia: ' + error.message);
+  window.open(data.signedUrl, '_blank', 'noopener');
+}
+
+/* ───────── Eventos ───────── */
+document.addEventListener('DOMContentLoaded', async () => {
+  try { const m = localStorage.getItem('pta-correo'); if (m) { $('l-mail').value = m; $('l-clave').focus(); } } catch (e) { /* sin almacenamiento */ }
+  $('l-entrar').onclick = entrar;
+  $('l-clave').addEventListener('keydown', e => { if (e.key === 'Enter') entrar(); });
+  $('h-salir').onclick = salir;
+  $('h-actualizar').onclick = actualizarDatos;
+  document.querySelectorAll('#menu button').forEach(b => b.onclick = () => {
+    S.sec = b.dataset.s;
+    if (S.sec === 'meteo' && !S.meteo.datos && !S.meteo.cargando) return obtenerMeteo();
+    pintar();
+  });
+  $('m-cuerpo').addEventListener('click', e => {
+    const t = e.target.closest('[data-v]'); if (t) { S.vista = t.dataset.v; return pintarPpa(); }
+    if (e.target.closest('[data-salir]')) return salir();
+    if (e.target.closest('[data-meteo]')) return obtenerMeteo();
+    if (e.target.closest('[data-sync]')) return sincronizarPendientes();
+    const dsc = e.target.closest('[data-desc]');
+    if (dsc) { if (window.confirm('¿Descartar este pendiente? No se enviará al servidor.')) colaQuitar(Number(dsc.dataset.desc)).then(refrescarPendientes).then(pintar); return; }
+    if (e.target.closest('[data-actualizar]')) { actualizarDatos(); return; }
+    if (e.target.closest('[data-fil]')) { S.filAbierto = !S.filAbierto; return pintarPpa(); }
+    if (e.target.closest('[data-limpiar]')) { S.filtros = { subg: '', area: S.areaDefault, sector: '', grupo: '', q: S.filtros.q }; return pintarPpa(); }
+    const r = e.target.closest('[data-reg]'); if (r) return abrirAvance(r.dataset.reg);
+    const rs = e.target.closest('[data-regs]'); if (rs) return abrirRegistros(rs.dataset.regs);
+    const c = e.target.closest('.acc[data-id]'); if (c) return abrirAvance(c.dataset.id);
+    const gh = e.target.closest('[data-gid]'); if (gh) { S.grupoAbierto = S.grupoAbierto === gh.dataset.gid ? '' : gh.dataset.gid; return pintarPpa(); }
+    const ir = e.target.closest('[data-ir]'); if (ir) { S.vista = 'registro'; S.grupoAbierto = ir.dataset.ir; return pintarPpa(); }
+  });
+  $('m-cuerpo').addEventListener('change', e => {
+    const f = { 'f-subg': 'subg', 'f-area': 'area', 'f-sector': 'sector', 'f-grupo': 'grupo' }[e.target.id];
+    if (!f) return;
+    S.filtros[f] = e.target.value;
+    if (f === 'area') S.filtros.sector = '';
+    if (f === 'subg') { S.filtros.area = ''; S.filtros.sector = ''; }
+    pintarPpa();
+  });
+  let esp = null;
+  $('m-cuerpo').addEventListener('input', e => { if (e.target.id !== 'f-q') return; clearTimeout(esp); esp = setTimeout(() => { S.filtros.q = e.target.value; pintarPpa(); }, 250); });
+  $('av-sheet').addEventListener('click', e => { const a = e.target.closest('[data-evid]'); if (a) { e.preventDefault(); verEvidencia(a.dataset.evid); } });
+  $('ov-avance').addEventListener('click', e => { if (e.target.id === 'ov-avance') cerrarAvance(); });
+  window.addEventListener('online', () => { toast('🟢 Conexión recuperada: enviando pendientes'); sincronizarPendientes(); });
+  window.addEventListener('offline', () => { toast('🔴 Sin señal: los avances se guardarán en pendientes'); pintar(); });
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw-prevencion.js').catch(() => {});
+  const { data } = await sb.auth.getSession();
+  if (data && data.session) await mostrarApp(); else $('v-login').style.display = '';
+});
+</script>
+</body>
+</html>

@@ -138,6 +138,12 @@ const MENU_MODULOS = [
   { id: 'tab-descargas', grupo: '🌲 Planificador CMPC', nombre: 'Descargas geográficas (KML / GeoJSON)', ver: () => puedeDescargasGeo_(), nivel: () => 'ver' },
   { id: 'tab-agricultores', grupo: '🌾 Agricultores', nombre: 'Gestión Asociación Malleco (Tablero de seguimiento)', ver: () => puedeAgricultores_(),
     nivel: () => agrPuedeRegistrar_() ? 'editar' : 'ver', nota: () => esAsociacion_() ? 'Registra; meta solo escuelas' : (esAdminPerfil_() ? '' : 'Área Victoria') },
+  // 📋 PPA (06-11-2026, SQL 160; js/38): 1ª etapa solo Administrador, para revisar y validar
+  { id: 'tab-ppadetalle', grupo: '📋 PPA', nombre: 'Detalle del PPA', ver: () => puedePpa_(), nivel: () => 'editar', nota: () => 'Fase de validación' },
+  { id: 'tab-ppaavance', grupo: '📋 PPA', nombre: 'Tablero de Avance del PPA', ver: () => puedePpa_(), nivel: () => 'ver' },
+  { id: 'tab-pparesumen', grupo: '📋 PPA', nombre: 'Resumen del PPA', ver: () => puedePpa_(), nivel: () => 'ver' },
+  { id: 'tab-ppagestion', grupo: '📋 PPA', nombre: 'Tablero de Gestión del PPA', ver: () => puedePpa_(), nivel: () => 'ver' },
+  { id: 'tab-ppametas', grupo: '📋 PPA', nombre: 'Metas por fecha del PPA', ver: () => puedePpa_(), nivel: () => ppaEsAdmin_() ? 'editar' : 'ver' },
   { id: 'tab-admin', grupo: '⚙️ Administración', nombre: 'Administración del sistema', ver: () => !!(state.perfil && state.perfil.perfil === 'Administrador'), nivel: () => 'editar' },
 ];
 /** ¿Se ve el menú? La Asociación de Agricultores ve SOLO 🌾 Agricultores (y los menús marcados con asoc: true). */
@@ -153,6 +159,7 @@ function aplicarPermisosMenu_() {
   // Grupos: se ven si tienen al menos un menú visible
   ver('grupo-prevencion', MENU_MODULOS.some(m => m.grupo === '🛡️ Prevención' && menuVisible_(m)));
   ver('grupo-agricultores', MENU_MODULOS.some(m => m.grupo === '🌾 Agricultores' && menuVisible_(m)));
+  ver('grupo-ppa', MENU_MODULOS.some(m => m.grupo === '📋 PPA' && menuVisible_(m)));
   // Botón 🔥 Crear Periodo Crítico dentro del mapa del Modo Emergencia
   document.body.classList.toggle('puede-crear-periodo', puedeEditarModulo_('periodo_critico') &&
     ['GRD', 'Administrador', 'Jefe de Área Relacionamiento'].includes(state.perfil && state.perfil.perfil));
@@ -319,6 +326,7 @@ async function alternarModoAreaTrabajo_(encender, chk) {
 
 async function activarModoArea_(area) {
   state.areaActiva = area;
+  actualizarSelloMapa_();   // 🏛️ en modo área no se muestra el escudo de una comuna
   const sel = document.getElementById('area-select');
   if (sel) { sel.classList.toggle('modo-area-on', !!area); sel.value = area || ''; }
   const chkA = document.getElementById('modo-area-chk'); if (chkA) chkA.checked = !!area;

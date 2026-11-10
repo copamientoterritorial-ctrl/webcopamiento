@@ -300,8 +300,8 @@ async function guardarUsuarioDesdeModal_() {
   }
   if (esSubg) {
     if (!subg) { errEl.textContent = 'Elige la subgerencia del Subgerente.'; errEl.classList.add('show'); return; }
-    const delCat = [...((state.subgCatalogo || {})[subg] || [])].map(plNorm_);
-    areaIds = (state.areasCatalogo || []).filter(a => delCat.includes(plNorm_(a)));
+    const delCat = [...((state.subgCatalogo || {})[subg] || [])].map(areaClave_);
+    areaIds = (state.areasCatalogo || []).filter(a => delCat.includes(areaClave_(a)));
     if (!areaIds.length) areaIds = [...((state.subgCatalogo || {})[subg] || [])];
   }
   // Comunas automáticas (17-10-2026): Jefe de Área y Subgerente reciben las comunas de sus áreas

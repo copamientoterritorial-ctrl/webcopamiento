@@ -872,7 +872,7 @@ function bloqueRecursoRuta_(r, escenario) {
 /** Abre el Calendario de Turnos en el área indicada (nombres con o sin tilde). */
 function abrirCalendarioDeArea_(area) {
   const areas = state.perfil.perfil === 'Administrador' ? (state.areasCatalogo || []) : (state.misAreasIds || []);
-  const igual = areas.find(a => plNorm_(a) === plNorm_(area));
+  const igual = areas.find(a => areaClave_(a) === areaClave_(area));
   if (igual) state.turnosArea = igual;
   map.closePopup();
   mostrarVista_('turnos');

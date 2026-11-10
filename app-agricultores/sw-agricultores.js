@@ -1,6 +1,6 @@
 // Service worker de la App de terreno «Agricultores Malleco»: permite abrir la app sin señal.
 // Solo atiende la app y sus librerías; no toca el sistema web ni las llamadas a Supabase.
-const VERSION = 'agricultores-v1.5.0';   // = APP_VERSION de app.html y version.json
+const VERSION = 'agricultores-v1.5.1';   // = APP_VERSION de app.html y version.json
 const CDN = [
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',

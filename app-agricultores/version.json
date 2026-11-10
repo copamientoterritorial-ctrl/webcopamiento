@@ -1,9 +1,9 @@
 {
-  "version": "1.5.0",
-  "fecha": "2026-11-04",
+  "version": "1.5.1",
+  "fecha": "2026-11-06",
   "notas": [
+    "Mapa más simple: se quitaron los fundos CMPC",
     "Edita o elimina tus registros y tus actividades planificadas; sube fotos desde la galería",
-    "Mapa satelital, buscador de lugares y capas de fundos CMPC, rutas MOP, predios e incendios por temporada",
-    "Fecha y hora editables al registrar una actividad"
+    "Mapa satelital, buscador de lugares y capas de rutas MOP, predios e incendios por temporada"
   ]
 }

@@ -12,7 +12,7 @@ function puedeAdminAgricultores_() {
   return state.perfil.perfil === 'Administrador' || esJefeAreaPerfil_(state.perfil.perfil) || esAsociacion_();
 }
 function agpEsAdmin_() { return !!(state.perfil && state.perfil.perfil === 'Administrador') && !esAsociacion_(); }
-function agpColorRiesgo_(r) { return AGP_RIESGO_COLOR[normalizarBusqueda_(r || '')] || '#65A30D'; }
+function agpColorRiesgo_(r) { return AGP_RIESGO_COLOR[normalizarBusqueda_(agpRiesgo_(r))] || '#65A30D'; }
 /** Atributos de un predio para las descargas (KML / GeoJSON / Excel). */
 function agpPropiedades_(p) {
   return {
@@ -63,8 +63,9 @@ function agpArmarPantalla_() {
     '<div class="dg-lado agp-lado">' +
       '<div class="dg-bloque"><b>Filtros</b>' +
         '<label>Capa<select id="agp-capa" class="admin-search"></select></label>' +
+        '<label>Subgerencia<select id="agp-subg" class="admin-search"></select></label>' +
         '<label>Comuna<select id="agp-comuna" class="admin-search"></select></label>' +
-        '<label>Riesgo<select id="agp-riesgo" class="admin-search"></select></label>' +
+        '<label>Nivel de riesgo<select id="agp-riesgo" class="admin-search"></select></label>' +
         '<label>Gestor<select id="agp-gestor" class="admin-search"></select></label>' +
         '<input id="agp-q" class="admin-search" placeholder="🔎 Buscar predio, agricultor, ID, fundo…">' +
       '</div>' +
@@ -78,7 +79,7 @@ function agpArmarPantalla_() {
   const gris = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16 }).addTo(state.agp.mapa);
   L.control.layers({ 'Mapa sobrio': gris, 'Satélite': sat }, null, { position: 'topright' }).addTo(state.agp.mapa);
   state.agp.capa = L.featureGroup().addTo(state.agp.mapa);
-  ['agp-capa', 'agp-comuna', 'agp-riesgo', 'agp-gestor'].forEach(id => document.getElementById(id).addEventListener('change', () => agpRender_(true)));
+  ['agp-capa', 'agp-subg', 'agp-comuna', 'agp-riesgo', 'agp-gestor'].forEach(id => document.getElementById(id).addEventListener('change', () => agpRender_(true)));
   let t = null;
   document.getElementById('agp-q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => agpRender_(true), 200); });
   document.getElementById('agp-lista').addEventListener('click', e => { const f = e.target.closest('[data-agp]'); if (f) agpEnfocar_(f.dataset.agp); });
@@ -101,16 +102,21 @@ function agpPoblarFiltros_() {
     sel.value = ks.includes(v) ? v : '';
   };
   opciones('agp-capa', 'Todas las capas', D.map(p => p.capa));
+  opciones('agp-subg', 'Todas las subgerencias', D.map(agpSubg_));
   opciones('agp-comuna', 'Todas las comunas', D.map(p => p.comuna));
-  opciones('agp-riesgo', 'Todos los riesgos', D.map(p => p.riesgo));
+  opciones('agp-riesgo', 'Todos los niveles', D.map(p => agpRiesgo_(p.riesgo)));
   opciones('agp-gestor', 'Todos los gestores', D.map(p => p.gestor));
 }
+/** 06-11-2026: riesgo uniforme («ALTO», «alto», «Alto » → «Alto») y subgerencia en mayúsculas (o «Sin subgerencia»). */
+function agpRiesgo_(r) { const n = normalizarBusqueda_(r || ''); return !n ? '' : n.startsWith('alt') ? 'Alto' : n.startsWith('med') ? 'Medio' : n.startsWith('baj') ? 'Bajo' : String(r).trim(); }
+function agpSubg_(p) { return p.subgerencia ? String(p.subgerencia).trim().toUpperCase() : 'Sin subgerencia'; }
 function agpFiltrados_() {
   const v = id => document.getElementById(id).value;
   const q = normalizarBusqueda_(document.getElementById('agp-q').value || '');
-  return (state.agp.datos || []).filter(p => (!v('agp-capa') || p.capa === v('agp-capa')) && (!v('agp-comuna') || p.comuna === v('agp-comuna')) &&
-    (!v('agp-riesgo') || p.riesgo === v('agp-riesgo')) && (!v('agp-gestor') || p.gestor === v('agp-gestor')) &&
-    (!q || normalizarBusqueda_([p.id_bg, p.nombre, p.nombre_predio, p.agricultor, p.nombre_fundo, p.cod_fundo, p.sector, p.tipo_cultivo, p.gestor].join(' ')).includes(q)));
+  return (state.agp.datos || []).filter(p => (!v('agp-capa') || p.capa === v('agp-capa')) && (!v('agp-subg') || agpSubg_(p) === v('agp-subg')) &&
+    (!v('agp-comuna') || p.comuna === v('agp-comuna')) &&
+    (!v('agp-riesgo') || agpRiesgo_(p.riesgo) === v('agp-riesgo')) && (!v('agp-gestor') || p.gestor === v('agp-gestor')) &&
+    (!q || normalizarBusqueda_([p.id_bg, p.nombre, p.nombre_predio, p.agricultor, p.celular, p.nombre_fundo, p.cod_fundo, p.sector, p.tipo_cultivo, p.gestor].join(' ')).includes(q)));
 }
 function agpPopup_(p) {
   const fmt = (k, v) => v == null || v === '' ? '—' : (k === 'sup_ha' || k === 'ha_calculadas') ? Number(v).toLocaleString('es-CL') + ' ha'
@@ -123,7 +129,7 @@ function agpRender_(ajustar) {
   const lista = agpFiltrados_(), D = state.agp.datos || [];
   const ha = lista.reduce((s, p) => s + (Number(p.sup_ha) || 0), 0);
   const agri = new Set(lista.map(p => normalizarBusqueda_(p.agricultor || '')).filter(Boolean)).size;
-  const porR = r => lista.filter(p => normalizarBusqueda_(p.riesgo || '') === r).length;
+  const porR = r => lista.filter(p => normalizarBusqueda_(agpRiesgo_(p.riesgo)) === r).length;
   const kpi = (n, t, c) => '<div class="gr-kpi" style="--c:' + c + '"><b>' + n + '</b>' + t + '</div>';
   document.getElementById('agp-kpis').innerHTML =
     kpi(lista.length + (lista.length !== D.length ? '/' + D.length : ''), 'predios', '#65A30D') + kpi(Math.round(ha).toLocaleString('es-CL'), 'hectáreas', '#0F766E') +

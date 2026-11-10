@@ -568,7 +568,7 @@ async function guardarRecursoReferencia_(id, zona, recursoMaestroId, fechaInicio
   if (!id) {
     const { data: cat } = await supabaseClient.from('areas_relacionamiento_catalogo')
       .select('id_area, area').order('area');
-    const fila = (cat || []).find(a => plNorm_(a.area) === plNorm_(zona));
+    const fila = (cat || []).find(a => areaClave_(a.area) === areaClave_(zona));
     if (!fila || fila.id_area == null) return 'El área "' + zona + '" no tiene código (id_area) en el catálogo.';
     if (fechaInicio) datos.fecha_inicio_operacion = fechaInicio;
     const { error } = await supabaseClient.rpc('crear_recurso_referencia', {

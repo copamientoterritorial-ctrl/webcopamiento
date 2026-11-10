@@ -255,7 +255,7 @@ const CAMPOS_PATRULLERO = [
   { k: 'patente_movil', label: 'Patente móvil' },
   { k: 'gerencia', label: 'Gerencia' },
   { k: 'subgerencia', label: 'Subgerencia' },
-  { k: 'id_area_trabajo', label: 'ID Área (1-14)', tipo: 'number' },
+  { k: 'id_area_trabajo', label: 'ID Área (1-16)', tipo: 'number' },
   { k: 'area_relacionamiento', label: 'Área relacionamiento' },
   { k: 'sector', label: 'Sector' },
   { k: 'jefe_directo', label: 'Jefe directo' },

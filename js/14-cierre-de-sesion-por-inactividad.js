@@ -148,7 +148,20 @@ async function cargarLogoMunicipalComuna_(comunaId) {
   if (!comunaId) { actualizarBotonLogoMunicipal_(); return; }
   const { data } = await supabaseClient.from('comuna_logo_municipal').select('logo_url').eq('comuna_id', comunaId).maybeSingle();
   state.logoMunicipalComuna = data ? data.logo_url : null;
+  state.selloLogos = state.selloLogos || {}; state.selloLogos[comunaId] = state.logoMunicipalComuna;
   actualizarBotonLogoMunicipal_();
+  actualizarSelloMapa_();
+}
+/** 🏛️ Sello de agua en el MAPA (05-11-2026): escudo municipal de la comuna conectada (state.activeComunaId), tenue, en la esquina
+ *  inferior derecha; no recibe clics. Solo logos propios de la comuna; en 🧭 modo área o sin comuna, no se muestra. */
+function actualizarSelloMapa_() {
+  const cont = document.getElementById('map'); if (!cont) return;
+  let el = document.getElementById('mapa-sello');
+  if (!el) { el = document.createElement('div'); el.id = 'mapa-sello'; el.setAttribute('aria-hidden', 'true'); cont.appendChild(el); }
+  const url = !state.areaActiva && state.activeComunaId ? state.logoMunicipalComuna : null;
+  if (!url) { el.style.display = 'none'; el.style.backgroundImage = ''; return; }
+  el.style.backgroundImage = 'url("' + String(url).replace(/["\\\n]/g, '') + '")';
+  el.style.display = '';
 }
 
 function actualizarBotonLogoMunicipal_() {
@@ -285,10 +298,36 @@ function seleccionarComuna_(comunaId) {
 
 // Logo(s) municipales en el Dashboard: desde el 17-10-2026 ya no hay panel izquierdo (lista de logos
 // o logo de la comuna); todos los logos se muestran en el carrusel al final (cargarCarruselMunicipios_).
+// 04-11-2026: SELLO DE AGUA — el escudo de la municipalidad de la comuna del Dashboard queda de fondo, muy tenue. Comuna = la del
+// filtro del Dashboard; si es la vista general y el usuario tiene UNA sola comuna (GRD), la suya. Solo logos propios de la comuna
+// (comuna_logo_municipal); sin logo propio, sin sello. Admin / Jefes en la vista general («todas mis comunas»): sin sello.
+state.selloLogos = {};   // comuna_id → logo_url | null (caché)
 async function actualizarLogoDashboard_(comunaId) {
   const cont = document.getElementById('logo-municipal-grande');
   if (cont) cont.style.display = 'none';
-  void comunaId;
+  const dash = document.getElementById('dashboard'); if (!dash) return;
+  let id = comunaId || null;
+  if (!id) {
+    const mias = (typeof comunasSeleccionablesUsuario_ === 'function' ? comunasSeleccionablesUsuario_() : []) || [];
+    if (mias.length === 1) id = mias[0].id;
+    // GRD con varias comunas: la comuna con la que está conectado (la activa del sistema)
+    else if (state.perfil && state.perfil.perfil === 'GRD' && state.activeComunaId) id = state.activeComunaId;
+  }
+  const quitar = () => { dash.classList.remove('con-sello'); dash.style.removeProperty('--sello'); dash.removeAttribute('data-sello'); };
+  if (!id) { quitar(); return; }
+  if (!(id in state.selloLogos)) {
+    try {
+      const { data } = await supabaseClient.from('comuna_logo_municipal').select('logo_url').eq('comuna_id', id).maybeSingle();
+      state.selloLogos[id] = data && data.logo_url ? data.logo_url : null;
+    } catch (e) { state.selloLogos[id] = null; }
+  }
+  const actual = comunaDashboard_ ? (comunaDashboard_() || id) : id;   // el filtro pudo cambiar mientras se leía
+  if (actual !== id && comunaId) return;
+  const url = state.selloLogos[id];
+  if (!url) { quitar(); return; }
+  dash.style.setProperty('--sello', 'url("' + String(url).replace(/["\\\n]/g, '') + '")');
+  dash.setAttribute('data-sello', id);
+  dash.classList.add('con-sello');
 }
 /* ============ COMUNAS FAVORITAS ============ */
 function actualizarEstrellaFavorito_() {

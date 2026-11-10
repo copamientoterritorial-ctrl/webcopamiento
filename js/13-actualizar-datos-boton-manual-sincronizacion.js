@@ -113,6 +113,7 @@ async function actualizarDatos_(origen) {
     else if (vista === 'agricultores') tareas.push(correr(() => cargarAgricultores_()));
     else if (vista === 'turnosgestor') tareas.push(correr(() => cargarTurnosGestores_()));
     else if (vista === 'agradmin') tareas.push(correr(() => abrirAdminAgricultores_(true)));
+    else if (/^ppa/.test(vista)) tareas.push(correr(() => abrirPpa_(vista, true)));
     else if (vista === 'planificador') {
       tareas.push(correr(async () => {
         await cargarRecursosPlanificador_();
@@ -142,6 +143,7 @@ function mostrarVista_(vista, modoMapa) {
   if (vista === 'agradmin' && !puedeAdminAgricultores_()) vista = 'dashboard';
   if (vista === 'agricultores' && !puedeAgricultores_()) vista = 'dashboard';
   if (vista === 'turnosgestor' && !puedeTurnosGestores_()) vista = 'dashboard';
+  if (/^ppa/.test(vista) && !puedePpa_()) vista = 'dashboard';   // 📋 PPA (js/38)
   if (vista === 'admin' && state.perfil.perfil !== 'Administrador') vista = 'dashboard';
   if (vista === 'patrullajes' && !esAdminOJefe_()) vista = 'dashboard';   // 17-10-2026: también Jefe de Área
   // Turnos y Planificador gráfico: según perfil + permisos por usuario (SQL 83).
@@ -215,6 +217,8 @@ function mostrarVista_(vista, modoMapa) {
   if (tgP) tgP.classList.toggle('show', vista === 'turnosgestor');
   const apP = document.getElementById('agradmin-panel');
   if (apP) apP.classList.toggle('show', vista === 'agradmin');
+  const ppaP = document.getElementById('ppa-panel');
+  if (ppaP) ppaP.classList.toggle('show', /^ppa/.test(vista));
   document.body.classList.toggle('modo-dashboard', !esMapa);
   actualizarBotonLogoMunicipal_();
   const esVisor = esMapa && state.modoMapa === 'visor';
@@ -250,6 +254,7 @@ function mostrarVista_(vista, modoMapa) {
   else if (vista === 'agricultores') abrirAgricultores_();
   else if (vista === 'turnosgestor') abrirTurnosGestores_();
   else if (vista === 'agradmin') abrirAdminAgricultores_();
+  else if (/^ppa/.test(vista)) abrirPpa_(vista);
   else setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 60);
 
   // Mostrar/ocultar controles del mapa según la vista activa
@@ -752,7 +757,7 @@ async function cargarAreasPrio_() {
     (ac.data || []).forEach(x => {
       if (!x.area || x.id_comuna == null) return;
       const e = porComuna[x.id_comuna] = porComuna[x.id_comuna] || { areas: [], subgs: [] };
-      if (!e.areas.some(a => plNorm_(a) === plNorm_(x.area))) e.areas.push(x.area);
+      if (!e.areas.some(a => areaClave_(a) === areaClave_(x.area))) e.areas.push(x.area);
       const s = subgDeArea[plNorm_(x.area).replace(/[^A-Z0-9]/g, '')];
       if (s && !e.subgs.includes(s)) e.subgs.push(s);
     });

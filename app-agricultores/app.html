@@ -234,10 +234,10 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px s
 //   y predios (RPC agr_capas_offline).
 // · Día de alerta: «Ir a Patrullaje» abre la App de Patrullaje con una sesión para este mismo usuario (agr_token_patrullaje).
 // · v1.4 (04-11-2026, SQL 153): ✏️ editar los registros propios (fecha, lugar, datos, fotos; sin señal queda en la cola),
-//   fotos desde la cámara o la galería, mapa Satélite, capas Fundos CMPC · Red Vial MOP · Predios de agricultores ·
+//   fotos desde la cámara o la galería, mapa Satélite, capas Red Vial MOP · Predios de agricultores ·
 //   Incendios por temporada (apagados por defecto) y buscador de lugares (datos del teléfono + Esri en línea).
 // ════════════════════════════════════════════════════════════════
-const APP_VERSION = '1.5.0';   // ⚠️ al publicar cambios: subir aquí, en sw-agricultores.js (VERSION) y en version.json
+const APP_VERSION = '1.5.1';   // ⚠️ al publicar cambios: subir aquí, en sw-agricultores.js (VERSION) y en version.json
 const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 // Sesión propia de la app (no se cierra al salir del sistema web en el mismo navegador)
@@ -757,7 +757,7 @@ async function renderPerfil() {
       '<button class="btn btn-s" id="btn-actualizar" style="margin-top:10px;">🔄 Actualizar datos</button></div>' +
     '<div class="card"><h3>🗺️ Mapa sin conexión</h3>' +
       '<div class="lin"><span>Mosaicos del mapa</span><b>' + (d ? 'Descargando ' + Math.round(d.ok * 100 / Math.max(1, d.total)) + ' %' : mo ? (mo.completo ? '✅ ' : '⚠️ Parcial · ') + new Date(mo.fecha).toLocaleDateString('es-CL') + ' (zoom ' + mo.zoomMax + ')' : 'No descargado') + '</b></div>' +
-      '<div class="lin"><span>Capas (fundos, rutas, predios)</span><b>' + (state.capas ? new Date(state.capas.generado).toLocaleDateString('es-CL') : 'No descargadas') + '</b></div>' +
+      '<div class="lin"><span>Capas (rutas, predios)</span><b>' + (state.capas ? new Date(state.capas.generado).toLocaleDateString('es-CL') : 'No descargadas') + '</b></div>' +
       '<div class="lin"><span>Incendios por temporada</span><b>' + (state.descargandoInc ? 'Descargando…' : state.incendios ? new Date(state.incendios.fecha).toLocaleDateString('es-CL') : 'No descargados') + '</b></div>' +
       '<button class="btn btn-p" id="btn-offline" style="margin-top:10px;"' + (d ? ' disabled' : '') + '>⬇️ Descargar mapa de la Asociación</button>' +
       '<p style="font-size:12px;color:var(--muted);margin-top:8px;">Descárgalo con Wi-Fi antes de salir a terreno (Victoria, Lumaco y Collipulli): baja el mapa, las capas y los incendios. Las imágenes satelitales se guardan solo de las zonas que ya miraste con señal.</p></div>' +
@@ -937,7 +937,7 @@ function mapaFormulario() {
   ctl.addTo(F.mapa);
   // Capas de referencia (las mismas que estén encendidas en el Mapa; sin ventanas para no estorbar al marcar el punto)
   const on = capasOn(), ref = crearCapasRef(true);
-  ['comunas', 'fundos', 'predios', 'mop'].forEach(k => { if (on[k] && ref[k]) ref[k].addTo(F.mapa); });
+  ['comunas', 'predios', 'mop'].forEach(k => { if (on[k] && ref[k]) ref[k].addTo(F.mapa); });
   F.mapa.on('click', e => { F.pin = { lat: e.latlng.lat, lng: e.latlng.lng }; F.pinMovido = true; centrarPin(false); pintarGps(); });
   centrarPin(true);
   setTimeout(() => F.mapa && F.mapa.invalidateSize(), 120);
@@ -1151,8 +1151,8 @@ function capaBase(tipo) {
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 18 })]);
   return L.tileLayer(CARTO, { maxZoom: 19, maxNativeZoom: 17, attribution: 'Tiles © Esri' });
 }
-// Capas del mapa (encendidas por defecto salvo Fundos; los incendios van aparte y parten APAGADOS)
-const CAPAS_DEF = [['act', '📍 Actividades registradas', true], ['predios', '🌾 Predios de agricultores', true], ['fundos', '🌲 Fundos CMPC', false],
+// Capas del mapa (los incendios van aparte y parten APAGADOS). 06-11-2026: sin Fundos CMPC (se quitaron de la app)
+const CAPAS_DEF = [['act', '📍 Actividades registradas', true], ['predios', '🌾 Predios de agricultores', true],
   ['mop', '🛣️ Red vial MOP', true], ['comunas', '🏘️ Límites comunales', true]];
 const PALETA_TEMP = ['#EF4444', '#F59E0B', '#94A3B8', '#3B82F6', '#7C3AED', '#059669'];
 function capasOn() {
@@ -1172,8 +1172,6 @@ function fcDe(arr) {
 function crearCapasRef(sinVentanas) {
   const C = state.capas || {}, it = !sinVentanas, g = {};
   g.comunas = L.geoJSON(fcDe(C.comunas), { interactive: false, style: { color: '#14532D', weight: 2, dashArray: '6 5', fill: false } });
-  g.fundos = L.geoJSON(fcDe(C.fundos), { interactive: it, style: { color: '#059669', weight: 1.4, fillColor: '#34D399', fillOpacity: 0.15 },
-    onEachFeature: (f, l) => { if (it) l.bindPopup('<b>🌲 ' + esc(f.properties.nombre || 'Fundo CMPC') + '</b>' + (f.properties.sup_ha ? '<br><small>' + Number(f.properties.sup_ha).toLocaleString('es-CL', { maximumFractionDigits: 1 }) + ' ha</small>' : '')); } });
   g.predios = L.geoJSON(fcDe(C.predios), { interactive: it,
     style: f => { const c = colorRiesgoPredio(f.properties.riesgo); return { color: c, weight: 2, fillColor: c, fillOpacity: 0.22 }; },
     onEachFeature: (f, l) => { if (!it) return; const p = f.properties;
@@ -1201,7 +1199,7 @@ function pintarReferencia() {
   const m = state.mapa, C = state.capasMapa; if (!m) return;
   const on = capasOn(), gen = state.capas && state.capas.generado;
   if (!C.ref || C.refGen !== gen) { if (C.ref) Object.values(C.ref).forEach(l => m.removeLayer(l)); C.ref = crearCapasRef(false); C.refGen = gen; }
-  ['comunas', 'fundos', 'predios', 'mop'].forEach(k => { const l = C.ref[k]; if (on[k]) { if (!m.hasLayer(l)) l.addTo(m); } else m.removeLayer(l); });
+  ['comunas', 'predios', 'mop'].forEach(k => { const l = C.ref[k]; if (on[k]) { if (!m.hasLayer(l)) l.addTo(m); } else m.removeLayer(l); });
   const incGen = state.incendios && state.incendios.fecha;
   if (C.incGen !== incGen) { if (C.inc) Object.values(C.inc).forEach(l => m.removeLayer(l)); C.inc = crearCapasIncendios(); C.incGen = incGen; }
   Object.keys(C.inc || {}).forEach(t => { const l = C.inc[t]; if (state.incOn[t]) { if (!m.hasLayer(l)) l.addTo(m); } else m.removeLayer(l); });
@@ -1210,11 +1208,11 @@ function pintarReferencia() {
 function renderCapasPanel() {
   const p = $('map-capas'); if (!p || p.classList.contains('hidden')) return;
   const on = capasOn(), C = state.capas || {}, inc = state.incendios;
-  const n = { act: null, comunas: (C.comunas || []).length, predios: (C.predios || []).length, fundos: (C.fundos || []).length, mop: (C.rutas || []).length };
+  const n = { act: null, comunas: (C.comunas || []).length, predios: (C.predios || []).length, mop: (C.rutas || []).length };
   p.innerHTML = '<div class="t">Mapa base</div><div class="seg">' + [['mapa', '🗺️ Mapa'], ['sat', '🛰️ Satélite']].map(([k, t]) => '<button data-base="' + k + '"' + (state.baseMapa === k ? ' class="on"' : '') + '>' + t + '</button>').join('') + '</div>' +
     '<div class="t">Capas</div>' + CAPAS_DEF.map(([k, t]) => '<label><input type="checkbox" data-capa="' + k + '"' + (on[k] ? ' checked' : '') + '> ' + t +
       (n[k] === null ? '' : '<small>' + (n[k] ? n[k].toLocaleString('es-CL') : state.capas ? '0' : '—') + '</small>') + '</label>').join('') +
-    (!state.capas ? '<div class="nota">Las capas se descargan solas con señal (o en Yo › Descargar mapa).</div>' : C.fundos === undefined ? '<div class="nota">Fundos: se verán cuando el sistema tenga el SQL 153.</div>' : '') +
+    (!state.capas ? '<div class="nota">Las capas se descargan solas con señal (o en Yo › Descargar mapa).</div>' : '') +
     '<div class="t">🔥 Incendios por temporada</div>' +
     (state.descargandoInc ? '<div class="nota">Descargando incendios… (puede tardar con señal débil)</div>'
       : !inc ? '<button class="btn-mini" data-inc-bajar="1">⬇️ Descargar incendios</button><div class="nota">Una vez, con señal (ideal Wi-Fi). Quedan guardados en el teléfono.</div>'
@@ -1230,7 +1228,7 @@ function irAResultado(r) {
   C.busq.openPopup();
 }
 
-// ── Buscador de lugares: primero lo que hay en el teléfono (agricultores, predios, fundos, comunas, rutas MOP,
+// ── Buscador de lugares: primero lo que hay en el teléfono (agricultores, predios, comunas, rutas MOP,
 //    coordenadas) y, con señal, el buscador de direcciones y lugares de Esri (sin clave; OpenStreetMap bloquea el sitio).
 function normTxt(s) { return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
 function coordsDeTexto(q) {
@@ -1257,8 +1255,6 @@ function buscarLocal(q) {
     .forEach(a => out.push({ icono: '👨‍🌾', nombre: a.nombre, sub: 'Agricultor' + (a.fundo ? ' · ' + a.fundo : '') + (a.comuna ? ' · ' + a.comuna : ''), lat: Number(a.lat), lng: Number(a.lng) }));
   (C.predios || []).filter(p => ok(p.nombre) || ok(p.agricultor) || ok(p.codigo)).slice(0, 5)
     .forEach(p => { const r = conExtension({ icono: '🌾', nombre: p.nombre || p.agricultor || 'Predio', sub: 'Predio' + (p.agricultor ? ' · ' + p.agricultor : '') }, p.geometry); if (r) out.push(r); });
-  (C.fundos || []).filter(f => ok(f.nombre)).slice(0, 5)
-    .forEach(f => { const r = conExtension({ icono: '🌲', nombre: f.nombre, sub: 'Fundo CMPC' }, f.geometry); if (r) out.push(r); });
   (C.comunas || []).filter(x => ok(x.comuna))
     .forEach(x => { const r = conExtension({ icono: '🏘️', nombre: x.comuna, sub: 'Comuna' }, x.geometry); if (r) out.push(r); });
   const porRol = {};

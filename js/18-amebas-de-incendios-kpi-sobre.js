@@ -1334,7 +1334,7 @@ async function loadRecursosDisponiblesAreaLayer_() {
     const punto = infoRuta ? '<span class="punto-neon ' + (infoRuta.con ? 'con' : 'sin') + '" title="' + (infoRuta.con ? 'Tiene ruta asignada' : 'Sin ruta asignada') + '"></span>' : '';
     const etiqueta = punto + (idClave ? '<b>' + idClave + '</b>' : escapeHtml_(r.tipo_recurso || r.nombre_recurso || inst.nombre));
     const puedeEditar = puedeGestionarRecursoArea_(r.area);
-    const enEdicionEstaZona = !!(state.modoRecursosArea && plNorm_(state.modoRecursosArea.area) === plNorm_(r.area));
+    const enEdicionEstaZona = !!(state.modoRecursosArea && areaClave_(state.modoRecursosArea.area) === areaClave_(r.area));
     const popupHtml =
       '<div class="popup-title">' + (r.clave_radial ? '📻 ' + escapeHtml_(r.clave_radial) + ' · ' : '') + escapeHtml_(r.nombre_recurso || inst.nombre) + '</div>' +
       '<div class="popup-row">🏢 ' + inst.nombre + '</div>' +
@@ -1427,8 +1427,8 @@ async function reubicarRecursoArea_(id, marker) {
 
 function puedeGestionarRecursoArea_(area) {
   if (state.perfil.perfil === 'Administrador') return true;
-  // perfil_areas viene sin tilde (MULCHEN) y los recursos con tilde (MULCHÉN): comparar normalizado.
-  if (state.perfil.perfil === 'Jefe de Área Relacionamiento') return (state.misAreasIds || []).map(plNorm_).includes(plNorm_(area));
+  // Comparar por clave (sin tildes, espacios ni guiones): «LOS RIOS - LOS LAGOS» = «LOS RÍOS-LOS LAGOS»
+  if (state.perfil.perfil === 'Jefe de Área Relacionamiento') return esMiArea_(area);
   return false;
 }
 
