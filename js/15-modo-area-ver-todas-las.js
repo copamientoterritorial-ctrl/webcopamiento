@@ -357,6 +357,7 @@ async function activarModoArea_(area) {
     state.areaFiltro = { area, ids: new Set((state.comunas || []).filter(c => nums.has(Number(c.id_comuna))).map(c => c.id)) };
   }
   refrescarSelectorComunas_();
+  if (typeof redibujarAlertasVista_ === 'function') redibujarAlertasVista_();   // alertas activas: solo las del área (js/26)
   await dibujarMascaraArea_();
   // La comuna activa debe ser del área: si no lo es, se pasa a la primera comuna del área que el usuario pueda usar
   if (state.areaFiltro && !state.areaFiltro.ids.has(state.activeComunaId)) {

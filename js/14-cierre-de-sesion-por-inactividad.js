@@ -153,7 +153,7 @@ async function cargarLogoMunicipalComuna_(comunaId) {
   actualizarSelloMapa_();
 }
 /** 🏛️ Sello de agua en el MAPA (05-11-2026): escudo municipal de la comuna conectada (state.activeComunaId), tenue, en la esquina
- *  inferior derecha; no recibe clics. Solo logos propios de la comuna; en 🧭 modo área o sin comuna, no se muestra. */
+ *  inferior izquierda (desde 10-11-2026; al lado del panel lateral si está abierto); no recibe clics. Solo logos propios de la comuna; en 🧭 modo área o sin comuna, no se muestra. */
 function actualizarSelloMapa_() {
   const cont = document.getElementById('map'); if (!cont) return;
   let el = document.getElementById('mapa-sello');
@@ -437,6 +437,8 @@ function setActiveComuna(comunaId, esCargaInicial) {
   state.activeComunaId = comunaId;
   const cfg = state.comunas.find(c => c.id === comunaId);
   if (!cfg) { console.error('Comuna no encontrada en catálogo:', comunaId); return; }
+  // 12-11-2026: las alertas activas (polígono + rutas SIGEI con brillo) se muestran solo de la comuna que se ve (js/26)
+  if (typeof redibujarAlertasVista_ === 'function') redibujarAlertasVista_();
 
   comunaRequestToken++;
   const miToken = comunaRequestToken;

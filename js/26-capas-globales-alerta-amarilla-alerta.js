@@ -9,7 +9,27 @@ const alertaRojaFeatureLayers     = [];
 // Arrays planos para etiquetas — igual que recursosDisponiblesFeatureLayers
 // arrays de alerta movidos a declaraciones globales
 
-async function cargarCapasAlertaGlobales_() {
+/* 12-11-2026: las alertas ACTIVAS de otras comunas (p. ej. Collipulli en Alerta Roja) se dibujaban —polígono y rutas SIGEI con
+ * brillo— sobre CUALQUIER comuna que se estuviera viendo (Mulchén, Ercilla…). Ahora se filtran por la vista:
+ *   · modo comuna → solo la comuna activa; · 🧭 modo área → las comunas del área; · sin comuna (vista general) → todas.
+ * Los datos se guardan (state.alertasActivasData) y al cambiar de comuna/área se redibuja sin volver a consultar. */
+const ALERTA_ZONA_Y_RUTAS_ACTIVAS = false;   // false = no dibujar zona rellena ni rutas SIGEI con brillo de las comunas con plan activo
+function filtrarAlertasVista_(filas) {
+  filas = filas || [];
+  if (state.areaActiva && state.areaFiltro && state.areaFiltro.ids) {
+    const nums = new Set((state.comunas || []).filter(c => state.areaFiltro.ids.has(c.id)).map(c => Number(c.id_comuna)));
+    return filas.filter(c => nums.has(Number(c.id_comuna)));
+  }
+  const idc = typeof idComunaActiva_ === 'function' ? idComunaActiva_() : null;
+  if (idc == null) return filas;
+  return filas.filter(c => Number(c.id_comuna) === Number(idc));
+}
+/** Redibuja las capas de alerta con la comuna / área actual (sin consultar). Lo llaman el cambio de comuna y el modo área. */
+function redibujarAlertasVista_() {
+  if (!state.alertasActivasData) return;
+  cargarCapasAlertaGlobales_(true);
+}
+async function cargarCapasAlertaGlobales_(usarGuardado) {
   capaAlertaVerdeLayer.clearLayers();
   capaAlertaAmarillaLayer.clearLayers();
   capaAlertaRojaLayer.clearLayers();
@@ -20,8 +40,18 @@ async function cargarCapasAlertaGlobales_() {
     }
   });
 
-  const { data, error } = await supabaseClient.from('comunas_alerta_activa').select('*');
-  if (error) { console.error('No se pudieron cargar las capas de alerta:', error); return; }
+  let todas = state.alertasActivasData;
+  if (!usarGuardado || !todas) {
+    const { data: d0, error } = await supabaseClient.from('comunas_alerta_activa').select('*');
+    if (error) { console.error('No se pudieron cargar las capas de alerta:', error); return; }
+    todas = state.alertasActivasData = d0 || [];
+    // La consulta pudo tardar: limpiar de nuevo por si otra llamada dibujó mientras tanto
+    capaAlertaVerdeLayer.clearLayers(); capaAlertaAmarillaLayer.clearLayers(); capaAlertaRojaLayer.clearLayers();
+  }
+  // 12-11-2026: el POLÍGONO relleno de la comuna con plan activo y sus RUTAS SIGEI con brillo ya no se dibujan
+  // (tampoco en la propia comuna). Lo planificado de cada alerta se sigue viendo igual (planificacionRecursos*Layer).
+  // Para volver a mostrarlos: ALERTA_ZONA_Y_RUTAS_ACTIVAS = true.
+  const data = ALERTA_ZONA_Y_RUTAS_ACTIVAS ? filtrarAlertasVista_(todas) : [];
 
   (data || []).forEach(c => {
     try {
@@ -84,7 +114,9 @@ async function cargarCapasAlertaGlobales_() {
  * patrullaje (mapeadas por id_comuna) con glow del color del nivel de alerta.
  * Capa independiente del toggle manual de patrullaje: se muestra automáticamente
  * mientras el plan esté activo. Si una comuna tiene Amarilla y Roja, gana Roja. */
+let rutasEnAlertaToken_ = 0;
 async function encenderRutasEnAlerta_(comunasAlerta) {
+  const miCarga = ++rutasEnAlertaToken_;
   rutasEnAlertaLayer.clearLayers();
   if (!comunasAlerta || !comunasAlerta.length) return;
 
@@ -104,6 +136,8 @@ async function encenderRutasEnAlerta_(comunasAlerta) {
     .from('v_rutas_patrullaje')
     .select('id, nombre_ruta, km, area, comuna, id_comuna, actividad, tipo_movil, sector, geometry')
     .in('id_comuna', idsAlerta);
+  if (miCarga !== rutasEnAlertaToken_) return;   // cambió la comuna mientras se consultaba: esta respuesta ya no sirve
+  rutasEnAlertaLayer.clearLayers();
   if (error) { console.error('No se pudieron cargar rutas en alerta:', error); return; }
 
   (rutas || []).forEach(r => {
@@ -249,8 +283,9 @@ async function loadPlanificacionRecursosInterno_(comunaId) {
     (po || []).forEach(p => { planIds.push(p.id); escenarioPorPlan[p.id] = p.escenario; otraComunaPorPlan[p.id] = p.comuna_id; });
   }
 
-  // 🧭 Modo comuna (22-10-2026, SQL 139): las entidades de OTRAS comunas que ENTRAN a esta (recursos compartidos) también
-  // cuentan en su copamiento, así que se dibujan aquí (con su color, solo consulta). En modo área ya vienen con el área.
+  // 🧭 Modo comuna: las entidades de OTRAS comunas que el usuario ASOCIÓ a esta (🔗 Comparte, entidad_comunas) y que son de
+  // la MISMA área (SQL 170; antes, SQL 139, entraba todo lo que cruzaba el límite) cuentan en su copamiento, así que se
+  // dibujan aquí (con su color, solo consulta). En modo área ya vienen con el área.
   let compartidas = [];
   if (!otrasComunas.length && state.modoMapa === 'planificador') {
     try {
@@ -348,7 +383,7 @@ async function loadPlanificacionRecursosInterno_(comunaId) {
         '<div class="popup-row">🏷️ ' + iconoTipoGeometria_(r.tipo_geometria) + ' · ' + escapeHtml_(r.tipo_recurso || '') + '</div>' +
         '<div class="popup-row" style="margin-top:4px;">' + escapeHtml_(r.descripcion || 'Sin descripción') + '</div>' +
         bloqueRecursoRuta_(r, escenario) + filaAsoc +
-        '<div class="popup-row" style="margin-top:6px;color:#6D28D9;font-size:11px;">🧭 Planificada en la comuna <b>' + escapeHtml_(comunaOtra) + '</b> (' + (state.idsCompartidas && state.idsCompartidas.has(String(r.id)) ? 'entra a esta comuna y suma en su copamiento' : 'otra comuna del área') + '). Para editarla, cambia a esa comuna.</div>' +
+        '<div class="popup-row" style="margin-top:6px;color:#6D28D9;font-size:11px;">🧭 Planificada en la comuna <b>' + escapeHtml_(comunaOtra) + '</b> (' + (state.idsCompartidas && state.idsCompartidas.has(String(r.id)) ? 'compartida con esta comuna: suma en su copamiento' : 'otra comuna del área') + '). Para editarla, cambia a esa comuna.</div>' +
         '<div class="popup-actions"><button class="popup-btn" onclick="irAComunaArea_(\'' + escapeHtml_(otra) + '\')">📍 Ir a ' + escapeHtml_(comunaOtra) + '</button></div>'
       :
       '<div class="popup-title"><span class="pr-sw" style="background:' + colorInstitucion + ';display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;"></span>' + inst.nombre + ' <span style="font-size:10px;">(' + (escenario === 'Verde' ? '🟢 Planificado' : escenario === 'Amarilla' ? '🟡 Planificado' : '🔴 Planificado') + ')</span></div>' +

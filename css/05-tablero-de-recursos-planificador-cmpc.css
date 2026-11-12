@@ -117,6 +117,11 @@ body.tema-oscuro .tb-estado.sin{background:#7F1D1D;color:#FECACA;}
   background-position:left 10px center;background-size:14px 14px;}
 .pl-limpiar{height:32px;padding:0 12px;border-radius:8px;border:1.5px solid #FCA5A5;background:#FEF2F2;color:#B91C1C;font:700 12px inherit;font-family:inherit;cursor:pointer;white-space:nowrap;}
 .pl-limpiar:hover{background:#FEE2E2;border-color:#F87171;}
+/* ✕ Limpiar filtros genérico de todos los paneles (js/39, 11-11-2026): mismo aspecto que el del Planificador gráfico */
+.lf-limpiar{height:32px;padding:0 12px;border-radius:8px;border:1.5px solid #FCA5A5;background:#FEF2F2;color:#B91C1C;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex:0 0 auto;}
+.lf-limpiar:hover{background:#FEE2E2;border-color:#F87171;}
+.lf-limpiar span{display:inline-block;min-width:16px;padding:0 5px;margin-left:3px;border-radius:99px;background:#DC2626;color:#fff;font-size:10.5px;line-height:16px;}
+body.tema-oscuro .lf-limpiar{background:#3B1D24;border-color:#7F1D1D;color:#FCA5A5;}
 .pl-limpiar span{display:inline-block;min-width:16px;padding:0 5px;margin-left:3px;border-radius:99px;background:#DC2626;color:#fff;font-size:10.5px;line-height:16px;}
 body.tema-oscuro #planificador-panel .pat-toolbar .pl-filtro.activo{background-color:#1E3A8A;color:#DBEAFE;}
 .pl-export-wrap{position:relative;}

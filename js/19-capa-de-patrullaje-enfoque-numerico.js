@@ -29,8 +29,9 @@ function filtrarRutasPorPerfil_(rutas) {
   }
   const idc = idComunaActiva_();
   if (idc == null) return rol === 'Administrador' ? rutas : [];
-  const polys = poligonosComunaActiva_();
-  return rutas.filter(r => r.id_comuna === idc || asoc(r).includes(state.activeComunaId) || (polys.length && rutaEntraEnPoligonos_(r.geometry, polys)));
+  // 10-11-2026: solo las rutas de la comuna y las que el usuario asoció (🔗 Comunas). Ya no entran las de otras comunas
+  // por cruzar el límite (p. ej. rutas de Cabrero —área Los Ángeles— dentro de Yumbel —área Concepción—).
+  return rutas.filter(r => r.id_comuna === idc || asoc(r).includes(state.activeComunaId));
 }
 /** Asociaciones ruta SIGEI → comunas (SQL 141). Sin el 141 queda vacío y todo funciona como antes. */
 async function cargarRutaSigeiComunas_() {
@@ -441,18 +442,23 @@ async function confirmarTraspasoRuta_() {
 }
 
 async function loadPatrullajeLayer_() {
+  const miCarga = ++cargaPatrullajeToken_;
   patrullajeLayer.clearLayers();
   window.arbolPatrullaje = {};
   try {
     const { data, error } = await supabaseClient
       .from('v_rutas_patrullaje')
       .select('id, nombre_ruta, alias, temporada, tipo_recurso, actividad, tipo_movil, km, empresa, zona_alerta, sector, id_subg, subgerencia, id_area, area, id_comuna, comuna, comuna_slug, geometry');
+    if (miCarga !== cargaPatrullajeToken_) return;   // llegó otra carga más nueva (cambio de comuna): esta se descarta
     if (error) {
       state.patrullajeInfo = { ok: false, count: 0, cargado: true, error: error.message };
       if (document.querySelector('.rail-btn.active') && document.querySelector('.rail-btn.active').dataset.tab === 'capas') renderTab('capas');
       return;
     }
     await cargarRutaSigeiComunas_();
+    if (miCarga !== cargaPatrullajeToken_) return;
+    patrullajeLayer.clearLayers();
+    window.arbolPatrullaje = {};
     const permitidas = filtrarRutasPorPerfil_(data || []);
     state.patrullajeRutas = permitidas;
 
@@ -533,6 +539,7 @@ async function loadPatrullajeLayer_() {
 // (solo para el perfil Administrador — complementan las capas globales)
 // ════════════════════════════════════════════════════════════════
 async function loadRecursosComunaAdmin_() {
+  const miCarga = ++cargaRecursosComunaToken_;
   recursosComunaAdminLayer.clearLayers();
   recursosComunaAdminFeatureLayers = [];
   state.recursosComunaAdminInfo = { ok: false, count: 0 };
@@ -543,6 +550,9 @@ async function loadRecursosComunaAdmin_() {
     .from('recursos_disponibles_area_geojson')
     .select('*')
     .eq('id_comuna', idc);
+  if (miCarga !== cargaRecursosComunaToken_ || idComunaActiva_() !== idc) return;   // respuesta vieja: otra comuna
+  recursosComunaAdminLayer.clearLayers();
+  recursosComunaAdminFeatureLayers = [];
   if (error) { state.recursosComunaAdminInfo = { ok: false, count: 0, error: error.message }; return; }
 
   (data || []).forEach(r => {
@@ -581,7 +591,12 @@ function toggleEtiquetasRecursosComunaAdmin_() {
   if (btn) btn.classList.toggle('active', state.mostrarEtiquetasRecursosComunaAdmin);
 }
 
+// 12-11-2026: «token» de carga. Si se cambia de comuna mientras una consulta sigue en curso, su respuesta llega TARDE y
+// dibujaba las rutas / recursos de la comuna anterior sobre la nueva (p. ej. rutas SIGEI de Collipulli en Mulchén).
+// Cada carga toma un número; al volver de la base, si ya no es la última (o cambió la comuna), se descarta.
+let cargaRutasComunaToken_ = 0, cargaRecursosComunaToken_ = 0, cargaPatrullajeToken_ = 0;
 async function loadRutasComunaAdmin_() {
+  const miCarga = ++cargaRutasComunaToken_;
   rutasComunaAdminLayer.clearLayers();
   window.arbolRutasComuna = {};
   state.rutasComunaAdminInfo = { ok: false, count: 0 };
@@ -592,6 +607,9 @@ async function loadRutasComunaAdmin_() {
     .from('v_rutas_patrullaje')
     .select('id, nombre_ruta, subgerencia, area, sector, comuna, id_comuna, actividad, tipo_movil, km, temporada, geometry')
     .eq('id_comuna', idc);
+  if (miCarga !== cargaRutasComunaToken_ || idComunaActiva_() !== idc) return;   // respuesta vieja: otra comuna
+  rutasComunaAdminLayer.clearLayers();
+  window.arbolRutasComuna = {};
   if (error) { state.rutasComunaAdminInfo = { ok: false, count: 0, error: error.message }; return; }
 
   // Las rutas de la comuna se registran en el mismo índice que las de

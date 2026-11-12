@@ -139,7 +139,9 @@
   .av-ayuda { position:absolute; left:50%; top:52px; transform:translateX(-50%); z-index:1000; background: rgba(15,23,42,.72); color:#fff; font-size:11px; padding:3px 10px; border-radius:999px; pointer-events:none; white-space:nowrap; display:none; }
   .av-mapa.grande .av-ayuda { display:block; }
   /* ⛶ Mapa agrandado: ocupa toda la pantalla, respetando la barra de estado y la zona inferior del teléfono */
-  .av-mapa.grande { position:fixed; inset:0; height:auto !important; z-index:60; border-radius:0; border:0; }
+  .av-mapa.grande { position:fixed; inset:0; height:auto !important; z-index:60; border-radius:0; border:0; margin:0; }
+  .av-listo { display:none; position:absolute; left:50%; transform:translateX(-50%); bottom:calc(52px + env(safe-area-inset-bottom)); z-index:1000; border:0; border-radius:999px; padding:12px 22px; font:inherit; font-size:15px; font-weight:800; color:#fff; background: linear-gradient(90deg, #2563EB, #0F766E); box-shadow: 0 8px 20px rgba(2,6,23,.4); cursor:pointer; white-space:nowrap; }
+  .av-mapa.grande .av-listo { display:block; }
   .av-mapa.grande .av-capas { top:calc(10px + env(safe-area-inset-top)); left:calc(10px + env(safe-area-inset-left)); }
   .av-mapa.grande .av-grande { top:calc(10px + env(safe-area-inset-top)); right:calc(10px + env(safe-area-inset-right)); }
   .av-mapa.grande .av-ayuda { top:calc(62px + env(safe-area-inset-top)); }
@@ -340,7 +342,7 @@ function pintarPerfil() {
     pendientesHtml() +
     '<div class="card"><button class="btn" data-actualizar="1" style="width:100%;margin-bottom:8px;">🔄 Actualizar datos</button>' +
       '<button class="btn" data-salir="1" style="width:100%;color:var(--err);">⏻ Cerrar sesión</button></div>' +
-    '<p class="muted" style="text-align:center;">Prevención Territorial · v1.0.4</p>';
+    '<p class="muted" style="text-align:center;">Prevención Territorial · v1.0.5</p>';
 }
 // Jefes, GRT y GRD ven por defecto su área (si tienen una sola). El Administrador ve todo.
 async function aplicarFiltroPorDefecto() {
@@ -373,6 +375,7 @@ function filtradas() {
 
 /* ───────── Pintado ───────── */
 function pintar() {
+  const mg = document.querySelector('#mr-mapa.grande'); if (mg) mg.remove();   // mapa ampliado de Meteorología que se va a redibujar
   document.querySelectorAll('#menu button').forEach(b => b.classList.toggle('on', b.dataset.s === S.sec));
   const t = { ppa: ['📋 PPA', 'Plan de Prevención por Área'], recursos: ['🚒 Gestión Recursos', 'Disponibilidad de recursos'], meteo: ['🌦️ Meteorología', 'Tu ubicación · pronóstico 7 días'], copamiento: ['🗺️ Copamiento', 'Rutas y patrullajes'], perfil: ['👤 Mi perfil', 'Tu cuenta y tus áreas'] }[S.sec];
   $('h-titulo').textContent = t[0]; $('h-sub').textContent = t[1];
@@ -392,11 +395,12 @@ function pintarPpa() {
   const activos = (f.subg ? 1 : 0) + (f.area && f.area !== S.areaDefault ? 1 : 0) + (f.sector ? 1 : 0) + (f.grupo ? 1 : 0);
   const barra = '<div class="fila" style="align-items:center;margin-top:4px;">' +
     '<button class="btn" data-fil="1" style="flex:0 0 auto;">🔎 Filtros' + (activos ? ' (' + activos + ')' : '') + (S.filAbierto ? ' ▴' : ' ▾') + '</button>' +
-    '<input id="f-q" placeholder="🔍 Buscar acción, id, sector…" value="' + esc(f.q) + '" style="min-width:0;"></div>';
+    '<input id="f-q" placeholder="🔍 Buscar acción, id, sector…" value="' + esc(f.q) + '" style="min-width:0;">' +
+    ((activos || f.q) ? '<button class="btn" data-limpiar="1" title="Limpiar filtros y búsqueda" style="flex:0 0 auto;color:var(--err);border-color:#FCA5A5;background:#FEF2F2;">✕</button>' : '') + '</div>';
   const panel = '<div class="card" id="f-panel" style="' + (S.filAbierto ? '' : 'display:none;') + '">' +
     '<div class="fila">' + sel('f-sector', 'Sector', sectores, f.sector) + sel('f-grupo', 'Grupo plan', grupos, f.grupo) + '</div>' +
     ((S.puedeElegirArea || S.esAdmin) ? '<div class="fila" style="margin-top:8px;">' + (S.puedeElegirArea ? sel('f-area', 'Área', areas, f.area) : '') + (S.esAdmin ? sel('f-subg', 'Subgerencia', subgs, f.subg) : '') + '</div>' : '') +
-    '<div class="fila" style="margin-top:8px;justify-content:flex-end;"><button class="btn" data-limpiar="1">Limpiar filtros</button></div></div>';
+    '<div class="fila" style="margin-top:8px;justify-content:flex-end;"><button class="btn" data-limpiar="1">✕ Limpiar filtros</button></div></div>';
   const filtros = barra + panel;
   $('m-cuerpo').innerHTML = tabs + filtros + (S.vista === 'registro' ? listaRegistro() : tableroEjecutivo());
 }
@@ -632,7 +636,8 @@ function regHtml(v) {
     (v.puede_editar ? '<div class="rg-acc"><button class="av-btn" data-edit="' + esc(v.id) + '">✏️ Modificar</button></div>' : '') +
     '</div>';
 }
-function cerrarAvance() { $('ov-avance').classList.remove('show'); document.body.style.overflow = ''; }
+function cerrarMapasGrandes() { document.querySelectorAll('.av-mapa.grande').forEach(m => (m.cerrarGrande ? m.cerrarGrande() : m.remove())); }
+function cerrarAvance() { cerrarMapasGrandes(); $('ov-avance').classList.remove('show'); document.body.style.overflow = ''; }
 // ───────── Mapa interactivo (Leaflet + mosaicos Esri) ─────────
 // Zoom con dos dedos / botones, ⛶ pantalla completa y base elegible:
 //   🛰️ Imagen  = satelital (World_Imagery)
@@ -700,14 +705,27 @@ function montarMapa(cont, lat, lng, opts) {
   if (hay) mover(lat, lng, false); else pintarCap();
   if (opts.editable) map.on('click', e => { mover(e.latlng.lat, e.latlng.lng, false); opts.onMove && opts.onMove(e.latlng.lat, e.latlng.lng, 'mano'); });
   const btnG = cont.querySelector('.av-grande');
+  // ⛶ Ampliar = solo para ubicar el punto con más detalle. 11-11-2026: el mapa ampliado se SACA al <body> mientras dura
+  // (en iOS el contenedor con desplazamiento del formulario «atrapaba» el position:fixed y los botones de cerrar quedaban
+  // fuera de la vista); al cerrar vuelve exactamente a su lugar.
+  let marca = null;
   const grande = on => {
+    if (on && !cont.classList.contains('grande')) {
+      marca = document.createComment('mapa'); cont.parentNode.insertBefore(marca, cont); document.body.appendChild(cont);
+    } else if (!on && marca) { marca.parentNode ? marca.parentNode.replaceChild(cont, marca) : cont.remove(); marca = null; }
     cont.classList.toggle('grande', on);
     btnG.textContent = on ? '✕' : '⛶'; btnG.title = on ? 'Cerrar mapa grande' : 'Agrandar mapa'; btnG.setAttribute('aria-label', btnG.title);
     setTimeout(() => { map.invalidateSize(); if (pin) map.panTo(pin.getLatLng()); }, 60);
   };
+  cont.cerrarGrande = () => grande(false);
   btnG.onclick = e => { e.stopPropagation(); grande(!cont.classList.contains('grande')); };
+  const btnL = document.createElement('button');
+  btnL.type = 'button'; btnL.className = 'av-listo';
+  btnL.textContent = opts.editable ? '✓ Listo, usar este punto' : '✓ Volver';
+  btnL.onclick = e => { e.stopPropagation(); grande(false); };
+  cont.appendChild(btnL);
   // Los toques sobre los controles no deben mover el pincho
-  cont.querySelectorAll('.av-capas, .av-grande').forEach(el => L.DomEvent.disableClickPropagation(el));
+  cont.querySelectorAll('.av-capas, .av-grande, .av-listo').forEach(el => L.DomEvent.disableClickPropagation(el));
   setTimeout(() => map.invalidateSize(), 80);
   const vivo = { cont, ponerBase, map };
   MAPAS_VIVOS = MAPAS_VIVOS.filter(x => document.body.contains(x.cont)).concat(vivo);
@@ -958,7 +976,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (dsc) { if (window.confirm('¿Descartar este pendiente? No se enviará al servidor.')) colaQuitar(Number(dsc.dataset.desc)).then(refrescarPendientes).then(pintar); return; }
     if (e.target.closest('[data-actualizar]')) { actualizarDatos(); return; }
     if (e.target.closest('[data-fil]')) { S.filAbierto = !S.filAbierto; return pintarPpa(); }
-    if (e.target.closest('[data-limpiar]')) { S.filtros = { subg: '', area: S.areaDefault, sector: '', grupo: '', q: S.filtros.q }; return pintarPpa(); }
+    if (e.target.closest('[data-limpiar]')) { S.filtros = { subg: '', area: S.areaDefault, sector: '', grupo: '', q: '' }; return pintarPpa(); }
     const r = e.target.closest('[data-reg]'); if (r) return abrirAvance(r.dataset.reg);
     const rs = e.target.closest('[data-regs]'); if (rs) return abrirRegistros(rs.dataset.regs);
     const c = e.target.closest('.acc[data-id]'); if (c) return abrirAvance(c.dataset.id);
