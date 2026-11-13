@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -295,7 +295,6 @@ textarea.campo:focus{border-color:var(--cobalt);}
       <div class="map-info" id="map-info">Cargando…</div>
       <div class="map-filtros">
         <div class="seg seg-mapa" id="mf-esc"><button data-esc="Verde" class="sel">Normal</button><button data-esc="Amarilla">Amarilla</button><button data-esc="Roja">Roja</button></div>
-        <div class="seg seg-mapa" id="mf-inst"><button data-inst="mia" class="sel">Mi institución</button><button data-inst="todas">Todas</button></div>
       </div>
       <div class="map-btns">
         <button id="btn-centrar" title="Centrar en mi posición">◎</button>
@@ -334,7 +333,7 @@ textarea.campo:focus{border-color:var(--cobalt);}
 // Los reportes, turnos y puntos GPS se guardan primero en el teléfono (IndexedDB) y se envían cuando hay
 // señal: nada se pierde si se corta la conexión.
 // ════════════════════════════════════════════════════════════════
-const APP_VERSION = '2.2.0';
+const APP_VERSION = '2.3.0';
 const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -361,7 +360,7 @@ const state = {
   pos: null, ultimoPunto: null, rastro: [], cubiertos: new Set(), rutaVertices: [],
   reportesServidor: [], pendientes: 0, ultimaSync: null, sincronizando: false,
   vista: 'inicio', mapa: null, capas: {}, fondoSat: false, watchId: null, wakeLock: null, filtroRep: 'todos',
-  rutasPlan: [], escMapa: 'Verde', instMapa: 'mia', companeros: [], instalarEvt: null, sinGps: false
+  rutasPlan: [], areasPlan: [], escMapa: 'Verde', instMapa: 'mia', companeros: [], instalarEvt: null, sinGps: false
 };
 const ESCENARIOS = { Verde: 'Normal', Amarilla: 'Alerta Amarilla', Roja: 'Alerta Roja' };
 const COMPANEROS_CADA_MS = 60000;
@@ -489,7 +488,7 @@ async function cerrarSesion(motivo) {
   if (!motivo && navigator.onLine && state.token) { try { await rpc('app_logout', { p_token: state.token }); } catch (e) { /* sin importancia */ } }
   detenerGps(); liberarWakeLock();
   await Promise.all(['kv', 'cola', 'gps', 'fotos'].map(s => DB.clear(s)));
-  Object.assign(state, { token: null, usuario: null, turno: null, rastro: [], cubiertos: new Set(), ultimoPunto: null, reportesServidor: [], rutasPlan: [], companeros: [] });
+  Object.assign(state, { token: null, usuario: null, turno: null, rastro: [], cubiertos: new Set(), ultimoPunto: null, reportesServidor: [], rutasPlan: [], areasPlan: [], companeros: [] });
   if (state.mapa) { state.mapa.remove(); state.mapa = null; state.capas = {}; }
   mostrarLogin();
   if (motivo) $('lg-err').textContent = motivo;
@@ -553,18 +552,36 @@ async function cargarRutasPlan() {
   }
 }
 function normTxt(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+// ¿La institución del plan es la del patrullero? Igual que app_misma_institucion_ (SQL 175): clave sin tildes ni
+// símbolos, iguales o una contenida en la otra («Municipalidad de Collipulli» ↔ «MUNICIPALIDAD»).
+function esMiInstitucion(inst) {
+  const a = normTxt(state.usuario && state.usuario.institucion), b = normTxt(inst);
+  return !!a && !!b && (a === b || (b.length >= 3 && a.includes(b)) || (a.length >= 3 && b.includes(a)));
+}
+// v2.3.0 (13-11-2026): la app muestra SOLO lo de la institución del patrullero — rutas (líneas) y áreas comprometidas
+// (polígonos) del plan. El servidor ya filtra (SQL 175); aquí se vuelve a filtrar por si llega una respuesta antigua.
 function aplicarRutasPlan(lista) {
-  const miInst = normTxt(state.usuario && state.usuario.institucion);
-  state.rutasPlan = lista.map(x => ({
-    id: 'plan:' + x.id, origen: 'plan', escenario: x.escenario,
+  const propias = lista.filter(x => esMiInstitucion(x.institucion)).map(x => ({
+    id: 'plan:' + x.id, origen: 'plan', escenario: x.escenario, tipo_geometria: x.tipo_geometria || 'linea',
     nombre: x.descripcion || x.clave || x.tipo_recurso || 'Ruta del plan',
     detalle: [x.clave, x.tipo_recurso].filter(Boolean).join(' · '),
-    institucion: x.institucion || 'Sin institución', color: x.color || '#2563EB',
-    propia: !!miInst && normTxt(x.institucion) === miInst,
+    institucion: x.institucion || 'Sin institución', color: x.color || '#2563EB', propia: true,
     geometry: typeof x.geometry === 'string' ? safeJson(x.geometry) : x.geometry
   })).filter(r => r.geometry);
+  state.rutasPlan = propias.filter(r => r.tipo_geometria !== 'area');
+  state.areasPlan = propias.filter(r => r.tipo_geometria === 'area');
   state.rutasPlan.forEach(r => { r.km = kmGeom(r.geometry); });
   prepararRutaTurno();
+}
+// Las rutas SIGEI de la comuna son de CMPC: solo para patrulleros de CMPC.
+function esPatrulleroCmpc() { return normTxt(state.usuario && state.usuario.institucion).includes('CMPC'); }
+// Áreas comprometidas de mi institución en un escenario (relleno suave, debajo de las rutas)
+function dibujarAreasPlan(capa, escenario) {
+  (state.areasPlan || []).filter(a => a.escenario === escenario).forEach(a => {
+    L.geoJSON(a.geometry, { style: { color: a.color, weight: 2, opacity: .8, fillColor: a.color, fillOpacity: .15 } })
+      .bindPopup(`<b>🟩 ${esc(a.nombre)}</b><br>${esc(ESCENARIOS[a.escenario] || a.escenario)}<br><small>${esc([a.institucion, a.detalle].filter(Boolean).join(' · '))}</small>`)
+      .addTo(capa);
+  });
 }
 function kmGeom(g) {
   if (!g) return 0;
@@ -605,7 +622,7 @@ function renderCompaneros() {
 function aplicarInicio(r, desdeCache) {
   state.usuario = Object.assign({}, state.usuario, r.usuario || {});
   state.tipos = r.tipos || [];
-  state.rutas = (r.rutas || []).map(x => Object.assign({}, x, {
+  state.rutas = (esPatrulleroCmpc() ? (r.rutas || []) : []).map(x => Object.assign({}, x, {
     id: String(x.id), origen: 'sigei', nombre: x.nombre_ruta || x.alias || 'Ruta SIGEI', propia: true,
     detalle: [x.tipo_movil, x.sector].filter(Boolean).join(' · '), institucion: 'Ruta SIGEI',
     geometry: typeof x.geometry === 'string' ? safeJson(x.geometry) : x.geometry
@@ -849,13 +866,12 @@ function puntoMedio(geom) {
 }
 function elegirRutaEIniciar() {
   if (!exigirGps()) return;
-  let sel = '', esc0 = 'Verde', todas = false, lista = [], mm = null, grupo = null, capas = {};
+  let sel = '', esc0 = 'Verde', lista = [], mm = null, grupo = null, capas = {};
   const h = abrirHoja(`<h3>▶ Iniciar patrullaje</h3>
     <div class="seg" id="ri-esc"><button data-esc="Verde" class="sel">Normal</button><button data-esc="Amarilla">Amarilla</button><button data-esc="Roja">Roja</button></div>
     <div class="ri-mapa" id="ri-mapa"></div>
-    <div class="ri-ayuda">Toca una ruta en el mapa o en la lista. La elegida se destaca.</div>
+    <div class="ri-ayuda">Rutas y áreas de <b>${esc(state.usuario.institucion || 'tu institución')}</b>. Toca una ruta en el mapa o en la lista; la elegida se destaca.</div>
     <div id="ri-lista"></div>
-    <button class="btn-mini" id="ri-todas" style="width:100%;margin-bottom:10px">Ver rutas de todas las instituciones</button>
     <button class="ruta-op sel" data-id=""><span style="font-size:22px">🧭</span><div><b>Patrullaje libre</b><small>Sin una ruta específica</small></div></button>
     <div class="hoja-acc"><button class="btn btn-sec" data-cerrar>Cancelar</button><button class="btn btn-ok" id="btn-ini-ok">Iniciar patrullaje libre</button></div>`);
   // Mini mapa con las rutas numeradas
@@ -884,12 +900,12 @@ function elegirRutaEIniciar() {
     }
   };
   const pintar = () => {
-    const plan = state.rutasPlan.filter(r => r.escenario === esc0 && (todas || r.propia));
+    const plan = state.rutasPlan.filter(r => r.escenario === esc0);
     lista = plan.concat(esc0 === 'Verde' ? state.rutas : []);
     h.querySelector('#ri-lista').innerHTML = lista.map((r, i) => opcionRuta(r, i, PALETA_RUTAS[i % PALETA_RUTAS.length])).join('') ||
-      `<div class="ubic">No hay rutas ${todas ? '' : 'de tu institución '}en ${esc(ESCENARIOS[esc0])} para tu comuna.</div>`;
-    h.querySelector('#ri-todas').textContent = todas ? 'Ver solo las de mi institución' : 'Ver rutas de todas las instituciones';
+      `<div class="ubic">No hay rutas de tu institución en ${esc(ESCENARIOS[esc0])} para tu comuna.</div>`;
     grupo.clearLayers(); capas = {};
+    dibujarAreasPlan(grupo, esc0);   // áreas comprometidas de mi institución, de fondo
     lista.forEach((r, i) => {
       if (!r.geometry) return;
       const color = PALETA_RUTAS[i % PALETA_RUTAS.length], id = String(r.id);
@@ -906,7 +922,6 @@ function elegirRutaEIniciar() {
   h.querySelectorAll('#ri-esc button').forEach(b => b.addEventListener('click', () => {
     h.querySelectorAll('#ri-esc button').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); esc0 = b.dataset.esc; pintar();
   }));
-  h.querySelector('#ri-todas').addEventListener('click', () => { todas = !todas; pintar(); });
   pintar();
   h.querySelector('#btn-ini-ok').addEventListener('click', async () => {
     const ruta = todasRutas().find(r => String(r.id) === String(sel)) || null;
@@ -1343,16 +1358,16 @@ function abrirMapa() {
 }
 function pintarFiltrosMapa() {
   document.querySelectorAll('#mf-esc button').forEach(b => b.classList.toggle('sel', b.dataset.esc === state.escMapa));
-  document.querySelectorAll('#mf-inst button').forEach(b => b.classList.toggle('sel', b.dataset.inst === state.instMapa));
 }
-// Rutas visibles: las del plan en el escenario elegido (de mi institución o de todas) + rutas SIGEI de la comuna
+// Rutas visibles: las del plan de MI institución en el escenario elegido + rutas SIGEI (solo patrulleros CMPC)
 function rutasVisibles() {
-  return state.rutasPlan.filter(r => r.escenario === state.escMapa && (state.instMapa === 'todas' || r.propia))
+  return state.rutasPlan.filter(r => r.escenario === state.escMapa)
     .concat(state.escMapa === 'Verde' ? state.rutas : []);
 }
 function dibujarMapa() {
   if (!state.mapa) return;
   state.capas.rutas.clearLayers();
+  dibujarAreasPlan(state.capas.rutas, state.escMapa);   // áreas comprometidas de mi institución, debajo de las rutas
   const activa = rutaDelTurno();
   const visibles = rutasVisibles();
   if (activa && !visibles.includes(activa)) visibles.push(activa);
@@ -1371,7 +1386,9 @@ function dibujarMapa() {
   if (state.turno) dibujarInfoMapa();
   else {
     const n = visibles.length, otros = state.companeros.filter(c => !c.yo).length;
-    $('map-info').innerHTML = (n ? '🛣️ ' + n + ' ruta(s) · ' + esc(ESCENARIOS[state.escMapa]) + (state.instMapa === 'mia' ? ' · mi institución' : ' · todas') : 'Sin rutas en ' + esc(ESCENARIOS[state.escMapa]) + (state.instMapa === 'mia' ? ' para tu institución' : ''))
+    const na = (state.areasPlan || []).filter(a => a.escenario === state.escMapa).length;
+    $('map-info').innerHTML = (n || na ? '🛣️ ' + n + ' ruta(s)' + (na ? ' · 🟩 ' + na + ' área(s)' : '') + ' · ' + esc(ESCENARIOS[state.escMapa]) + ' · mi institución'
+      : 'Sin rutas de tu institución en ' + esc(ESCENARIOS[state.escMapa]))
       + (otros ? ' · 👥 ' + otros + ' patrullando' : '');
   }
 }
@@ -1458,7 +1475,6 @@ $('btn-capa').addEventListener('click', () => {
 });
 // Filtros del mapa: escenario e institución
 document.querySelectorAll('#mf-esc button').forEach(b => b.addEventListener('click', () => { state.escMapa = b.dataset.esc; pintarFiltrosMapa(); dibujarMapa(); verRuta(); }));
-document.querySelectorAll('#mf-inst button').forEach(b => b.addEventListener('click', () => { state.instMapa = b.dataset.inst; pintarFiltrosMapa(); dibujarMapa(); }));
 // Permisos de ubicación
 $('pm-btn').addEventListener('click', pedirPermisoGps);
 $('pm-saltar').addEventListener('click', () => {

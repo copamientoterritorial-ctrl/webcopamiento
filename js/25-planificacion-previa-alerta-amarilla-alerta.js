@@ -723,7 +723,7 @@ function renderSimbologiaInstituciones_() {
 function subarbolInstitucion_(ins) {
   const arbol = desgloseInstitucionAlerta_(ins.id);
   const pertenencias = Object.keys(arbol).sort((a, b) => {
-    const orden = ['Relacionamiento', 'Protección', 'Sin clasificar'];
+    const orden = ['Relacionamiento', 'Protección', 'Operaciones', 'Sin clasificar'];
     return orden.indexOf(a) - orden.indexOf(b);
   });
   if (pertenencias.length === 0) return '';

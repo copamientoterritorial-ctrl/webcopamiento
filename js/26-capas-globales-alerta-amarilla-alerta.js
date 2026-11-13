@@ -538,7 +538,21 @@ async function loadPlanificacionRecursosInterno_(comunaId) {
     // La punta inferior marca la coordenada exacta y la silueta los distingue
     // de los logos redondos que acompañan a líneas y áreas.
     // Contorno continuo con el color del escenario y logo institucional dentro.
-    if (logoInst) {
+    const iconoTipoSis = iconoSistemaTipo_(r.tipo_recurso);
+    if (iconoTipoSis) {
+      // Tipo con ícono propio del sistema (Punto de Faena = cosechadora, 13-11-2026): globo más ancho con el dibujo
+      // dentro; el contorno sigue con el color del escenario y un punto con el color de la institución.
+      icono = L.divIcon({
+        className: '', iconSize: [36, 42], iconAnchor: [18, 41], popupAnchor: [0, -36],
+        html: '<div style="position:relative;width:36px;height:42px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.45));">' +
+          '<svg width="36" height="42" viewBox="0 0 36 42" style="position:absolute;inset:0;">' +
+            '<path d="M18 41 C18 41 3 26 3 16 A15 15 0 1 1 33 16 C33 26 18 41 18 41 Z" fill="#fff" stroke="' + colorEscenario + '" stroke-width="2.4"/>' +
+            '<circle cx="29" cy="5" r="3.6" fill="' + colorInstitucion + '" stroke="#fff" stroke-width="1.2"/>' +
+          '</svg>' +
+          '<img src="' + escapeHtml_(iconoTipoSis) + '" alt="" style="position:absolute;left:5px;top:7px;width:26px;height:18px;object-fit:contain;">' +
+          '</div>',
+      });
+    } else if (logoInst) {
       icono = L.divIcon({
         className: '', iconSize: [26, 34], iconAnchor: [13, 33], popupAnchor: [0, -30],
         html: '<div style="position:relative;width:26px;height:34px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.45));">' +

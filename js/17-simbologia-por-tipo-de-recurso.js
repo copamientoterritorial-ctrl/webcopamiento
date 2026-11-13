@@ -228,6 +228,7 @@ function cifrasPorEscenario_(c, tamano) {
 const PERTENENCIA_CORTA = {
   'Protección': '🛡️ R. Protección',
   'Relacionamiento': '🤝 R. Relacionamiento',
+  'Operaciones': '🚛 R. Operaciones',
   'Sin clasificar': '❔ Sin clasificar',
 };
 

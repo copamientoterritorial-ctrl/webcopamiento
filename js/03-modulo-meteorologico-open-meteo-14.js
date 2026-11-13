@@ -243,8 +243,97 @@ function renderChipsComparadas_() {
   });
 }
 
+/* 🌐 TRES VISIONES DEL TIEMPO (13-11-2026) ──────────────────────────────────────────────────────────────────────────────
+ * Pestañas del tablero: 📡 API Meteorología (Open-Meteo, lo de siempre) · 🌬️ Windy (mapa incrustado, centrado en la comuna)
+ * · 🇨🇱 DGAC (pronóstico regional oficial de Meteochile: archivos.meteochile.gob.cl/…/pronosticoRegion.php?reg=XX).
+ * Windy y la DGAC se cargan solo al abrir su pestaña y se recargan al cambiar de comuna. La pestaña elegida se recuerda. */
+state.meteoVision = state.meteoVision || (function () { try { return localStorage.getItem('meteo_vision') || 'api'; } catch (e) { return 'api'; } })();
+state.meteoVisionCtx = state.meteoVisionCtx || { lat: -38.0, lng: -72.5, comuna: 'Región (centro)', region: '' };
+const MV_DGAC_BASE = 'https://archivos.meteochile.gob.cl/portaldmc/pronosticos/pronosticoRegion.php?reg=';
+
+/** Código de región de Meteochile según el texto de la región de la comuna (o la latitud si no hay texto). */
+function mvRegionDgac_(regionTxt, lat) {
+  const t = String(regionTxt || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+  if (t.includes('HIGGINS')) return '06';
+  if (t.includes('MAULE')) return '07';
+  if (t.includes('NUBLE')) return '08a';
+  if (t.includes('BIO')) return '08b';
+  if (t.includes('ARAUCANIA')) return '09';
+  if (t.includes('RIOS')) return '10a';
+  if (t.includes('LAGOS')) return '10b';
+  if (t.includes('AYSEN') || t.includes('AISEN')) return '11';
+  const la = Number(lat);
+  if (!isFinite(la)) return '09';
+  return la > -34.8 ? '06' : la > -36.2 ? '07' : la > -36.9 ? '08a' : la > -37.8 ? '08b'
+    : la > -39.5 ? '09' : la > -40.4 ? '10a' : la > -43.7 ? '10b' : '11';
+}
+
+function mvUrlWindy_() {
+  const c = state.meteoVisionCtx;
+  const capa = (document.getElementById('mv-windy-capa') || {}).value || 'wind';
+  const modelo = (document.getElementById('mv-windy-modelo') || {}).value || 'ecmwf';
+  const lat = Number(c.lat).toFixed(3), lng = Number(c.lng).toFixed(3);
+  return 'https://embed.windy.com/embed2.html?lat=' + lat + '&lon=' + lng + '&detailLat=' + lat + '&detailLon=' + lng +
+    '&zoom=9&level=surface&overlay=' + capa + '&product=' + modelo + '&menu=&message=true&marker=true&calendar=now&pressure=' +
+    '&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1';
+}
+
+/** Carga (o recarga) el contenido de la pestaña activa si es Windy o DGAC. */
+function mvCargarVision_() {
+  const c = state.meteoVisionCtx;
+  if (state.meteoVision === 'windy') {
+    const f = document.getElementById('mv-windy-frame'), url = mvUrlWindy_();
+    if (f && f.dataset.url !== url) { f.dataset.url = url; f.src = url; }
+    const lugar = document.getElementById('mv-windy-lugar');
+    if (lugar) lugar.textContent = '📍 ' + c.comuna;
+    const abrir = document.getElementById('mv-windy-abrir');
+    if (abrir) abrir.href = 'https://www.windy.com/' + Number(c.lat).toFixed(3) + '/' + Number(c.lng).toFixed(3) + '?' +
+      ((document.getElementById('mv-windy-capa') || {}).value || 'wind') + ',' + Number(c.lat).toFixed(3) + ',' + Number(c.lng).toFixed(3) + ',9';
+  } else if (state.meteoVision === 'dgac') {
+    const sel = document.getElementById('mv-dgac-region');
+    if (sel && !sel.dataset.manual) sel.value = c.region || mvRegionDgac_('', c.lat);
+    const reg = sel ? sel.value : '09';
+    const f = document.getElementById('mv-dgac-frame'), url = MV_DGAC_BASE + encodeURIComponent(reg);
+    if (f && f.dataset.url !== url) { f.dataset.url = url; f.src = url; }
+    const abrir = document.getElementById('mv-dgac-abrir');
+    if (abrir) abrir.href = 'https://www.meteochile.gob.cl/PortalDMC-web/detalle_regiones.xhtml?reg=' + encodeURIComponent(reg);
+  }
+}
+
+/** Cambia de visión (api | windy | dgac). */
+function mvVer_(vision) {
+  if (!['api', 'windy', 'dgac'].includes(vision)) vision = 'api';
+  state.meteoVision = vision;
+  try { localStorage.setItem('meteo_vision', vision); } catch (e) {}
+  document.querySelectorAll('#meteo-visiones [data-mvision]').forEach(b => b.classList.toggle('on', b.dataset.mvision === vision));
+  const api = vision === 'api';
+  const dash = document.getElementById('dash-meteo'); if (dash) dash.hidden = !api;
+  document.querySelectorAll('.meteo-solo-api').forEach(el => { el.style.visibility = api ? '' : 'hidden'; });
+  const det = document.getElementById('meteo-detalle'); if (det) det.hidden = !api;
+  const w = document.getElementById('meteo-vision-windy'); if (w) w.hidden = vision !== 'windy';
+  const d = document.getElementById('meteo-vision-dgac'); if (d) d.hidden = vision !== 'dgac';
+  mvCargarVision_();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const tabs = document.getElementById('meteo-visiones');
+  if (!tabs) return;
+  tabs.addEventListener('click', e => { const b = e.target.closest('[data-mvision]'); if (b) mvVer_(b.dataset.mvision); });
+  ['mv-windy-capa', 'mv-windy-modelo'].forEach(id => { const s = document.getElementById(id); if (s) s.addEventListener('change', mvCargarVision_); });
+  const reg = document.getElementById('mv-dgac-region');
+  if (reg) reg.addEventListener('change', () => { reg.dataset.manual = '1'; mvCargarVision_(); });
+  mvVer_(state.meteoVision);
+});
+
 async function cargarMeteoDashboard_(cfg) {
   const cont = document.getElementById('dash-meteo');
+  // Contexto de las visiones Windy / DGAC (la comuna del tablero); al cambiar de comuna manda la región de la comuna.
+  try {
+    const cc = cfg ? await coordsComuna_(cfg.id) : { lat: -38.0, lng: -72.5 };
+    state.meteoVisionCtx = { lat: cc.lat, lng: cc.lng, comuna: cfg ? cfg.comuna : 'Región (centro)', region: mvRegionDgac_(cfg && cfg.region, cc.lat) };
+    const sel = document.getElementById('mv-dgac-region'); if (sel) delete sel.dataset.manual;
+    mvCargarVision_();
+  } catch (e) { console.error('visiones meteo:', e); }
   poblarSelectorComparar_();
   renderChipsComparadas_();
   cont.innerHTML = '<div class="layer-empty-msg">Consultando pronóstico…</div>';

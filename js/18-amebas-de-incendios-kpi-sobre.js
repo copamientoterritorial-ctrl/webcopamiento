@@ -938,9 +938,20 @@ state.pertenenciaOculta = state.pertenenciaOculta || {};
 const PERTENENCIA_ETIQUETA = {
   'Protección': '🛡️ Recursos de Protección',
   'Relacionamiento': '🤝 Recursos de Relacionamiento',
+  'Operaciones': '🚛 Recursos de Operaciones',   // 12-11-2026: camión de transporte, jefe / supervisor de faena (SQL 173)
   'Sin clasificar': '❔ Sin clasificar',
 };
-const PERTENENCIA_ORDEN = ['Protección', 'Relacionamiento', 'Sin clasificar'];
+const PERTENENCIA_ORDEN = ['Protección', 'Relacionamiento', 'Operaciones', 'Sin clasificar'];
+
+/** Clave del tipo para cruzar pertenencias: mayúsculas, sin tildes ni espacios dobles. */
+function claveTipoPertenencia_(t) {
+  return String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .trim().replace(/\s+/g, ' ').toUpperCase();
+}
+
+/** Tipos que son siempre Recursos de Operaciones (SQL 173 y 174), aunque el
+ *  catálogo maestro aún no tenga una fila con ese tipo. El catálogo manda si la tiene. */
+const TIPOS_OPERACIONES = ['CAMION DE TRANSPORTE', 'JEFE DE FAENA', 'SUPERVISOR DE FAENA', 'PUNTO DE FAENA'];
 
 /** Carga el mapa tipo_recurso -> pertenencia desde el catálogo maestro. */
 async function cargarPertenenciaRecursos_() {
@@ -952,7 +963,7 @@ async function cargarPertenenciaRecursos_() {
     const mapa = {};
     (data || []).forEach(r => {
       if (r.tipo_recurso && r.pertenencia) {
-        mapa[String(r.tipo_recurso).trim().toUpperCase()] = r.pertenencia;
+        mapa[claveTipoPertenencia_(r.tipo_recurso)] = r.pertenencia;
       }
     });
     state.pertenenciaPorTipo = mapa;
@@ -989,8 +1000,9 @@ function recursoActivoHoy_(recursoId) {
 function pertenenciaDeRecurso_(r) {
   if (!r) return 'Sin clasificar';
   if (r.pertenencia) return r.pertenencia;
-  const clave = String(r.tipo_recurso || '').trim().toUpperCase();
-  return (state.pertenenciaPorTipo && state.pertenenciaPorTipo[clave]) || 'Sin clasificar';
+  const clave = claveTipoPertenencia_(r.tipo_recurso);
+  return (state.pertenenciaPorTipo && state.pertenenciaPorTipo[clave])
+    || (TIPOS_OPERACIONES.includes(clave) ? 'Operaciones' : 'Sin clasificar');
 }
 
 function pertenenciaOculta_(p) {
@@ -1201,7 +1213,18 @@ function iconoPersonalizadoPorTipo_(tipoRecurso) {
   for (const k of Object.keys(state.iconosPorTipoRecurso)) {
     if (clave.includes(k) || k.includes(clave)) return state.iconosPorTipoRecurso[k];
   }
-  return null;
+  // 3. Ícono propio del sistema para el tipo (si el catálogo no trae uno)
+  return iconoSistemaTipo_(tipoRecurso);
+}
+
+/* Íconos del sistema por tipo (13-11-2026): se usan si el catálogo maestro no trae icono_url para ese tipo.
+ * Punto de Faena (Recursos de Operaciones, SQL 174) = cosechadora forestal. Clave sin tildes (claveTipoPertenencia_). */
+const ICONOS_SISTEMA_TIPO = {
+  'PUNTO DE FAENA': { url: 'iconos/cosechadora.svg', aspecto: 64 / 44 },
+};
+function iconoSistemaTipo_(tipoRecurso) {
+  const i = ICONOS_SISTEMA_TIPO[claveTipoPertenencia_(tipoRecurso)];
+  return i ? i.url : null;
 }
 
 // Cargar los íconos del catálogo (recursos_maestro) mapeados por tipo de recurso
@@ -1280,7 +1303,8 @@ function aspectoIconoTipo_(tipo) {
   const a = state.iconosAspecto || {};
   if (a[k]) return a[k];
   for (const kk of Object.keys(a)) if (k.includes(kk) || kk.includes(k)) return a[kk];
-  return 1;
+  const sis = ICONOS_SISTEMA_TIPO[claveTipoPertenencia_(tipo)];
+  return sis ? sis.aspecto : 1;
 }
 
 let recursosDisponiblesFeatureLayers = []; // [{layer, nombre}] — para togglear solo las etiquetas

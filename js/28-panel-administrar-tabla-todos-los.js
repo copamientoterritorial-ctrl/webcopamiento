@@ -45,6 +45,9 @@ async function abrirAdminRecursosPlan_() {
  * comuna que se está viendo actualmente. */
 async function actualizarOverlayPlanContingencia_() {
   planContingenciaOverlay.clearLayers();
+  // 12-11-2026: a pedido del usuario ya NO se dibuja el borde punteado rojo/amarillo de la comuna con plan activo
+  // (igual que la zona y las rutas con brillo, ALERTA_ZONA_Y_RUTAS_ACTIVAS en js/26). Reactivar solo si lo piden.
+  if (!ALERTA_ZONA_Y_RUTAS_ACTIVAS) return;
   if (!state.activeComunaId) return;
 
   const { data: planesActivos } = await supabaseClient
@@ -112,7 +115,9 @@ async function cargarCatalogoMaestro_() {
       '<td><span class="ra-swatch" style="background:' + inst.color_hex + '"></span>' + inst.nombre + '</td>' +
       '<td>' + escapeHtml_(r.nombre_recurso || '—') + '</td>' +
       '<td>' + r.tipo_recurso + '</td>' +
-      '<td>' + (r.pertenencia === 'Protección' ? '<span class="uc-badge" style="background:#FEE2E2;color:#991B1B;">🛡️ Protección</span>' : '<span class="uc-badge" style="background:#DBEAFE;color:#1E40AF;">🤝 Relacionamiento</span>') + '</td>' +
+      '<td>' + (r.pertenencia === 'Protección' ? '<span class="uc-badge" style="background:#FEE2E2;color:#991B1B;">🛡️ Protección</span>'
+        : r.pertenencia === 'Operaciones' ? '<span class="uc-badge" style="background:#FEF3C7;color:#92400E;">🚛 Operaciones</span>'
+        : '<span class="uc-badge" style="background:#DBEAFE;color:#1E40AF;">🤝 Relacionamiento</span>') + '</td>' +
       '<td>' + (r.tipo_movil || '—') + '</td>' +
       '<td>' + (r.cantidad_personas || 0) + '</td>' +
       '<td>' + escapeHtml_(r.descripcion_funcion || '—') + '</td>' +

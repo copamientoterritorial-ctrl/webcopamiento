@@ -79,6 +79,14 @@
 .meteo-tabs button{border:0;background:none;padding:8px 12px;font:700 12px inherit;font-family:inherit;color:var(--text-tertiary);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;}
 .meteo-tabs button.on{color:var(--text-primary);border-bottom-color:var(--cobalt,#2563EB);}
 .meteo-panel{display:none;} .meteo-panel.on{display:block;}
+/* 3 visiones del tiempo (js/03, mvVer_): Windy y DGAC incrustados */
+.meteo-vision[hidden]{display:none;}
+.meteo-vision-barra{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;font-size:11.5px;color:var(--text-secondary);font-weight:600;}
+.meteo-vision-barra .comuna-select{padding:5px 9px;font-size:11.5px;}
+.meteo-vision-frame{display:block;width:100%;height:560px;border:1px solid var(--border);border-radius:10px;background:#fff;}
+.mv-abrir{margin-left:auto;font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid var(--border);color:var(--cobalt,#2563EB);text-decoration:none;font-weight:700;}
+.mv-abrir + .mv-abrir{margin-left:0;}
+@media (max-width:640px){ .meteo-vision-frame{height:420px;} .mv-abrir{margin-left:0;} }
 .meteo-det-sub{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;font-size:12.5px;font-weight:700;color:var(--text-primary);margin-bottom:6px;}
 .meteo-det-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 body.tema-oscuro .mr-hoy, body.tema-oscuro .mr-bloque{background:#0F1A2E;}

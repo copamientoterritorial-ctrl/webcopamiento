@@ -92,14 +92,60 @@
         <div class="dash-card dash-card-wide">
           <div class="dash-card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
             <span>🌤️ El tiempo en la comuna · resumen para la toma de decisiones</span>
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="meteo-solo-api" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
               <select id="meteo-comparar-select" class="comuna-select" style="padding:6px 10px;font-size:11.5px;"><option value="">+ Comparar con otra comuna…</option></select>
               <div id="meteo-comparadas" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
               <span class="dash-fuente">Fuente: Open-Meteo API · Actualizado: <span id="dash-meteo-actualizado">—</span></span>
               <button type="button" onclick="abrirFuenteMeteo_()" style="font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--cobalt);cursor:pointer;font-weight:700;">ℹ️ Fuente de datos</button>
             </div>
           </div>
+          <!-- 13-11-2026: 3 visiones del tiempo (js/03, mvVer_): API Meteorología (Open-Meteo) · Windy · DGAC (Meteochile) -->
+          <div class="meteo-tabs" id="meteo-visiones">
+            <button type="button" class="on" data-mvision="api">📡 API Meteorología</button>
+            <button type="button" data-mvision="windy">🌬️ Windy</button>
+            <button type="button" data-mvision="dgac">🇨🇱 DGAC · Meteochile</button>
+          </div>
           <div id="dash-meteo"></div>
+          <div id="meteo-vision-windy" class="meteo-vision" hidden>
+            <div class="meteo-vision-barra">
+              <span>Capa:</span>
+              <select id="mv-windy-capa" class="comuna-select">
+                <option value="wind">💨 Viento</option>
+                <option value="gust">🌪️ Ráfagas</option>
+                <option value="temp">🌡️ Temperatura</option>
+                <option value="rh">💧 Humedad</option>
+                <option value="rain">🌧️ Lluvia</option>
+                <option value="thunder">⚡ Tormentas</option>
+              </select>
+              <span>Modelo:</span>
+              <select id="mv-windy-modelo" class="comuna-select">
+                <option value="ecmwf">ECMWF</option>
+                <option value="gfs">GFS</option>
+                <option value="icon">ICON</option>
+              </select>
+              <span class="dash-fuente" id="mv-windy-lugar"></span>
+              <a id="mv-windy-abrir" href="https://www.windy.com/" target="_blank" rel="noopener" class="mv-abrir">Abrir en Windy ↗</a>
+            </div>
+            <iframe id="mv-windy-frame" class="meteo-vision-frame" title="Windy" loading="lazy" referrerpolicy="no-referrer"></iframe>
+          </div>
+          <div id="meteo-vision-dgac" class="meteo-vision" hidden>
+            <div class="meteo-vision-barra">
+              <span>Región:</span>
+              <select id="mv-dgac-region" class="comuna-select">
+                <option value="06">O'Higgins</option>
+                <option value="07">Maule</option>
+                <option value="08a">Ñuble</option>
+                <option value="08b">Biobío</option>
+                <option value="09">La Araucanía</option>
+                <option value="10a">Los Ríos</option>
+                <option value="10b">Los Lagos</option>
+                <option value="11">Aysén</option>
+              </select>
+              <span class="dash-fuente">Pronóstico oficial de la Dirección Meteorológica de Chile (DGAC)</span>
+              <a id="mv-dgac-abrir" href="https://www.meteochile.gob.cl/PortalDMC-web/index.xhtml" target="_blank" rel="noopener" class="mv-abrir">Abrir en Meteochile ↗</a>
+            </div>
+            <iframe id="mv-dgac-frame" class="meteo-vision-frame" title="Pronóstico DGAC" loading="lazy" referrerpolicy="no-referrer"></iframe>
+          </div>
         </div>
         <!-- 📊 Análisis meteorológico detallado (22-10-2026): plegado por defecto; arriba queda el resumen simple para
              autoridades (#dash-meteo). Pestañas por punto de vista; los mismos gráficos de antes (renderMeteoDetalle_). -->
@@ -2113,6 +2159,7 @@
         <select id="rm-pertenencia">
           <option value="Relacionamiento">Recurso de Relacionamiento</option>
           <option value="Protección">Recurso de Protección</option>
+          <option value="Operaciones">Recurso de Operaciones</option>
         </select>
       </div>
       <div class="form-group">
