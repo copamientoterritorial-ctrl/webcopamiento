@@ -159,6 +159,40 @@ main{flex:1;position:relative;overflow:hidden;}
 .est-recibido{background:#E0E7FF;color:#3730A3;}
 .est-en_atencion{background:#FFEDD5;color:#9A3412;}
 .est-cerrado{background:#DCFCE7;color:#166534;}
+/* v2.5.0: botón 🔄 Actualizar (encabezado y mapa) */
+.btn-act{width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,.12);color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.btn-act.girando span,.map-btns button.girando{display:inline-block;animation:gira 1s linear infinite;}
+@keyframes gira{to{transform:rotate(360deg);}}
+.franja-version{position:fixed;left:12px;right:12px;bottom:calc(76px + var(--safe-b));z-index:2500;background:#1E3A8A;color:#fff;border-radius:14px;padding:11px 14px;display:flex;gap:10px;align-items:center;font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.franja-version button{margin-left:auto;background:#fff;color:#1E3A8A;border-radius:9px;padding:7px 12px;font-weight:900;}
+/* v2.5.0: alertas estilo Waze en el mapa (burbuja con ícono, «hace X min», pulso si es reciente) */
+.wz{position:relative;width:44px;height:52px;}
+.wz-burbuja{position:absolute;left:0;top:0;width:44px;height:44px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 3px 8px rgba(0,0,0,.35);z-index:2;}
+.wz-cola{position:absolute;left:16px;top:36px;width:12px;height:12px;transform:rotate(45deg);border-right:3px solid #fff;border-bottom:3px solid #fff;z-index:1;}
+.wz-pulso{position:absolute;left:-8px;top:-8px;width:60px;height:60px;border-radius:50%;animation:wzpulso 1.8s ease-out infinite;z-index:0;}
+@keyframes wzpulso{0%{transform:scale(.55);opacity:.7;}100%{transform:scale(1.25);opacity:0;}}
+.wz-hace{position:absolute;left:50%;top:50px;transform:translateX(-50%);white-space:nowrap;background:#0F172A;color:#fff;font-size:10.5px;font-weight:800;border-radius:8px;padding:1px 6px;z-index:3;}
+.wz-urg{position:absolute;right:-6px;top:-6px;background:var(--red);color:#fff;font-size:11px;font-weight:900;border-radius:50%;width:19px;height:19px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;z-index:4;}
+.wz.yo .wz-burbuja{border-color:#FDE047;}
+.wz.antigua{opacity:.6;}
+.wz-pop b{font-size:15px;}
+.wz-pop .lin2{color:#475569;font-size:12.5px;margin:2px 0;}
+.wz-pop .acc{display:flex;gap:6px;margin-top:8px;}
+.wz-pop .acc a,.wz-pop .acc button{flex:1;text-align:center;padding:7px 8px;border-radius:9px;font-weight:800;font-size:12.5px;text-decoration:none;}
+.wz-chip{position:absolute;left:12px;top:58px;z-index:500;background:#fff;border-radius:99px;box-shadow:0 2px 8px rgba(0,0,0,.25);padding:7px 12px;font-size:13px;font-weight:800;display:flex;gap:6px;align-items:center;max-width:calc(100% - 90px);white-space:nowrap;overflow:hidden;}
+.wz-chip small{color:var(--muted);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* v2.4.0: alertas compartidas de la comuna */
+.rep-hora{display:inline-block;font-size:12px;font-weight:800;color:#0F172A;background:#F1F5F9;border-radius:6px;padding:1px 6px;margin-right:4px;}
+.rep-autor{font-size:12px;color:#475569;margin:2px 0 3px;}
+.rep.nueva{box-shadow:0 0 0 2px var(--red) inset;}
+.rep-pin.comuna{border:2px dashed #0F172A;}
+.badge.alerta{left:auto;right:calc(50% + 8px);background:#F59E0B;}
+#rep-vista{margin-bottom:10px;}
+#rep-vista i{font-style:normal;background:var(--red);color:#fff;border-radius:9px;padding:0 6px;font-size:11px;margin-left:4px;}
+#rep-vista i:empty{display:none;}
+.aviso-alerta{position:fixed;left:12px;right:12px;top:calc(10px + var(--safe-t));z-index:3000;background:#7F1D1D;color:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.35);display:flex;gap:10px;align-items:flex-start;font-size:13.5px;}
+.aviso-alerta b{display:block;font-size:14.5px;}
+.aviso-alerta button{margin-left:auto;background:rgba(255,255,255,.18);color:#fff;border-radius:8px;padding:6px 10px;font-weight:800;}
 .urg{font-size:11px;font-weight:800;color:#fff;background:var(--red);padding:2px 7px;border-radius:99px;margin-left:6px;vertical-align:middle;}
 .resp{margin-top:8px;font-size:12.5px;background:#F8FAFC;border-left:3px solid var(--cobalt);padding:6px 9px;border-radius:0 8px 8px 0;}
 .vacio{text-align:center;color:var(--muted);padding:40px 10px;font-size:14px;}
@@ -268,6 +302,7 @@ textarea.campo:focus{border-color:var(--cobalt);}
   <header class="top">
     <div class="top-t"><b id="top-nombre">—</b><small id="top-sub">—</small></div>
     <div class="net" id="net"><i></i><span id="net-txt">En línea</span></div>
+    <button class="btn-act" id="btn-actualizar" title="Actualizar: enviar lo pendiente y traer lo nuevo"><span>🔄</span></button>
   </header>
   <main>
     <section class="vista" id="v-inicio">
@@ -285,7 +320,7 @@ textarea.campo:focus{border-color:var(--cobalt);}
       <div class="card">
         <div class="sync">
           <div id="sync-txt">—</div>
-          <button class="btn-mini" id="btn-sync">⟳ Sincronizar</button>
+          <button class="btn-mini" id="btn-sync">🔄 Actualizar</button>
         </div>
       </div>
     </section>
@@ -293,6 +328,7 @@ textarea.campo:focus{border-color:var(--cobalt);}
     <section class="vista mapa hidden" id="v-mapa">
       <div id="mapa"></div>
       <div class="map-info" id="map-info">Cargando…</div>
+      <button class="wz-chip hidden" id="wz-chip" title="Ir a la siguiente alerta"></button>
       <div class="map-filtros">
         <div class="seg seg-mapa" id="mf-esc"><button data-esc="Verde" class="sel">Normal</button><button data-esc="Amarilla">Amarilla</button><button data-esc="Roja">Roja</button></div>
       </div>
@@ -300,10 +336,12 @@ textarea.campo:focus{border-color:var(--cobalt);}
         <button id="btn-centrar" title="Centrar en mi posición">◎</button>
         <button id="btn-ruta" title="Ver la ruta completa">🛣️</button>
         <button id="btn-capa" title="Cambiar fondo">🛰️</button>
+        <button id="btn-act-mapa" title="Actualizar alertas y compañeros">🔄</button>
       </div>
     </section>
 
     <section class="vista hidden" id="v-reportes">
+      <div class="seg" id="rep-vista"><button data-rv="mios" class="sel">📋 Mis reportes</button><button data-rv="comuna">🔔 Alertas de la comuna<i id="alertas-n"></i></button></div>
       <div class="chips" id="rep-filtros"></div>
       <div id="rep-lista"></div>
     </section>
@@ -318,7 +356,7 @@ textarea.campo:focus{border-color:var(--cobalt);}
   <nav class="tabs">
     <button class="tab sel" data-v="inicio"><span>🏠</span>Inicio</button>
     <button class="tab" data-v="mapa"><span>🗺️</span>Mapa</button>
-    <button class="tab" data-v="reportes"><span>📋</span>Reportes<i class="badge hidden" id="badge-rep"></i></button>
+    <button class="tab" data-v="reportes"><span>📋</span>Reportes<i class="badge hidden" id="badge-rep"></i><i class="badge alerta hidden" id="badge-alerta"></i></button>
     <button class="tab" data-v="perfil"><span>👤</span>Perfil</button>
   </nav>
   <button class="fab" id="fab" title="Nuevo reporte">＋</button>
@@ -333,7 +371,7 @@ textarea.campo:focus{border-color:var(--cobalt);}
 // Los reportes, turnos y puntos GPS se guardan primero en el teléfono (IndexedDB) y se envían cuando hay
 // señal: nada se pierde si se corta la conexión.
 // ════════════════════════════════════════════════════════════════
-const APP_VERSION = '2.3.0';
+const APP_VERSION = '2.5.1';
 const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -360,10 +398,13 @@ const state = {
   pos: null, ultimoPunto: null, rastro: [], cubiertos: new Set(), rutaVertices: [],
   reportesServidor: [], pendientes: 0, ultimaSync: null, sincronizando: false,
   vista: 'inicio', mapa: null, capas: {}, fondoSat: false, watchId: null, wakeLock: null, filtroRep: 'todos',
-  rutasPlan: [], areasPlan: [], escMapa: 'Verde', instMapa: 'mia', companeros: [], instalarEvt: null, sinGps: false
+  rutasPlan: [], areasPlan: [], escMapa: 'Verde', instMapa: 'mia', companeros: [], instalarEvt: null, sinGps: false,
+  alertas: [], alertasVistas: null, repVista: 'mios'
 };
 const ESCENARIOS = { Verde: 'Normal', Amarilla: 'Alerta Amarilla', Roja: 'Alerta Roja' };
 const COMPANEROS_CADA_MS = 60000;
+const ALERTAS_CADA_MS = 15000;   // v2.4.0: alertas compartidas de la comuna (SQL 176)
+const ALERTAS_HORAS = 24;
 
 // ════════════════════════════════════════════════════════════════
 // Utilidades
@@ -488,7 +529,9 @@ async function cerrarSesion(motivo) {
   if (!motivo && navigator.onLine && state.token) { try { await rpc('app_logout', { p_token: state.token }); } catch (e) { /* sin importancia */ } }
   detenerGps(); liberarWakeLock();
   await Promise.all(['kv', 'cola', 'gps', 'fotos'].map(s => DB.clear(s)));
-  Object.assign(state, { token: null, usuario: null, turno: null, rastro: [], cubiertos: new Set(), ultimoPunto: null, reportesServidor: [], rutasPlan: [], areasPlan: [], companeros: [] });
+  Object.assign(state, { token: null, usuario: null, turno: null, rastro: [], cubiertos: new Set(), ultimoPunto: null, reportesServidor: [], rutasPlan: [], areasPlan: [], companeros: [], alertas: [], alertasVistas: null, misReportesMapa: [] });
+  try { await DB.del('kv', 'alertas_iniciadas'); await DB.del('kv', 'alertas_vistas'); await DB.del('kv', 'alertas_comuna'); } catch (e) {}
+  pintarContadorAlertas();
   if (state.mapa) { state.mapa.remove(); state.mapa = null; state.capas = {}; }
   mostrarLogin();
   if (motivo) $('lg-err').textContent = motivo;
@@ -1142,6 +1185,144 @@ async function cargarMisReportes() {
   if (cambiados.length) toast('🔔 ' + cambiados.length + ' reporte(s) actualizados por la central', 3500);
 }
 
+// ════════════════════════════════════════════════════════════════
+// v2.4.0 — ALERTAS COMPARTIDAS DE LA COMUNA (SQL 176)
+// Cada 15 s (app abierta y con señal) se piden los reportes de la comuna de las últimas 24 h, de todos los patrulleros.
+// Los nuevos de OTROS usuarios se avisan: franja roja arriba, vibración y, si el usuario lo permitió, notificación del sistema.
+// «Vistas» se guarda en el teléfono para no repetir el aviso al reabrir la app.
+// ════════════════════════════════════════════════════════════════
+let alertasCargando = false;
+async function cargarAlertas(forzar) {
+  if (alertasCargando || !navigator.onLine || !state.token || (!forzar && document.visibilityState === 'hidden')) return;
+  alertasCargando = true;
+  try {
+    if (!state.alertasVistas) state.alertasVistas = new Set((await DB.get('kv', 'alertas_vistas')) || []);
+    const primeraVez = !(await DB.get('kv', 'alertas_iniciadas'));
+    const lista = (await rpc('app_alertas_comuna', { p_token: state.token, p_horas: ALERTAS_HORAS })) || [];
+    state.alertas = lista;
+    await DB.put('kv', lista, 'alertas_comuna');
+    const nuevas = lista.filter(a => !a.yo && esHoy(a.creado_en) && !state.alertasVistas.has(a.id));
+    if (primeraVez) {
+      // Al estrenar la versión no se avisan todas las de las últimas 24 h: quedan como ya vistas.
+      nuevas.forEach(a => state.alertasVistas.add(a.id));
+      await DB.put('kv', true, 'alertas_iniciadas');
+      await guardarAlertasVistas();
+    } else if (nuevas.length) {
+      avisarAlertas(nuevas);
+    }
+  } catch (e) {
+    if (e.sesion) return cerrarSesion('Tu sesión venció. Ingresa nuevamente.');
+    console.warn('app_alertas_comuna', e);   // sin el SQL 176 la app sigue igual, sin alertas compartidas
+  } finally {
+    alertasCargando = false;
+    pintarContadorAlertas();
+    if (state.vista === 'reportes') renderReportes();
+    else if (state.mapa) dibujarReportesMapa(null);
+  }
+}
+// ════════════════════════════════════════════════════════════════
+// v2.5.0 — 🔄 ACTUALIZAR (botón del encabezado, de Inicio y del mapa)
+// Envía lo pendiente (reportes, turnos, GPS) y trae lo nuevo: datos de inicio, rutas y áreas, compañeros, alertas de la
+// comuna y mis reportes. Además revisa si hay una versión nueva de la app y ofrece instalarla.
+// ════════════════════════════════════════════════════════════════
+let actualizando = false;
+async function actualizarTodo() {
+  if (actualizando) return;
+  if (!navigator.onLine) { toast('📵 Sin señal: lo pendiente se enviará al recuperar conexión.'); return; }
+  actualizando = true;
+  const btns = ['btn-actualizar', 'btn-act-mapa'].map($).filter(Boolean);
+  btns.forEach(b => b.classList.add('girando'));
+  let error = null;
+  try {
+    await sincronizar(false);
+    await cargarInicio();
+    await Promise.all([cargarCompaneros(), cargarAlertas(true), cargarMisReportes().catch(() => {})]);
+    renderTodo();
+  } catch (e) { error = e; }
+  finally {
+    actualizando = false;
+    btns.forEach(b => b.classList.remove('girando'));
+  }
+  const pend = await contarPendientes();
+  toast(error ? '⚠️ No se pudo actualizar todo: ' + (error.message || error) :
+    pend ? '⏳ Actualizado, pero quedan ' + pend + ' envío(s) pendientes' : '✅ Actualizado · ' + fmtHora(new Date().toISOString()), 2800);
+  buscarVersionNueva(true);
+}
+// ¿Hay una versión publicada distinta de la que corre? (lee app.html sin caché y compara APP_VERSION)
+async function buscarVersionNueva(avisarSiNo) {
+  try {
+    const txt = await (await fetch('app.html?v=' + Date.now(), { cache: 'no-store' })).text();
+    const m = txt.match(/const APP_VERSION = '([^']+)'/);
+    if (!m || m[1] === APP_VERSION) return false;
+    try { const reg = await navigator.serviceWorker.getRegistration(); if (reg) reg.update(); } catch (e) {}
+    document.querySelectorAll('.franja-version').forEach(x => x.remove());
+    const d = document.createElement('div');
+    d.className = 'franja-version';
+    d.innerHTML = `<span>🆕 Versión ${esc(m[1])} disponible</span><button>Actualizar ahora</button>`;
+    d.querySelector('button').onclick = async () => {
+      const pend = await contarPendientes();
+      if (pend) toast('Primero se envían ' + pend + ' pendiente(s)…');
+      if (pend && navigator.onLine) await sincronizar(false);
+      location.reload();
+    };
+    document.body.appendChild(d);
+    return true;
+  } catch (e) { return false; }
+}
+
+async function guardarAlertasVistas() {
+  // Solo se recuerdan los ids aún vigentes (últimas 24 h), para que la lista no crezca sin fin
+  const vigentes = new Set(state.alertas.map(a => a.id));
+  await DB.put('kv', [...state.alertasVistas].filter(id => vigentes.has(id)), 'alertas_vistas');
+}
+// v2.5.1: SOLO los reportes del día (fecha del teléfono). Al pasar la medianoche, lo de ayer deja de mostrarse.
+function esHoy(iso) { return !!iso && new Date(iso).toDateString() === new Date().toDateString(); }
+function alertasDeHoy() { return state.alertas.filter(a => esHoy(a.creado_en)); }
+function alertasSinVer() { return alertasDeHoy().filter(a => !a.yo && !(state.alertasVistas && state.alertasVistas.has(a.id))); }
+function pintarContadorAlertas() {
+  const n = alertasSinVer().length;
+  const b = $('badge-alerta'); if (b) { b.textContent = n; b.classList.toggle('hidden', !n); }
+  const t = $('alertas-n'); if (t) t.textContent = n || '';
+}
+async function marcarAlertasVistas() {
+  if (!state.alertasVistas) return;
+  state.alertas.forEach(a => state.alertasVistas.add(a.id));
+  await guardarAlertasVistas();
+  pintarContadorAlertas();
+}
+function textoAlerta(a) {
+  return (a.icono || '⚠️') + ' ' + (a.tipo || 'Reporte') + (a.urgencia === 'urgente' ? ' (URGENTE)' : '') +
+    ' · ' + (a.nombre || 'Patrullero') + (a.institucion ? ' (' + a.institucion + ')' : '') + ' · ' + fmtHora(a.creado_en);
+}
+function avisarAlertas(nuevas) {
+  const a = nuevas[0];
+  const urgente = nuevas.some(x => x.urgencia === 'urgente');
+  try { if (navigator.vibrate) navigator.vibrate(urgente ? [400, 150, 400, 150, 400] : [250, 120, 250]); } catch (e) {}
+  // Franja de aviso (se cierra sola a los 12 s o con «Ver»)
+  document.querySelectorAll('.aviso-alerta').forEach(x => x.remove());
+  const d = document.createElement('div');
+  d.className = 'aviso-alerta';
+  d.innerHTML = `<span style="font-size:24px">${esc(a.icono || '🔔')}</span><div><b>${nuevas.length > 1 ? '🔔 ' + nuevas.length + ' alertas nuevas en tu comuna' : '🔔 Nueva alerta en tu comuna'}</b>${esc(textoAlerta(a))}${a.descripcion ? '<br><small>' + esc(a.descripcion.slice(0, 90)) + '</small>' : ''}</div><button>Ver</button>`;
+  d.querySelector('button').addEventListener('click', () => { d.remove(); state.repVista = 'comuna'; cambiarVista('reportes'); });
+  document.body.appendChild(d);
+  setTimeout(() => d.remove(), 12000);
+  // Notificación del sistema (si el usuario la permitió; útil con la app en segundo plano)
+  try {
+    if ('Notification' in window && Notification.permission === 'granted' && navigator.serviceWorker) {
+      navigator.serviceWorker.ready.then(reg => reg.showNotification(nuevas.length > 1 ? nuevas.length + ' alertas nuevas en tu comuna' : 'Nueva alerta en tu comuna',
+        { body: textoAlerta(a) + (a.descripcion ? '\n' + a.descripcion.slice(0, 120) : ''), tag: 'alerta-' + a.id, renotify: true,
+          icon: 'icon-192.png', badge: 'icon-192.png', vibrate: urgente ? [400, 150, 400] : [250, 120, 250] })).catch(() => {});
+    }
+  } catch (e) {}
+}
+function pedirPermisoNotificaciones() {
+  try {
+    if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().then(p => {
+      if (p === 'granted') toast('🔔 Avisos activados: te llegarán las alertas de tu comuna.');
+    });
+  } catch (e) {}
+}
+
 async function actualizarPendientes() {
   const n = await contarPendientes();
   state.pendientes = n;
@@ -1203,8 +1384,17 @@ async function renderReportes() {
   const pend = (await DB.all('cola')).filter(i => i.tipo === 'reporte').map(i => Object.assign({}, i.reporte, { estado: 'pendiente', foto: i.conFoto, errorEnvio: i.error }));
   const idsPend = new Set(pend.map(p => p.id));
   if (!state.reportesServidor.length) state.reportesServidor = (await DB.get('kv', 'mis_reportes')) || [];
-  const todos = pend.concat(state.reportesServidor.filter(r => !idsPend.has(r.id)))
+  // v2.5.1: solo los del día; los pendientes de envío se muestran siempre (para no perderlos de vista)
+  const todos = pend.concat(state.reportesServidor.filter(r => !idsPend.has(r.id) && esHoy(r.creado_en)))
                     .sort((a, b) => a.creado_en < b.creado_en ? 1 : -1);
+  if (!state.alertas.length) state.alertas = (await DB.get('kv', 'alertas_comuna')) || [];
+  document.querySelectorAll('#rep-vista button').forEach(b => {
+    b.classList.toggle('sel', b.dataset.rv === state.repVista);
+    b.onclick = () => { state.repVista = b.dataset.rv; if (b.dataset.rv === 'comuna') pedirPermisoNotificaciones(); renderReportes(); };
+  });
+  pintarContadorAlertas();
+  if (state.vista === 'reportes' && state.repVista === 'comuna') { renderAlertasComuna(); if (state.mapa) dibujarReportesMapa(todos); return; }
+  $('rep-filtros').classList.remove('hidden');
   const filtros = [['todos', 'Todos'], ['pendiente', 'Pendientes'], ['abiertos', 'En curso'], ['cerrado', 'Cerrados']];
   $('rep-filtros').innerHTML = filtros.map(([k, n]) => `<button class="chip${state.filtroRep === k ? ' sel' : ''}" data-f="${k}">${n}</button>`).join('');
   $('rep-filtros').querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { state.filtroRep = b.dataset.f; renderReportes(); }));
@@ -1217,13 +1407,45 @@ async function renderReportes() {
       <div class="rep-cuerpo">
         <b>${esc(t ? t.nombre : 'Reporte')}</b>${r.urgencia === 'urgente' ? '<span class="urg">URGENTE</span>' : ''}
         ${r.descripcion ? '<p>' + esc(r.descripcion) + '</p>' : ''}
-        <small>${fmtFecha(r.creado_en)}${r.foto ? ' · 📷 con foto' : ''}</small><br>
+        <small><span class="rep-hora">🕒 ${fmtHora(r.creado_en)}</span>Reportado ${fmtFecha(r.creado_en).replace(/^(Hoy|Ayer) /, (m, d) => d.toLowerCase() + ' a las ')}${r.foto ? ' · 📷 con foto' : ''}</small><br>
         <span class="est ${e.cls}">${e.txt}</span>
         ${r.errorEnvio ? '<div class="resp" style="border-color:var(--red)">⚠️ No se pudo enviar: ' + esc(r.errorEnvio) + '. Se reintenta automáticamente.</div>' : ''}
         ${r.respuesta ? '<div class="resp"><b>Central' + (r.atendido_por ? ' (' + esc(r.atendido_por) + ')' : '') + ':</b> ' + esc(r.respuesta) + '</div>' : ''}
       </div></div>`;
-  }).join('') : '<div class="vacio">📋<br>Sin reportes' + (f === 'todos' ? ' en los últimos 14 días.' : ' en este filtro.') + '</div>';
+  }).join('') : '<div class="vacio">📋<br>Sin reportes' + (f === 'todos' ? ' hoy.' : ' hoy en este filtro.') + '</div>';
   if (state.mapa) dibujarReportesMapa(todos);
+}
+
+// Lista «🔔 Alertas de la comuna»: lo que reportaron HOY todos los patrulleros de la comuna, con su hora (v2.5.1).
+function renderAlertasComuna() {
+  $('rep-filtros').classList.add('hidden');
+  const sinVer = new Set(alertasSinVer().map(a => a.id));
+  const lista = alertasDeHoy().sort((a, b) => a.creado_en < b.creado_en ? 1 : -1);
+  const permiso = 'Notification' in window ? Notification.permission : 'unsupported';
+  $('rep-lista').innerHTML = (permiso === 'default'
+      ? '<button class="btn-mini" id="btn-avisos" style="width:100%;margin-bottom:10px">🔔 Activar avisos en el teléfono</button>' : '')
+    + (lista.length ? lista.map(a => {
+      const e = ESTADOS[a.estado] || ESTADOS.enviado;
+      return `<div class="card rep${sinVer.has(a.id) ? ' nueva' : ''}">
+        <div class="rep-ico" style="background:${esc(a.color || '#64748B')}22">${esc(a.icono || '⚠️')}</div>
+        <div class="rep-cuerpo">
+          <b>${esc(a.tipo || 'Reporte')}</b>${a.urgencia === 'urgente' ? '<span class="urg">URGENTE</span>' : ''}
+          <div class="rep-autor">${a.yo ? '👤 Tú' : '🚓 ' + esc(a.nombre || 'Patrullero')}${a.institucion ? ' · ' + esc(a.institucion) : ''}</div>
+          ${a.descripcion ? '<p>' + esc(a.descripcion) + '</p>' : ''}
+          <small><span class="rep-hora">🕒 ${fmtHora(a.creado_en)}</span>Reportado ${fmtFecha(a.creado_en).replace(/^(Hoy|Ayer) /, (m, d) => d.toLowerCase() + ' a las ')}${a.foto ? ' · 📷 con foto' : ''}</small><br>
+          <span class="est ${e.cls}">${e.txt}</span>
+          ${a.lat != null ? `<button class="btn-mini" data-ver-alerta="${esc(a.id)}" style="margin-top:6px">🗺️ Ver en el mapa</button>` : ''}
+        </div></div>`;
+    }).join('') : '<div class="vacio">🔔<br>Sin alertas hoy en tu comuna.' +
+      (navigator.onLine ? '' : '<br><small>Sin señal: se actualizan al recuperar conexión.</small>') + '</div>');
+  const ba = $('btn-avisos'); if (ba) ba.onclick = () => { pedirPermisoNotificaciones(); setTimeout(renderAlertasComuna, 1500); };
+  $('rep-lista').querySelectorAll('[data-ver-alerta]').forEach(b => b.onclick = () => {
+    const a = state.alertas.find(x => x.id === b.dataset.verAlerta); if (!a) return;
+    cambiarVista('mapa');
+    setTimeout(() => { if (state.mapa) state.mapa.setView([a.lat, a.lng], 16); }, 150);
+  });
+  // Al mirar la lista, las alertas quedan vistas (el contorno rojo de «nueva» se mantiene hasta la próxima vez)
+  marcarAlertasVistas();
 }
 
 async function renderPerfil() {
@@ -1261,7 +1483,7 @@ function cambiarVista(v) {
   ['inicio', 'mapa', 'reportes', 'perfil'].forEach(x => $('v-' + x).classList.toggle('hidden', x !== v));
   $('fab').classList.toggle('hidden', v === 'perfil');
   if (v === 'mapa') abrirMapa();
-  if (v === 'reportes') { renderReportes(); if (navigator.onLine) cargarMisReportes().then(renderReportes).catch(() => {}); }
+  if (v === 'reportes') { renderReportes(); if (navigator.onLine) { cargarMisReportes().then(renderReportes).catch(() => {}); cargarAlertas(); } }
   if (v === 'perfil') { renderPerfil(); cargarTurnosPerfil(); }
 }
 
@@ -1423,14 +1645,93 @@ function actualizarMapaPosicion() {
     state.capas.precision.setLatLng(ll).setRadius(state.pos.prec);
   }
 }
+// Mis reportes (pin lleno) + alertas de OTROS patrulleros de la comuna (pin con borde punteado, SQL 176). `todos` = mis
+// reportes; si llega null se reutiliza la última lista dibujada (refresco de alertas cada 15 s).
 function dibujarReportesMapa(todos) {
+  if (!state.mapa || !state.capas.reportes) return;
+  if (todos) state.misReportesMapa = todos; else todos = state.misReportesMapa || [];
+  // Refresco automático con una ventana de alerta abierta: se deja para cuando se cierre (si no, se cerraría sola)
+  const pop = state.mapa._popup;
+  if (pop && pop.isOpen && pop.isOpen() && pop._source && state.capas.reportes.hasLayer(pop._source)) {
+    if (!state.redibujoPendiente) { state.redibujoPendiente = true; state.mapa.once('popupclose', () => { state.redibujoPendiente = false; dibujarReportesMapa(null); }); }
+    pintarChipAlertas();
+    return;
+  }
   state.capas.reportes.clearLayers();
-  todos.filter(r => r.lat != null && r.lng != null).forEach(r => {
+  const enAlertas = new Set(state.alertas.map(a => a.id));   // los míos que ya están en las alertas de la comuna van estilo Waze
+  todos.filter(r => r.lat != null && r.lng != null && !enAlertas.has(r.id)).forEach(r => {
     const t = tipoPorId(r.tipo_accion_id), e = ESTADOS[r.estado] || ESTADOS.enviado;
     L.marker([r.lat, r.lng], { icon: L.divIcon({ className: '', html: `<div class="rep-pin" style="background:${esc((t && t.color) || '#DC2626')}"><span>${esc((t && t.icono) || '⚠️')}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 30] }) })
-      .bindPopup(`<b>${esc(t ? t.nombre : 'Reporte')}</b><br>${esc(r.descripcion || '')}<br><small>${fmtFecha(r.creado_en)} · ${e.txt}</small>`)
+      .bindPopup(`<b>${esc(t ? t.nombre : 'Reporte')}</b> · 👤 Tú<br>${esc(r.descripcion || '')}<br><small>🕒 Reportado ${fmtFecha(r.creado_en)} · ${e.txt}</small>`)
       .addTo(state.capas.reportes);
   });
+  // v2.5.0: alertas de la comuna estilo Waze (burbuja con ícono, cola, «hace X min», pulso las de < 30 min, ⚠ si es urgente)
+  alertasMapa().forEach(a => {
+    L.marker([a.lat, a.lng], { icon: iconoWaze(a), zIndexOffset: (a.urgencia === 'urgente' ? 900 : 500) - Math.min(400, minDesde(a.creado_en)) })
+      .bindPopup(popupWaze(a), { minWidth: 220 })
+      .addTo(state.capas.reportes);
+  });
+  pintarChipAlertas();
+}
+
+// ── Alertas estilo Waze ──────────────────────────────────────────
+function minDesde(iso) { return Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000)); }
+function haceTxt(iso) {
+  const m = minDesde(iso);
+  return m < 1 ? 'ahora' : m < 60 ? 'hace ' + m + ' min' : m < 1440 ? 'hace ' + Math.floor(m / 60) + ' h' + (m % 60 >= 10 && m < 600 ? ' ' + (m % 60) + ' min' : '') : 'hace ' + Math.floor(m / 1440) + ' d';
+}
+function distTxt(a) {
+  if (!state.pos || a.lat == null) return '';
+  const m = distM(state.pos, { lat: Number(a.lat), lng: Number(a.lng) });
+  return m < 1000 ? Math.round(m / 10) * 10 + ' m' : (m / 1000).toFixed(m < 10000 ? 1 : 0).replace('.', ',') + ' km';
+}
+// Alertas con ubicación de HOY (de todos, incluidas las mías), más recientes primero (v2.5.1)
+function alertasMapa() {
+  return alertasDeHoy().filter(a => a.lat != null && a.lng != null).sort((a, b) => a.creado_en < b.creado_en ? 1 : -1);
+}
+function iconoWaze(a) {
+  const col = a.color || '#DC2626', min = minDesde(a.creado_en);
+  return L.divIcon({ className: '', iconSize: [44, 64], iconAnchor: [22, 48], popupAnchor: [0, -46],
+    html: `<div class="wz${a.yo ? ' yo' : ''}${min > 360 ? ' antigua' : ''}">
+      ${min < 30 ? `<div class="wz-pulso" style="background:${esc(col)}55"></div>` : ''}
+      <div class="wz-cola" style="background:${esc(col)}"></div>
+      <div class="wz-burbuja" style="background:${esc(col)}">${esc(a.icono || '⚠️')}</div>
+      ${a.urgencia === 'urgente' ? '<div class="wz-urg">!</div>' : ''}
+      <div class="wz-hace">${a.yo ? 'Tú · ' : ''}${haceTxt(a.creado_en)}</div></div>` });
+}
+function popupWaze(a) {
+  const e = ESTADOS[a.estado] || ESTADOS.enviado, d = distTxt(a);
+  const ll = Number(a.lat).toFixed(6) + ',' + Number(a.lng).toFixed(6);
+  return `<div class="wz-pop"><b>${esc(a.icono || '⚠️')} ${esc(a.tipo || 'Reporte')}</b>${a.urgencia === 'urgente' ? ' <span class="urg">URGENTE</span>' : ''}
+    <div class="lin2">${a.yo ? '👤 Tú' : '🚓 ' + esc(a.nombre || 'Patrullero')}${a.institucion ? ' · ' + esc(a.institucion) : ''}</div>
+    <div class="lin2">🕒 Reportado a las <b>${fmtHora(a.creado_en)}</b> · ${haceTxt(a.creado_en)}${d ? ' · 📍 a ' + d : ''}</div>
+    ${a.descripcion ? '<div style="margin:4px 0">' + esc(a.descripcion) + '</div>' : ''}
+    <span class="est ${e.cls}">${e.txt}</span>${a.foto ? ' · 📷' : ''}
+    <div class="acc"><a href="https://waze.com/ul?ll=${ll}&navigate=yes" target="_blank" rel="noopener" style="background:#33CCFF;color:#0F172A">🚗 Ir con Waze</a>
+      <a href="https://www.google.com/maps/dir/?api=1&destination=${ll}" target="_blank" rel="noopener" style="background:#E2E8F0;color:#0F172A">🧭 Maps</a></div></div>`;
+}
+// Chip flotante del mapa: cuántas alertas hay y la más cercana; al tocarlo recorre las alertas una a una
+let wzIndice = -1;
+function pintarChipAlertas() {
+  const chip = $('wz-chip'); if (!chip) return;
+  const lista = alertasMapa().filter(a => !a.yo);
+  chip.classList.toggle('hidden', !lista.length);
+  if (!lista.length) return;
+  const recientes = lista.filter(a => minDesde(a.creado_en) < 60).length;
+  let cerca = null;
+  if (state.pos) cerca = lista.reduce((m, a) => { const dd = distM(state.pos, { lat: Number(a.lat), lng: Number(a.lng) }); return !m || dd < m.d ? { a, d: dd } : m; }, null);
+  chip.innerHTML = `🔔 ${lista.length} alerta${lista.length > 1 ? 's' : ''}${recientes ? ' · <span style="color:var(--red)">' + recientes + ' en la última hora</span>' : ''}` +
+    (cerca ? `<small>· más cercana: ${esc(cerca.a.tipo || 'Reporte')} a ${distTxt(cerca.a)}</small>` : '');
+}
+function irSiguienteAlerta() {
+  const lista = alertasMapa().filter(a => !a.yo);
+  if (!lista.length || !state.mapa) return;
+  wzIndice = (wzIndice + 1) % lista.length;
+  const a = lista[wzIndice];
+  state.mapa.setView([a.lat, a.lng], Math.max(state.mapa.getZoom(), 15));
+  setTimeout(() => {
+    state.capas.reportes.eachLayer(l => { const p = l.getLatLng && l.getLatLng(); if (p && Math.abs(p.lat - a.lat) < 1e-7 && Math.abs(p.lng - a.lng) < 1e-7 && l.openPopup) l.openPopup(); });
+  }, 350);
 }
 function verRuta() {
   if (!state.mapa) return;
@@ -1462,7 +1763,10 @@ $('lg-tel').addEventListener('keydown', e => { if (e.key === 'Enter') $('lg-clav
 $('lg-ver').textContent = 'Versión ' + APP_VERSION;
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => cambiarVista(t.dataset.v)));
 $('fab').addEventListener('click', () => nuevoReporte());
-$('btn-sync').addEventListener('click', () => sincronizar(true));
+$('btn-sync').addEventListener('click', actualizarTodo);
+$('btn-actualizar').addEventListener('click', actualizarTodo);
+$('btn-act-mapa').addEventListener('click', actualizarTodo);
+$('wz-chip').addEventListener('click', irSiguienteAlerta);
 $('btn-salir').addEventListener('click', () => cerrarSesion());
 $('btn-centrar').addEventListener('click', () => { if (state.pos && state.mapa) state.mapa.setView([state.pos.lat, state.pos.lng], 16); else toast('Esperando GPS…'); });
 $('btn-ruta').addEventListener('click', verRuta);
@@ -1491,6 +1795,18 @@ $('gps-ico').parentElement.addEventListener('click', async () => {
 });
 setInterval(() => sincronizar(), SYNC_CADA_MS);
 setInterval(() => cargarCompaneros(), COMPANEROS_CADA_MS);
+setInterval(() => cargarAlertas(), ALERTAS_CADA_MS);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { cargarAlertas(); revisarVersionCada30(); } });
+// «hace X min» y la más cercana se refrescan cada minuto aunque no lleguen alertas nuevas
+setInterval(() => { if (state.mapa && state.vista === 'mapa') dibujarReportesMapa(null); }, 60000);
+// Versión nueva: al abrir y como máximo cada 30 min al volver a la app
+let ultimaRevisionVersion = 0;
+function revisarVersionCada30() {
+  if (!navigator.onLine || Date.now() - ultimaRevisionVersion < 30 * 60000) return;
+  ultimaRevisionVersion = Date.now();
+  buscarVersionNueva(false);
+}
+setTimeout(revisarVersionCada30, 8000);
 
 (async function arrancar() {
   try { state.sinGps = sessionStorage.getItem('sin_gps') === '1'; } catch (e) {}

@@ -1,6 +1,6 @@
 ﻿// Service worker de la App de Patrullaje v2: permite abrir la app sin señal.
 // Solo atiende la app y sus librerías; no toca el sistema web ni las llamadas a Supabase.
-const VERSION = 'patrullero-v2.3.0';
+const VERSION = 'patrullero-v2.5.1';
 const CDN = [
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
@@ -46,6 +46,15 @@ async function mosaico(req) {
     return new Response('', { status: 504, statusText: 'Sin conexión' });
   }
 }
+
+// v2.4.0: al tocar el aviso de una alerta de la comuna, abre (o trae al frente) la app
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
+    const c = cs.find(x => /app\.html/.test(x.url));
+    return c ? c.focus() : self.clients.openWindow('app.html');
+  }));
+});
 
 self.addEventListener('fetch', e => {
   const req = e.request;
