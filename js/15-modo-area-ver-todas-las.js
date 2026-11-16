@@ -123,7 +123,7 @@ const MENU_MODULOS = [
   { id: 'tab-riesgo', grupo: '🛡️ Prevención', nombre: 'Acciones de Riesgo', ver: () => puedeAccionesRiesgo_(), nivel: () => 'editar',
     nota: () => state.perfil.perfil === 'Administrador' ? '' : 'Sus áreas' },
   { id: 'tab-implementacion', grupo: '🛡️ Prevención', nombre: 'Implementación por comuna', ver: () => puedeImplementacion_(), nivel: () => imPuedeEditar_() ? 'editar' : 'ver' },
-  { id: 'tab-appreportes', grupo: '🛡️ Prevención', nombre: 'App de Patrullaje (en vivo y reportes)', ver: () => puedeReportesApp_(), nivel: () => 'editar' },
+  { id: 'tab-appreportes', grupo: '🛡️ Prevención', nombre: 'App de Patrullaje (en vivo, mapa vivo SIG y reportes)', ver: () => puedeReportesApp_(), nivel: () => 'editar' },
   { id: 'tab-bosques', grupo: '🛡️ Prevención', nombre: 'Gestión Bosque Recreativo', ver: () => puedeBosques_(), nivel: () => 'editar',
     nota: () => state.perfil.perfil === 'Administrador' ? '' : 'Su alcance' },
   { id: 'tab-agradmin', grupo: '🛡️ Prevención', nombre: 'Administración Agricultores (predios)', ver: () => puedeAdminAgricultores_(),

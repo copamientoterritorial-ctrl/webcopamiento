@@ -715,7 +715,22 @@
         <div class="sg-vistas" id="ar-vistas">
           <button data-ar-vista="vivo" class="on">🛰️ Patrullajes en vivo</button>
           <button data-ar-vista="reportes">📋 Reportes</button>
+          <button data-ar-vista="mapavivo">🗺️ Mapa vivo SIG</button>
         </div>
+        <!-- 🗺️ Mapa vivo SIG (13-11-2026, js/11): alertas de la jornada + patrulleros en un mapa, refresco cada 15 s -->
+        <span id="ar-filtros-mv" style="display:none;">
+          <select id="ar-mv-comuna" class="admin-search" style="min-width:150px;max-width:200px;" title="Comuna"></select>
+          <select id="ar-mv-inst" class="admin-search" style="min-width:150px;max-width:200px;" title="Institución"></select>
+          <select id="ar-mv-estado" class="admin-search" style="min-width:140px;" title="Alertas">
+            <option value="">Todas las alertas</option><option value="abiertas">⏳ Solo abiertas</option><option value="urgentes">⚠️ Urgentes abiertas</option>
+          </select>
+          <span id="ar-mv-capas" class="ar-mv-capas" title="Capas del mapa">
+            <label><input type="checkbox" data-mv-capa="alertas" checked> 🔔 Alertas</label>
+            <label><input type="checkbox" data-mv-capa="patrulleros" checked> 🚓 Patrulleros</label>
+            <label><input type="checkbox" data-mv-capa="recorridos" checked> 〰️ Recorridos</label>
+            <label><input type="checkbox" data-mv-capa="limites" checked> 🏘️ Comunas</label>
+          </span>
+        </span>
         <span id="ar-filtros" style="display:contents;">
         <select id="ar-periodo" class="admin-search" style="min-width:130px;" title="Periodo">
           <option value="1">Últimas 24 horas</option><option value="7" selected>Últimos 7 días</option><option value="30">Últimos 30 días</option><option value="90">Últimos 90 días</option>
@@ -923,7 +938,7 @@
             <button class="vista-subitem" data-vista="prioridad" id="tab-prioridad" style="display:none;"><span class="vs-ico">🎯</span><span><b>Comunas Prioritarias</b><small>Matriz de prioridad por comuna (6 variables)</small></span></button>
             <button class="vista-subitem" data-vista="riesgo" id="tab-riesgo" style="display:none;"><span class="vs-ico">🚛</span><span><b>Acciones de Riesgo</b><small>Reportes de conductores (Gestión Central) por área</small></span></button>
             <button class="vista-subitem" data-vista="implementacion" id="tab-implementacion" style="display:none;"><span class="vs-ico">🪜</span><span><b>Implementación por comuna</b><small>7 etapas en las 24 comunas · control interno</small></span></button>
-            <button class="vista-subitem" data-vista="appreportes" id="tab-appreportes" style="display:none;"><span class="vs-ico">📱</span><span><b>App de Patrullaje</b><small>Patrullajes en vivo y reportes de los patrulleros</small></span></button>
+            <button class="vista-subitem" data-vista="appreportes" id="tab-appreportes" style="display:none;"><span class="vs-ico">📱</span><span><b>App de Patrullaje</b><small>Patrullajes en vivo, 🗺️ mapa vivo de la jornada y reportes</small></span></button>
             <button class="vista-subitem" data-vista="bosques" id="tab-bosques" style="display:none;"><span class="vs-ico">🌳</span><span><b>Gestión Bosque Recreativo</b><small>Visitas, implementación, acceso e inversión</small></span></button>
             <button class="vista-subitem" data-vista="agradmin" id="tab-agradmin" style="display:none;"><span class="vs-ico">🌾</span><span><b>Administración Agricultores</b><small>Predios de agricultores en el mapa · capas y descargas</small></span></button>
           </div>

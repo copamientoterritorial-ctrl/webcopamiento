@@ -811,6 +811,44 @@ body.modo-dashboard #btn-volver-sg{display:none !important;}   /* solo se ve sob
 #ar-mapa{min-height:300px;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
 #ar-tabla td{white-space:normal;}
 @media (max-width:900px){.ar-cuerpo{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 300px;}}
+/* 🗺️ Mapa vivo SIG (13-11-2026, js/11): mapa grande a la izquierda, panel de la jornada a la derecha */
+#appreportes-panel.ar-mv .ar-cuerpo{grid-template-columns:minmax(0,1fr) 380px;}
+#appreportes-panel.ar-mv #ar-mapa{order:-1;}
+#appreportes-panel.ar-mv .gr-kpis{flex-wrap:wrap;}
+@media (max-width:900px){#appreportes-panel.ar-mv .ar-cuerpo{grid-template-columns:1fr;grid-template-rows:minmax(320px,1.3fr) minmax(0,1fr);}}
+.ar-mv-capas{display:inline-flex;gap:8px;flex-wrap:wrap;font-size:12px;font-weight:700;color:var(--text-secondary);background:var(--white);border:1px solid var(--border);border-radius:10px;padding:5px 9px;}
+.ar-mv-capas label{display:inline-flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;}
+.mv-sec{position:sticky;top:0;z-index:2;background:var(--bg-light);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;padding:8px 6px 6px;display:flex;justify-content:space-between;color:var(--text-primary);}
+.mv-sec span{font-weight:700;text-transform:none;color:var(--text-tertiary);}
+.mv-item{display:flex;gap:9px;align-items:flex-start;padding:9px 8px;border-radius:10px;background:var(--white);border:1px solid var(--border);margin-bottom:6px;cursor:pointer;}
+.mv-item:hover{border-color:var(--cobalt);}
+.mv-item.urg{border-color:#DC2626;background:#FEF2F2;}
+.mv-item.nueva{box-shadow:inset 3px 0 0 #EA580C;}
+.mv-hora{min-width:52px;text-align:center;}
+.mv-hora b{display:block;font-size:15px;color:var(--text-primary);}
+.mv-hora small{font-size:10px;color:var(--text-tertiary);}
+.mv-ico{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.mv-txt{flex:1;min-width:0;font-size:12.5px;}
+.mv-txt small{display:block;color:var(--text-secondary);font-size:11.5px;margin:1px 0 3px;}
+.mv-txt .mv-desc{color:var(--text-primary);}
+/* burbujas de alerta estilo Waze */
+.mv-wz{position:relative;width:44px;height:52px;}
+.mv-wz-burbuja{position:absolute;left:0;top:0;width:44px;height:44px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 3px 8px rgba(0,0,0,.35);z-index:2;}
+.mv-wz-cola{position:absolute;left:16px;top:36px;width:12px;height:12px;transform:rotate(45deg);border-right:3px solid #fff;border-bottom:3px solid #fff;z-index:1;}
+.mv-wz-pulso{position:absolute;left:-8px;top:-8px;width:60px;height:60px;border-radius:50%;animation:mvpulso 1.8s ease-out infinite;z-index:0;}
+@keyframes mvpulso{0%{transform:scale(.55);opacity:.75;}100%{transform:scale(1.3);opacity:0;}}
+.mv-wz-hace{position:absolute;left:50%;top:50px;transform:translateX(-50%);white-space:nowrap;background:#0F172A;color:#fff;font-size:10.5px;font-weight:800;border-radius:8px;padding:1px 6px;z-index:3;}
+.mv-wz-urg,.mv-wz-ok{position:absolute;right:-6px;top:-6px;color:#fff;font-size:11px;font-weight:900;border-radius:50%;width:19px;height:19px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;z-index:4;background:#DC2626;}
+.mv-wz-ok{background:#16A34A;}
+.mv-wz.antigua{opacity:.7;}
+.mv-wz.cerrada{opacity:.45;filter:grayscale(.6);}
+.mv-pat{width:34px;height:34px;border-radius:50%;background:#fff;border:3px solid var(--c);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 6px rgba(0,0,0,.35);}
+.mv-pat.sin{border-color:#DC2626;border-style:dashed;opacity:.8;}
+.mv-tt{font-weight:800;font-size:11px;padding:1px 6px;}
+.mv-etq-comuna span{display:inline-block;transform:translate(-50%,-50%);white-space:nowrap;font-size:12px;font-weight:900;color:#0F172A;opacity:.55;text-transform:uppercase;letter-spacing:.5px;text-shadow:0 0 3px #fff,0 0 3px #fff;}
+.mv-pop .mv-pop-l{font-size:12px;color:#475569;margin:2px 0;}
+.mv-pop .mv-pop-acc{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.mv-pop .mv-pop-acc .turnos-btn{text-decoration:none;font-size:12px;padding:4px 9px;}
 .gr-cuerpo{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:12px 16px 14px;}
 .gr-aviso{padding:9px 14px;border-radius:10px;background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;font-size:12.5px;}
 .gr-kpis{display:flex;gap:8px;flex-wrap:wrap;}

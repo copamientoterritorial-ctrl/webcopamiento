@@ -177,7 +177,7 @@
   <div class="lg-card">
     <img class="lg-logo" src="icon-192.png" alt="Prevención Territorial">
     <h1 class="lg-titulo">Prevención Territorial</h1>
-    <p class="lg-sub">Ingresa con tu correo y clave de la plataforma</p>
+    <p class="lg-sub">Ingresa con el mismo correo y clave del sistema de Copamiento Territorial</p>
     <label for="l-mail">Correo</label>
     <div class="lg-input"><span class="ic">✉️</span><input id="l-mail" type="email" autocomplete="username" placeholder="nombre@empresa.cl"></div>
     <label for="l-clave">Clave</label>
@@ -342,7 +342,7 @@ function pintarPerfil() {
     pendientesHtml() +
     '<div class="card"><button class="btn" data-actualizar="1" style="width:100%;margin-bottom:8px;">🔄 Actualizar datos</button>' +
       '<button class="btn" data-salir="1" style="width:100%;color:var(--err);">⏻ Cerrar sesión</button></div>' +
-    '<p class="muted" style="text-align:center;">Prevención Territorial · v1.0.5</p>';
+    '<p class="muted" style="text-align:center;">Prevención Territorial · v1.1.0</p>';
 }
 // Jefes, GRT y GRD ven por defecto su área (si tienen una sola). El Administrador ve todo.
 async function aplicarFiltroPorDefecto() {
@@ -377,11 +377,13 @@ function filtradas() {
 function pintar() {
   const mg = document.querySelector('#mr-mapa.grande'); if (mg) mg.remove();   // mapa ampliado de Meteorología que se va a redibujar
   document.querySelectorAll('#menu button').forEach(b => b.classList.toggle('on', b.dataset.s === S.sec));
-  const t = { ppa: ['📋 PPA', 'Plan de Prevención por Área'], recursos: ['🚒 Gestión Recursos', 'Disponibilidad de recursos'], meteo: ['🌦️ Meteorología', 'Tu ubicación · pronóstico 7 días'], copamiento: ['🗺️ Copamiento', 'Rutas y patrullajes'], perfil: ['👤 Mi perfil', 'Tu cuenta y tus áreas'] }[S.sec];
+  const t = { ppa: ['📋 PPA', 'Plan de Prevención por Área'], recursos: ['🚒 Recursos', 'Recursos de tu área · solo consulta'], meteo: ['🌦️ Meteorología', 'Tu ubicación · pronóstico 7 días'], copamiento: ['🗺️ Copamiento', 'Plan de copamiento por comuna'], perfil: ['👤 Mi perfil', 'Tu cuenta y tus áreas'] }[S.sec];
   $('h-titulo').textContent = t[0]; $('h-sub').textContent = t[1];
   if (S.sec === 'ppa') return pintarPpa();
   if (S.sec === 'perfil') return pintarPerfil();
   if (S.sec === 'meteo') return pintarMeteo();
+  if (S.sec === 'recursos') return pintarRecursos();        // v1.1.0 (bloque «RECURSOS Y COPAMIENTO» al final)
+  if (S.sec === 'copamiento') return pintarCopamiento();
   $('m-cuerpo').innerHTML = '<div class="card enDes"><div class="ico">🚧</div><h3>En desarrollo</h3><p class="muted">Este ítem se incorporará en una próxima etapa de Prevención Territorial.</p></div>';
 }
 function pintarPpa() {
@@ -605,7 +607,12 @@ function pintarMeteo() {
 async function actualizarDatos() {
   const btn = $('h-actualizar');
   btn.disabled = true; document.body.classList.add('cargando');
-  try { await cargarDatos(); await cargarPerfil(); if (S.sec === 'meteo') await obtenerMeteo(); pintar(); toast('Datos actualizados'); }
+  try {
+    await cargarDatos(); await cargarPerfil(); if (S.sec === 'meteo') await obtenerMeteo();
+    RC.datos = null; RC.cop = null; RC.alcance = null;   // Recursos y Copamiento se vuelven a leer
+    if (S.sec === 'recursos') await rcCargarRecursos(); else if (S.sec === 'copamiento') await rcCargarCopamiento();
+    pintar(); toast('Datos actualizados');
+  }
   finally { document.body.classList.remove('cargando'); btn.disabled = false; }
 }
 // Modal de registros de una medida: quién registró cada avance y modificación (solo quien lo registró o el Administrador)
@@ -1000,6 +1007,456 @@ document.addEventListener('DOMContentLoaded', async () => {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw-prevencion.js').catch(() => {});
   const { data } = await sb.auth.getSession();
   if (data && data.session) await mostrarApp(); else $('v-login').style.display = '';
+});
+</script>
+<script>
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+ * 🚒 RECURSOS Y 🗺️ COPAMIENTO (v1.1.0, 16-11-2026) — SOLO CONSULTA
+ * Cualquier usuario de la plataforma entra con su correo y clave (Supabase Auth). Lo que ve depende de su perfil:
+ *   · Administrador: todas las áreas (elige una).
+ *   · Jefe de Área, Subgerente, GRT: las áreas de perfil_areas.
+ *   · GRD / otros sin áreas: las comunas de perfil_comunas.
+ * 🚒 Recursos: lista, 🗺️ mapa con la ubicación y 📊 tablero de inicios (fecha_inicio_operacion) — v_planificador_recursos
+ *    + referencia_recursos (n° personas, término, horario). Lectura con la sesión (RLS: authenticated).
+ * 🗺️ Copamiento: por cada comuna del área, el plan de copamiento (% sobre incendios del trienio N·A·R de
+ *    resumen_comunas_prevencion = copamiento_comuna_cache, entidades, rutas, GRD) y, al tocarla, el detalle por escenario con
+ *    mapa (límite comunal + entidades planificadas por institución) y resumen por institución.
+ * Todo se guarda en el teléfono (IndexedDB 'cache') para verlo sin señal.
+ * ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+const RC = { alcance: null, datos: null, cop: null, vistaR: 'lista', area: '', tipo: '', q: '', cArea: '', mapa: null, cargando: false };
+const RC_ORDEN_TIPOS = ['BRIGADA MULTIPROPOSITO', 'BRIGADA DISUASIVA', 'VIGIA CAMIONETA', 'VIGIA MOTORIZADO', 'VIGIA MONTADO', 'VIGIA INFANTERIA', 'VIGIA DRON'];
+const RC_ESC = [{ k: 'Verde', n: 'Normal', ico: '🟢', c: '#16A34A', pct: 'pct_verde', ent: 'ent_verde' },
+                { k: 'Amarilla', n: 'Alerta Amarilla', ico: '🟡', c: '#D97706', pct: 'pct_amarilla', ent: 'ent_amarilla' },
+                { k: 'Roja', n: 'Alerta Roja', ico: '🔴', c: '#DC2626', pct: 'pct_roja', ent: 'ent_roja' }];
+const rcClave = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const rcTit = s => String(s || '').toLowerCase().replace(/(^|[\s\-/(])([a-záéíóúñü])/g, (m, a, b) => a + b.toUpperCase());
+const rcOrdenTipo = t => { const k = RC_ORDEN_TIPOS.findIndex(x => rcClave(x) === rcClave(t)); return k < 0 ? 99 : k; };
+const rcDias = iso => Math.round((new Date(String(iso).slice(0, 10) + 'T12:00:00') - new Date(hoyISO() + 'T12:00:00')) / 864e5);
+function rcQuitarMapa() { if (RC.mapa) { try { RC.mapa.remove(); } catch (e) {} RC.mapa = null; } }
+
+// ── Alcance del usuario (perfil, áreas, comunas)
+async function rcAlcance() {
+  if (RC.alcance) return RC.alcance;
+  const a = { admin: false, perfil: '', areaIds: [], areaClaves: [], areaNombres: [], comunas: [] };
+  try {
+    const { data: ses } = await sb.auth.getSession();
+    const uid = ses && ses.session && ses.session.user.id;
+    if (uid) {
+      const [p, pa, pc] = await Promise.all([
+        sb.from('perfiles').select('perfil').eq('id', uid).maybeSingle(),
+        sb.from('perfil_areas').select('area, id_area').eq('perfil_id', uid),
+        sb.from('perfil_comunas').select('comuna_id').eq('perfil_id', uid),
+      ]);
+      a.perfil = (p.data && p.data.perfil) || '';
+      a.admin = /administrador/i.test(a.perfil);
+      (pa.data || []).forEach(r => {
+        if (r.id_area != null) a.areaIds.push(String(r.id_area));
+        if (r.area) { a.areaClaves.push(rcClave(r.area)); a.areaNombres.push(r.area); }
+      });
+      a.comunas = (pc.data || []).map(r => String(r.comuna_id)).filter(Boolean);
+      cacheSet('rc_alcance', a);
+    }
+  } catch (e) { const c = await cacheGet('rc_alcance'); if (c) Object.assign(a, c); }
+  a.areaIds = [...new Set(a.areaIds)]; a.areaClaves = [...new Set(a.areaClaves)]; a.areaNombres = [...new Set(a.areaNombres)];
+  RC.alcance = a;
+  return a;
+}
+// Catálogo de comunas (id texto, id_comuna número, nombre)
+async function rcComunas() {
+  if (RC.comunas) return RC.comunas;
+  try {
+    const { data, error } = await sb.from('comunas').select('id, id_comuna, comuna');
+    if (error) throw error;
+    RC.comunas = data || []; cacheSet('rc_comunas', RC.comunas);
+  } catch (e) { RC.comunas = (await cacheGet('rc_comunas')) || []; }
+  return RC.comunas;
+}
+function rcEnAlcance(r, a, idsComunaGrd) {
+  if (a.admin) return true;
+  if (a.areaIds.length || a.areaClaves.length)
+    return a.areaIds.includes(String(r.id_area)) || a.areaClaves.includes(rcClave(r.area));
+  return idsComunaGrd.has(String(r.id_comuna));
+}
+
+/* ───────── 🚒 RECURSOS ───────── */
+async function rcCargarRecursos() {
+  const a = await rcAlcance();
+  const com = await rcComunas();
+  const idsGrd = new Set(com.filter(c => a.comunas.includes(String(c.id))).map(c => String(c.id_comuna)));
+  try {
+    const cols = 'id, codigo_ref, alias, tipo_recurso, tipo_movil, empresa, id_area, area, sector, id_comuna, comuna, zona_alerta, fecha_inicio_operacion, lat, lng, en_turno_hoy, proximo_turno';
+    const [v, x] = await Promise.all([leerTodo('v_planificador_recursos', cols), leerTodo('referencia_recursos', 'id, n_personas, fecha_termino_operacion, horario, trabajo_actual')]);
+    const extra = new Map(x.map(r => [r.id, r]));
+    const lista = v.filter(r => rcEnAlcance(r, a, idsGrd)).map(r => Object.assign({}, r, extra.get(r.id) || {}));
+    RC.datos = { lista, fecha: new Date().toISOString() };
+    cacheSet('rc_recursos', RC.datos);
+  } catch (e) {
+    const c = await cacheGet('rc_recursos');
+    RC.datos = c || { lista: [], error: e.message || String(e) };
+    if (c) toast('📵 Sin señal: recursos guardados del ' + fmtFecha(c.fecha));
+  }
+}
+function rcEstado(r) {
+  const hoy = hoyISO(), ini = r.fecha_inicio_operacion ? String(r.fecha_inicio_operacion).slice(0, 10) : '',
+        fin = r.fecha_termino_operacion ? String(r.fecha_termino_operacion).slice(0, 10) : '';
+  if (fin && fin < hoy) return { k: 'term', t: 'Terminó ' + fmtFecha(fin), c: '#64748B' };
+  if (!ini) return { k: 'sin', t: 'Sin fecha de inicio', c: '#94A3B8' };
+  if (ini <= hoy) return { k: 'op', t: 'Operando desde ' + fmtFecha(ini), c: '#16A34A' };
+  const d = rcDias(ini);
+  return { k: 'por', t: 'Inicia ' + fmtFecha(ini) + ' · en ' + d + ' día' + (d === 1 ? '' : 's'), c: d <= 15 ? '#D97706' : '#2563EB', d };
+}
+function rcAreasDe(lista) {
+  const m = new Map(); lista.forEach(r => { if (r.id_area != null) m.set(String(r.id_area), r.area || ('Área ' + r.id_area)); });
+  return [...m.entries()].sort((x, y) => String(x[1]).localeCompare(String(y[1]), 'es'));
+}
+function rcFiltrados() {
+  const lista = (RC.datos && RC.datos.lista) || [];
+  const q = rcClave(RC.q);
+  return lista.filter(r => (!RC.area || String(r.id_area) === RC.area) && (!RC.tipo || r.tipo_recurso === RC.tipo) &&
+    (!q || rcClave([r.alias, r.codigo_ref, r.tipo_recurso, r.comuna, r.sector, r.empresa].join(' ')).includes(q)));
+}
+async function pintarRecursos() {
+  rcQuitarMapa();
+  if (!RC.datos) {
+    $('m-cuerpo').innerHTML = '<div class="vacio">Cargando los recursos de tu área…</div>';
+    await rcCargarRecursos();
+    if (S.sec !== 'recursos') return;
+  }
+  const todos = RC.datos.lista || [];
+  const areas = rcAreasDe(todos);
+  if (areas.length === 1) RC.area = areas[0][0];
+  else if (RC.area && !areas.some(([id]) => id === RC.area)) RC.area = '';
+  const a = RC.alcance || {};
+  const sel = (id, todosTxt, ops, val) => '<select id="' + id + '"><option value="">' + todosTxt + '</option>' + ops.map(([v, t]) => '<option value="' + esc(v) + '"' + (v === val ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select>';
+  const enArea = todos.filter(r => !RC.area || String(r.id_area) === RC.area);
+  const tipos = [...new Set(enArea.map(r => r.tipo_recurso).filter(Boolean))].sort((x, y) => rcOrdenTipo(x) - rcOrdenTipo(y) || x.localeCompare(y, 'es')).map(t => [t, rcTit(t)]);
+  if (RC.tipo && !tipos.some(([t]) => t === RC.tipo)) RC.tipo = '';
+  const tabs = '<nav class="tabs">' + [['lista', '📋 Recursos'], ['mapa', '🗺️ Mapa'], ['inicios', '📊 Inicios']]
+    .map(([k, t]) => '<button data-rcv="' + k + '" class="' + (RC.vistaR === k ? 'on' : '') + '">' + t + '</button>').join('') + '</nav>';
+  const limpiar = (RC.q || RC.tipo || (RC.area && areas.length > 1)) ? '<button class="btn" data-rc-limpiar="1" title="Limpiar filtros" style="flex:0 0 auto;color:var(--err);border-color:#FCA5A5;background:#FEF2F2;">✕</button>' : '';
+  const filtros = '<div class="fila" style="margin-bottom:8px;">' +
+      (areas.length > 1 ? sel('rc-area', a.admin ? 'Todas las áreas' : 'Todas mis áreas', areas, RC.area) : '') +
+      sel('rc-tipo', 'Todos los tipos', tipos, RC.tipo) + '</div>' +
+    (RC.vistaR === 'lista' ? '<div class="fila" style="margin-bottom:8px;"><input id="rc-q" placeholder="🔍 Buscar clave, código, comuna…" value="' + esc(RC.q) + '">' + limpiar + '</div>' : (limpiar ? '<div style="text-align:right;margin:-2px 0 8px;">' + limpiar + '</div>' : ''));
+  const aviso = RC.datos.error ? '<div class="aviso err">No se pudieron leer los recursos: ' + esc(RC.datos.error) + '</div>' : '';
+  const sinAlcance = !a.admin && !(a.areaIds || []).length && !(a.areaClaves || []).length && !(a.comunas || []).length
+    ? '<div class="aviso">Tu usuario no tiene áreas ni comunas asignadas. Pide al Administrador que te las asigne.</div>' : '';
+  const lista = rcFiltrados();
+  const area = areas.find(([id]) => id === RC.area);
+  const cab = '<div class="muted" style="margin:-4px 0 8px;">👁️ Solo consulta · ' + esc(area ? area[1] : (areas.length ? areas.length + ' áreas' : 'sin recursos')) +
+    ' · ' + lista.length + ' recurso' + (lista.length === 1 ? '' : 's') + (RC.datos.fecha ? ' · datos del ' + fmtFecha(RC.datos.fecha) : '') + '</div>';
+  let cuerpo = '';
+  if (!todos.length) cuerpo = '<div class="vacio">No hay recursos en tu área.</div>';
+  else if (RC.vistaR === 'mapa') cuerpo = '<div class="av-mapa" id="rc-mapa" style="height:62vh;"></div><div id="rc-leyenda" class="card" style="margin-top:10px;"></div>';
+  else if (RC.vistaR === 'inicios') cuerpo = rcHtmlInicios(lista);
+  else cuerpo = rcHtmlLista(lista);
+  $('m-cuerpo').innerHTML = tabs + aviso + sinAlcance + filtros + cab + cuerpo;
+  if (RC.vistaR === 'mapa' && todos.length) rcMapaRecursos(lista);
+}
+function rcFichaHtml(r) {
+  const e = rcEstado(r);
+  const dato = (k, v) => v == null || v === '' ? '' : '<div class="fila-dato"><span class="muted">' + k + '</span><b style="text-align:right;">' + esc(v) + '</b></div>';
+  return dato('Tipo', rcTit(r.tipo_recurso)) + dato('Código', r.codigo_ref) + dato('Comuna', rcTit(r.comuna)) + dato('Sector', r.sector) +
+    dato('Empresa', r.empresa) + dato('Móvil', r.tipo_movil) + dato('N° personas', r.n_personas) + dato('Horario', r.horario) +
+    dato('Zona de alerta', r.zona_alerta) + dato('Inicio de operación', r.fecha_inicio_operacion ? fmtFecha(r.fecha_inicio_operacion) : 'Sin fecha') +
+    dato('Término', r.fecha_termino_operacion ? fmtFecha(r.fecha_termino_operacion) : '') + dato('Trabajo actual', r.trabajo_actual) +
+    '<div style="margin-top:8px;"><span class="chip" style="--c:' + e.c + '">' + esc(e.t) + '</span> ' +
+    (r.en_turno_hoy ? '<span class="chip" style="--c:#16A34A">🟢 En turno hoy</span>' : r.proximo_turno ? '<span class="chip" style="--c:#2563EB">Próximo turno ' + esc(fmtFecha(r.proximo_turno)) + '</span>' : '') +
+    (r.lat == null ? ' <span class="chip" style="--c:#DC2626">Sin ubicación</span>' : '') + '</div>';
+}
+function rcHtmlLista(lista) {
+  if (!lista.length) return '<div class="vacio">Ningún recurso con estos filtros.</div>';
+  const grupos = new Map();
+  lista.forEach(r => { const t = r.tipo_recurso || 'Sin tipo'; if (!grupos.has(t)) grupos.set(t, []); grupos.get(t).push(r); });
+  return [...grupos.entries()].sort((x, y) => rcOrdenTipo(x[0]) - rcOrdenTipo(y[0]) || x[0].localeCompare(y[0], 'es')).map(([t, rs]) =>
+    '<div class="muted" style="font-weight:800;text-transform:uppercase;letter-spacing:.3px;margin:12px 2px 6px;">' + esc(rcTit(t)) + ' · ' + rs.length + '</div>' +
+    rs.sort((x, y) => String(x.alias || x.codigo_ref).localeCompare(String(y.alias || y.codigo_ref), 'es', { numeric: true })).map(r => {
+      const e = rcEstado(r);
+      return '<div class="card acc" style="--c:' + e.c + ';cursor:pointer;" data-rc-rec="' + r.id + '">' +
+        '<div style="display:flex;justify-content:space-between;gap:8px;"><h3>' + esc(r.alias || r.codigo_ref || 'Recurso') + '</h3>' +
+          (r.en_turno_hoy ? '<span class="chip" style="--c:#16A34A">🟢 Turno hoy</span>' : '') + '</div>' +
+        '<div class="muted">' + esc([r.codigo_ref !== r.alias ? r.codigo_ref : '', rcTit(r.comuna), r.sector, r.empresa].filter(Boolean).join(' · ')) + '</div>' +
+        '<div style="margin-top:6px;"><span class="chip" style="--c:' + e.c + '">' + esc(e.t) + '</span>' + (r.lat == null ? ' <span class="chip" style="--c:#DC2626">Sin ubicación</span>' : '') + '</div></div>';
+    }).join('')).join('');
+}
+function rcAbrirRecurso(id) {
+  const r = ((RC.datos && RC.datos.lista) || []).find(x => String(x.id) === String(id)); if (!r) return;
+  $('av-sheet').innerHTML =
+    '<div class="av-top"><div style="min-width:0;flex:1;"><div class="av-grupo">' + esc(rcTit(r.tipo_recurso || 'Recurso')) + '</div>' +
+      '<h2 class="av-accion">' + esc(r.alias || r.codigo_ref) + '</h2><div class="av-meta">' + esc(rcTit(r.area || '')) + ' · solo consulta</div></div>' +
+      '<button class="av-x" data-rc-cerrar="1" aria-label="Cerrar">✕</button></div>' +
+    '<div class="av-body">' + (r.lat != null ? '<div class="av-mapa" id="rc-ficha-mapa" style="height:200px;margin-bottom:8px;"></div>' : '') + rcFichaHtml(r) + '</div>';
+  $('ov-avance').classList.add('show'); document.body.style.overflow = 'hidden';
+  if (r.lat != null) montarMapa($('rc-ficha-mapa'), Number(r.lat), Number(r.lng), {});
+}
+function rcMapaRecursos(lista) {
+  const cont = $('rc-mapa');
+  const m = montarMapa(cont, null, null, {});
+  if (!m.map) return;
+  RC.mapa = m.map;
+  const cap = cont.querySelector('.av-cap');
+  const conUb = lista.filter(r => r.lat != null && r.lng != null);
+  const grupo = L.featureGroup().addTo(m.map);
+  conUb.forEach(r => {
+    const e = rcEstado(r);
+    L.circleMarker([r.lat, r.lng], { radius: r.en_turno_hoy ? 9 : 7, color: '#fff', weight: 2, fillColor: e.c, fillOpacity: .95 })
+      .bindTooltip(esc(r.alias || r.codigo_ref || ''), { direction: 'top', offset: [0, -6] })
+      .bindPopup('<b>' + esc(r.alias || r.codigo_ref) + '</b><br>' + esc(rcTit(r.tipo_recurso)) + '<br>' + esc(rcTit(r.comuna || '')) +
+        '<br><span style="color:' + e.c + ';font-weight:700;">' + esc(e.t) + '</span>' + (r.en_turno_hoy ? '<br>🟢 En turno hoy' : '') +
+        '<br><a href="#" data-rc-rec="' + r.id + '">Ver ficha</a>')
+      .addTo(grupo);
+  });
+  if (cap) cap.textContent = '🚒 ' + conUb.length + ' con ubicación' + (lista.length - conUb.length ? ' · ' + (lista.length - conUb.length) + ' sin ubicación' : '');
+  setTimeout(() => { m.map.invalidateSize(); if (conUb.length) m.map.fitBounds(grupo.getBounds(), { padding: [30, 30], maxZoom: 13 }); }, 120);
+  const cuenta = k => lista.filter(r => rcEstado(r).k === k).length;
+  $('rc-leyenda').innerHTML = '<b style="font-size:13px;">Simbología</b><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">' +
+    [['op', '#16A34A', 'Operando'], ['por', '#D97706', 'Inicia ≤ 15 días'], ['por2', '#2563EB', 'Inicia más adelante'], ['sin', '#94A3B8', 'Sin fecha'], ['term', '#64748B', 'Terminado']]
+      .map(([k, c, t]) => '<span class="chip" style="--c:' + c + '">● ' + t + (k === 'op' || k === 'sin' || k === 'term' ? ' (' + cuenta(k) + ')' : '') + '</span>').join('') +
+    '</div><div class="muted" style="margin-top:6px;">Círculo más grande = en turno hoy.</div>';
+}
+function rcHtmlInicios(lista) {
+  const est = lista.map(r => ({ r, e: rcEstado(r) }));
+  const n = k => est.filter(x => x.e.k === k).length;
+  const prox15 = est.filter(x => x.e.k === 'por' && x.e.d <= 15).length;
+  const kpi = (v, t, c) => '<div class="kpi" style="border-left:4px solid ' + c + ';"><b>' + v + '</b><span>' + t + '</span></div>';
+  let html = '<div class="kpis" style="margin-bottom:10px;">' + kpi(lista.length, 'Recursos', '#0F172A') + kpi(n('op'), '🟢 Operando', '#16A34A') +
+    kpi(prox15, '⏳ Inician en ≤ 15 días', '#D97706') + kpi(n('por'), '📅 Por iniciar', '#2563EB') + kpi(n('sin'), '❔ Sin fecha de inicio', '#94A3B8') +
+    kpi(lista.filter(r => r.en_turno_hoy).length, '👷 En turno hoy', '#0F766E') + '</div>';
+  // Avance de la puesta en marcha: operando / total con fecha (barra)
+  const conFecha = lista.length - n('sin');
+  const p = conFecha ? Math.round(n('op') / lista.length * 100) : 0;
+  html += '<div class="card"><b style="font-size:13px;">Puesta en marcha</b><div class="barra" style="height:12px;"><i style="width:' + p + '%;--c:#16A34A"></i></div>' +
+    '<div class="muted" style="margin-top:4px;">' + n('op') + ' de ' + lista.length + ' operando (' + p + ' %)' + (n('term') ? ' · ' + n('term') + ' terminados' : '') + '</div></div>';
+  // Inicios por quincena
+  const q = new Map();
+  lista.forEach(r => {
+    if (!r.fecha_inicio_operacion) return;
+    const f = String(r.fecha_inicio_operacion).slice(0, 10), y = f.slice(0, 4), mm = f.slice(5, 7), dd = Number(f.slice(8, 10));
+    const k = y + '-' + mm + (dd <= 15 ? '-1' : '-2');
+    q.set(k, (q.get(k) || 0) + 1);
+  });
+  const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const hoyK = hoyISO().slice(0, 7) + (Number(hoyISO().slice(8, 10)) <= 15 ? '-1' : '-2');
+  const qs = [...q.entries()].sort((x, y) => x[0].localeCompare(y[0]));
+  const max = Math.max(1, ...qs.map(x => x[1]));
+  html += '<div class="card"><b style="font-size:13px;">Inicios por quincena</b>' + (qs.length ? qs.map(([k, v]) => {
+    const [y, mm, h] = k.split('-');
+    const col = k < hoyK ? '#16A34A' : k === hoyK ? '#D97706' : '#2563EB';   // pasada · actual · futura
+    return '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;"><span style="width:96px;flex:0 0 auto;' + (k === hoyK ? 'font-weight:800;color:var(--azul2);' : '') + '">' +
+      (h === '1' ? '1ª' : '2ª') + ' ' + MES[Number(mm) - 1] + ' ' + y.slice(2) + (k === hoyK ? ' ◀' : '') + '</span>' +
+      '<div class="barra" style="flex:1;margin:0;height:14px;"><i style="width:' + Math.round(v / max * 100) + '%;--c:' + col + '"></i></div><b style="width:24px;text-align:right;">' + v + '</b></div>';
+  }).join('') : '<div class="muted" style="margin-top:6px;">Ningún recurso tiene fecha de inicio.</div>') + '</div>';
+  // Por tipo
+  const tipos = new Map();
+  est.forEach(({ r, e }) => { const t = r.tipo_recurso || 'Sin tipo'; const o = tipos.get(t) || { n: 0, op: 0 }; o.n++; if (e.k === 'op') o.op++; tipos.set(t, o); });
+  html += '<div class="card"><b style="font-size:13px;">Por tipo de recurso</b>' + [...tipos.entries()].sort((x, y) => rcOrdenTipo(x[0]) - rcOrdenTipo(y[0]) || x[0].localeCompare(y[0], 'es')).map(([t, o]) =>
+    '<div style="margin-top:8px;font-size:12.5px;"><div style="display:flex;justify-content:space-between;"><span>' + esc(rcTit(t)) + '</span><b>' + o.op + ' / ' + o.n + '</b></div>' +
+    '<div class="barra" style="margin-top:3px;"><i style="width:' + Math.round(o.op / o.n * 100) + '%;--c:#16A34A"></i></div></div>').join('') + '</div>';
+  // Próximos inicios
+  const prox = est.filter(x => x.e.k === 'por').sort((x, y) => x.e.d - y.e.d).slice(0, 30);
+  html += '<div class="card"><b style="font-size:13px;">Próximos inicios</b>' + (prox.length ? prox.map(({ r, e }) =>
+    '<div class="fila-dato" style="cursor:pointer;" data-rc-rec="' + r.id + '"><span><b>' + esc(r.alias || r.codigo_ref) + '</b><br><span class="muted">' + esc(rcTit(r.tipo_recurso)) + ' · ' + esc(rcTit(r.comuna || '')) + '</span></span>' +
+    '<span style="text-align:right;"><b>' + fmtFecha(r.fecha_inicio_operacion) + '</b><br><span class="chip" style="--c:' + e.c + '">en ' + e.d + ' día' + (e.d === 1 ? '' : 's') + '</span></span></div>').join('')
+    : '<div class="muted" style="margin-top:6px;">No hay recursos por iniciar.</div>') + '</div>';
+  const sinF = est.filter(x => x.e.k === 'sin');
+  if (sinF.length) html += '<div class="card"><b style="font-size:13px;">Sin fecha de inicio (' + sinF.length + ')</b><div style="margin-top:6px;">' +
+    sinF.map(({ r }) => '<span class="pill" style="cursor:pointer;" data-rc-rec="' + r.id + '">' + esc(r.alias || r.codigo_ref) + '</span>').join('') + '</div></div>';
+  return html;
+}
+
+/* ───────── 🗺️ COPAMIENTO: plan por comuna del área ───────── */
+async function rcCargarCopamiento() {
+  const a = await rcAlcance();
+  const com = await rcComunas();
+  try {
+    const [ac, res] = await Promise.all([
+      sb.from('v_area_comunas_admin').select('area, area_norm, id_comuna'),
+      sb.rpc('resumen_comunas_prevencion'),
+    ]);
+    if (ac.error) throw ac.error;
+    if (res.error) throw res.error;
+    const porIdC = new Map(com.map(c => [String(c.id_comuna), c]));
+    const resumen = {}; (res.data || []).forEach(x => { resumen[String(x.id_comuna)] = x; });
+    // Áreas visibles: Admin todas; Jefe/Subgerente/GRT las suyas; GRD sus comunas (grupo «Mis comunas»)
+    const areas = new Map();
+    (ac.data || []).forEach(r => {
+      const k = rcClave(r.area);
+      if (!a.admin && !a.areaClaves.includes(k)) return;
+      if (!areas.has(k)) areas.set(k, { clave: k, nombre: r.area, comunas: new Set() });
+      areas.get(k).comunas.add(String(r.id_comuna));
+    });
+    if (!a.admin && !areas.size && a.comunas.length) {
+      const ids = com.filter(c => a.comunas.includes(String(c.id))).map(c => String(c.id_comuna));
+      areas.set('MIS', { clave: 'MIS', nombre: 'Mis comunas', comunas: new Set(ids) });
+    }
+    const lista = [...areas.values()].map(ar => ({ clave: ar.clave, nombre: ar.nombre,
+      comunas: [...ar.comunas].map(id => { const c = porIdC.get(id) || {}; return { id_comuna: id, slug: c.id ? String(c.id) : '', nombre: c.comuna || ('Comuna ' + id), r: resumen[id] || null }; })
+        .sort((x, y) => x.nombre.localeCompare(y.nombre, 'es')) }))
+      .sort((x, y) => x.nombre.localeCompare(y.nombre, 'es'));
+    RC.cop = { areas: lista, fecha: new Date().toISOString() };
+    cacheSet('rc_copamiento', RC.cop);
+  } catch (e) {
+    const c = await cacheGet('rc_copamiento');
+    RC.cop = c || { areas: [], error: e.message || String(e) };
+    if (c) toast('📵 Sin señal: copamiento guardado del ' + fmtFecha(c.fecha));
+  }
+}
+const rcPctTxt = v => v == null ? '—' : (Math.round(Number(v) * 10) / 10).toString().replace('.', ',') + ' %';
+async function pintarCopamiento() {
+  if (!RC.cop) {
+    $('m-cuerpo').innerHTML = '<div class="vacio">Cargando el plan de copamiento de tus comunas…</div>';
+    await rcCargarCopamiento();
+    if (S.sec !== 'copamiento') return;
+  }
+  const areas = RC.cop.areas || [];
+  if (areas.length === 1) RC.cArea = areas[0].clave;
+  else if (RC.cArea && !areas.some(x => x.clave === RC.cArea)) RC.cArea = '';
+  if (!RC.cArea && areas.length) {
+    // Por defecto la primera de las áreas del usuario (el Administrador elige)
+    const a = RC.alcance || {};
+    RC.cArea = (!a.admin && areas[0]) ? areas[0].clave : '';
+  }
+  const aviso = RC.cop.error ? '<div class="aviso err">No se pudo leer el plan de copamiento: ' + esc(RC.cop.error) + '</div>' : '';
+  if (!areas.length) { $('m-cuerpo').innerHTML = aviso + '<div class="vacio">No tienes áreas ni comunas asignadas.<br>Pide al Administrador que te las asigne.</div>'; return; }
+  const selA = areas.length > 1 ? '<select id="rc-carea"><option value="">— Elige un área (' + areas.length + ') —</option>' +
+    areas.map(x => '<option value="' + esc(x.clave) + '"' + (x.clave === RC.cArea ? ' selected' : '') + '>' + esc(rcTit(x.nombre)) + ' · ' + x.comunas.length + ' comunas</option>').join('') + '</select>' : '';
+  const ar = areas.find(x => x.clave === RC.cArea);
+  let cuerpo = '';
+  if (!ar) cuerpo = '<div class="vacio">Elige un área para ver el plan de copamiento de sus comunas.</div>';
+  else {
+    const con = ar.comunas.filter(c => c.r && c.r.pct_verde != null);
+    const prom = k => con.length ? con.reduce((s, c) => s + (Number(c.r[k]) || 0), 0) / con.length : null;
+    cuerpo = '<div class="card"><b style="font-size:13px;">' + esc(rcTit(ar.nombre)) + ' · copamiento promedio sobre incendios</b>' +
+      '<div class="kpis" style="grid-template-columns:repeat(3,1fr);margin-top:8px;">' + RC_ESC.map(e =>
+        '<div class="kpi" style="border-left:4px solid ' + e.c + ';"><b style="font-size:19px;">' + rcPctTxt(prom(e.pct)) + '</b><span>' + e.ico + ' ' + e.n + '</span></div>').join('') + '</div>' +
+      '<div class="muted" style="margin-top:6px;">' + ar.comunas.length + ' comunas · ' + con.length + ' con plan · % de la zona de incendios del trienio cubierta por el plan (igual que en la plataforma).</div></div>' +
+      ar.comunas.map(c => {
+        const r = c.r || {};
+        const tiene = r.pct_verde != null;
+        const barras = RC_ESC.map(e => '<div style="display:flex;align-items:center;gap:8px;font-size:12px;margin-top:4px;"><span style="width:84px;flex:0 0 auto;white-space:nowrap;">' + e.ico + ' ' + e.n.replace('Alerta ', '') + '</span>' +
+          '<div class="barra" style="flex:1;margin:0;"><i style="width:' + Math.min(100, Number(r[e.pct]) || 0) + '%;--c:' + e.c + '"></i></div><b style="width:52px;text-align:right;">' + rcPctTxt(r[e.pct]) + '</b>' +
+          '<span class="muted" style="width:44px;text-align:right;">' + (r[e.ent] || 0) + ' ent.</span></div>').join('');
+        return '<div class="card" style="cursor:pointer;" data-rc-com="' + esc(c.slug) + '" data-rc-comn="' + esc(c.nombre) + '">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><h3 style="margin:0;font-size:15px;">🏘️ ' + esc(rcTit(c.nombre)) + '</h3>' +
+            '<span class="muted">Ver plan ›</span></div>' +
+          (tiene ? barras : '<div class="muted" style="margin-top:6px;">Aún sin plan de copamiento.</div>') +
+          '<div style="margin-top:6px;">' + (r.rutas ? '<span class="pill">🛣️ ' + r.rutas + ' rutas</span>' : '') +
+            (r.tiene_ameba ? '<span class="pill">🔥 Zona de incendios ' + (r.ameba_km2 != null ? (Math.round(r.ameba_km2 * 10) / 10).toString().replace('.', ',') + ' km²' : '') + '</span>' : '') +
+            (r.n_grd ? '<span class="pill" title="' + esc(r.grd_nombres || '') + '">👤 ' + r.n_grd + ' GRD</span>' : '') + '</div></div>';
+      }).join('');
+  }
+  $('m-cuerpo').innerHTML = aviso + (selA ? '<div style="margin-bottom:8px;">' + selA + '</div>' : '') +
+    '<div class="muted" style="margin:-2px 0 8px;">👁️ Solo consulta' + (RC.cop.fecha ? ' · datos del ' + fmtFecha(RC.cop.fecha) : '') + '</div>' + cuerpo;
+}
+// Detalle de una comuna: escenario + mapa (límite + entidades planificadas) + resumen por institución
+async function rcAbrirComuna(slug, nombre, esc0) {
+  if (!slug) return toast('Comuna sin identificador.');
+  esc0 = esc0 || 'Verde';
+  $('av-sheet').innerHTML =
+    '<div class="av-top"><div style="min-width:0;flex:1;"><div class="av-grupo">Plan de copamiento</div><h2 class="av-accion">🏘️ ' + esc(rcTit(nombre)) + '</h2>' +
+      '<div class="av-meta">Solo consulta</div></div><button class="av-x" data-rc-cerrar="1" aria-label="Cerrar">✕</button></div>' +
+    '<div class="av-body"><nav class="tabs">' + RC_ESC.map(e => '<button data-rc-esc="' + e.k + '" data-rc-slug="' + esc(slug) + '" data-rc-nom="' + esc(nombre) + '" class="' + (e.k === esc0 ? 'on' : '') + '">' + e.ico + ' ' + e.n + '</button>').join('') + '</nav>' +
+      '<div class="av-mapa" id="rc-com-mapa" style="height:260px;"></div><div id="rc-com-det" style="margin-top:10px;"><div class="muted">Cargando el plan…</div></div></div>';
+  $('ov-avance').classList.add('show'); document.body.style.overflow = 'hidden';
+  const m = montarMapa($('rc-com-mapa'), null, null, {});
+  const cap = $('rc-com-mapa').querySelector('.av-cap');
+  if (cap) cap.textContent = 'Cargando…';
+  const clave = 'rc_plan_' + slug + '_' + esc0;
+  let det = null;
+  try {
+    const [lim, pl, ins] = await Promise.all([
+      sb.from('v_comunas_limite').select('id, geometry').eq('id', slug).maybeSingle(),
+      sb.from('planes_contingencia').select('id, escenario, ambito').eq('comuna_id', slug).eq('escenario', esc0),
+      sb.from('instituciones').select('id, nombre, color_hex'),
+    ]);
+    const planes = (pl.data || []).filter(p => (p.ambito || 'comuna') === 'comuna').map(p => p.id);
+    let ents = [];
+    if (planes.length) {
+      const { data, error } = await sb.from('planificacion_recursos_geojson').select('id, plan_id, tipo_geometria, tipo_recurso, descripcion, institucion_id, geom_geojson').in('plan_id', planes);
+      if (error) throw error;
+      ents = data || [];
+    }
+    det = { limite: lim.data ? lim.data.geometry : null, ents, inst: ins.data || [] };
+    cacheSet(clave, det);
+  } catch (e) {
+    det = await cacheGet(clave);
+    if (!det) { $('rc-com-det').innerHTML = '<div class="aviso err">No se pudo leer el plan: ' + esc(e.message || String(e)) + '</div>'; if (cap) cap.textContent = 'Sin datos'; return; }
+    toast('📵 Sin señal: plan guardado en el teléfono');
+  }
+  if (!document.getElementById('rc-com-det')) return;   // se cerró la ventana
+  const instM = new Map(det.inst.map(i => [String(i.id), i]));
+  const gj = v => { try { return typeof v === 'string' ? JSON.parse(v) : v; } catch (e) { return null; } };
+  const kmDe = g => {
+    if (!g) return 0;
+    const lineas = g.type === 'LineString' ? [g.coordinates] : g.type === 'MultiLineString' ? g.coordinates : [];
+    let km = 0; const R = Math.PI / 180;
+    lineas.forEach(l => { for (let i = 1; i < l.length; i++) { const [x1, y1] = l[i - 1], [x2, y2] = l[i];
+      const h = Math.sin((y2 - y1) * R / 2) ** 2 + Math.cos(y1 * R) * Math.cos(y2 * R) * Math.sin((x2 - x1) * R / 2) ** 2; km += 12742 * Math.asin(Math.sqrt(h)); } });
+    return km;
+  };
+  const porInst = new Map();
+  if (m.map) {
+    const grupo = L.featureGroup().addTo(m.map);
+    const lim = gj(det.limite);
+    if (lim) L.geoJSON(lim, { interactive: false, style: { color: '#FDE047', weight: 3, fill: false, dashArray: '6 5' } }).addTo(grupo);
+    det.ents.forEach(e => {
+      const g = gj(e.geom_geojson); if (!g) return;
+      const i = instM.get(String(e.institucion_id)) || { nombre: 'Sin institución', color_hex: '#64748B' };
+      const col = i.color_hex || '#64748B';
+      L.geoJSON(g, {
+        style: { color: col, weight: e.tipo_geometria === 'linea' ? 4 : 2, fillColor: col, fillOpacity: .2, opacity: .95 },
+        pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 7, color: '#fff', weight: 2, fillColor: col, fillOpacity: .95 }),
+      }).bindPopup('<b>' + esc(e.descripcion || rcTit(e.tipo_recurso) || 'Entidad') + '</b><br>' + esc(i.nombre) + '<br>' + esc(rcTit(e.tipo_recurso || '')) +
+        (e.tipo_geometria === 'linea' ? '<br>' + (Math.round(kmDe(g) * 10) / 10).toString().replace('.', ',') + ' km' : '')).addTo(grupo);
+    });
+    setTimeout(() => { m.map.invalidateSize(); try { const b = grupo.getBounds(); if (b.isValid()) m.map.fitBounds(b, { padding: [20, 20] }); } catch (er) {} }, 120);
+  }
+  det.ents.forEach(e => {
+    const k = String(e.institucion_id || '—');
+    const o = porInst.get(k) || { lineas: 0, areas: 0, puntos: 0, km: 0 };
+    if (e.tipo_geometria === 'linea') { o.lineas++; o.km += kmDe(gj(e.geom_geojson)); } else if (e.tipo_geometria === 'area') o.areas++; else o.puntos++;
+    porInst.set(k, o);
+  });
+  if (cap) cap.textContent = '🗺️ ' + det.ents.length + ' entidades · ' + (RC_ESC.find(x => x.k === esc0) || {}).n;
+  const fila = (k, o) => { const i = instM.get(k) || { nombre: 'Sin institución', color_hex: '#64748B' };
+    return '<div class="fila-dato"><span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + esc(i.color_hex || '#64748B') + ';margin-right:6px;"></span>' + esc(i.nombre) + '</span>' +
+      '<span class="muted" style="text-align:right;">' + [o.lineas ? '🛣️ ' + o.lineas + ' (' + (Math.round(o.km * 10) / 10).toString().replace('.', ',') + ' km)' : '', o.areas ? '⬛ ' + o.areas : '', o.puntos ? '📍 ' + o.puntos : ''].filter(Boolean).join(' · ') + '</span></div>'; };
+  const res = ((RC.cop && RC.cop.areas) || []).flatMap(a => a.comunas).find(c => c.slug === slug);
+  const r = res && res.r || {}, e0 = RC_ESC.find(x => x.k === esc0);
+  $('rc-com-det').innerHTML = '<div class="card" style="border-left:5px solid ' + e0.c + ';"><b>' + e0.ico + ' ' + e0.n + ' · copamiento ' + rcPctTxt(r[e0.pct]) + '</b>' +
+    '<div class="muted">' + det.ents.length + ' entidades planificadas · % de la zona de incendios del trienio cubierta</div></div>' +
+    (porInst.size ? '<div class="card"><b style="font-size:13px;">Por institución</b>' + [...porInst.entries()].sort((x, y) => (y[1].lineas + y[1].areas + y[1].puntos) - (x[1].lineas + x[1].areas + x[1].puntos)).map(([k, o]) => fila(k, o)).join('') + '</div>'
+      : '<div class="vacio" style="padding:14px;">Sin entidades planificadas en este escenario.</div>');
+}
+
+// Eventos propios de Recursos y Copamiento (atributos data-rc*; no chocan con los del PPA)
+document.addEventListener('DOMContentLoaded', () => {
+  $('m-cuerpo').addEventListener('click', e => {
+    const v = e.target.closest('[data-rcv]'); if (v) { RC.vistaR = v.dataset.rcv; return pintarRecursos(); }
+    if (e.target.closest('[data-rc-limpiar]')) { RC.q = ''; RC.tipo = ''; const ar = rcAreasDe((RC.datos && RC.datos.lista) || []); RC.area = ar.length === 1 ? ar[0][0] : ''; return pintarRecursos(); }
+    const rr = e.target.closest('[data-rc-rec]'); if (rr) { e.preventDefault(); return rcAbrirRecurso(rr.dataset.rcRec); }
+    const cm = e.target.closest('[data-rc-com]'); if (cm) return rcAbrirComuna(cm.dataset.rcCom, cm.dataset.rcComn, 'Verde');
+  });
+  $('m-cuerpo').addEventListener('change', e => {
+    if (e.target.id === 'rc-area') { RC.area = e.target.value; RC.tipo = ''; return pintarRecursos(); }
+    if (e.target.id === 'rc-tipo') { RC.tipo = e.target.value; return pintarRecursos(); }
+    if (e.target.id === 'rc-carea') { RC.cArea = e.target.value; return pintarCopamiento(); }
+  });
+  let t = null;
+  $('m-cuerpo').addEventListener('input', e => {
+    if (e.target.id !== 'rc-q') return;
+    clearTimeout(t);
+    t = setTimeout(() => {
+      RC.q = e.target.value;
+      const pos = e.target.selectionStart;
+      pintarRecursos().then(() => { const i = $('rc-q'); if (i) { i.focus(); try { i.setSelectionRange(pos, pos); } catch (er) {} } });
+    }, 300);
+  });
+  // Ventanas (ficha del recurso / plan de la comuna) usan la misma hoja inferior del PPA
+  $('av-sheet').addEventListener('click', e => {
+    if (e.target.closest('[data-rc-cerrar]')) return cerrarAvance();
+    const b = e.target.closest('[data-rc-esc]'); if (b) return rcAbrirComuna(b.dataset.rcSlug, b.dataset.rcNom, b.dataset.rcEsc);
+  });
 });
 </script>
 </body>

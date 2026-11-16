@@ -9,7 +9,10 @@ const AR_ESTADOS = {
   cerrado:     { t: 'Cerrado',     c: '#15803D', c2: '#DCFCE7', ico: '✅' },
 };
 state.ar = { reportes: [], usuarios: {}, tipos: {}, turnos: [], posTurnos: {}, listeners: false, mapa: null, capa: null, timer: null, encuadrado: false,
-             vista: 'vivo', vivo: { turnos: [], puntos: {} }, vivoCapas: {}, vivoEncuadrado: false };
+             vista: 'vivo', vivo: { turnos: [], puntos: {} }, vivoCapas: {}, vivoEncuadrado: false,
+             // 🗺️ Mapa vivo SIG (13-11-2026): alertas de la jornada + patrulleros (ver js/11, sección MAPA VIVO SIG)
+             mv: { reportes: [], turnos: [], puntos: {}, limites: {}, vistos: null, encuadrado: false, marcadores: {}, capas: null,
+                   ver: { alertas: true, patrulleros: true, recorridos: true, limites: true } } };
 
 function puedeReportesApp_() { return esAdminOJefe_(); }
 function arComuna_(id) { const c = (state.comunas || []).find(x => String(x.id) === String(id)); return c ? c.comuna : ''; }
@@ -43,20 +46,29 @@ async function abrirReportesApp_() {
       if (fila && !e.target.closest('select,button,a')) enfocarReporteApp_(fila.dataset.arId);
     });
   }
+  if (!state.ar.mvListeners) { state.ar.mvListeners = true; mvPrepararControles_(); }
   aplicarVistaApp_();
   await cargarReportesApp_();
-  // Se refresca solo cada 30 s mientras la vista esté abierta
+  // Se refresca solo mientras la vista esté abierta: cada 15 s el 🗺️ Mapa vivo SIG, cada 30 s las otras vistas
   clearInterval(state.ar.timer);
+  let tic = 0;
   state.ar.timer = setInterval(() => {
-    if (state.vistaActual === 'appreportes') cargarReportesApp_(true);
-    else { clearInterval(state.ar.timer); state.ar.timer = null; }
-  }, 30000);
+    if (state.vistaActual !== 'appreportes') { clearInterval(state.ar.timer); state.ar.timer = null; return; }
+    tic++;
+    if (state.ar.vista === 'mapavivo' || tic % 2 === 0) cargarReportesApp_(true);
+  }, 15000);
 }
 function aplicarVistaApp_() {
-  const vivo = state.ar.vista === 'vivo';
-  document.querySelectorAll('#ar-vistas [data-ar-vista]').forEach(b => b.classList.toggle('on', b.dataset.arVista === state.ar.vista));
-  document.getElementById('ar-filtros').style.display = vivo ? 'none' : 'contents';
-  document.getElementById('ar-descargar').style.display = vivo ? 'none' : '';
+  const v = state.ar.vista, vivo = v === 'vivo', mv = v === 'mapavivo';
+  document.querySelectorAll('#ar-vistas [data-ar-vista]').forEach(b => b.classList.toggle('on', b.dataset.arVista === v));
+  document.getElementById('ar-filtros').style.display = (vivo || mv) ? 'none' : 'contents';
+  document.getElementById('ar-filtros-mv').style.display = mv ? 'contents' : 'none';
+  document.getElementById('ar-descargar').style.display = (vivo || mv) ? 'none' : '';
+  document.getElementById('appreportes-panel').classList.toggle('ar-mv', mv);
+  // Al cambiar de vista se vuelve a encuadrar y se limpia el mapa compartido
+  state.ar.encuadrado = false; state.ar.vivoEncuadrado = false; state.ar.mv.encuadrado = false;
+  if (state.ar.capa) state.ar.capa.clearLayers();
+  if (state.ar.mapa) setTimeout(() => state.ar.mapa.invalidateSize(), 80);
 }
 function arMapa_() {
   if (!state.ar.mapa) {
@@ -77,15 +89,24 @@ function arMapa_() {
 // ── 🛰️ Patrullajes en vivo: turnos activos + los de hoy, con su recorrido
 async function cargarVivoApp_(silencioso) {
   if (!silencioso) document.getElementById('ar-estado-txt').textContent = 'Cargando…';
+  const r = await cargarTurnosHoyApp_();
+  const av = document.getElementById('ar-aviso');
+  if (r.error) { av.style.display = ''; av.textContent = '⚠️ ' + r.error.message; document.getElementById('ar-estado-txt').textContent = 'Error'; return; }
+  av.style.display = 'none';
+  state.ar.vivo = { turnos: r.turnos, puntos: r.puntos };
+  renderVivoApp_();
+  document.getElementById('ar-estado-txt').textContent = 'En vivo · ' + new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+// Turnos activos + los iniciados hoy, con su recorrido GPS, km, última posición y minutos sin señal.
+// La usan «🛰️ Patrullajes en vivo» y «🗺️ Mapa vivo SIG». Deja los usuarios de la app en state.ar.usuarios.
+async function cargarTurnosHoyApp_() {
   const hoy0 = new Date(); hoy0.setHours(0, 0, 0, 0);
   const [act, hoy, usr] = await Promise.all([
     supabaseClient.from('app_turnos').select('*').eq('estado', 'activo').limit(500),
     supabaseClient.from('app_turnos').select('*').gte('inicio', hoy0.toISOString()).limit(500),
     supabaseClient.from('app_usuarios').select('id, nombre, telefono, institucion, comuna_id'),
   ]);
-  const av = document.getElementById('ar-aviso');
-  if (act.error) { av.style.display = ''; av.textContent = '⚠️ ' + act.error.message; document.getElementById('ar-estado-txt').textContent = 'Error'; return; }
-  av.style.display = 'none';
+  if (act.error) return { error: act.error, turnos: [], puntos: {} };
   state.ar.usuarios = {}; (usr.data || []).forEach(u => { state.ar.usuarios[u.id] = u; });
   const porId = {}; (act.data || []).concat(hoy.data || []).forEach(t => { porId[t.id] = t; });
   const turnos = Object.values(porId);
@@ -114,9 +135,7 @@ async function cargarVivoApp_(silencioso) {
     t._min = t._ult ? (Date.now() - new Date(t._ult.registrado_en)) / 60000 : null;
   });
   turnos.sort((a, b) => (a.estado === 'activo' ? 0 : 1) - (b.estado === 'activo' ? 0 : 1) || new Date(b.inicio) - new Date(a.inicio));
-  state.ar.vivo = { turnos, puntos };
-  renderVivoApp_();
-  document.getElementById('ar-estado-txt').textContent = 'En vivo · ' + new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return { turnos, puntos, error: null };
 }
 function arSenal_(t) {
   if (t.estado !== 'activo') return '<span class="rg-chip" style="background:#F1F5F9;color:#64748B;">⏹ Terminado</span>';
@@ -184,8 +203,257 @@ function enfocarTurnoApp_(id) {
   const m = g.getLayers().find(l => l instanceof L.Marker); if (m) m.openPopup();
 }
 
+/* ==================== 🗺️ MAPA VIVO SIG (13-11-2026) ====================
+ * Visor de la JORNADA (desde las 00:00 de hoy) para la central: en un solo mapa las alertas/reportes que levantan los
+ * patrulleros desde la app (burbujas estilo Waze con «hace X min», pulso las de < 30 min, «!» si es urgente) y los
+ * patrulleros (🚓 en su última posición con nombre, recorrido del día; los terminados atenuados), sobre los límites de las
+ * comunas con actividad (v_comunas_limite). Panel lateral: línea de tiempo de alertas y lista de patrulleros con su señal.
+ * Filtros: comuna, institución, solo abiertas; capas encendibles. Se refresca cada 15 s; las alertas nuevas avisan
+ * (aviso + sonido corto). Lee app_reportes / app_turnos / app_sesiones_gps con la sesión del usuario (mismo permiso
+ * que el resto del módulo: puedeReportesApp_). */
+function mvPrepararControles_() {
+  const re = () => renderMapaVivo_();
+  ['ar-mv-comuna', 'ar-mv-inst', 'ar-mv-estado'].forEach(id => document.getElementById(id).addEventListener('change', () => { state.ar.mv.encuadrado = false; re(); }));
+  document.getElementById('ar-mv-capas').addEventListener('change', e => {
+    const c = e.target.closest('[data-mv-capa]'); if (!c) return;
+    state.ar.mv.ver[c.dataset.mvCapa] = c.checked; re();
+  });
+  document.getElementById('ar-tabla').addEventListener('click', e => {
+    if (state.ar.vista !== 'mapavivo') return;
+    const a = e.target.closest('[data-mv-alerta]'); if (a) { mvEnfocar_('a:' + a.dataset.mvAlerta); return; }
+    const t = e.target.closest('[data-mv-turno]'); if (t) { mvEnfocar_('t:' + t.dataset.mvTurno); return; }
+    const f = e.target.closest('[data-mv-foto]'); if (f) { verFotoReporteApp_(f.dataset.mvFoto); }
+  });
+}
+function mvMinDesde_(iso) { return Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000)); }
+function mvHace_(iso) {
+  const m = mvMinDesde_(iso);
+  return m < 1 ? 'ahora' : m < 60 ? 'hace ' + m + ' min' : 'hace ' + Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '');
+}
+function mvHora_(iso) { return new Date(iso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }); }
+
+async function cargarMapaVivo_(silencioso) {
+  if (!silencioso) document.getElementById('ar-estado-txt').textContent = 'Cargando…';
+  const hoy0 = new Date(); hoy0.setHours(0, 0, 0, 0);
+  const [rep, tip, tur] = await Promise.all([
+    supabaseClient.from('app_reportes').select('*').gte('creado_en', hoy0.toISOString()).order('creado_en', { ascending: false }).limit(2000),
+    supabaseClient.from('app_tipos_accion').select('id, nombre, icono, color'),
+    cargarTurnosHoyApp_(),
+  ]);
+  const av = document.getElementById('ar-aviso');
+  const err = rep.error || tur.error;
+  if (err) { av.style.display = ''; av.textContent = '⚠️ ' + err.message; document.getElementById('ar-estado-txt').textContent = 'Error'; return; }
+  av.style.display = 'none';
+  const mv = state.ar.mv;
+  state.ar.tipos = {}; (tip.data || []).forEach(t => { state.ar.tipos[t.id] = t; });
+  // Alertas nuevas desde la última carga (la primera carga no avisa)
+  const nuevas = mv.vistos ? (rep.data || []).filter(r => !mv.vistos.has(r.id)) : [];
+  mv.vistos = new Set((rep.data || []).map(r => r.id));
+  mv.reportes = rep.data || [];
+  mv.turnos = tur.turnos; mv.puntos = tur.puntos;
+  mvPoblarFiltros_();
+  await mvCargarLimites_();
+  renderMapaVivo_();
+  document.getElementById('ar-estado-txt').textContent = '🔴 En vivo · ' + new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  if (nuevas.length) mvAvisarNuevas_(nuevas);
+}
+function mvComunaDe_(r) { return r.comuna_id != null ? String(r.comuna_id) : ''; }
+function mvPoblarFiltros_() {
+  const mv = state.ar.mv, us = state.ar.usuarios;
+  const comunas = new Set();
+  mv.reportes.forEach(r => { if (r.comuna_id != null) comunas.add(String(r.comuna_id)); });
+  mv.turnos.forEach(t => { if (t.comuna_id != null) comunas.add(String(t.comuna_id)); });
+  const selC = document.getElementById('ar-mv-comuna'), vC = selC.value;
+  const listaC = [...comunas].map(id => [id, arComuna_(id) || id]).sort((a, b) => a[1].localeCompare(b[1], 'es'));
+  selC.innerHTML = '<option value="">Todas las comunas (' + listaC.length + ')</option>' + listaC.map(([id, n]) => '<option value="' + escapeHtml_(id) + '">' + escapeHtml_(n) + '</option>').join('');
+  selC.value = listaC.some(([id]) => id === vC) ? vC : '';
+  const insts = new Set();
+  mv.reportes.forEach(r => { const u = us[r.usuario_id]; if (u && u.institucion) insts.add(u.institucion); });
+  mv.turnos.forEach(t => { const u = us[t.usuario_id]; if (u && u.institucion) insts.add(u.institucion); });
+  const selI = document.getElementById('ar-mv-inst'), vI = selI.value;
+  const listaI = [...insts].sort((a, b) => a.localeCompare(b, 'es'));
+  selI.innerHTML = '<option value="">Todas las instituciones</option>' + listaI.map(n => '<option value="' + escapeHtml_(n) + '">' + escapeHtml_(n) + '</option>').join('');
+  selI.value = listaI.includes(vI) ? vI : '';
+}
+// Límites de las comunas con actividad hoy (se guardan: solo se piden las que faltan)
+async function mvCargarLimites_() {
+  const mv = state.ar.mv, ids = new Set();
+  mv.reportes.forEach(r => { if (r.comuna_id != null) ids.add(String(r.comuna_id)); });
+  mv.turnos.forEach(t => { if (t.comuna_id != null) ids.add(String(t.comuna_id)); });
+  const faltan = [...ids].filter(id => !(id in mv.limites));
+  if (!faltan.length) return;
+  try {
+    const { data } = await supabaseClient.from('v_comunas_limite').select('id, comuna, geometry').in('id', faltan);
+    faltan.forEach(id => { mv.limites[id] = null; });
+    (data || []).forEach(c => { mv.limites[String(c.id)] = c; });
+  } catch (e) { /* sin límites: el mapa funciona igual */ }
+}
+function mvFiltrados_() {
+  const mv = state.ar.mv, us = state.ar.usuarios;
+  const fC = document.getElementById('ar-mv-comuna').value, fI = document.getElementById('ar-mv-inst').value, fE = document.getElementById('ar-mv-estado').value;
+  const okU = uid => !fI || ((us[uid] || {}).institucion === fI);
+  const reportes = mv.reportes.filter(r => (!fC || mvComunaDe_(r) === fC) && okU(r.usuario_id) &&
+    (fE !== 'abiertas' || arAbierto_(r)) && (fE !== 'urgentes' || (r.urgencia === 'urgente' && arAbierto_(r))));
+  const turnos = mv.turnos.filter(t => (!fC || String(t.comuna_id) === fC) && okU(t.usuario_id));
+  return { reportes, turnos };
+}
+function mvIconoAlerta_(r) {
+  const t = state.ar.tipos[r.tipo_accion_id] || {}, col = t.color || '#DC2626', min = mvMinDesde_(r.creado_en);
+  const cerrada = r.estado === 'cerrado';
+  return L.divIcon({ className: '', iconSize: [44, 64], iconAnchor: [22, 48], popupAnchor: [0, -46],
+    html: '<div class="mv-wz' + (cerrada ? ' cerrada' : min > 360 ? ' antigua' : '') + '">' +
+      (min < 30 && !cerrada ? '<div class="mv-wz-pulso" style="background:' + escapeHtml_(col) + '55"></div>' : '') +
+      '<div class="mv-wz-cola" style="background:' + escapeHtml_(col) + '"></div>' +
+      '<div class="mv-wz-burbuja" style="background:' + escapeHtml_(col) + '">' + escapeHtml_(t.icono || '⚠️') + '</div>' +
+      (r.urgencia === 'urgente' ? '<div class="mv-wz-urg">!</div>' : '') +
+      (cerrada ? '<div class="mv-wz-ok">✓</div>' : '') +
+      '<div class="mv-wz-hace">' + mvHora_(r.creado_en) + ' · ' + mvHace_(r.creado_en).replace('hace ', '') + '</div></div>' });
+}
+function mvPopupAlerta_(r) {
+  const t = state.ar.tipos[r.tipo_accion_id] || {}, u = state.ar.usuarios[r.usuario_id] || {}, e = AR_ESTADOS[r.estado] || AR_ESTADOS.enviado;
+  const ll = Number(r.lat).toFixed(6) + ',' + Number(r.lng).toFixed(6);
+  return '<div class="mv-pop"><b>' + escapeHtml_((t.icono || '⚠️') + ' ' + (t.nombre || 'Reporte')) + '</b>' +
+    (r.urgencia === 'urgente' ? ' <span class="rg-chip" style="background:#DC2626;color:#fff;">URGENTE</span>' : '') +
+    '<div class="mv-pop-l">🚓 ' + escapeHtml_(u.nombre || 'Patrullero') + (u.institucion ? ' · ' + escapeHtml_(u.institucion) : '') + (u.telefono ? ' · ' + escapeHtml_(u.telefono) : '') + '</div>' +
+    '<div class="mv-pop-l">🕒 Reportado a las <b>' + mvHora_(r.creado_en) + '</b> (' + mvHace_(r.creado_en) + ') · 🏘️ ' + escapeHtml_(arComuna_(r.comuna_id) || '—') + '</div>' +
+    (r.descripcion ? '<div style="margin:5px 0;">' + escapeHtml_(r.descripcion) + '</div>' : '') +
+    '<span class="rg-chip" style="background:' + e.c2 + ';color:' + e.c + ';">' + e.ico + ' ' + e.t + '</span>' +
+    (puedeReportesApp_() ? ' <select class="rg-sel" title="Cambiar estado" onchange="cambiarEstadoReporteApp_(\'' + escapeHtml_(r.id) + '\', this.value, this)">' +
+      Object.keys(AR_ESTADOS).map(k => '<option value="' + k + '"' + (k === r.estado ? ' selected' : '') + '>' + AR_ESTADOS[k].t + '</option>').join('') + '</select>' : '') +
+    (r.respuesta ? '<div class="mv-pop-l" style="margin-top:4px;">💬 ' + escapeHtml_(r.respuesta) + '</div>' : '') +
+    '<div class="mv-pop-acc">' + ((r.foto_path || r.foto_url) ? '<button class="turnos-btn" onclick="verFotoReporteApp_(\'' + escapeHtml_(r.id) + '\')">📷 Foto</button>' : '') +
+    (puedeReportesApp_() ? '<button class="turnos-btn" onclick="cambiarEstadoReporteApp_(\'' + escapeHtml_(r.id) + '\', null, null)">✍️ Responder</button>' : '') +
+    '<a class="turnos-btn" href="https://www.google.com/maps?q=' + ll + '" target="_blank" rel="noopener">📍 Maps</a></div></div>';
+}
+function renderMapaVivo_() {
+  if (state.ar.vista !== 'mapavivo') return;
+  const mv = state.ar.mv, { reportes, turnos } = mvFiltrados_();
+  const activos = turnos.filter(t => t.estado === 'activo');
+  const kpi = (n, t, c) => '<div class="gr-kpi" style="--c:' + c + '"><b>' + n + '</b>' + t + '</div>';
+  document.getElementById('ar-kpis').innerHTML =
+    kpi(reportes.length, '🔔 alertas de la jornada', '#0F172A') +
+    kpi(reportes.filter(r => r.urgencia === 'urgente' && arAbierto_(r)).length, '⚠️ urgentes abiertas', '#DC2626') +
+    kpi(reportes.filter(r => r.estado === 'enviado').length, '📨 sin revisar', AR_ESTADOS.enviado.c) +
+    kpi(reportes.filter(r => mvMinDesde_(r.creado_en) < 60).length, '⏱️ en la última hora', '#EA580C') +
+    kpi(activos.length, '🚓 patrullando ahora', '#16A34A') +
+    kpi(activos.filter(t => t._min == null || t._min > 15).length, '📵 sin señal > 15 min', '#B91C1C') +
+    kpi(turnos.reduce((s, t) => s + (t._km || 0), 0).toFixed(1), 'km recorridos hoy', '#2563EB');
+  // ── Panel lateral: línea de tiempo de alertas + patrulleros
+  const us = state.ar.usuarios;
+  const filaAlerta = r => {
+    const t = state.ar.tipos[r.tipo_accion_id] || {}, u = us[r.usuario_id] || {}, e = AR_ESTADOS[r.estado] || AR_ESTADOS.enviado;
+    const reciente = mvMinDesde_(r.creado_en) < 30 && arAbierto_(r);
+    return '<div class="mv-item' + (r.urgencia === 'urgente' && arAbierto_(r) ? ' urg' : '') + (reciente ? ' nueva' : '') + '" data-mv-alerta="' + escapeHtml_(r.id) + '">' +
+      '<div class="mv-hora"><b>' + mvHora_(r.creado_en) + '</b><small>' + mvHace_(r.creado_en) + '</small></div>' +
+      '<div class="mv-ico" style="background:' + escapeHtml_((t.color || '#64748B') + '22') + '">' + escapeHtml_(t.icono || '⚠️') + '</div>' +
+      '<div class="mv-txt"><b>' + escapeHtml_(t.nombre || 'Reporte') + '</b>' + (r.urgencia === 'urgente' ? ' <span class="rg-chip" style="background:#DC2626;color:#fff;">URGENTE</span>' : '') +
+        '<small>🚓 ' + escapeHtml_(u.nombre || '—') + (u.institucion ? ' · ' + escapeHtml_(u.institucion) : '') + ' · 🏘️ ' + escapeHtml_(arComuna_(r.comuna_id) || '—') + '</small>' +
+        (r.descripcion ? '<small class="mv-desc">' + escapeHtml_(r.descripcion) + '</small>' : '') +
+        '<span class="rg-chip" style="background:' + e.c2 + ';color:' + e.c + ';">' + e.ico + ' ' + e.t + '</span>' +
+        ((r.foto_path || r.foto_url) ? ' <button class="gr-del" style="width:auto;padding:0 6px;" data-mv-foto="' + escapeHtml_(r.id) + '">📷</button>' : '') + '</div></div>';
+  };
+  const filaTurno = t => {
+    const u = us[t.usuario_id] || {};
+    return '<div class="mv-item" data-mv-turno="' + escapeHtml_(t.id) + '">' +
+      '<div class="mv-ico" style="background:' + (t.estado === 'activo' ? '#DCFCE7' : '#F1F5F9') + '">🚓</div>' +
+      '<div class="mv-txt"><b>' + escapeHtml_(u.nombre || 'Patrullero') + '</b>' +
+        '<small>' + escapeHtml_([u.institucion, arComuna_(t.comuna_id)].filter(Boolean).join(' · ')) + '</small>' +
+        '<small>' + escapeHtml_(t.ruta_nombre || 'Patrullaje libre') + ' · desde ' + mvHora_(t.inicio) + ' · ' + (t._km || 0).toFixed(1) + ' km</small>' +
+        arSenal_(t) + '</div></div>';
+  };
+  document.getElementById('ar-tabla').innerHTML =
+    '<div class="mv-sec">🔔 Alertas de la jornada <span>' + reportes.length + '</span></div>' +
+    (reportes.length ? reportes.map(filaAlerta).join('') : '<div class="tb-vacio" style="padding:14px;">Sin alertas hoy con estos filtros.</div>') +
+    '<div class="mv-sec">🚓 Patrulleros de hoy <span>' + activos.length + ' activos · ' + turnos.length + ' turnos</span></div>' +
+    (turnos.length ? turnos.map(filaTurno).join('') : '<div class="tb-vacio" style="padding:14px;">Nadie ha iniciado patrullaje hoy.</div>');
+  // ── Mapa (con una ventana abierta no se redibuja: se espera a que el usuario la cierre, si no se cerraría sola cada 15 s)
+  const mapa = arMapa_();
+  if (!mv.eventosMapa) {
+    mv.eventosMapa = true;
+    mapa.on('popupopen', () => { mv.popupAbierto = true; });
+    mapa.on('popupclose', () => { mv.popupAbierto = false; if (mv.redibujar) { mv.redibujar = false; setTimeout(renderMapaVivo_, 50); } });
+  }
+  if (mv.popupAbierto && Object.keys(mv.marcadores).length) { mv.redibujar = true; return; }
+  state.ar.capa.clearLayers();
+  mv.marcadores = {};
+  const capaLim = L.layerGroup().addTo(state.ar.capa), capaRec = L.layerGroup().addTo(state.ar.capa),
+        capaPat = L.layerGroup().addTo(state.ar.capa), capaAl = L.layerGroup().addTo(state.ar.capa);
+  const fC = document.getElementById('ar-mv-comuna').value;
+  if (mv.ver.limites) Object.values(mv.limites).forEach(c => {
+    if (!c || !c.geometry || (fC && String(c.id) !== fC)) return;
+    try {
+      const g = typeof c.geometry === 'string' ? JSON.parse(c.geometry) : c.geometry;
+      L.geoJSON(g, { interactive: false, style: { color: '#0F172A', weight: 2, opacity: .7, dashArray: '6 5', fill: true, fillColor: '#2563EB', fillOpacity: .03 } }).addTo(capaLim);
+      const b = L.geoJSON(g).getBounds();
+      if (b.isValid()) L.marker(b.getCenter(), { interactive: false, icon: L.divIcon({ className: 'mv-etq-comuna', iconSize: null, html: '<span>' + escapeHtml_(c.comuna || '') + '</span>' }) }).addTo(capaLim);
+    } catch (e) {}
+  });
+  const colores = ['#2563EB', '#16A34A', '#7C3AED', '#EA580C', '#0891B2', '#DB2777', '#CA8A04', '#0D9488'];
+  turnos.forEach((t, i) => {
+    const ps = mv.puntos[t.id] || [], u = us[t.usuario_id] || {}, activo = t.estado === 'activo';
+    const g = L.featureGroup();
+    if (mv.ver.recorridos && ps.length > 1) L.polyline(ps.map(p => [p.lat, p.lng]), activo ? { color: colores[i % colores.length], weight: 4, opacity: .85 } : { color: '#64748B', weight: 3, opacity: .45, dashArray: '5 6' })
+      .bindPopup('<b>' + escapeHtml_(u.nombre || 'Patrullero') + '</b><br>' + escapeHtml_(t.ruta_nombre || 'Patrullaje libre') + '<br><small>' + (t._km || 0).toFixed(1) + ' km · desde ' + mvHora_(t.inicio) + '</small>').addTo(g);
+    if (mv.ver.patrulleros && activo && t._ult) {
+      const sinSenal = t._min == null || t._min > 15;
+      L.marker([t._ult.lat, t._ult.lng], { zIndexOffset: 700, icon: L.divIcon({ className: '', iconSize: [34, 34], iconAnchor: [17, 17],
+          html: '<div class="mv-pat' + (sinSenal ? ' sin' : '') + '" style="--c:' + colores[i % colores.length] + '">🚓</div>' }) })
+        .bindTooltip(escapeHtml_((u.nombre || 'Patrullero').split(' ').slice(0, 2).join(' ')) + (sinSenal ? ' 📵' : ''), { permanent: true, direction: 'top', offset: [0, -16], className: 'mv-tt' })
+        .bindPopup('<b>🚓 ' + escapeHtml_(u.nombre || 'Patrullero') + '</b><br>' + escapeHtml_([u.institucion, u.telefono].filter(Boolean).join(' · ')) +
+          '<br>' + escapeHtml_(t.ruta_nombre || 'Patrullaje libre') + ' · ' + escapeHtml_(arComuna_(t.comuna_id) || '') +
+          '<br><small>Última señal ' + mvHora_(t._ult.registrado_en) + ' (' + mvHace_(t._ult.registrado_en) + ') · ' + (t._km || 0).toFixed(1) + ' km</small>').addTo(g);
+    }
+    if (g.getLayers().length) { g.addTo(activo ? capaPat : capaRec); mv.marcadores['t:' + t.id] = g; }
+  });
+  if (mv.ver.alertas) reportes.slice().reverse().forEach(r => {   // las más nuevas quedan arriba
+    if (r.lat == null || r.lng == null) return;
+    const m = L.marker([r.lat, r.lng], { icon: mvIconoAlerta_(r), zIndexOffset: (r.urgencia === 'urgente' && arAbierto_(r) ? 1500 : 900) - Math.min(600, mvMinDesde_(r.creado_en)) })
+      .bindPopup(mvPopupAlerta_(r), { minWidth: 240 }).addTo(capaAl);
+    mv.marcadores['a:' + r.id] = m;
+  });
+  if (!mv.encuadrado) {
+    const capasConDatos = [capaAl, capaPat, capaRec].flatMap(c => c.getLayers());
+    const base = capasConDatos.length ? capasConDatos : capaLim.getLayers();
+    if (base.length) {
+      mv.encuadrado = true;
+      setTimeout(() => { mapa.invalidateSize(); try { const b = L.featureGroup(base).getBounds(); if (b.isValid()) mapa.fitBounds(b, { padding: [40, 40], maxZoom: 14 }); } catch (e) {} }, 120);
+    }
+  }
+}
+function mvEnfocar_(clave) {
+  const l = state.ar.mv.marcadores[clave];
+  if (!l) { mostrarToast_(clave.startsWith('t:') ? 'Este patrullaje aún no tiene puntos GPS.' : 'Esta alerta no tiene ubicación.'); return; }
+  const mapa = state.ar.mapa;
+  if (l.getLatLng) { mapa.setView(l.getLatLng(), Math.max(mapa.getZoom(), 15)); l.openPopup(); return; }
+  const b = l.getBounds(); if (b.isValid()) mapa.fitBounds(b, { padding: [40, 40], maxZoom: 16 });
+  const m = l.getLayers().find(x => x instanceof L.Marker); if (m) m.openPopup();
+}
+// Aviso de alertas nuevas: toast + sonido corto (si el navegador lo permite) + aviso en el título de la pestaña
+function mvAvisarNuevas_(nuevas) {
+  const r = nuevas[0], t = state.ar.tipos[r.tipo_accion_id] || {}, u = state.ar.usuarios[r.usuario_id] || {};
+  const urg = nuevas.some(x => x.urgencia === 'urgente');
+  mostrarToast_((urg ? '🚨 ' : '🔔 ') + (nuevas.length > 1 ? nuevas.length + ' alertas nuevas · ' : 'Nueva alerta · ') +
+    (t.icono || '') + ' ' + (t.nombre || 'Reporte') + ' · ' + (u.nombre || '') + ' · ' + (arComuna_(r.comuna_id) || '') + ' · ' + mvHora_(r.creado_en));
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.22].concat(urg ? [0.44] : []).forEach(d => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = urg ? 980 : 760; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + d); g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + d + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + d + 0.18);
+      o.start(ctx.currentTime + d); o.stop(ctx.currentTime + d + 0.2);
+    });
+  } catch (e) {}
+  if (!document.hasFocus()) {
+    const t0 = document.title.replace(/^\(\d+\) 🔔 /, '');
+    document.title = '(' + nuevas.length + ') 🔔 ' + t0;
+    window.addEventListener('focus', () => { document.title = t0; }, { once: true });
+  }
+}
+
 async function cargarReportesApp_(silencioso) {
   if (state.ar.vista === 'vivo') return cargarVivoApp_(silencioso);
+  if (state.ar.vista === 'mapavivo') return cargarMapaVivo_(silencioso);
   const dias = Number(document.getElementById('ar-periodo').value || 7);
   const desde = new Date(Date.now() - dias * 864e5).toISOString();
   if (!silencioso) document.getElementById('ar-estado-txt').textContent = 'Cargando…';
@@ -328,8 +596,10 @@ function enfocarReporteApp_(id) {
   m.openPopup();
 }
 
+// Reporte por id en la vista Reportes o en el 🗺️ Mapa vivo SIG
+function arReporte_(id) { return state.ar.reportes.find(x => x.id === id) || state.ar.mv.reportes.find(x => x.id === id) || null; }
 async function verFotoReporteApp_(id) {
-  const r = state.ar.reportes.find(x => x.id === id); if (!r) return;
+  const r = arReporte_(id); if (!r) return;
   let url = r.foto_url || null;
   if (r.foto_path) {
     const { data, error } = await supabaseClient.storage.from('app-fotos').createSignedUrl(r.foto_path, 3600);
@@ -340,7 +610,7 @@ async function verFotoReporteApp_(id) {
 }
 
 async function cambiarEstadoReporteApp_(id, estado, sel) {
-  const r = state.ar.reportes.find(x => x.id === id); if (!r) return;
+  const r = arReporte_(id); if (!r) return;
   const nuevo = estado || r.estado;
   const resp = prompt((estado ? 'Cambiar el reporte a «' + AR_ESTADOS[nuevo].t + '».' : 'Respuesta al patrullero.') +
     '\n\nMensaje para el patrullero (lo verá en su app; opcional al cambiar de estado):', estado ? '' : (r.respuesta || ''));
