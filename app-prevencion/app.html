@@ -342,7 +342,7 @@ function pintarPerfil() {
     pendientesHtml() +
     '<div class="card"><button class="btn" data-actualizar="1" style="width:100%;margin-bottom:8px;">🔄 Actualizar datos</button>' +
       '<button class="btn" data-salir="1" style="width:100%;color:var(--err);">⏻ Cerrar sesión</button></div>' +
-    '<p class="muted" style="text-align:center;">Prevención Territorial · v1.1.0</p>';
+    '<p class="muted" style="text-align:center;">Prevención Territorial · v1.2.0</p>';
 }
 // Jefes, GRT y GRD ven por defecto su área (si tienen una sola). El Administrador ve todo.
 async function aplicarFiltroPorDefecto() {
@@ -610,6 +610,7 @@ async function actualizarDatos() {
   try {
     await cargarDatos(); await cargarPerfil(); if (S.sec === 'meteo') await obtenerMeteo();
     RC.datos = null; RC.cop = null; RC.alcance = null;   // Recursos y Copamiento se vuelven a leer
+    RC.cacheCapas = { limites: {}, fundos: {}, areaRel: null };   // y las capas de área, sectores y fundos
     if (S.sec === 'recursos') await rcCargarRecursos(); else if (S.sec === 'copamiento') await rcCargarCopamiento();
     pintar(); toast('Datos actualizados');
   }
@@ -1032,7 +1033,7 @@ const rcClave = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').to
 const rcTit = s => String(s || '').toLowerCase().replace(/(^|[\s\-/(])([a-záéíóúñü])/g, (m, a, b) => a + b.toUpperCase());
 const rcOrdenTipo = t => { const k = RC_ORDEN_TIPOS.findIndex(x => rcClave(x) === rcClave(t)); return k < 0 ? 99 : k; };
 const rcDias = iso => Math.round((new Date(String(iso).slice(0, 10) + 'T12:00:00') - new Date(hoyISO() + 'T12:00:00')) / 864e5);
-function rcQuitarMapa() { if (RC.mapa) { try { RC.mapa.remove(); } catch (e) {} RC.mapa = null; } }
+function rcQuitarMapa() { RC.mapaCtx = null; if (RC.mapa) { try { RC.mapa.remove(); } catch (e) {} RC.mapa = null; } }
 
 // ── Alcance del usuario (perfil, áreas, comunas)
 async function rcAlcance() {
@@ -1209,10 +1210,126 @@ function rcMapaRecursos(lista) {
   if (cap) cap.textContent = '🚒 ' + conUb.length + ' con ubicación' + (lista.length - conUb.length ? ' · ' + (lista.length - conUb.length) + ' sin ubicación' : '');
   setTimeout(() => { m.map.invalidateSize(); if (conUb.length) m.map.fitBounds(grupo.getBounds(), { padding: [30, 30], maxZoom: 13 }); }, 120);
   const cuenta = k => lista.filter(r => rcEstado(r).k === k).length;
-  $('rc-leyenda').innerHTML = '<b style="font-size:13px;">Simbología</b><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">' +
+  const veFundos = rcVeFundos();
+  const chk = (k, t) => '<label style="display:flex;align-items:center;gap:8px;margin:6px 0 0;font-size:13px;color:var(--txt);font-weight:600;"><input type="checkbox" data-rc-capa="' + k + '"' +
+    (RC.capas[k] ? ' checked' : '') + ' style="width:18px;height:18px;margin:0;flex:0 0 auto;accent-color:var(--azul2);">' + t + '<span class="muted" id="rc-capa-' + k + '" style="margin-left:auto;font-weight:600;"></span></label>';
+  $('rc-leyenda').innerHTML = '<b style="font-size:13px;">Capas</b>' +
+    chk('area', '<span style="display:inline-block;width:18px;border-top:3px solid #FDE047;"></span> Límite del área') +
+    chk('sectores', '<span style="display:inline-block;width:18px;border-top:2px dashed #fff;outline:1px solid #64748B;"></span> Sectores') +
+    (veFundos ? chk('fundos', '<span style="display:inline-block;width:14px;height:12px;background:#34D39955;border:1.5px solid #059669;"></span> Fundos CMPC') : '') +
+    '<b style="font-size:13px;display:block;margin-top:12px;">Simbología de recursos</b><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">' +
     [['op', '#16A34A', 'Operando'], ['por', '#D97706', 'Inicia ≤ 15 días'], ['por2', '#2563EB', 'Inicia más adelante'], ['sin', '#94A3B8', 'Sin fecha'], ['term', '#64748B', 'Terminado']]
       .map(([k, c, t]) => '<span class="chip" style="--c:' + c + '">● ' + t + (k === 'op' || k === 'sin' || k === 'term' ? ' (' + cuenta(k) + ')' : '') + '</span>').join('') +
     '</div><div class="muted" style="margin-top:6px;">Círculo más grande = en turno hoy.</div>';
+  RC.mapaCtx = { map: m.map, grupoRec: grupo, capas: { area: L.layerGroup().addTo(m.map), sectores: L.layerGroup().addTo(m.map), fundos: L.layerGroup().addTo(m.map) } };
+  rcDibujarCapasContexto();
+}
+
+/* ───────── Capas de contexto del mapa de Recursos (v1.2.0): 🧭 límite del área · 🗺️ sectores · 🌲 fundos CMPC ─────────
+ * Mismas fuentes del sistema web: limite_area_geojson (SQL 140), capa «Áreas de Relacionamiento» (función get-area-layers,
+ * propiedades AREA / SECTOR) y v_fundos_cmpc. Los fundos los ven el Administrador y los Jefes de Área / Subgerentes / GRT
+ * (igual que en la web) y se cargan solo con UN área elegida (un área puede tener cientos de fundos). Todo queda en caché. */
+RC.capas = RC.capas || { area: true, sectores: true, fundos: true };
+RC.cacheCapas = RC.cacheCapas || { limites: {}, fundos: {}, areaRel: null };
+function rcVeFundos() { const a = RC.alcance || {}; return !!a.admin || /jefe de [aá]rea/i.test(a.perfil || ''); }
+function rcAreasDelMapa() {
+  const areas = rcAreasDe((RC.datos && RC.datos.lista) || []);
+  return RC.area ? areas.filter(([id]) => id === RC.area).map(([, n]) => n) : areas.map(([, n]) => n);
+}
+function rcVariantes(nombre) {
+  const s = String(nombre || ''), sin = s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  return [...new Set([s, s.toUpperCase(), sin, sin.toUpperCase()])].filter(Boolean);
+}
+async function rcLimiteArea(nombre) {
+  const k = rcClave(nombre), c = RC.cacheCapas.limites;
+  if (k in c) return c[k];
+  const idb = 'rc_lim_' + k;
+  try {
+    const { data, error } = await sb.rpc('limite_area_geojson', { p_area: nombre });
+    if (error) throw error;
+    const f = data && data[0]; c[k] = f && f.geojson ? (typeof f.geojson === 'string' ? JSON.parse(f.geojson) : f.geojson) : null;
+    cacheSet(idb, c[k]);
+  } catch (e) { c[k] = (await cacheGet(idb)) || null; }
+  return c[k];
+}
+async function rcAreaRel() {
+  if (RC.cacheCapas.areaRel) return RC.cacheCapas.areaRel;
+  try {
+    const { data, error } = await sb.functions.invoke('get-area-layers', { body: {} });
+    if (error) throw error;
+    const fc = data && data.areaRelacionamiento && data.areaRelacionamiento.ok ? data.areaRelacionamiento.data : null;
+    if (!fc) throw new Error('sin capa');
+    // Solo se guardan los sectores de las áreas que el usuario puede ver (la capa trae todas)
+    const a = RC.alcance || {}, mias = new Set(rcAreasDe((RC.datos && RC.datos.lista) || []).map(([, n]) => rcClave(n)));
+    const feats = (fc.features || []).filter(f => f && f.geometry && (a.admin || mias.has(rcClave((f.properties || {}).AREA))));
+    RC.cacheCapas.areaRel = feats;
+    cacheSet('rc_arearel', feats);
+  } catch (e) { RC.cacheCapas.areaRel = (await cacheGet('rc_arearel')) || []; }
+  return RC.cacheCapas.areaRel;
+}
+async function rcFundos(nombre) {
+  const k = rcClave(nombre), c = RC.cacheCapas.fundos;
+  if (c[k]) return c[k];
+  const idb = 'rc_fundos_' + k;
+  try {
+    const { data, error } = await sb.from('v_fundos_cmpc').select('id, nombre_fundo, sup_ha, area, sector, geometry').in('area', rcVariantes(nombre));
+    if (error) throw error;
+    c[k] = data || [];
+    cacheSet(idb, c[k]);
+  } catch (e) { c[k] = (await cacheGet(idb)) || []; }
+  return c[k];
+}
+async function rcDibujarCapasContexto() {
+  const ctx = RC.mapaCtx; if (!ctx || !document.body.contains(ctx.map.getContainer())) return;
+  const nombres = rcAreasDelMapa();
+  const txt = (k, t) => { const el = $('rc-capa-' + k); if (el) el.textContent = t; };
+  const gj = v => { try { return typeof v === 'string' ? JSON.parse(v) : v; } catch (e) { return null; } };
+  Object.values(ctx.capas).forEach(g => g.clearLayers());
+  // 🧭 Límite del área
+  if (RC.capas.area) {
+    txt('area', 'cargando…');
+    const lims = await Promise.all(nombres.map(rcLimiteArea));
+    if (RC.mapaCtx !== ctx) return;
+    let n = 0;
+    lims.forEach((g, i) => { if (!g) return; n++;
+      L.geoJSON(g, { interactive: false, style: { color: '#0F172A', weight: 6, opacity: .35, fill: false } }).addTo(ctx.capas.area);
+      L.geoJSON(g, { style: { color: '#FDE047', weight: 3, fill: false } }).bindTooltip('Área ' + rcTit(nombres[i]), { sticky: true }).addTo(ctx.capas.area); });
+    txt('area', n ? n + ' área' + (n > 1 ? 's' : '') : 'sin límite');
+  } else txt('area', '');
+  // 🗺️ Sectores
+  if (RC.capas.sectores) {
+    txt('sectores', 'cargando…');
+    const claves = new Set(nombres.map(rcClave));
+    const feats = (await rcAreaRel()).filter(f => claves.has(rcClave((f.properties || {}).AREA)));
+    if (RC.mapaCtx !== ctx) return;
+    feats.forEach(f => {
+      const p = f.properties || {};
+      L.geoJSON(f.geometry, { style: { color: '#FFFFFF', weight: 1.6, dashArray: '5 4', opacity: .95, fillColor: '#60A5FA', fillOpacity: .06 } })
+        .bindTooltip('Sector ' + esc(p.SECTOR || '—'), { sticky: true })
+        .bindPopup('<b>Sector ' + esc(p.SECTOR || '—') + '</b><br>Área ' + esc(rcTit(p.AREA || ''))).addTo(ctx.capas.sectores);
+    });
+    txt('sectores', feats.length ? feats.length + ' sectores' : 'sin datos');
+  } else txt('sectores', '');
+  // 🌲 Fundos CMPC (solo con un área elegida)
+  if (RC.capas.fundos && rcVeFundos()) {
+    if (nombres.length !== 1) txt('fundos', 'elige un área');
+    else {
+      txt('fundos', 'cargando…');
+      const fundos = await rcFundos(nombres[0]);
+      if (RC.mapaCtx !== ctx) return;
+      fundos.forEach(f => {
+        const g = gj(f.geometry); if (!g) return;
+        L.geoJSON(g, { style: { color: '#059669', weight: 1.3, fillColor: '#34D399', fillOpacity: .18 } })
+          .bindPopup('<b>🌲 ' + esc(f.nombre_fundo || 'Fundo') + '</b><br>' + esc([f.sector ? 'Sector ' + f.sector : '', f.sup_ha ? (Math.round(f.sup_ha * 10) / 10).toString().replace('.', ',') + ' ha' : ''].filter(Boolean).join(' · ')) + '<br>CMPC')
+          .addTo(ctx.capas.fundos);
+      });
+      txt('fundos', fundos.length + ' fundos');
+    }
+  } else txt('fundos', '');
+  // Orden: fundos abajo, sectores, límite y los recursos arriba
+  ctx.capas.fundos.eachLayer(l => l.bringToBack && l.bringToBack());
+  ctx.capas.area.eachLayer(l => l.bringToFront && l.bringToFront());
+  ctx.grupoRec.bringToFront();
 }
 function rcHtmlInicios(lista) {
   const est = lista.map(r => ({ r, e: rcEstado(r) }));
@@ -1441,6 +1558,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target.id === 'rc-area') { RC.area = e.target.value; RC.tipo = ''; return pintarRecursos(); }
     if (e.target.id === 'rc-tipo') { RC.tipo = e.target.value; return pintarRecursos(); }
     if (e.target.id === 'rc-carea') { RC.cArea = e.target.value; return pintarCopamiento(); }
+    const cp = e.target.closest('[data-rc-capa]'); if (cp) { RC.capas[cp.dataset.rcCapa] = cp.checked; return rcDibujarCapasContexto(); }
   });
   let t = null;
   $('m-cuerpo').addEventListener('input', e => {
