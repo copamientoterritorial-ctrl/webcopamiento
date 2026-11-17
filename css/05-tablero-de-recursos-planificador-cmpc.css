@@ -329,6 +329,18 @@ body.tema-oscuro .pl-modal-caja, body.tema-oscuro .pl-chip{background:#1E293B;bo
 .ay-cab h3{margin:0;font-size:16px;flex:1;}
 .ay-cab small{display:block;font-weight:500;opacity:.75;font-size:11.5px;margin-top:2px;}
 .ay-cab button{border:0;background:rgba(255,255,255,.14);color:#fff;border-radius:9px;padding:6px 11px;cursor:pointer;font:inherit;font-weight:700;}
+/* 🆕 Novedades del sistema (js/40, 16-11-2026) */
+.nov-card{width:min(640px,94vw);max-height:88vh;padding:0;display:flex;flex-direction:column;overflow:hidden;}
+.nov-cab{display:flex;gap:12px;align-items:center;padding:16px 20px;background:linear-gradient(120deg,#0F172A,#1E3A8A);color:#fff;}
+.nov-cab h3{color:#fff;} .nov-cab .coords{color:rgba(255,255,255,.75);margin:0;}
+.nov-ico{font-size:30px;}
+.nov-cuerpo{overflow:auto;padding:12px 20px;display:flex;flex-direction:column;gap:12px;}
+.nov-fecha{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--text-tertiary);margin-bottom:6px;}
+.nov-item{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);} .nov-item:last-child{border-bottom:0;}
+.nov-item > span{font-size:22px;line-height:1.2;flex:0 0 28px;text-align:center;}
+.nov-item b{font-size:13.5px;} .nov-item p{margin:3px 0 0;font-size:12.5px;line-height:1.45;color:var(--text-secondary);}
+.nov-pie{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 20px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.nov-pie small{font-size:11.5px;color:var(--text-tertiary);} .nov-pie .btn-primary{padding:9px 22px;}
 .ay-cuerpo{flex:1;display:flex;min-height:0;}
 .ay-nav{width:250px;flex-shrink:0;border-right:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:6px;overflow:auto;background:var(--bg-light);}
 .ay-nav button{display:flex;gap:10px;align-items:flex-start;text-align:left;border:1px solid transparent;background:none;border-radius:12px;padding:9px 10px;cursor:pointer;font:inherit;color:var(--text-primary);}

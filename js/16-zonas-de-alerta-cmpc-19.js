@@ -563,17 +563,33 @@ function actualizarEscalaZoom_() {
   else setTimeout(() => alinearResumenConSimbologia_(), 0);
 })();
 
+/** Capa «Áreas de Relacionamiento» (sectores con AREA / SECTOR), una vez por sesión.
+ * 17-11-2026 (SQL 179e, áreas MINGEO): sale de la BD (`sectores_areas_geojson`, tabla `sectores`); si la función aún no existe,
+ * de la Edge Function get-area-layers como antes. Devuelve { ok, areaRelacionamiento: { ok, data } }. */
+async function obtenerCapasArea_() {
+  if (state.areaLayersRes) return state.areaLayersRes;
+  try {
+    const { data, error } = await supabaseClient.rpc('sectores_areas_geojson');
+    if (!error && data && Array.isArray(data.features) && data.features.length) {
+      state.areaLayersRes = { ok: true, origen: 'bd', areaRelacionamiento: { ok: true, data }, fundosCmpc: { ok: false } };
+      return state.areaLayersRes;
+    }
+  } catch (e) { /* sin el SQL 179e: se usa la función */ }
+  try {
+    const { data: res, error } = await supabaseClient.functions.invoke('get-area-layers', { body: {} });
+    if (!error && res && res.ok) { state.areaLayersRes = res; return res; }
+    return { ok: false, error: error || res };
+  } catch (e) { return { ok: false, error: e }; }
+}
+
 async function loadAreaLayers_() {
   const rolCalifica = state.perfil.perfil === 'Administrador' || state.perfil.perfil === 'Jefe de Área Relacionamiento';
   if (!rolCalifica) return;
 
   // Se pide una vez por sesión; al cambiar de modo (área / comuna) solo se vuelve a filtrar (22-10-2026)
-  let res = state.areaLayersRes, error = null;
-  if (!res) {
-    ({ data: res, error } = await supabaseClient.functions.invoke('get-area-layers', { body: {} }));
-    if (!error && res && res.ok) state.areaLayersRes = res;
-  }
-  if (error || !res || !res.ok) {
+  const res = await obtenerCapasArea_();
+  if (!res || !res.ok) {
+    const error = res && res.error;
     console.error('No se pudieron cargar las capas por zona:', error || res);
     return;
   }

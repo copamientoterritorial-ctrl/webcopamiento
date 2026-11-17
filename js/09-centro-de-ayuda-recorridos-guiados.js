@@ -249,7 +249,8 @@ const AY_GUIAS = [
       ['Mira el copamiento de cada comuna', 'Cada comuna muestra <b>tres tarjetas</b> con su nivel de copamiento en <b>Normal</b>, <b>Amarilla</b> y <b>Roja</b> sobre la zona de incendios del trienio, su estado (<b>⛔ Sin iniciar</b>, <b>🟠 En curso</b> y qué falta, <b>✅ 3 escenarios</b>) y su torta de implementación (pasa el mouse para ver las etapas).', ['<span class="m v">Normal 40%</span>', '<span class="m a">Amarilla 62%</span>', '<span class="m r">Roja 81%</span>', '<span class="m r">⛔ Sin iniciar</span>']],
       ['Quién ha trabajado', 'En cada comuna aparecen los <b>usuarios que han trabajado</b> en sus planes (con cuántas entidades crearon) y su usuario GRD. «Nadie ha trabajado aún» = hay que asignar o activar a alguien.', ['<span class="m">👤 Claudio León (2)</span>', '<span class="m">🏛️ GRD</span>']],
       ['Revisa el inicio de los recursos', 'Vista <b>🌲 Inicio de recursos</b>: filtros rápidos por <b>área</b> (o toda la subgerencia), <b>periodo</b> (ya iniciados, próximos 7 o 30 días, más adelante, sin fecha) y tipo. La <b>línea de tiempo</b> muestra cada recurso en su fecha de inicio (línea roja = hoy) y el gráfico, cuántos inician por semana.', ['<span class="m">✅ Ya iniciados</span>', '<span class="m">⏳ Próximos 7 días</span>', '<span class="m">📅 Próximos 30 días</span>', '<span class="m">❓ Sin fecha</span>']],
-      ['Turnos y Excel', '<b>📅 Turnos</b>: qué áreas tienen el calendario completo en el periodo (un recurso con más de 4 días libres seguidos queda incompleto) y qué recursos faltan. <b>⬇️ Excel</b>: hojas «Comunas», «Inicio de recursos» y «Turnos».', ['<span class="m osc">📅 Turnos</span>', '<span class="m">⬇️ Excel</span>']],
+      ['Turnos y Excel', '<b>📅 Turnos</b>: qué áreas tienen el calendario completo en el periodo (un recurso con más de 4 días libres seguidos queda incompleto) y qué recursos faltan. <b>⬇️ Excel</b>: hojas «Comunas», «Inicio de recursos» y «Turnos» (y «PPA por área» / «PPA medidas» si abriste la vista PPA).', ['<span class="m osc">📅 Turnos</span>', '<span class="m">⬇️ Excel</span>']],
+      ['📋 PPA', '<b>📋 PPA</b>: por área, el total de medidas del Plan de Prevención, las <b>⏳ por vencer</b> (al día, con meta pendiente antes de fin de mes), las <b>⏰ vencidas</b> (no alcanzaron lo exigido en las quincenas ya terminadas) y el <b>% de avance a la fecha</b> = acciones que lleva ÷ acciones que debe llevar. Toca un área para ver sus medidas vencidas y por vencer.', ['<span class="m osc">📋 PPA</span>']],
     ],
     tabla: [
       ['Indicador', 'Cómo se lee'],
@@ -412,11 +413,14 @@ const AY_GUIAS = [
     // 📋 PPA (06-11-2026, js/38). 1ª etapa: solo Administrador. Al abrirlo a Jefes de Área y Gestores: sumar 'jefe', 'subgerente', 'grt'
     // en «perfiles» y su texto en «paraTi» (registrar avances desde la PWA, ver solo su área).
     k: 'ppa', ico: '📋', c: '#1E3A8A', titulo: 'PPA · Plan de Prevención por Área', sub: 'Acciones, metas por quincena y avance',
-    perfiles: ['admin'],
+    perfiles: ['admin', 'subgerente', 'jefe', 'grt'],
     intro: 'El <b>PPA</b> reúne las acciones de prevención de cada área y sector (id_ppa AC###) con sus <b>metas por quincena</b> (Q1 = días 1-15, Q2 = 16-fin) y <b>mensuales</b>, ' +
-      'de octubre a marzo. Cada avance se registra con su <b>fecha</b> y el sistema lo ubica solo en su quincena. Hoy está en <b>fase de validación</b>: solo lo ve el Administrador.',
+      'de octubre a marzo. Cada avance se registra con su <b>fecha</b> y el sistema lo ubica solo en su quincena. Desde el 16-11-2026 lo ven también los Jefes de Área, Gestores (GRT) y Subgerentes, solo consulta y de sus áreas.',
     paraTi: {
       admin: ['Revisa que las acciones, áreas, sectores y metas estén correctos (🧾 Resumen › Calidad de los datos). Ajusta las metas en <b>🎯 Metas por fecha</b> y sube o baja el Excel con el mismo formato del Consolidado PPA.'],
+      jefe: ['Ves el PPA de <b>tus áreas</b> (solo consulta): <b>📄 Detalle</b>, <b>🎯 Metas</b> (meta y avance de cada quincena) y <b>🧩 Avance por sector</b> (medidas, por vencer, vencidas y % a la fecha; con fotos y ubicación de las acciones). Filtra por <b>sector</b> y <b>plan</b>. Los avances se registran desde la App Prevención Territorial.'],
+      grt: ['Ves el PPA de <b>tus áreas</b> (solo consulta): Detalle, Metas y <b>🧩 Avance por sector</b>, con filtros de sector y plan. Registra tus avances desde la App Prevención Territorial.'],
+      subgerente: ['Ves el PPA de las áreas de tu subgerencia: Detalle, Metas y 🧩 Avance por sector. El resumen por área está en <b>📈 Seguimiento › 📋 PPA</b>.'],
     },
     flujo: [['📋 PPA ▾', 'menú superior'], ['📄 Detalle', 'acciones y ficha'], ['🎯 Metas por fecha', 'Q1 · Q2 · Mensual'], ['📱 Avance (PWA)', 'con su fecha'], ['📊 🧭 Tableros', 'cumplimiento']],
     pasos: [
@@ -428,7 +432,7 @@ const AY_GUIAS = [
       ['Sigue el cumplimiento', '<b>📊 Tablero de Avance</b> (meta vs avance por quincena o mes y por área) y <b>🧭 Tablero de Gestión</b> (semáforo por área, acciones atrasadas, plazos próximos). «Exigible a la fecha» = metas de las quincenas ya terminadas.', ['<span class="m">📊 Avance</span>', '<span class="m">🧭 Gestión</span>']],
       ['Excel', '<b>⬇️ Excel</b> baja lo filtrado con el mismo formato del Consolidado PPA (más una hoja con cada avance). <b>⬆️ Subir Excel</b> (Administrador) carga acciones y metas con vista previa; las columnas AVANCE se ignoran (los avances llegan solo desde la PWA).', ['<span class="m">⬇️ Excel</span>', '<span class="m osc">⬆️ Subir Excel</span>']],
     ],
-    notas: [['rol', '👥 Quién puede', ['Fase de validación: solo el Administrador.', 'Luego: Jefes de Área y Gestores verán y registrarán avances de SU área (también desde la PWA).']],
+    notas: [['rol', '👥 Quién puede', ['Administrador: todo (editar acciones, metas, Excel, todos los tableros).', 'Jefes de Área, Gestores (GRT) y Subgerentes: consulta de SUS áreas (Detalle, Metas y Avance por sector); registran avances desde la App.']],
             ['tip', '📅 Quincenas y frecuencia', ['Q1 = días 1 al 15 · Q2 = día 16 al fin de mes.', 'Quincenal / Semanal: metas en Q1 y Q2. Mensual: meta del Mes, que vence en la Q2.', 'Sin frecuencia: las metas quedan bloqueadas hasta definirla (Detalle › ✏️ Editar datos).']]],
     tour: 'ppa',
   },
@@ -439,11 +443,13 @@ function abrirAyuda_(guia) {
   if (!m) {
     m = document.createElement('div'); m.id = 'ay-modal'; m.className = 'ay-modal';
     m.innerHTML = '<div class="ay-caja"><div class="ay-cab"><span style="font-size:24px;">❓</span><h3>Centro de ayuda<small>Guías ilustradas y recorridos paso a paso por el sistema</small></h3>' +
+      '<button data-ay="novedades" title="Lo nuevo del sistema para tu perfil">🆕 Novedades</button>' +
       '<button data-ay="cerrar">✕ Cerrar</button></div><div class="ay-cuerpo"><div class="ay-nav" id="ay-nav"></div><div class="ay-contenido" id="ay-contenido"></div></div></div>';
     document.body.appendChild(m);
     m.addEventListener('click', e => {
       e.stopPropagation();
       if (e.target === m || e.target.closest('[data-ay="cerrar"]')) { m.classList.remove('show'); return; }
+      if (e.target.closest('[data-ay="novedades"]')) { if (typeof abrirNovedades_ === 'function') abrirNovedades_(true); return; }   // 🆕 js/40
       const g = e.target.closest('[data-ay-guia]'); if (g) { renderAyuda_(g.dataset.ayGuia); return; }
       const t = e.target.closest('[data-ay-tour]'); if (t) { m.classList.remove('show'); iniciarRecorrido_(t.dataset.ayTour); }
     });
@@ -522,7 +528,7 @@ const AY_TOURS = {
     { sel: '#agp-subir', t: '⬆️ Subir GeoJSON', d: 'Solo Administrador: sube una capa nueva de predios o reemplaza una existente con el mismo nombre.', antes: () => ayIrVista_('agradmin'), aviso: 'Solo lo ve el Administrador.' },
   ],
   ppa: [
-    { sel: '#grupo-ppa .vista-tab-grupo', t: '📋 PPA', d: 'Plan de Prevención por Área: detalle, tableros, resumen y metas por fecha.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-ppa'); }, aviso: 'Por ahora solo lo ve el Administrador.' },
+    { sel: '#grupo-ppa .vista-tab-grupo', t: '📋 PPA', d: 'Plan de Prevención por Área: detalle, tableros, resumen y metas por fecha.', antes: () => { ayCerrarMenus_(); ayAbrirGrupo_('grupo-ppa'); }, aviso: 'Jefes y Gestores ven Detalle, Metas y Avance por sector de sus áreas.' },
     { sel: '#tab-ppadetalle', t: '📄 Detalle del PPA', d: 'Todas las acciones con su meta, lo exigible a la fecha, el avance y su estado.', antes: () => ayAbrirGrupo_('grupo-ppa') },
     { sel: '#ppa-filtros', t: 'Filtros', d: 'Subgerencia, área, sector, grupo, acción general, causa, frecuencia y estado. Valen para todas las vistas del PPA.', antes: () => { ayCerrarMenus_(); ayIrVista_('ppadetalle'); } },
     { sel: '#ppa-cuerpo', t: 'Vistas y ficha', d: 'Cambia de vista con las pestañas. En el Detalle, clic en una acción abre su ficha con sus metas y avances (los avances llegan desde la PWA); el Administrador edita los datos con ✏️ Editar datos.', antes: () => ayIrVista_('ppadetalle') },

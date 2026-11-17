@@ -652,6 +652,8 @@ async function entrarAlSistemaInterno_() {
   // Permisos por usuario (SQL 83): restringen menús, opciones y capas.
   await cargarMisPermisos_();
   aplicarPermisosMenu_();
+  // 🆕 Novedades del sistema (js/40): una vez por usuario, lo nuevo para su perfil
+  setTimeout(() => { if (typeof mostrarNovedadesAlIngresar_ === 'function') mostrarNovedadesAlIngresar_(); }, 2500);
   // Los botones de Usuarios, Instituciones, Resumen General, Planificación
   // Previa, Recursos del Área y Catálogo salieron de la barra lateral: se
   // administran desde el panel de Administración.

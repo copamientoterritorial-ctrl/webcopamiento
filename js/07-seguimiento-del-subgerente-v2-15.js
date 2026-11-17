@@ -67,6 +67,7 @@ async function abrirSeguimiento_() {
     const cuerpo = document.getElementById('sg-cuerpo');
     cuerpo.addEventListener('click', e => {
       const vm = e.target.closest('[data-sg-mapa]'); if (vm) { verCopamientoMapaSg_(vm.dataset.sgMapa); return; }
+      const pp = e.target.closest('[data-sg-ppa]'); if (pp) { if (!pp.disabled) sgPpaAccion_(pp.dataset.sgPpa); return; }   // 📋 PPA: modales
       // Prioridad: selección múltiple
       const bp = e.target.closest('[data-sg-prio]');
       if (bp) {
@@ -101,6 +102,7 @@ async function cargarSeguimiento_(forzar) {
   if (state.sg.datos && !forzar) { renderSeguimiento_(); return; }
   state.sg.turnos = {};   // los calendarios se vuelven a leer al abrir la vista Turnos
   state.sg.personas = null;   // y las personas, al abrir la vista Personas
+  if (forzar) state.sg.ppaRecargar = true;   // y el PPA, al abrir la vista 📋 PPA
   est.textContent = 'Calculando…';
   if (!state.sg.datos) cuerpo.innerHTML = '<div class="tb-vacio">Reuniendo comunas, copamiento y recursos de la subgerencia…</div>';
   try {
@@ -119,7 +121,7 @@ async function cargarSeguimiento_(forzar) {
         }
         return out;
       };
-      const [rec, acR, cpR, ppR, etR, paR, pfR, psR] = await Promise.all([
+      const [rec, acR, cpR, ppR, etR, paR, pfR, psR, gtR] = await Promise.all([
         leerRecursos(),
         supabaseClient.from('v_area_comunas_admin').select('area, area_norm, id_comuna'),
         supabaseClient.from('comunas_prioridad').select('*'),
@@ -128,8 +130,9 @@ async function cargarSeguimiento_(forzar) {
         supabaseClient.from('perfil_areas').select('perfil_id, area'),
         supabaseClient.from('perfiles').select('id, nombre_completo, perfil'),
         supabaseClient.from('perfil_subgerencias').select('perfil_id'),
+        supabaseClient.from('perfil_gestor_territorial').select('perfil_id'),   // GRT (SQL 119): no son Jefes de Área
       ]);
-      state.sg.base = { recursos: rec, ac: acR.data || [], cp: cpR, pp: ppR, et: etR, pa: paR, pf: pfR, ps: psR, usuariosPor: {} };
+      state.sg.base = { recursos: rec, ac: acR.data || [], cp: cpR, pp: ppR, et: etR, pa: paR, pf: pfR, ps: psR, gt: gtR, usuariosPor: {} };
     }
     const B = state.sg.base;
     // Recursos de la subgerencia (con fechas de operación)
@@ -222,7 +225,8 @@ async function cargarSeguimiento_(forzar) {
     // Jefes de cada área
     try {
       const pa = B.pa, pf = B.pf, ps = B.ps;
-      const subgs = new Set((ps.data || []).map(x => x.perfil_id));
+      // 16-11-2026: Jefe de Área = perfil Jefe de Área SIN subgerencia y SIN ser GRT (los GRT y Subgerentes tienen el mismo perfil técnico)
+      const subgs = new Set((ps.data || []).map(x => x.perfil_id).concat(((B.gt && B.gt.data) || []).map(x => x.perfil_id)));
       const nom = {}; (pf.data || []).forEach(p => { if (esJefeAreaPerfil_(p.perfil) && !subgs.has(p.id)) nom[p.id] = p.nombre_completo; });
       (pa.data || []).forEach(x => { const a = areas[SG_KEY(x.area)]; if (a && nom[x.perfil_id] && !a.jefes.includes(nom[x.perfil_id])) a.jefes.push(nom[x.perfil_id]); });
     } catch (e) { /* sin nombres */ }
@@ -287,6 +291,7 @@ function renderSeguimiento_(soloLista) {
   if (state.sg.vista === 'recursos') renderSgRecursos_();
   else if (state.sg.vista === 'turnos') renderSgTurnos_();
   else if (state.sg.vista === 'personas') renderSgPersonas_();
+  else if (state.sg.vista === 'ppa') renderSgPpa_();
   else renderSgComunas_(soloLista);
 }
 
@@ -481,6 +486,258 @@ async function renderSgPersonas_() {
     '</div>' +
     '<div class="sg-tu-lista">' + html + '</div>';
   S.ultimoPersonas = areas;
+}
+
+/* ── 📋 Vista PPA (16-11-2026): KPI del Plan de Prevención por Área ──
+ * Usa los datos y las reglas del módulo PPA (js/38: cargarPpa_, ppaExigible_, ppaMetaQ_, ppaAvanceTotal_; misma regla de frecuencia).
+ *   Total medidas · ⏰ Vencidas = las metas de las quincenas YA TERMINADAS superan el avance cargado ·
+ *   ⏳ Por vencer = al día, pero con meta pendiente en lo que queda del mes vigente (vence antes de fin de mes) ·
+ *   % de avance a la fecha = acciones que lleva ÷ acciones que debe llevar (exigible a hoy); cada medida aporta como
+ *   máximo lo que se le exige (lo adelantado en una no tapa lo atrasado de otra).
+ * La subgerencia sale del área de cada medida (area_homologacion); el RLS del PPA ya limita a las áreas del usuario. */
+function sgPpaMedida_(a, hoy, mesAct) {
+  const id = a.id_ppa, exig = ppaExigible_(id), av = ppaAvanceTotal_(id);
+  let pendMes = 0;
+  if (mesAct) ['Q1', 'Q2'].forEach(per => {
+    const fin = per === 'Q1' ? mesAct.slice(0, 8) + '15' : mesAct.slice(0, 8) + String(ppaUltimoDia_(mesAct)).padStart(2, '0');
+    if (fin >= hoy) pendMes += ppaMetaQ_(id, mesAct, per);
+  });
+  const vencida = exig > 0 && av < exig;
+  const porVencer = !vencida && pendMes > 0 && av < exig + pendMes;
+  return { a, exig, av, lleva: Math.min(av, exig), vencida, porVencer, falta: Math.max(0, exig - av), faltaMes: Math.max(0, exig + pendMes - av) };
+}
+function sgPpaDatos_() {
+  const P = state.ppa, hoy = ppaHoy_(), mesAct = hoy.slice(0, 7) + '-01';
+  const enPeriodo = ppaMesesPeriodo_().includes(mesAct) ? mesAct : null;
+  const subg = SG_KEY(sgSubgActiva_());
+  const porArea = {};
+  P.acciones.filter(a => a.activo !== false && (!subg || SG_KEY(a.subgerencia) === subg)).forEach(a => {
+    const k = SG_KEY(a.area_nombre || a.area);
+    const x = porArea[k] = porArea[k] || { k, idArea: a.id_area, nombre: a.area_nombre || a.area, med: [] };
+    x.med.push(sgPpaMedida_(a, hoy, enPeriodo));
+  });
+  const areas = Object.values(porArea).map(x => Object.assign(x, sgPpaResumir_(x.med)))
+    .sort((p, q) => (p.pct == null ? 101 : p.pct) - (q.pct == null ? 101 : q.pct) || p.nombre.localeCompare(q.nombre, 'es'));
+  areas.forEach(x => { SG_PPA_GRUPOS[x.k] = x; });
+  return { areas, T: sgPpaResumir_(areas.flatMap(x => x.med)), hoy, mesAct: enPeriodo };
+}
+/** Mes vigente si está dentro del período del PPA (para «por vencer»). */
+function sgPpaMesVigente_() { const m = ppaHoy_().slice(0, 7) + '-01'; return ppaMesesPeriodo_().includes(m) ? m : null; }
+/** Totales de un grupo de medidas (área o sector): medidas, vencidas, por vencer, al día, debe llevar, lleva y %. */
+function sgPpaResumir_(med) {
+  const r = { total: med.length, vencidas: 0, porVencer: 0, alDia: 0, sinExig: 0, debe: 0, lleva: 0, falta: 0 };
+  med.forEach(m => { r.debe += m.exig; r.lleva += m.lleva; r.falta += m.falta;
+    if (m.vencida) r.vencidas++; else if (m.porVencer) r.porVencer++; else if (m.exig > 0) r.alDia++; else r.sinExig++; });
+  r.pct = r.debe > 0 ? Math.round(r.lleva * 1000 / r.debe) / 10 : null;
+  return r;
+}
+/** Grupos (área del Seguimiento o sector del PPA › 🧩 Avance por sector) que abren los modales, por clave (sin «|»). */
+const SG_PPA_GRUPOS = {};
+const SG_PPA_COL = p => p == null ? '#94A3B8' : p >= 100 ? '#16A34A' : p >= 50 ? '#D97706' : '#DC2626';
+const SG_PPA_NUM = v => ppaNum_(v).toLocaleString('es-CL');
+const SG_PPA_PCT = p => p == null ? '—' : String(p).replace('.', ',') + '%';
+async function renderSgPpa_() {
+  const S = state.sg, cuerpo = document.getElementById('sg-cuerpo');
+  if (!state.ppa.cargado || S.ppaRecargar) {
+    cuerpo.innerHTML = '<div class="tb-vacio">Leyendo el Plan de Prevención por Área…</div>';
+    try { await cargarPpa_(); S.ppaRecargar = false; S.ppaAvCache = {}; }
+    catch (e) { cuerpo.innerHTML = '<div class="tb-vacio">No se pudo leer el PPA: ' + escapeHtml_(e.message || String(e)) + '</div>'; return; }
+    if (S.vista !== 'ppa') return;
+  }
+  const R = sgPpaDatos_(), T = R.T, n = SG_PPA_NUM, pctTxt = SG_PPA_PCT;
+  const mesTxt = (R.mesAct ? ppaMesTxt_(R.mesAct) : 'el mes').toLowerCase();
+  // 16-11-2026: tarjeta por área con los números destacados; los botones abren los modales de pendientes y de acciones registradas
+  const tile = (ico, v, t, c, accion) => '<div class="sg-ppa-tile' + (accion ? ' clic' : '') + '" style="--t:' + c + '"' + (accion ? ' data-sg-ppa="' + accion + '" title="Ver el detalle"' : '') + '>' +
+    '<b>' + v + '</b><span>' + ico + ' ' + t + '</span></div>';
+  const html = R.areas.map(x => {
+    const col = SG_PPA_COL(x.pct), k = escapeHtml_(x.k), pend = x.vencidas + x.porVencer;
+    const nAv = x.med.reduce((s, m) => s + ((state.ppa.avPorId.get(m.a.id_ppa) || []).length), 0);
+    return '<div class="sg-ppa-area" style="--c:' + col + '">' +
+      '<div class="sg-ppa-top"><div class="nom"><b>' + escapeHtml_(aTitulo_(x.nombre)) + '</b><small>Lleva <b>' + n(x.lleva) + '</b> de <b>' + n(x.debe) + '</b> acciones a la fecha</small></div>' +
+        '<div class="sg-ppa-pct"><b>' + pctTxt(x.pct) + '</b><span>avance a la fecha</span></div></div>' +
+      '<div class="sg-ppa-bar"><em style="width:' + Math.min(100, x.pct || 0) + '%"></em></div>' +
+      '<div class="sg-ppa-tiles">' +
+        tile('📋', x.total, 'Medidas', '#2563EB') +
+        tile('⏳', x.porVencer, 'Por vencer', '#D97706', x.porVencer ? 'pend|' + k + '|porvencer' : '') +
+        tile('⏰', x.vencidas, 'Vencidas', '#DC2626', x.vencidas ? 'pend|' + k + '|vencidas' : '') +
+        tile('✅', x.alDia, 'Al día', '#16A34A') +
+      '</div>' +
+      (x.sinExig ? '<div class="sg-ppa-nota">⚪ ' + x.sinExig + ' medida(s) aún sin metas vencidas</div>' : '') +
+      '<div class="sg-ppa-botones">' +
+        '<button class="turnos-btn" data-sg-ppa="pend|' + k + '|"' + (pend ? '' : ' disabled') + '>⚠️ Pendientes y atrasadas (' + pend + ')</button>' +
+        '<button class="turnos-btn" data-sg-ppa="acc|' + k + '|">📸 Acciones registradas (' + nAv + ')</button>' +
+      '</div></div>';
+  }).join('') || '<div class="tb-vacio">No hay medidas del PPA en ' + (sgSubgActiva_() ? 'la subgerencia' : 'las áreas') + '.</div>';
+  cuerpo.innerHTML =
+    '<div class="sg-chips"><span style="font-size:11.5px;color:var(--text-tertiary);">PPA ' + escapeHtml_(state.ppa.periodo ? state.ppa.periodo.nombre : '') + ' al ' + ppaFechaTxt_(R.hoy) +
+      '. <b>% de avance a la fecha</b> = acciones que lleva ÷ acciones que debe llevar (metas de las quincenas ya terminadas). <b>⏰ Vencida</b>: no alcanzó lo exigido. ' +
+      '<b>⏳ Por vencer</b>: al día, con meta pendiente antes de fin de ' + escapeHtml_(mesTxt) + '.</span>' +
+      '<button class="sg-chip" data-sg-f="ppaRecargar|1" style="margin-left:auto;">🔄 Volver a leer</button></div>' +
+    '<div class="sg-resumen sg-ppa-resumen">' +
+      '<div style="--c:#2563EB"><b>' + T.total + '</b><span>📋 total medidas (' + R.areas.length + ' áreas)</span></div>' +
+      '<div style="--c:#D97706"><b>' + T.porVencer + '</b><span>⏳ por vencer en ' + escapeHtml_(mesTxt) + '</span></div>' +
+      '<div style="--c:#DC2626"><b>' + T.vencidas + '</b><span>⏰ vencidas · faltan ' + n(T.falta) + ' acciones</span></div>' +
+      '<div style="--c:' + SG_PPA_COL(T.pct) + '"><b>' + pctTxt(T.pct) + '</b><span>avance a la fecha (lleva ' + n(T.lleva) + ' de ' + n(T.debe) + ')</span></div>' +
+    '</div>' +
+    '<div class="sg-ppa-grid">' + html + '</div>';
+  S.ultimoPpa = R;
+}
+
+/* ── Modales del PPA (16-11-2026) ── */
+function sgPpaModal_() {
+  let ov = document.getElementById('sg-ppa-modal');
+  if (!ov) {
+    ov = document.createElement('div'); ov.id = 'sg-ppa-modal'; ov.className = 'modal-overlay'; ov.style.position = 'fixed'; ov.style.zIndex = '2000';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', e => {
+      if (e.target === ov || e.target.closest('[data-sg-ppa-cerrar]')) { sgPpaCerrarModal_(); return; }
+      const b = e.target.closest('[data-sg-ppa]'); if (b) { e.preventDefault(); sgPpaAccion_(b.dataset.sgPpa); return; }
+      const f = e.target.closest('[data-sg-ppa-av]'); if (f) { sgPpaEnfocarAvance_(f.dataset.sgPpaAv); }
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && ov.classList.contains('show')) sgPpaCerrarModal_(); });
+  }
+  return ov;
+}
+function sgPpaCerrarModal_() {
+  const ov = document.getElementById('sg-ppa-modal'); if (ov) ov.classList.remove('show');
+  if (state.sg.ppaMapa) { try { state.sg.ppaMapa.remove(); } catch (e) {} state.sg.ppaMapa = null; }
+}
+/** Acciones de los botones: «pend|área|filtro» → pendientes y atrasadas · «acc|área|id_ppa» → acciones registradas (de la medida si viene el id). */
+function sgPpaAccion_(v) {
+  const [t, k, x] = String(v).split('|');
+  if (t === 'pend') sgPpaModalPendientes_(k, x || '');
+  else if (t === 'acc') sgPpaModalAcciones_(k, x || '', '');
+  else if (t === 'accf') sgPpaModalAcciones_(k, (state.sg.ppaAccMedida || ''), x || '');
+}
+function sgPpaArea_(k) { return SG_PPA_GRUPOS[k] || ((state.sg.ultimoPpa || {}).areas || []).find(a => a.k === k) || null; }
+
+/** ⚠️ Modal 1: medidas vencidas y por vencer del área, agrupadas por sector y con su grupo plan. */
+function sgPpaModalPendientes_(k, filtro) {
+  const x = sgPpaArea_(k); if (!x) return;
+  const n = SG_PPA_NUM, pctTxt = SG_PPA_PCT, ov = sgPpaModal_();
+  if (state.sg.ppaMapa) { try { state.sg.ppaMapa.remove(); } catch (e) {} state.sg.ppaMapa = null; }
+  const lista = x.med.filter(m => filtro === 'vencidas' ? m.vencida : filtro === 'porvencer' ? m.porVencer : (m.vencida || m.porVencer))
+    .sort((p, q) => (q.vencida - p.vencida) || q.falta - p.falta || q.faltaMes - p.faltaMes);
+  const sectores = new Map();
+  lista.forEach(m => { const s = m.a.sector || 'Toda el área'; if (!sectores.has(s)) sectores.set(s, []); sectores.get(s).push(m); });
+  const orden = [...sectores.entries()].sort((p, q) => q[1].filter(m => m.vencida).length - p[1].filter(m => m.vencida).length || p[0].localeCompare(q[0], 'es'));
+  const cuerpo = orden.map(([s, ms]) => {
+    const nv = ms.filter(m => m.vencida).length, np = ms.length - nv;
+    const tot = x.med.filter(m => (m.a.sector || 'Toda el área') === s), debe = tot.reduce((t, m) => t + m.exig, 0), lleva = tot.reduce((t, m) => t + m.lleva, 0);
+    const pS = debe > 0 ? Math.round(lleva * 1000 / debe) / 10 : null;
+    return '<h5 class="sg-ppa-sect">📍 ' + escapeHtml_(s) + '<span>' + tot.length + ' medida(s) · ' + (nv ? '<b class="ve">⏰ ' + nv + ' vencida(s)</b>' : '') + (nv && np ? ' · ' : '') +
+        (np ? '<b class="pv">⏳ ' + np + ' por vencer</b>' : '') + ' · avance ' + pctTxt(pS) + ' (lleva ' + n(lleva) + ' de ' + n(debe) + ')</span></h5>' +
+      ms.map(m => {
+        const nAv = (state.ppa.avPorId.get(m.a.id_ppa) || []).length;
+        return '<div><b>' + (m.vencida ? '⏰ ' : '⏳ ') + escapeHtml_(m.a.id_ppa) + '</b><span>' + escapeHtml_(m.a.accion) + '</span>' +
+          '<small class="sg-ppa-grupo">🗂️ ' + escapeHtml_(m.a.grupo || 'Sin grupo plan') + '</small>' +
+          '<em' + (m.vencida ? '' : ' style="color:#D97706;"') + '>' + (m.vencida ? 'Vencida · faltan ' + n(m.falta) : 'Por vencer · faltan ' + n(m.faltaMes) + ' antes de fin de mes') + '</em>' +
+          '<small>Lleva ' + n(m.av) + ' de ' + n(m.exig) + ' a la fecha</small>' +
+          (nAv ? '<a href="#" class="sg-ppa-link" data-sg-ppa="acc|' + escapeHtml_(k) + '|' + escapeHtml_(m.a.id_ppa) + '">📸 Ver sus ' + nAv + ' acción(es) registrada(s)</a>' : '<small style="color:var(--text-tertiary);">Sin acciones registradas</small>') +
+        '</div>';
+      }).join('');
+  }).join('');
+  const chip = (f, t, c) => '<button class="sg-chip' + (filtro === f ? ' on' : '') + '" data-sg-ppa="pend|' + escapeHtml_(k) + '|' + f + '">' + t + ' <small>' + c + '</small></button>';
+  ov.innerHTML = '<div class="modal-card sg-ppa-modal">' +
+    '<div class="sg-ppa-mcab"><div><h3>⚠️ Pendientes y atrasadas · ' + escapeHtml_(aTitulo_(x.nombre)) + '</h3>' +
+      '<p class="coords">Al ' + ppaFechaTxt_(ppaHoy_()) + ' · avance del área ' + pctTxt(x.pct) + ' (lleva ' + n(x.lleva) + ' de ' + n(x.debe) + ' acciones)</p></div>' +
+      '<button class="turnos-btn" data-sg-ppa-cerrar>✕</button></div>' +
+    '<div class="sg-chips" style="margin:0 0 8px;">' + chip('', 'Todas', x.vencidas + x.porVencer) + chip('vencidas', '⏰ Vencidas', x.vencidas) + chip('porvencer', '⏳ Por vencer', x.porVencer) + '</div>' +
+    '<div class="sg-ppa-mbody">' + (lista.length ? '<div class="sg-tu-det sg-ppa-det">' + cuerpo + '</div>' : '<div class="tb-vacio">Sin medidas en este filtro. 🎉</div>') + '</div></div>';
+  ov.classList.add('show');
+}
+
+/** Lee los avances (con evidencia y ubicación) de las medidas del área; queda en caché hasta «Volver a leer». */
+async function sgPpaLeerAvances_(k, ids) {
+  const S = state.sg; S.ppaAvCache = S.ppaAvCache || {};
+  if (S.ppaAvCache[k]) return S.ppaAvCache[k];
+  const filas = [];
+  for (let i = 0; i < ids.length; i += 150) {
+    const { data, error } = await supabaseClient.from('ppa_avances')
+      .select('id, id_ppa, fecha, cantidad, observacion, detalle, origen, lat, lng, evidencia_ruta, evidencia_nombre, evidencia_tipo, registrado_por, creado_en')
+      .in('id_ppa', ids.slice(i, i + 150)).order('fecha', { ascending: false });
+    if (error) throw error;
+    filas.push(...(data || []));
+  }
+  filas.sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)) || String(b.creado_en).localeCompare(String(a.creado_en)));
+  // Nombres de quienes registraron y enlaces firmados de las evidencias (bucket privado ppa-evidencias, 1 hora)
+  const uids = [...new Set(filas.map(f => f.registrado_por).filter(Boolean))];
+  const faltan = uids.filter(id => !(S.nombres || {})[id]);
+  if (faltan.length) { try { S.nombres = Object.assign(S.nombres || {}, await nombresPerfiles_(faltan)); } catch (e) { /* sin nombres */ } }
+  const rutas = [...new Set(filas.map(f => f.evidencia_ruta).filter(Boolean))], url = {};
+  for (let i = 0; i < rutas.length; i += 100) {
+    const { data } = await supabaseClient.storage.from('ppa-evidencias').createSignedUrls(rutas.slice(i, i + 100), 3600);
+    (data || []).forEach(d => { if (d && d.signedUrl) url[d.path] = d.signedUrl; });
+  }
+  filas.forEach(f => { f.url = f.evidencia_ruta ? url[f.evidencia_ruta] || null : null; f.esImagen = /^image\//i.test(f.evidencia_tipo || '') || /\.(jpe?g|png|webp|heic)$/i.test(f.evidencia_ruta || ''); });
+  return (S.ppaAvCache[k] = filas);
+}
+
+/** 📸 Modal 2: acciones registradas (avances) del área o de una medida, con su foto / PDF y su ubicación en el mapa. */
+async function sgPpaModalAcciones_(k, idPpa, filtro) {
+  const x = sgPpaArea_(k); if (!x) return;
+  const S = state.sg, ov = sgPpaModal_(), n = SG_PPA_NUM;
+  S.ppaAccMedida = idPpa || '';
+  if (S.ppaMapa) { try { S.ppaMapa.remove(); } catch (e) {} S.ppaMapa = null; }
+  const cab = '<div class="sg-ppa-mcab"><div><h3>📸 Acciones registradas · ' + escapeHtml_(aTitulo_(x.nombre)) + '</h3>' +
+    '<p class="coords">' + (idPpa ? 'Medida ' + escapeHtml_(idPpa) + ' · ' + escapeHtml_((state.ppa.porId.get(idPpa) || {}).accion || '') : 'Todas las medidas del área') + '</p></div>' +
+    '<button class="turnos-btn" data-sg-ppa-cerrar>✕</button></div>';
+  ov.innerHTML = '<div class="modal-card sg-ppa-modal sg-ppa-modal-ancho">' + cab + '<div class="tb-vacio">Leyendo las acciones, fotos y ubicaciones…</div></div>';
+  ov.classList.add('show');
+  let todas;
+  try { todas = await sgPpaLeerAvances_(k, x.med.map(m => m.a.id_ppa)); }
+  catch (e) { ov.querySelector('.tb-vacio').textContent = 'No se pudieron leer las acciones: ' + (e.message || e); return; }
+  if (!ov.classList.contains('show')) return;
+  const base = idPpa ? todas.filter(f => f.id_ppa === idPpa) : todas;
+  const lista = base.filter(f => filtro === 'foto' ? !!f.evidencia_ruta : filtro === 'geo' ? (f.lat != null && f.lng != null) : true);
+  const nFoto = base.filter(f => f.evidencia_ruta).length, nGeo = base.filter(f => f.lat != null && f.lng != null).length;
+  const chip = (f, t, c) => '<button class="sg-chip' + ((filtro || '') === f ? ' on' : '') + '" data-sg-ppa="accf|' + escapeHtml_(k) + '|' + f + '">' + t + ' <small>' + c + '</small></button>';
+  const tarjeta = f => {
+    const a = state.ppa.porId.get(f.id_ppa) || {}, geo = f.lat != null && f.lng != null;
+    const quien = (S.nombres || {})[f.registrado_por] || (f.origen === 'excel' ? 'Carga inicial' : '—');
+    const foto = f.url ? (f.esImagen ? '<a href="' + escapeHtml_(f.url) + '" target="_blank" rel="noopener" class="sg-ppa-foto" title="Abrir la foto"><img src="' + escapeHtml_(f.url) + '" alt="" loading="lazy"></a>'
+        : '<a href="' + escapeHtml_(f.url) + '" target="_blank" rel="noopener" class="sg-ppa-foto doc" title="Abrir el archivo">📄<small>PDF</small></a>')
+      : '<span class="sg-ppa-foto vacia" title="Sin evidencia">📷<small>sin foto</small></span>';
+    return '<div class="sg-ppa-av' + (geo ? ' geo' : '') + '" data-sg-ppa-av="' + f.id + '"' + (geo ? ' title="Ver en el mapa"' : '') + '>' + foto +
+      '<div class="txt"><b>' + escapeHtml_(f.id_ppa) + ' · ' + escapeHtml_(a.accion || '') + '</b>' +
+        '<small class="sg-ppa-grupo">🗂️ ' + escapeHtml_(a.grupo || 'Sin grupo plan') + ' · 📍 ' + escapeHtml_(a.sector || 'Toda el área') + '</small>' +
+        '<span>📅 ' + ppaFechaTxt_(f.fecha) + ' · <b>' + n(f.cantidad) + '</b> acción(es) · 👤 ' + escapeHtml_(quien) + '</span>' +
+        (f.observacion || f.detalle ? '<em>' + escapeHtml_(f.observacion || f.detalle) + '</em>' : '') +
+        '<span class="ubi">' + (geo ? '🗺️ ' + Number(f.lat).toFixed(5) + ', ' + Number(f.lng).toFixed(5) : '🚫 Sin ubicación') + '</span></div></div>';
+  };
+  ov.innerHTML = '<div class="modal-card sg-ppa-modal sg-ppa-modal-ancho">' + cab +
+    '<div class="sg-chips" style="margin:0 0 8px;">' + chip('', 'Todas', base.length) + chip('foto', '📷 Con foto', nFoto) + chip('geo', '🗺️ Con ubicación', nGeo) +
+      (idPpa ? '<button class="sg-chip" data-sg-ppa="acc|' + escapeHtml_(k) + '|" style="margin-left:auto;">Ver todas las del área</button>' : '') + '</div>' +
+    (lista.length ? '<div class="sg-ppa-acc-grid"><div class="sg-ppa-acc-lista">' + lista.map(tarjeta).join('') + '</div>' +
+      '<div class="sg-ppa-acc-mapa"><div id="sg-ppa-mapa"></div>' + (lista.some(f => f.lat != null && f.lng != null) ? '' : '<div class="sg-ppa-sinmapa">Ninguna de estas acciones tiene ubicación registrada.</div>') + '</div></div>'
+      : '<div class="tb-vacio">' + (base.length ? 'Ninguna acción en este filtro.' : 'Aún no hay acciones registradas' + (idPpa ? ' para esta medida.' : ' en el área.') + ' Se registran desde la App Prevención Territorial.') + '</div>') +
+  '</div>';
+  if (lista.length) sgPpaMapaAcciones_(lista);
+}
+function sgPpaMapaAcciones_(lista) {
+  const div = document.getElementById('sg-ppa-mapa'); if (!div || !window.L) return;
+  const m = L.map(div, { zoomControl: true, attributionControl: false }).setView([-38.2, -72.4], 7);
+  const b = BASEMAPS.find(x => x.id === 'sat_sobrio') || BASEMAPS[0];
+  L.tileLayer(b.url, b.options).addTo(m); if (b.overlayUrl) L.tileLayer(b.overlayUrl, b.overlayOptions).addTo(m);
+  const marcas = {}, pts = [];
+  lista.filter(f => f.lat != null && f.lng != null).forEach(f => {
+    const a = state.ppa.porId.get(f.id_ppa) || {};
+    const mk = L.circleMarker([f.lat, f.lng], { radius: 8, color: '#fff', weight: 2, fillColor: f.evidencia_ruta ? '#2563EB' : '#F59E0B', fillOpacity: 0.95 }).addTo(m);
+    mk.bindPopup('<div class="sg-ppa-pop">' + (f.url && f.esImagen ? '<a href="' + escapeHtml_(f.url) + '" target="_blank" rel="noopener"><img src="' + escapeHtml_(f.url) + '" alt=""></a>' : '') +
+      '<b>' + escapeHtml_(f.id_ppa) + ' · ' + escapeHtml_(a.accion || '') + '</b><br>📅 ' + ppaFechaTxt_(f.fecha) + ' · ' + SG_PPA_NUM(f.cantidad) + ' acción(es)' +
+      (f.observacion ? '<br><i>' + escapeHtml_(f.observacion) + '</i>' : '') +
+      '<br><a href="https://www.google.com/maps?q=' + f.lat + ',' + f.lng + '" target="_blank" rel="noopener">🧭 Abrir en Google Maps</a></div>', { maxWidth: 260 });
+    marcas[f.id] = mk; pts.push([f.lat, f.lng]);
+  });
+  if (pts.length === 1) m.setView(pts[0], 15); else if (pts.length) m.fitBounds(pts, { padding: [30, 30], maxZoom: 15 });
+  state.sg.ppaMapa = m; state.sg.ppaMarcas = marcas;
+  setTimeout(() => { try { m.invalidateSize(); if (pts.length > 1) m.fitBounds(pts, { padding: [30, 30], maxZoom: 15 }); } catch (e) {} }, 150);
+}
+function sgPpaEnfocarAvance_(id) {
+  const mk = (state.sg.ppaMarcas || {})[id], m = state.sg.ppaMapa; if (!mk || !m) return;
+  document.querySelectorAll('.sg-ppa-av.on').forEach(e => e.classList.remove('on'));
+  const el = document.querySelector('.sg-ppa-av[data-sg-ppa-av="' + id + '"]'); if (el) el.classList.add('on');
+  m.setView(mk.getLatLng(), Math.max(m.getZoom(), 15)); mk.openPopup();
 }
 
 /* ── 🏘️ Vista Comunas y copamiento ── */
@@ -801,6 +1058,20 @@ async function descargarSeguimiento_() {
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(PA.flatMap(x => x.faltan.map(f => ({
         'Área': aTitulo_(x.a.nombre), 'Clave · ID': claveIdRecurso_(f.r), 'Tipo': aTitulo_(f.r.tipo_recurso || ''), 'Registradas': f.n, 'N° personas': f.total || '', 'Titular': f.tit ? 'Sí' : 'No',
       })))), 'Personas faltantes');
+    }
+    // 📋 PPA por área y medidas vencidas / por vencer (si ya se abrió la vista PPA)
+    const PP = state.sg.ultimoPpa;
+    if (PP) {
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(PP.areas.map(x => ({
+        'Área': aTitulo_(x.nombre), 'Total medidas': x.total, 'Por vencer': x.porVencer, 'Vencidas': x.vencidas,
+        'Al día': x.alDia, 'Sin metas vencidas aún': x.sinExig, 'Acciones que debe llevar': ppaNum_(x.debe), 'Acciones que lleva': ppaNum_(x.lleva),
+        'Avance a la fecha %': x.pct,
+      }))), 'PPA por área');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(PP.areas.flatMap(x => x.med.filter(m => m.vencida || m.porVencer).map(m => ({
+        'Área': aTitulo_(x.nombre), 'ID': m.a.id_ppa, 'Medida': m.a.accion, 'Sector': m.a.sector || 'Toda el área', 'Grupo plan': m.a.grupo || '',
+        'Estado': m.vencida ? 'Vencida' : 'Por vencer', 'Debe llevar a la fecha': ppaNum_(m.exig), 'Lleva': ppaNum_(m.av),
+        'Faltan': ppaNum_(m.vencida ? m.falta : m.faltaMes),
+      })))), 'PPA medidas');
     }
     XLSX.writeFile(wb, 'seguimiento_subgerencia_' + tbHoyISO_() + '.xlsx');
     mostrarToast_('✅ Seguimiento descargado.');

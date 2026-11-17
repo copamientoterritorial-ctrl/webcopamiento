@@ -547,7 +547,7 @@ async function cargarCapasAreaPlanificador_() {
   // 3) Áreas de Relacionamiento (sectores) del área: se reutiliza lo que cargó el mapa principal
   const tareaAreaRel = (async () => {
     if (!state.areaRelGeojson) {
-      const { data: res } = await supabaseClient.functions.invoke('get-area-layers', { body: {} });
+      const res = await obtenerCapasArea_();   // js/16: sectores desde la BD (SQL 179e) o get-area-layers
       if (res && res.areaRelacionamiento && res.areaRelacionamiento.ok) state.areaRelGeojson = res.areaRelacionamiento.data;
     }
     const feats = (state.areaRelGeojson && state.areaRelGeojson.features) || [];

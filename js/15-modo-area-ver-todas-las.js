@@ -139,11 +139,13 @@ const MENU_MODULOS = [
   { id: 'tab-agricultores', grupo: '🌾 Agricultores', nombre: 'Gestión Asociación Malleco (Tablero de seguimiento)', ver: () => puedeAgricultores_(),
     nivel: () => agrPuedeRegistrar_() ? 'editar' : 'ver', nota: () => esAsociacion_() ? 'Registra; meta solo escuelas' : (esAdminPerfil_() ? '' : 'Área Victoria') },
   // 📋 PPA (06-11-2026, SQL 160; js/38): 1ª etapa solo Administrador, para revisar y validar
-  { id: 'tab-ppadetalle', grupo: '📋 PPA', nombre: 'Detalle del PPA', ver: () => puedePpa_(), nivel: () => 'editar', nota: () => 'Fase de validación' },
-  { id: 'tab-ppaavance', grupo: '📋 PPA', nombre: 'Tablero de Avance del PPA', ver: () => puedePpa_(), nivel: () => 'ver' },
-  { id: 'tab-pparesumen', grupo: '📋 PPA', nombre: 'Resumen del PPA', ver: () => puedePpa_(), nivel: () => 'ver' },
-  { id: 'tab-ppagestion', grupo: '📋 PPA', nombre: 'Tablero de Gestión del PPA', ver: () => puedePpa_(), nivel: () => 'ver' },
-  { id: 'tab-ppametas', grupo: '📋 PPA', nombre: 'Metas por fecha del PPA', ver: () => puedePpa_(), nivel: () => ppaEsAdmin_() ? 'editar' : 'ver' },
+  // 16-11-2026: Jefes de Área, Gestores (GRT) y Subgerentes ven, solo consulta y de sus áreas, Detalle, Metas y Avance por sector
+  { id: 'tab-ppadetalle', grupo: '📋 PPA', nombre: 'Detalle del PPA', ver: () => puedePpa_(), nivel: () => ppaEsAdmin_() ? 'editar' : 'ver', nota: () => ppaEsAdmin_() ? 'Todas las áreas' : 'Sus áreas' },
+  { id: 'tab-ppasector', grupo: '📋 PPA', nombre: 'Avance por sector del PPA', ver: () => puedePpa_(), nivel: () => 'ver', nota: () => ppaEsAdmin_() ? 'Todas las áreas' : 'Sus áreas' },
+  { id: 'tab-ppaavance', grupo: '📋 PPA', nombre: 'Tablero de Avance del PPA', ver: () => ppaEsAdmin_(), nivel: () => 'ver' },
+  { id: 'tab-pparesumen', grupo: '📋 PPA', nombre: 'Resumen del PPA', ver: () => ppaEsAdmin_(), nivel: () => 'ver' },
+  { id: 'tab-ppagestion', grupo: '📋 PPA', nombre: 'Tablero de Gestión del PPA', ver: () => ppaEsAdmin_(), nivel: () => 'ver' },
+  { id: 'tab-ppametas', grupo: '📋 PPA', nombre: 'Metas por fecha del PPA', ver: () => puedePpa_(), nivel: () => ppaEsAdmin_() ? 'editar' : 'ver', nota: () => ppaEsAdmin_() ? 'Todas las áreas' : 'Sus áreas (consulta)' },
   { id: 'tab-admin', grupo: '⚙️ Administración', nombre: 'Administración del sistema', ver: () => !!(state.perfil && state.perfil.perfil === 'Administrador'), nivel: () => 'editar' },
 ];
 /** ¿Se ve el menú? La Asociación de Agricultores ve SOLO 🌾 Agricultores (y los menús marcados con asoc: true). */
@@ -490,11 +492,7 @@ async function dibujarMascaraArea_() {
 /** Polígonos de la capa «Áreas de Relacionamiento» (Edge Function get-area-layers, en caché) del área indicada. */
 async function featuresAreaRelacionamiento_(area) {
   try {
-    if (!state.areaLayersRes) {
-      const { data, error } = await supabaseClient.functions.invoke('get-area-layers', { body: {} });
-      if (!error && data && data.ok) state.areaLayersRes = data;
-    }
-    const res = state.areaLayersRes;
+    const res = await obtenerCapasArea_();   // js/16: sectores desde la BD (SQL 179e) o get-area-layers
     if (!res || !res.areaRelacionamiento || !res.areaRelacionamiento.data) return [];
     const k = a => plNorm_(a || '').replace(/[^A-Z0-9]/g, '');
     return (res.areaRelacionamiento.data.features || []).filter(ft => ft && ft.geometry && k((ft.properties || {}).AREA) === k(area));
@@ -622,8 +620,10 @@ async function loadFundosCmpcPostgis_() {
           '<div class="popup-title">' + escapeHtml_(r.nombre_fundo || 'Fundo') + '</div>' +
           '<div class="popup-row">🗺️ ' + escapeHtml_(r.area || '—') + ' · ' + escapeHtml_(r.sector || '—') + '</div>' +
           '<div class="popup-row">📐 ' + (r.sup_ha ? Number(r.sup_ha).toFixed(1) + ' ha' : '—') + '</div>' +
-          '<div class="popup-row">🏢 ' + escapeHtml_(r.propietario || '—') + '</div>'
+          '<div class="popup-row">🏢 ' + escapeHtml_(r.propietario || '—') + '</div>' +
+          '<div class="popup-fundo-contacto"></div>'
         );
+        ly.on('popupopen', () => agregarContactoFundo_(ly, r.id));
         if (r.nombre_fundo) {
           fundosCmpcFeatureLayers.push({ layer: ly, nombre: escapeHtml_(String(r.nombre_fundo)) });
           if (state.mostrarEtiquetasFundos) ly.bindTooltip(escapeHtml_(String(r.nombre_fundo)), { permanent: true, direction: 'center', className: 'map-label label-fundo' });
@@ -637,6 +637,35 @@ async function loadFundosCmpcPostgis_() {
   });
   state.fundosCmpcInfo = { ok: true, count: (data || []).length };
   if (!state.fundosSectoresOcultos) state.fundosSectoresOcultos = {};
+}
+
+/* 📇 CONTACTO DEL FUNDO (17-11-2026, SQL 179e, Excel MINGEO): al abrir la ventana de un fundo CMPC se agregan el jefe de área, el
+ * gestor (fono y correo) y el NCR (nivel de complejidad y riesgo). RPC fundo_cmpc_contacto(id): solo Admin / Jefes / Subgerentes / GRT;
+ * sin el SQL 179e no muestra nada. */
+const CONTACTO_FUNDO_CACHE = {};
+const NCR_COLOR = { ALTO: '#DC2626', MEDIO: '#D97706', BAJO: '#059669' };
+async function agregarContactoFundo_(ly, id) {
+  if (id == null || typeof esAdminOJefe_ !== 'function' || !esAdminOJefe_()) return;
+  const key = String(id);
+  if (!(key in CONTACTO_FUNDO_CACHE)) {
+    try {
+      const { data, error } = await supabaseClient.rpc('fundo_cmpc_contacto', { p_id: key });
+      CONTACTO_FUNDO_CACHE[key] = error ? null : (data || null);
+    } catch (e) { CONTACTO_FUNDO_CACHE[key] = null; }
+  }
+  const k = CONTACTO_FUNDO_CACHE[key];
+  const pop = ly.getPopup && ly.getPopup();
+  const el = pop && pop.getElement && pop.getElement();
+  const cont = el && el.querySelector('.popup-fundo-contacto');
+  if (!k || !cont) return;
+  const fono = t => t ? ' · <a href="tel:' + escapeHtml_(String(t).replace(/[^\d+]/g, '')) + '">📞 ' + escapeHtml_(t) + '</a>' : '';
+  const mail = t => t ? ' · <a href="mailto:' + escapeHtml_(t) + '">✉️</a>' : '';
+  const ncr = String(k.ncr || '').toUpperCase();
+  cont.innerHTML =
+    (ncr ? '<div class="popup-row">⚠️ NCR <b style="color:' + (NCR_COLOR[ncr] || '#475569') + ';">' + escapeHtml_(ncr) + '</b></div>' : '') +
+    (k.jefe_area ? '<div class="popup-row">👤 Jefe de área: ' + escapeHtml_(k.jefe_area) + fono(k.fono_ja) + mail(k.email_ja) + '</div>' : '') +
+    (k.gestor ? '<div class="popup-row">🤝 Gestor: ' + escapeHtml_(k.gestor) + fono(k.fono_gestor) + mail(k.email_gestor) + '</div>' : '');
+  if (pop.update) pop.update();
 }
 
 // Comité: punto (manito) + área de influencia AMARRADOS por comite_id, por comuna.

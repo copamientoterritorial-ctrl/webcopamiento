@@ -340,6 +340,55 @@ body.modo-dashboard #btn-volver-sg{display:none !important;}   /* solo se ve sob
 .sg-tu-area .barra i{display:block;height:9px;border-radius:99px;background:var(--bg-tertiary,#E2E8F0);overflow:hidden;}
 .sg-tu-area .barra em{display:block;height:100%;background:var(--c);border-radius:99px;}
 .sg-tu-area .barra span{font-size:11px;color:var(--text-secondary);font-weight:600;}
+/* 📋 Seguimiento › PPA: tarjetas por área con números destacados + modales (16-11-2026) */
+.sg-ppa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:12px;}
+@media (max-width:700px){ .sg-ppa-grid{grid-template-columns:1fr;} }
+.sg-ppa-area{background:var(--white);border:1px solid var(--border);border-top:5px solid var(--c);border-radius:14px;padding:14px 16px 12px;display:flex;flex-direction:column;gap:10px;}
+.sg-ppa-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.sg-ppa-top .nom b{display:block;font-size:16px;font-weight:800;} .sg-ppa-top .nom small{font-size:11.5px;color:var(--text-tertiary);} .sg-ppa-top .nom small b{display:inline;font-size:11.5px;color:var(--text-secondary);}
+.sg-ppa-pct{text-align:right;line-height:1;} .sg-ppa-pct b{display:block;font-size:32px;font-weight:900;color:var(--c);letter-spacing:-0.5px;}
+.sg-ppa-pct span{font-size:10.5px;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+.sg-ppa-bar{height:10px;border-radius:99px;background:var(--bg-tertiary,#E2E8F0);overflow:hidden;} .sg-ppa-bar em{display:block;height:100%;background:var(--c);border-radius:99px;}
+.sg-ppa-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.sg-ppa-tile{border-radius:11px;padding:9px 6px 7px;text-align:center;background:color-mix(in srgb,var(--t) 9%,var(--white));border:1px solid color-mix(in srgb,var(--t) 25%,transparent);}
+.sg-ppa-tile b{display:block;font-size:26px;font-weight:900;line-height:1.05;color:var(--t);}
+.sg-ppa-tile span{font-size:11px;font-weight:700;color:var(--text-secondary);}
+.sg-ppa-tile.clic{cursor:pointer;} .sg-ppa-tile.clic:hover{box-shadow:0 0 0 2px var(--t);}
+.sg-ppa-nota{font-size:11px;color:var(--text-tertiary);margin-top:-4px;}
+.sg-ppa-botones{display:flex;gap:8px;flex-wrap:wrap;} .sg-ppa-botones .turnos-btn{flex:1;justify-content:center;} .sg-ppa-botones .turnos-btn:disabled{opacity:.5;cursor:default;}
+.sg-ppa-resumen > div b{font-size:30px;}
+.sg-ppa-modal{width:min(980px,96vw);max-height:92vh;padding:18px 20px;display:flex;flex-direction:column;}
+.sg-ppa-modal-ancho{width:min(1240px,97vw);}
+.sg-ppa-mcab{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;} .sg-ppa-mcab .coords{margin:0 0 10px;}
+.sg-ppa-mbody{overflow:auto;min-height:0;} .sg-ppa-mbody .sg-tu-det{border:0;border-radius:10px;}
+.sg-ppa-link{font-size:11px;font-weight:700;color:var(--cobalt,#2563EB);margin-top:3px;text-decoration:none;} .sg-ppa-link:hover{text-decoration:underline;}
+.sg-ppa-acc-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:12px;min-height:0;flex:1;}
+@media (max-width:860px){ .sg-ppa-acc-grid{grid-template-columns:1fr;} .sg-ppa-acc-mapa{height:320px;} }
+.sg-ppa-acc-lista{overflow:auto;max-height:70vh;display:flex;flex-direction:column;gap:8px;padding-right:4px;}
+.sg-ppa-acc-mapa{position:relative;min-height:420px;max-height:70vh;border-radius:12px;overflow:hidden;border:1px solid var(--border);}
+.sg-ppa-acc-mapa #sg-ppa-mapa{position:absolute;inset:0;}
+.sg-ppa-sinmapa{position:absolute;left:10px;right:10px;top:10px;z-index:500;background:rgba(255,255,255,.92);border-radius:9px;padding:8px 10px;font-size:12px;font-weight:600;text-align:center;}
+.sg-ppa-av{display:flex;gap:10px;background:var(--white);border:1px solid var(--border);border-radius:11px;padding:8px;}
+.sg-ppa-av.geo{cursor:pointer;} .sg-ppa-av.geo:hover,.sg-ppa-av.on{border-color:var(--cobalt,#2563EB);box-shadow:0 0 0 2px color-mix(in srgb,var(--cobalt,#2563EB) 25%,transparent);}
+.sg-ppa-foto{flex:0 0 92px;height:92px;border-radius:9px;overflow:hidden;background:var(--bg-tertiary,#F1F5F9);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:26px;text-decoration:none;color:var(--text-tertiary);}
+.sg-ppa-foto img{width:100%;height:100%;object-fit:cover;display:block;} .sg-ppa-foto small{font-size:10px;font-weight:700;}
+.sg-ppa-foto.vacia{opacity:.7;}
+.sg-ppa-av .txt{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:12px;}
+.sg-ppa-av .txt b{font-size:12.5px;} .sg-ppa-av .txt span{color:var(--text-secondary);font-size:11.5px;} .sg-ppa-av .txt span b{font-size:11.5px;}
+.sg-ppa-av .txt em{font-style:normal;font-size:11.5px;color:var(--text-primary,#0F172A);background:var(--bg-tertiary,#F1F5F9);border-radius:6px;padding:3px 6px;}
+.sg-ppa-av .txt .ubi{font-size:11px;color:var(--text-tertiary);}
+.sg-ppa-pop img{width:100%;max-height:150px;object-fit:cover;border-radius:7px;margin-bottom:5px;display:block;}
+.ppa-metas-jefe td.ppa-falta{background:color-mix(in srgb,#DC2626 12%,transparent);} .ppa-metas-jefe td.ppa-falta small{color:#DC2626;font-weight:700;}
+.ppa-metas-jefe td.ppa-qact{background:#DBEAFE;box-shadow:inset 0 0 0 1px #93C5FD;}
+/* detalle por sector (modal de pendientes) */
+.sg-ppa-det .sg-ppa-sect{grid-column:1/-1;margin:6px 0 0;font-size:12.5px;font-weight:800;color:var(--text-primary,#0F172A);display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;border-bottom:1px solid var(--border);padding-bottom:3px;}
+.sg-ppa-det .sg-ppa-sect:first-child{margin-top:0;}
+.sg-ppa-det .sg-ppa-sect span{font-size:11px;font-weight:500;color:var(--text-tertiary);} .sg-ppa-det .sg-ppa-sect .ve{color:#DC2626;} .sg-ppa-det .sg-ppa-sect .pv{color:#D97706;}
+.sg-ppa-det .sg-ppa-grupo{color:#7C3AED;font-weight:600;}
+.sg-tu-area .barra .sg-ppa-kpis{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px;font-weight:500;color:var(--text-tertiary);}
+.sg-tu-area .barra .sg-ppa-kpis span{font-size:11px;font-weight:500;}
+.sg-tu-area .barra .sg-ppa-kpis b{color:var(--text-primary,#0F172A);}
+.sg-tu-area .barra .sg-ppa-kpis .pv b{color:#D97706;} .sg-tu-area .barra .sg-ppa-kpis .ve b{color:#DC2626;} .sg-tu-area .barra .sg-ppa-kpis .ok b{color:#16A34A;}
 .sg-tu-area .pct{font-size:20px;font-weight:900;color:var(--c);text-align:right;font-variant-numeric:tabular-nums;}
 .sg-tu-area .flecha{color:var(--text-tertiary);font-size:11px;}
 .sg-tu-nota{font-size:11px;color:#B45309;font-weight:700;}

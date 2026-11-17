@@ -113,6 +113,8 @@
   body.cargando #m-cuerpo { opacity:.4; pointer-events:none; transition: opacity .2s ease; }
   body.cargando #h-actualizar { animation: giro 1s linear infinite; }
   body.cargando::after { content:'⟳  Actualizando datos…'; position:fixed; top:68px; left:50%; transform:translateX(-50%); background:#0F172A; color:#fff; padding:9px 18px; border-radius:999px; font-size:13px; font-weight:700; z-index:25; box-shadow: 0 12px 28px rgba(2,6,23,.35); white-space:nowrap; }
+  .franja-version { position:fixed; left:0; right:0; top:0; z-index:60; display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; padding:8px 12px calc(8px); padding-top:calc(8px + env(safe-area-inset-top)); background:#1E40AF; color:#fff; font-size:13px; font-weight:700; box-shadow:0 6px 18px rgba(2,6,23,.3); }
+  .franja-version button { background:#fff; color:#1E40AF; border:0; border-radius:999px; padding:5px 12px; font-weight:800; font-size:12.5px; }
   .toast-msg { position:fixed; left:50%; bottom:96px; transform:translateX(-50%); max-width:calc(100% - 32px); background:#0F172A; color:#fff; padding:11px 18px; border-radius:14px; font-size:14px; font-weight:700; text-align:center; box-shadow: 0 12px 28px rgba(2,6,23,.35); z-index:30; animation: toastIn .25s ease; }
   @keyframes toastIn { from { opacity:0; transform: translate(-50%, 12px); } to { opacity:1; transform: translate(-50%, 0); } }
   @keyframes giro { to { transform: rotate(360deg); } }
@@ -249,6 +251,66 @@ const fmtFecha = iso => { if (!iso) return '—'; const p = String(iso).slice(0,
 const hoyISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 function toast(m) { const t = document.createElement('div'); t.className = 'toast-msg'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
 
+/* ───────── Actualización automática (v1.5.0) ─────────
+ * Versión de la app: subir el MISMO número en APP_VERSION, en VERSION de sw-prevencion.js y en version.json (con sus notas).
+ * CON señal: al abrir la app, al volver a ella, al recuperar la señal y cada 15 min se lee version.json (sin caché). Si hay una versión
+ * nueva se FUERZA la actualización: primero se envían los pendientes y luego se recarga (el service worker trae app.html de la red).
+ * Si hay un avance a medio registrar, espera a que se cierre el formulario. SIN señal: la actualización queda PENDIENTE
+ * (localStorage) y se instala sola al volver la señal. La cola de pendientes y los datos guardados (IndexedDB) no se pierden al actualizar. */
+const APP_VERSION = '1.5.2';
+const ACT_KEY = 'pta-act-pendiente', ACT_CADA_MS = 15 * 60 * 1000;
+function actLeer() { try { return localStorage.getItem(ACT_KEY) || ''; } catch (e) { return ''; } }
+function actGuardar(v) { try { if (v) localStorage.setItem(ACT_KEY, v); else localStorage.removeItem(ACT_KEY); } catch (e) { /* sin almacenamiento */ } }
+function cmpVersion(a, b) {
+  const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; }
+  return 0;
+}
+function franjaVersion(html, conBoton) {
+  let f = $('franja-version');
+  if (!html) { if (f) f.remove(); return; }
+  if (!f) { f = document.createElement('div'); f.id = 'franja-version'; f.className = 'franja-version'; f.setAttribute('role', 'status'); document.body.appendChild(f); }
+  f.innerHTML = '<span>' + html + '</span>' + (conBoton ? '<button type="button" id="fv-btn">Actualizar ahora</button>' : '');
+  const b = $('fv-btn'); if (b) b.onclick = () => aplicarActualizacion(S.versionNueva || actLeer(), true);
+}
+function avisoPendienteOffline() {
+  const p = actLeer() || S.versionNueva || '';   // en memoria si el navegador no deja guardar
+  if (p && cmpVersion(p, APP_VERSION) > 0) franjaVersion('🆕 Versión ' + esc(p) + ' pendiente · se instalará al tener señal');
+}
+async function buscarActualizacion() {
+  if (!navigator.onLine) { avisoPendienteOffline(); return; }
+  if (S.buscandoVersion) return;
+  S.buscandoVersion = true;
+  try {
+    const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) return;
+    const j = await r.json(), v = String(j.version || '');
+    if (!v || cmpVersion(v, APP_VERSION) <= 0) { actGuardar(''); franjaVersion(''); return; }
+    S.versionNueva = v; S.notasVersion = Array.isArray(j.notas) ? j.notas : [];
+    actGuardar(v);
+    await aplicarActualizacion(v, false);
+  } catch (e) { avisoPendienteOffline(); /* sin señal real o sin version.json: se reintenta más tarde */ }
+  finally { S.buscandoVersion = false; }
+}
+async function aplicarActualizacion(v, manual) {
+  if (!v) return;
+  if (!navigator.onLine) { avisoPendienteOffline(); return; }
+  const ov = $('ov-avance');
+  if (!manual && ov && ov.classList.contains('show')) {   // no interrumpir un registro a medio llenar
+    S.actAlCerrar = true;
+    franjaVersion('🆕 Versión ' + esc(v) + ' lista · se instalará al cerrar el formulario', true);
+    return;
+  }
+  // Una recarga automática por versión y sesión (evita un bucle si el servidor aún entrega la versión anterior)
+  const k = 'pta-recargado-' + v; let ya = false;
+  try { ya = sessionStorage.getItem(k) === '1'; sessionStorage.setItem(k, '1'); } catch (e) { /* sin almacenamiento */ }
+  if (ya && !manual) { franjaVersion('🆕 Versión ' + esc(v) + ' disponible', true); return; }
+  franjaVersion('⏳ Instalando la versión ' + esc(v) + (S.notasVersion && S.notasVersion[0] ? ' · ' + esc(S.notasVersion[0]) : '') + '…');
+  try { await sincronizarPendientes(); } catch (e) { /* lo no enviado sigue guardado en el teléfono */ }
+  try { if ('serviceWorker' in navigator) { const reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.update(); } } catch (e) { /* sin service worker */ }
+  setTimeout(() => location.reload(), 600);
+}
+
 /* ───────── Sesión ───────── */
 async function entrar() {
   const mail = $('l-mail').value.trim(), clave = $('l-clave').value;
@@ -296,7 +358,9 @@ async function cargarDatos() {
     const c = await cacheGet('ppa');
     if (c && c.ppa) { S.ppa = c.ppa; S.avances = c.avances || []; S.metas = c.metas || []; toast('📵 Sin señal: datos guardados del ' + fmtFecha(c.fecha)); }
     else toast('No se pudieron cargar los datos: ' + (e.message || e));
+    if (!S.defaultAplicado) { S.defaultAplicado = true; await alcanceDesdeCache(); }
   }
+  aplicarAreasPerfil();
   indexarMetas();
 }
 /* ───────── Metas al mes vigente (v1.4.0) ─────────
@@ -362,6 +426,18 @@ async function cargarPerfil() {
       info.areas = [...new Set((pa || []).map(r => r.area).filter(Boolean))];
       const { data: ps } = await sb.from('perfil_subgerencias').select('subgerencia').eq('perfil_id', uid).maybeSingle();
       if (ps) info.subgerencia = ps.subgerencia || '';
+      // v1.4.1: perfil REAL del usuario (igual que la web, nombrePerfilVisible_ de js/01). Subgerente y GRT son en la BD un
+      // «Jefe de Área Relacionamiento» + fila en perfil_subgerencias / perfil_gestor_territorial; la Asociación es un Visor + perfil_asociacion.
+      info.perfilBd = info.perfil;
+      if (info.subgerencia) info.perfil = 'Subgerente de Relacionamiento';
+      else {
+        const { data: gt } = await sb.from('perfil_gestor_territorial').select('perfil_id').eq('perfil_id', uid).maybeSingle();
+        if (gt) info.perfil = 'Gestor de Relacionamiento Territorial (GRT)';
+        else {
+          const { data: as } = await sb.from('perfil_asociacion').select('asociacion').eq('perfil_id', uid).maybeSingle();
+          if (as) info.perfil = 'Asociación de Agricultores' + (as.asociacion ? ' (' + as.asociacion + ')' : '');
+        }
+      }
     }
     if (info.nombre || info.perfil) cacheSet('perfil', info);
     else { const c = await cacheGet('perfil'); if (c) Object.assign(info, c); }
@@ -406,7 +482,8 @@ function pintarPerfil() {
     pendientesHtml() +
     '<div class="card"><button class="btn" data-actualizar="1" style="width:100%;margin-bottom:8px;">🔄 Actualizar datos</button>' +
       '<button class="btn" data-salir="1" style="width:100%;color:var(--err);">⏻ Cerrar sesión</button></div>' +
-    '<p class="muted" style="text-align:center;">Prevención Territorial · v1.4.0</p>';
+    '<button class="btn" data-buscar-version="1" style="width:100%;margin-top:4px;">🆕 Buscar actualización</button>' +
+    '<p class="muted" style="text-align:center;">Prevención Territorial · v' + APP_VERSION + (actLeer() && cmpVersion(actLeer(), APP_VERSION) > 0 ? ' · 🆕 v' + esc(actLeer()) + ' pendiente' : '') + '</p>';
 }
 // Jefes, GRT y GRD ven por defecto su área (si tienen una sola). El Administrador ve todo.
 async function aplicarFiltroPorDefecto() {
@@ -417,12 +494,31 @@ async function aplicarFiltroPorDefecto() {
     const { data: p } = await sb.from('perfiles').select('perfil').eq('id', uid).maybeSingle();
     if (!p) return;
     S.esAdmin = /administrador/i.test(p.perfil || '');
-    if (S.esAdmin) { S.puedeElegirArea = true; return; }
+    if (S.esAdmin) { S.puedeElegirArea = true; S.misAreasPpa = null; cacheSet('ppa_alcance', { esAdmin: true, ids: [] }); return; }
     const { data: pa } = await sb.from('perfil_areas').select('id_area').eq('perfil_id', uid);
     const ids = [...new Set((pa || []).map(r => r.id_area).filter(v => v != null).map(String))];
+    S.misAreasPpa = ids;   // v1.5.1: el PPA se filtra SIEMPRE por estas áreas (aplicarAreasPerfil)
+    cacheSet('ppa_alcance', { esAdmin: false, ids });
     S.puedeElegirArea = ids.length > 1;
     if (ids.length === 1) { S.areaDefault = ids[0]; S.filtros.area = ids[0]; }
-  } catch (e) { /* sin filtro por defecto: puede elegir área */ }
+  } catch (e) { await alcanceDesdeCache(); }
+}
+// Sin señal: el alcance (Admin / áreas del perfil) guardado la última vez
+async function alcanceDesdeCache() {
+  const c = await cacheGet('ppa_alcance').catch(() => null); if (!c) return;
+  S.esAdmin = !!c.esAdmin; S.misAreasPpa = c.esAdmin ? null : (c.ids || []);
+  S.puedeElegirArea = S.esAdmin || (c.ids || []).length > 1;
+  if (!S.esAdmin && (c.ids || []).length === 1 && !S.filtros.area) { S.areaDefault = c.ids[0]; S.filtros.area = c.ids[0]; }
+}
+/* v1.5.1: Jefe de Área / Gestor / Subgerente / GRD ven el PPA SOLO de las áreas de su perfil (perfil_areas), además del RLS del servidor.
+ * El Administrador ve todas. Se aplica a las acciones, sus avances y sus metas (también con los datos guardados sin señal). */
+function aplicarAreasPerfil() {
+  if (S.esAdmin || !Array.isArray(S.misAreasPpa)) return;
+  const ids = new Set(S.misAreasPpa);
+  S.ppa = S.ppa.filter(a => ids.has(String(a.id_area)));
+  const v = new Set(S.ppa.map(a => a.id_ppa));
+  S.avances = (S.avances || []).filter(x => v.has(x.id_ppa));
+  S.metas = (S.metas || []).filter(m => v.has(m.id_ppa));
 }
 function avancesDe(id) { return S.avances.filter(a => a.id_ppa === id).sort((x, y) => String(y.fecha).localeCompare(String(x.fecha))); }
 function avanceTotal(id) { return avancesDe(id).reduce((s, a) => s + (Number(a.cantidad) || 0), 0); }
@@ -452,6 +548,11 @@ function pintar() {
   $('m-cuerpo').innerHTML = '<div class="card enDes"><div class="ico">🚧</div><h3>En desarrollo</h3><p class="muted">Este ítem se incorporará en una próxima etapa de Prevención Territorial.</p></div>';
 }
 function pintarPpa() {
+  if (!S.esAdmin && Array.isArray(S.misAreasPpa) && !S.ppa.length) {   // v1.5.1: sin acciones del PPA en sus áreas
+    $('m-cuerpo').innerHTML = '<div class="card enDes"><div class="ico">📋</div><h3>Sin acciones del PPA</h3><p class="muted">' +
+      (S.misAreasPpa.length ? 'Tus áreas aún no tienen acciones del Plan de Prevención.' : 'Tu perfil no tiene áreas asignadas. Pide al Administrador que te asigne tu área.') + '</p></div>';
+    return;
+  }
   const tabs = '<nav class="tabs"><button data-v="tablero" class="' + (S.vista === 'tablero' ? 'on' : '') + '">📊 Tablero</button><button data-v="registro" class="' + (S.vista === 'registro' ? 'on' : '') + '">📝 Registro de Acciones</button></nav>';
   const f = S.filtros;
   const sel = (id, todos, ops, val) => '<select id="' + id + '"><option value="">' + todos + '</option>' + ops.map(([v, t]) => '<option value="' + esc(v) + '"' + (v === val ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select>';
@@ -737,7 +838,10 @@ function regHtml(v) {
     '</div>';
 }
 function cerrarMapasGrandes() { document.querySelectorAll('.av-mapa.grande').forEach(m => (m.cerrarGrande ? m.cerrarGrande() : m.remove())); }
-function cerrarAvance() { cerrarMapasGrandes(); $('ov-avance').classList.remove('show'); document.body.style.overflow = ''; }
+function cerrarAvance() {
+  cerrarMapasGrandes(); $('ov-avance').classList.remove('show'); document.body.style.overflow = '';
+  if (S.actAlCerrar) { S.actAlCerrar = false; setTimeout(() => aplicarActualizacion(S.versionNueva || actLeer(), false), 400); }   // actualización que esperaba
+}
 // ───────── Mapa interactivo (Leaflet + mosaicos Esri) ─────────
 // Zoom con dos dedos / botones, ⛶ pantalla completa y base elegible:
 //   🛰️ Imagen  = satelital (World_Imagery)
@@ -1079,6 +1183,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dsc = e.target.closest('[data-desc]');
     if (dsc) { if (window.confirm('¿Descartar este pendiente? No se enviará al servidor.')) colaQuitar(Number(dsc.dataset.desc)).then(refrescarPendientes).then(pintar); return; }
     if (e.target.closest('[data-actualizar]')) { actualizarDatos(); return; }
+    if (e.target.closest('[data-buscar-version]')) {
+      if (!navigator.onLine) { avisoPendienteOffline(); toast('📵 Sin señal: se buscará al recuperar la conexión'); return; }
+      toast('🔎 Buscando versión nueva…');
+      buscarActualizacion().then(() => { if (!S.versionNueva || cmpVersion(S.versionNueva, APP_VERSION) <= 0) toast('✅ Tienes la última versión (v' + APP_VERSION + ')'); });
+      return;
+    }
     if (e.target.closest('[data-fil]')) { S.filAbierto = !S.filAbierto; return pintarPpa(); }
     if (e.target.closest('[data-limpiar]')) { S.filtros = { subg: '', area: S.areaDefault, sector: '', grupo: '', q: '' }; S.indic = ''; return pintarPpa(); }
     const ind = e.target.closest('[data-indic]');
@@ -1101,9 +1211,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('m-cuerpo').addEventListener('input', e => { if (e.target.id !== 'f-q') return; clearTimeout(esp); esp = setTimeout(() => { S.filtros.q = e.target.value; pintarPpa(); }, 250); });
   $('av-sheet').addEventListener('click', e => { const a = e.target.closest('[data-evid]'); if (a) { e.preventDefault(); verEvidencia(a.dataset.evid); } });
   $('ov-avance').addEventListener('click', e => { if (e.target.id === 'ov-avance') cerrarAvance(); });
-  window.addEventListener('online', () => { toast('🟢 Conexión recuperada: enviando pendientes'); sincronizarPendientes(); });
-  window.addEventListener('offline', () => { toast('🔴 Sin señal: los avances se guardarán en pendientes'); pintar(); });
+  // Al volver la señal: primero se envían los pendientes y luego se instala la versión nueva que haya quedado pendiente
+  window.addEventListener('online', async () => { toast('🟢 Conexión recuperada: enviando pendientes'); try { await sincronizarPendientes(); } catch (e) {} buscarActualizacion(); });
+  window.addEventListener('offline', () => { toast('🔴 Sin señal: los avances se guardarán en pendientes'); avisoPendienteOffline(); pintar(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') buscarActualizacion(); });
+  setInterval(buscarActualizacion, ACT_CADA_MS);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw-prevencion.js').catch(() => {});
+  buscarActualizacion();   // al abrir (también en la pantalla de ingreso)
   const { data } = await sb.auth.getSession();
   if (data && data.session) await mostrarApp(); else $('v-login').style.display = '';
 });
@@ -1403,9 +1517,17 @@ async function rcLimiteArea(nombre) {
 async function rcAreaRel() {
   if (RC.cacheCapas.areaRel) return RC.cacheCapas.areaRel;
   try {
-    const { data, error } = await sb.functions.invoke('get-area-layers', { body: {} });
-    if (error) throw error;
-    const fc = data && data.areaRelacionamiento && data.areaRelacionamiento.ok ? data.areaRelacionamiento.data : null;
+    // 17-11-2026 (SQL 179e, áreas MINGEO): sectores desde la BD; si la función aún no existe, la Edge Function get-area-layers
+    let fc = null;
+    try {
+      const r = await sb.rpc('sectores_areas_geojson');
+      if (!r.error && r.data && Array.isArray(r.data.features) && r.data.features.length) fc = r.data;
+    } catch (e) { /* sin el SQL 179e */ }
+    if (!fc) {
+      const { data, error } = await sb.functions.invoke('get-area-layers', { body: {} });
+      if (error) throw error;
+      fc = data && data.areaRelacionamiento && data.areaRelacionamiento.ok ? data.areaRelacionamiento.data : null;
+    }
     if (!fc) throw new Error('sin capa');
     // Solo se guardan los sectores de las áreas que el usuario puede ver (la capa trae todas)
     const a = RC.alcance || {}, mias = new Set(rcAreasDe((RC.datos && RC.datos.lista) || []).map(([, n]) => rcClave(n)));

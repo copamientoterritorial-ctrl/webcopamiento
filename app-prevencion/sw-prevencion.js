@@ -1,6 +1,7 @@
 // Service worker de «Prevención Territorial»: abre la app sin señal (la última versión publicada cuando hay red).
 // Los datos y evidencias NUNCA se guardan en caché: van siempre al servidor (Supabase).
-const VERSION = 'prevencion-v1.4.0';   // = version de app.html (cuando se publique)
+// version.json NO se intercepta: la app lo pide a la red para saber si hay versión nueva (sin señal falla y queda pendiente).
+const VERSION = 'prevencion-v1.5.2';   // = APP_VERSION de app.html = version.json (subir los 3 juntos)
 const CDN = ['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js',
   'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js', 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'];
 const PROPIOS = /\/(app\.html|manifest\.json|icon-192\.png|icon-512\.png|icon-maskable-512\.png|apple-touch-icon\.png)$/;
@@ -8,7 +9,7 @@ const PROPIOS = /\/(app\.html|manifest\.json|icon-192\.png|icon-512\.png|icon-ma
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => Promise.all(
     CDN.concat(['app.html', 'manifest.json', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'])
-      .map(u => c.add(u).catch(() => null)))).then(() => self.skipWaiting()));
+      .map(u => c.add(new Request(u, { cache: 'reload' })).catch(() => null)))).then(() => self.skipWaiting()));   // cache:'reload' = siempre la versión publicada
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()

@@ -1,0 +1,8 @@
+{
+  "version": "1.5.2",
+  "fecha": "2026-11-17",
+  "notas": [
+    "Los sectores del mapa se leen de la base del sistema (nuevas Áreas de Relacionamiento MINGEO).",
+    "El PPA muestra solo las áreas de tu perfil (Jefe de Área, Gestor, Subgerente)."
+  ]
+}
