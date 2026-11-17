@@ -44,6 +44,13 @@
   .barra { height:8px; background: var(--borde); border-radius:6px; overflow:hidden; margin-top:6px; }
   .barra i { display:block; height:100%; background: var(--c, var(--azul2)); }
   .acc { border-left:5px solid var(--c, var(--azul2)); }
+  .ind-fila { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+  .ind { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; white-space:nowrap; }
+  .ind-venc { background:#FEE2E2; color:#991B1B; }
+  .ind-mes { background:#DBEAFE; color:#1E40AF; }
+  .ind-ok { background:#DCFCE7; color:#166534; }
+  .ind-gris { background: var(--borde); color: var(--sub); }
+  .kpi-btn { cursor:pointer; }
   .acc h3 { font-size:14px; margin:0 0 4px; }
   .chip { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; background: color-mix(in srgb, var(--c) 15%, transparent); color: var(--c); }
   nav.tabs { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; margin-bottom:10px; }
@@ -167,6 +174,13 @@
   ::-webkit-scrollbar-thumb { background: var(--borde); border-radius: 8px; border: 2px solid var(--bg); }
   ::-webkit-scrollbar-thumb:hover { background: var(--sub); }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  /* v1.3.0: íconos de los recursos (lista, ficha, mapa) */
+  .rc-ico { display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; line-height:1; }
+  .rc-ico img { max-width:none; object-fit:contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
+  .rc-pin { position:relative; box-sizing:border-box; border-radius:50%; background:#fff; border:3px solid #94A3B8; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,.4); }
+  .rc-pin .rc-ico { overflow:hidden; border-radius:50%; }
+  .rc-pin .rc-ico img { filter:none; }
+  .rc-pin-turno { position:absolute; right:-3px; top:-3px; width:11px; height:11px; border-radius:50%; background:#16A34A; border:2px solid #fff; }
   .pct { display:inline-block; min-width:40px; text-align:center; padding:1px 7px; border-radius:999px; font-size:11px; font-weight:700; color: var(--c, #94A3B8); background: color-mix(in srgb, var(--c, #94A3B8) 13%, transparent); white-space:nowrap; }
 </style>
 </head>
@@ -274,15 +288,65 @@ async function cargarDatos() {
   try {
     S.ppa = await leerTodo('v_ppa', '*', q => q.order('id_ppa'));
     S.avances = await leerTodo('ppa_avances', 'id, id_ppa, fecha, cantidad, observacion, evidencia_ruta, evidencia_nombre, evidencia_tipo, origen, mes, quincena, creado_en');
+    S.metas = await leerTodo('ppa_metas', 'id_ppa, mes, periodo, meta');
     S.ultimaDescarga = new Date();
-    cacheSet('ppa', { ppa: S.ppa, avances: S.avances, fecha: new Date().toISOString() });
+    cacheSet('ppa', { ppa: S.ppa, avances: S.avances, metas: S.metas, fecha: new Date().toISOString() });
     if (!S.defaultAplicado) await aplicarFiltroPorDefecto();
   } catch (e) {
     const c = await cacheGet('ppa');
-    if (c && c.ppa) { S.ppa = c.ppa; S.avances = c.avances || []; toast('📵 Sin señal: datos guardados del ' + fmtFecha(c.fecha)); }
+    if (c && c.ppa) { S.ppa = c.ppa; S.avances = c.avances || []; S.metas = c.metas || []; toast('📵 Sin señal: datos guardados del ' + fmtFecha(c.fecha)); }
     else toast('No se pudieron cargar los datos: ' + (e.message || e));
   }
+  indexarMetas();
 }
+/* ───────── Metas al mes vigente (v1.4.0) ─────────
+ * Misma regla que la web (js/38, ppaMetaQ_): Quincenal/Semanal → metas Q1 y Q2 · Mensual → la meta del mes vence en la Q2 ·
+ * sin frecuencia → Q1/Q2 si las tiene, si no la mensual en la Q2.
+ * % de cumplimiento = avance cargado ÷ meta acumulada hasta el mes vigente (incluido).
+ * Medida VENCIDA = la suma de las metas de las quincenas ya terminadas supera el avance cargado. */
+function indexarMetas() {
+  S.metaMap = new Map(); S.metaMeses = new Map();
+  (S.metas || []).forEach(m => {
+    const mes = String(m.mes).slice(0, 10);
+    S.metaMap.set(m.id_ppa + '|' + mes + '|' + m.periodo, Number(m.meta) || 0);
+    if (!S.metaMeses.has(m.id_ppa)) S.metaMeses.set(m.id_ppa, new Set());
+    S.metaMeses.get(m.id_ppa).add(mes);
+  });
+}
+function metaRaw(id, mes, per) { const v = S.metaMap && S.metaMap.get(id + '|' + mes + '|' + per); return v == null ? null : v; }
+function metaQ(a, mes, per) {
+  const id = a.id_ppa, f = a.frecuencia;
+  if (f === 'Mensual') return per === 'Q2' ? (metaRaw(id, mes, 'M') || 0) : 0;
+  if (f === 'Quincenal' || f === 'Semanal') return metaRaw(id, mes, per) || 0;
+  const q1 = metaRaw(id, mes, 'Q1'), q2 = metaRaw(id, mes, 'Q2');
+  if (q1 != null || q2 != null) return (per === 'Q1' ? q1 : q2) || 0;
+  return per === 'Q2' ? (metaRaw(id, mes, 'M') || 0) : 0;
+}
+const ultimoDia = mes => new Date(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0).getDate();
+const mesVigente = () => hoyISO().slice(0, 7) + '-01';
+const nombreMes = mes => new Date(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)) - 1, 1).toLocaleDateString('es-CL', { month: 'long' });
+// Indicadores de una medida a la fecha: meta al mes vigente, exigible (quincenas vencidas), meta y avance del mes
+function indicadores(a) {
+  const hoy = hoyISO(), mesAct = mesVigente(), id = a.id_ppa;
+  let metaAlMes = 0, exigible = 0, metaMes = 0;
+  (S.metaMeses && S.metaMeses.get(id) || []).forEach(mes => {
+    if (mes > mesAct) return;
+    [['Q1', mes.slice(0, 8) + '15'], ['Q2', mes.slice(0, 8) + String(ultimoDia(mes)).padStart(2, '0')]].forEach(([per, fin]) => {
+      const m = metaQ(a, mes, per);
+      metaAlMes += m;
+      if (fin < hoy) exigible += m;
+      if (mes === mesAct) metaMes += m;
+    });
+  });
+  const av = avanceTotal(id);
+  const avMes = S.avances.filter(x => x.id_ppa === id && String(x.fecha).slice(0, 7) === mesAct.slice(0, 7)).reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
+  return {
+    metaAlMes, exigible, metaMes, av, avMes, p: pct(av, metaAlMes),
+    vencida: exigible > 0 && av < exigible, falta: Math.max(0, exigible - av),
+    delMes: metaMes > 0, mesListo: metaMes > 0 && avMes >= metaMes
+  };
+}
+const IND_FILTRO = { vencidas: '⏰ Solo medidas vencidas', mes: '📅 Solo medidas del mes' };
 // Datos de la cuenta conectada (nombre, perfil, correo, subgerencia y áreas) para «Mi perfil»
 async function cargarPerfil() {
   const info = { nombre: '', correo: '', perfil: '', telefono: '', subgerencia: '', areas: [] };
@@ -342,7 +406,7 @@ function pintarPerfil() {
     pendientesHtml() +
     '<div class="card"><button class="btn" data-actualizar="1" style="width:100%;margin-bottom:8px;">🔄 Actualizar datos</button>' +
       '<button class="btn" data-salir="1" style="width:100%;color:var(--err);">⏻ Cerrar sesión</button></div>' +
-    '<p class="muted" style="text-align:center;">Prevención Territorial · v1.2.0</p>';
+    '<p class="muted" style="text-align:center;">Prevención Territorial · v1.4.0</p>';
 }
 // Jefes, GRT y GRD ven por defecto su área (si tienen una sola). El Administrador ve todo.
 async function aplicarFiltroPorDefecto() {
@@ -370,6 +434,7 @@ function filtradas() {
     (!f.subg || String(a.id_subg) === f.subg) && (!f.area || String(a.id_area) === f.area) &&
     (!f.sector || (a.sector || 'Toda el área') === f.sector) && (!f.grupo || a.id_grupo === f.grupo) &&
     (!S.solo || !!a.activo) &&
+    (!S.indic || (S.indic === 'vencidas' ? indicadores(a).vencida : indicadores(a).delMes)) &&
     (!q || norm([a.id_ppa, a.accion, a.area_nombre, a.sector, a.grupo, a.causa].join(' ')).includes(q)));
 }
 
@@ -406,7 +471,20 @@ function pintarPpa() {
   const filtros = barra + panel;
   $('m-cuerpo').innerHTML = tabs + filtros + (S.vista === 'registro' ? listaRegistro() : tableroEjecutivo());
 }
-// Agrupa las acciones filtradas por Grupo Plan, con avance y cumplimiento de cada grupo
+// Agrupa las acciones filtradas por Grupo Plan, con el cumplimiento al mes vigente, las medidas vencidas y las del mes (v1.4.0)
+// (el avance de cada medida cuenta hasta su meta al mes: lo adelantado en una medida no tapa lo atrasado de otra)
+function resumenDe(acciones) {
+  const r = { metaAl: 0, av: 0, vencidas: 0, faltaVencida: 0, delMes: 0, mesListas: 0, metaMes: 0, avMes: 0, sinMetaAun: 0 };
+  acciones.forEach(a => {
+    const k = indicadores(a);
+    r.metaAl += k.metaAlMes; r.av += Math.min(k.av, k.metaAlMes);
+    if (k.vencida) { r.vencidas++; r.faltaVencida += k.falta; }
+    if (k.delMes) { r.delMes++; r.metaMes += k.metaMes; r.avMes += Math.min(k.avMes, k.metaMes); if (k.mesListo) r.mesListas++; }
+    if (!k.metaAlMes) r.sinMetaAun++;
+  });
+  r.p = pct(r.av, r.metaAl);
+  return r;
+}
 function gruposDe(lista) {
   const m = new Map();
   lista.forEach(a => {
@@ -414,60 +492,73 @@ function gruposDe(lista) {
     if (!m.has(k)) m.set(k, { id: k, nombre: a.grupo || 'Sin grupo', acciones: [] });
     m.get(k).acciones.push(a);
   });
-  return [...m.values()].map(g => {
-    g.meta = g.acciones.reduce((s, a) => s + (Number(a.meta_general) || 0), 0);
-    g.av = g.acciones.reduce((s, a) => s + avanceTotal(a.id_ppa), 0);
-    g.p = pct(g.av, g.meta);
-    g.cumplidas = g.acciones.filter(a => (a.meta_general || 0) > 0 && avanceTotal(a.id_ppa) >= a.meta_general).length;
-    return g;
-  }).sort((x, y) => String(x.id).localeCompare(String(y.id), 'es'));
+  return [...m.values()].map(g => Object.assign(g, resumenDe(g.acciones))).sort((x, y) => String(x.id).localeCompare(String(y.id), 'es'));
 }
+// Indicadores de un plan (grupo): ⏰ vencidas y 📅 del mes
+function chipsGrupo(g) {
+  const mes = nombreMes(mesVigente());
+  return '<div class="ind-fila">' +
+    (g.vencidas ? '<span class="ind ind-venc">⏰ ' + g.vencidas + ' vencida' + (g.vencidas > 1 ? 's' : '') + ' · faltan ' + num(g.faltaVencida) + '</span>' : '<span class="ind ind-ok">✅ Sin vencidas</span>') +
+    (g.delMes ? '<span class="ind ' + (g.mesListas >= g.delMes ? 'ind-ok' : 'ind-mes') + '">📅 ' + g.delMes + ' en ' + esc(mes) + ' · ' + g.mesListas + ' lista' + (g.mesListas === 1 ? '' : 's') + ' · ' + num(g.avMes) + '/' + num(g.metaMes) + '</span>' : '<span class="ind ind-gris">📅 Nada para ' + esc(mes) + '</span>') +
+  '</div>';
+}
+function txtPct(p) { return p == null ? 'sin meta al mes' : p + ' %'; }
 function tarjetaAccion(a) {
-  const av = avanceTotal(a.id_ppa), p = pct(av, a.meta_general), c = colorPct(p);
+  const k = indicadores(a), c = colorPct(k.p), mes = nombreMes(mesVigente());
   return '<div class="card acc" style="--c:' + c + '" data-id="' + esc(a.id_ppa) + '">' +
     '<h3 style="margin:2px 0 3px;">' + esc(a.accion) + ' <span class="muted" style="font-weight:400;font-size:11px;">(' + esc(a.id_ppa) + ')</span></h3>' +
-    '<div class="muted">' + esc(a.sector || 'Toda el área') + ' · Plazo ' + esc(fmtFecha(a.plazo)) + (a.frecuencia ? ' · ' + esc(a.frecuencia) : '') + '</div>' +
-    '<div class="fila" style="margin-top:6px;align-items:center;"><span><b>' + num(av) + '</b> de ' + num(a.meta_general) + ' · <span class="pct" style="--c:' + c + ';">' + (p == null ? 'sin meta' : p + ' %') + '</span></span>' +
+    '<div class="muted">' + esc(a.sector || 'Toda el área') + ' · Plazo ' + esc(fmtFecha(a.plazo)) + (a.frecuencia ? ' · ' + esc(a.frecuencia) : '') + ' · Meta total ' + num(a.meta_general) + '</div>' +
+    '<div class="ind-fila">' +
+      (k.vencida ? '<span class="ind ind-venc">⏰ Vencida · faltan ' + num(k.falta) + '</span>' : '') +
+      (k.delMes ? '<span class="ind ' + (k.mesListo ? 'ind-ok' : 'ind-mes') + '">📅 ' + esc(mes) + ': ' + num(k.avMes) + ' de ' + num(k.metaMes) + (k.mesListo ? ' ✓' : '') + '</span>' : '<span class="ind ind-gris">📅 Sin meta en ' + esc(mes) + '</span>') +
+    '</div>' +
+    '<div class="fila" style="margin-top:6px;align-items:center;"><span><b>' + num(k.av) + '</b> de ' + num(k.metaAlMes) + ' al mes · <span class="pct" style="--c:' + c + ';">' + txtPct(k.p) + '</span></span>' +
     '<span style="display:flex;gap:5px;flex:0 0 auto;"><button class="btn btn-mini" data-regs="' + esc(a.id_ppa) + '" title="Ver registros">📋 ' + avancesDe(a.id_ppa).length + '</button>' +
     '<button class="btn btn-p btn-mini" data-reg="' + esc(a.id_ppa) + '">➕ Registrar</button></span></div>' +
-    '<div class="barra"><i style="width:' + Math.min(100, p || 0) + '%"></i></div></div>';
+    '<div class="barra"><i style="width:' + Math.min(100, k.p || 0) + '%"></i></div></div>';
+}
+// Aviso del filtro de indicador activo (⏰ vencidas / 📅 del mes), con ✕ para quitarlo
+function avisoIndic() {
+  return S.indic ? '<div class="fila" style="align-items:center;margin:6px 0;"><span class="ind ' + (S.indic === 'vencidas' ? 'ind-venc' : 'ind-mes') + '" style="font-size:12px;">' + IND_FILTRO[S.indic] + '</span>' +
+    '<button class="btn btn-mini" data-indic="" style="flex:0 0 auto;">✕ Ver todas</button></div>' : '';
 }
 function listaRegistro() {
   const lista = filtradas();
-  if (!lista.length) return '<div class="vacio">No hay acciones con estos filtros.</div>';
+  if (!lista.length) return avisoIndic() + '<div class="vacio">No hay acciones con estos filtros.</div>';
   const grupos = gruposDe(lista);
-  return '<p class="muted">' + grupos.length + ' grupo(s) · ' + lista.length + ' medida(s). Toca un grupo para ver sus medidas.</p>' +
+  return avisoIndic() + '<p class="muted">' + grupos.length + ' grupo(s) · ' + lista.length + ' medida(s). Toca un grupo para ver sus medidas.</p>' +
     grupos.map(g => {
       const c = colorPct(g.p), abierto = S.grupoAbierto === g.id;
       return '<div class="card' + (S.grupoAbierto && !abierto ? ' dim' : '') + '" style="border-left:5px solid ' + c + ';">' +
         '<div data-gid="' + esc(g.id) + '" style="cursor:pointer;">' +
-          '<div class="fila" style="align-items:center;"><b>' + esc(g.nombre) + '</b><span class="pct" style="--c:' + c + ';">' + (g.p == null ? 'sin meta' : g.p + ' %') + '</span></div>' +
-          '<div class="muted">' + g.acciones.length + ' medida(s) · ' + num(g.av) + ' de ' + num(g.meta) + ' · ' + g.cumplidas + ' cumplida(s) · ' + (abierto ? '▴ ocultar' : '▾ ver medidas') + '</div>' +
+          '<div class="fila" style="align-items:center;"><b>' + esc(g.nombre) + '</b><span class="pct" style="--c:' + c + ';">' + txtPct(g.p) + '</span></div>' +
+          '<div class="muted">' + g.acciones.length + ' medida(s) · ' + num(g.av) + ' de ' + num(g.metaAl) + ' al mes · ' + (abierto ? '▴ ocultar' : '▾ ver medidas') + '</div>' +
           '<div class="barra"><i style="width:' + Math.min(100, g.p || 0) + '%;--c:' + c + '"></i></div>' +
+          chipsGrupo(g) +
         '</div>' +
         (abierto ? '<div style="margin-top:10px;">' + g.acciones.map(tarjetaAccion).join('') + '</div>' : '') +
       '</div>';
     }).join('');
 }
-// Resumen ejecutivo: KPIs generales y avance por Grupo Plan (toca un grupo para ir a sus medidas)
+// Resumen ejecutivo: KPIs al mes vigente e indicadores por Grupo Plan (toca un grupo para ir a sus medidas)
 function tableroEjecutivo() {
   const lista = filtradas();
-  if (!lista.length) return '<div class="vacio">No hay acciones con estos filtros.</div>';
-  const meta = lista.reduce((s, a) => s + (Number(a.meta_general) || 0), 0);
-  const av = lista.reduce((s, a) => s + avanceTotal(a.id_ppa), 0), p = pct(av, meta);
-  const cerr = lista.filter(a => (a.meta_general || 0) > 0 && avanceTotal(a.id_ppa) >= a.meta_general).length;
-  const grupos = gruposDe(lista);
+  if (!lista.length) return avisoIndic() + '<div class="vacio">No hay acciones con estos filtros.</div>';
+  const t = resumenDe(lista), grupos = gruposDe(lista), mesAct = mesVigente(), mes = nombreMes(mesAct);
   const filas = grupos.map(g => {
     const c = colorPct(g.p);
     return '<div class="card" data-ir="' + esc(g.id) + '" style="cursor:pointer;border-left:5px solid ' + c + ';">' +
-      '<div class="fila" style="align-items:center;"><b>' + esc(g.nombre) + '</b><span class="pct" style="--c:' + c + ';">' + (g.p == null ? 'sin meta' : g.p + ' %') + '</span></div>' +
+      '<div class="fila" style="align-items:center;"><b>' + esc(g.nombre) + '</b><span class="pct" style="--c:' + c + ';">' + txtPct(g.p) + '</span></div>' +
       '<div class="barra"><i style="width:' + Math.min(100, g.p || 0) + '%;--c:' + c + '"></i></div>' +
-      '<div class="muted" style="margin-top:6px;">' + g.acciones.length + ' medida(s) · ' + num(g.av) + ' de ' + num(g.meta) + ' · ' + g.cumplidas + ' cumplida(s)</div></div>';
+      '<div class="muted" style="margin-top:6px;">' + g.acciones.length + ' medida(s) · ' + num(g.av) + ' de ' + num(g.metaAl) + ' acciones al mes</div>' +
+      chipsGrupo(g) + '</div>';
   }).join('');
-  return '<h3 style="margin:6px 0 10px;font-size:15px;">Resumen ejecutivo</h3>' +
-    '<div class="kpis"><div class="kpi"><b>' + grupos.length + '</b><span>Grupos plan</span></div><div class="kpi"><b>' + lista.length + '</b><span>Medidas</span></div>' +
-    '<div class="kpi"><b style="color:' + colorPct(p) + '">' + (p == null ? '—' : p + ' %') + '</b><span>Cumplimiento</span></div>' +
-    '<div class="kpi"><b>' + cerr + '</b><span>Medidas cumplidas</span></div></div>' +
+  return avisoIndic() + '<h3 style="margin:6px 0 4px;font-size:15px;">Resumen ejecutivo</h3>' +
+    '<p class="muted" style="margin:0 0 10px;">Cumplimiento = acciones cargadas ÷ acciones que debían llevarse hasta ' + esc(mes) + ' ' + mesAct.slice(0, 4) + '.</p>' +
+    '<div class="kpis"><div class="kpi"><b style="color:' + colorPct(t.p) + '">' + (t.p == null ? '—' : t.p + ' %') + '</b><span>Cumplimiento al mes</span></div>' +
+    '<div class="kpi"><b>' + num(t.av) + ' / ' + num(t.metaAl) + '</b><span>Acciones cargadas / exigidas al mes</span></div>' +
+    '<div class="kpi kpi-btn" data-indic="vencidas" style="border-left:4px solid #DC2626;"><b style="color:#DC2626">' + t.vencidas + '</b><span>⏰ Medidas vencidas · faltan ' + num(t.faltaVencida) + ' ›</span></div>' +
+    '<div class="kpi kpi-btn" data-indic="mes" style="border-left:4px solid #2563EB;"><b style="color:#2563EB">' + t.delMes + '</b><span>📅 Medidas de ' + esc(mes) + ' · ' + t.mesListas + ' listas ›</span></div></div>' +
     '<h3 style="margin:14px 0 8px;font-size:14px;">Avance por grupo plan</h3>' + filas;
 }
 
@@ -611,6 +702,7 @@ async function actualizarDatos() {
     await cargarDatos(); await cargarPerfil(); if (S.sec === 'meteo') await obtenerMeteo();
     RC.datos = null; RC.cop = null; RC.alcance = null;   // Recursos y Copamiento se vuelven a leer
     RC.cacheCapas = { limites: {}, fundos: {}, areaRel: null };   // y las capas de área, sectores y fundos
+    RC.iconos = null;                                             // y los íconos del catálogo
     if (S.sec === 'recursos') await rcCargarRecursos(); else if (S.sec === 'copamiento') await rcCargarCopamiento();
     pintar(); toast('Datos actualizados');
   }
@@ -755,7 +847,8 @@ function abrirAvance(id, reg) {
   const a = S.ppa.find(x => x.id_ppa === id); if (!a) return;
   const editando = !!reg;
   const base = avanceTotal(id) - (editando ? (Number(reg.cantidad) || 0) : 0);
-  const pAct = pct(base, a.meta_general), pNuevo = pct(base + (editando ? Number(reg.cantidad) || 0 : 1), a.meta_general);
+  const ki = indicadores(a), metaAl = ki.metaAlMes;   // % al mes vigente (v1.4.0)
+  const pAct = pct(base, metaAl), pNuevo = pct(base + (editando ? Number(reg.cantidad) || 0 : 1), metaAl);
   const hist = avancesDe(id);
   const tieneGeo = editando && reg.lat != null && reg.lng != null;
   const arcInicial = editando && reg.evidencia_ruta
@@ -768,7 +861,10 @@ function abrirAvance(id, reg) {
       '<div class="av-meta">' + esc(a.sector || 'Toda el área') + ' · Plazo ' + esc(fmtFecha(a.plazo)) + (a.frecuencia ? ' · ' + esc(a.frecuencia) : '') + '</div>' +
     '</div><button class="av-x" id="av-x" aria-label="' + (editando ? 'Volver' : 'Cerrar') + '">✕</button></div>' +
     '<div class="av-body">' +
-      '<div class="av-avance">Avance <b>' + num(base) + '</b> de ' + num(a.meta_general) + ' <span class="pct" style="--c:' + colorPct(pAct) + ';">' + (pAct == null ? 'sin meta' : pAct + ' %') + '</span></div>' +
+      '<div class="av-avance">Avance <b>' + num(base) + '</b> de ' + num(metaAl) + ' al mes <span class="pct" style="--c:' + colorPct(pAct) + ';">' + (pAct == null ? 'sin meta al mes' : pAct + ' %') + '</span>' +
+        ' <span class="muted" style="font-weight:400;">· meta total ' + num(a.meta_general) + '</span></div>' +
+      '<div class="ind-fila" style="margin:0 0 6px;">' + (ki.vencida ? '<span class="ind ind-venc">⏰ Vencida · faltan ' + num(ki.falta) + '</span>' : '') +
+        (ki.delMes ? '<span class="ind ' + (ki.mesListo ? 'ind-ok' : 'ind-mes') + '">📅 ' + esc(nombreMes(mesVigente())) + ': ' + num(ki.avMes) + ' de ' + num(ki.metaMes) + '</span>' : '') + '</div>' +
       (editando ? '<div class="av-modo">✏️ Modificando el registro del ' + esc(fmtFecha(reg.fecha)) + ' · registrado por ' + esc(reg.registrado_nombre || '—') + '</div>' : '') +
       '<div class="av-fila2"><div><label>Cantidad</label><input id="av-cant" type="number" min="1" step="1" value="' + (editando ? num(reg.cantidad) : 1) + '" inputmode="numeric"></div>' +
       '<div><label>Fecha</label><input id="av-fecha" type="date" max="' + hoyISO() + '" value="' + esc(editando ? reg.fecha : hoyISO()) + '"></div></div>' +
@@ -789,7 +885,7 @@ function abrirAvance(id, reg) {
   $('ov-avance').classList.add('show'); document.body.style.overflow = 'hidden';
   let geo = tieneGeo ? { lat: reg.lat, lng: reg.lng } : null, archivo = null;
   const cant = () => Number($('av-cant').value) || 0;
-  $('av-cant').oninput = () => { $('av-pct').textContent = pct(base + cant(), a.meta_general) ?? '—'; };
+  $('av-cant').oninput = () => { $('av-pct').textContent = pct(base + cant(), metaAl) ?? '—'; };
   $('av-x').onclick = () => (editando ? abrirRegistros(id) : cerrarAvance());
   // Mapa: el pincho se arrastra o se ubica tocando el mapa; sin punto se centra en la última ubicación conocida
   const mp = (S.meteo && S.meteo.pos) || null;
@@ -984,7 +1080,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (dsc) { if (window.confirm('¿Descartar este pendiente? No se enviará al servidor.')) colaQuitar(Number(dsc.dataset.desc)).then(refrescarPendientes).then(pintar); return; }
     if (e.target.closest('[data-actualizar]')) { actualizarDatos(); return; }
     if (e.target.closest('[data-fil]')) { S.filAbierto = !S.filAbierto; return pintarPpa(); }
-    if (e.target.closest('[data-limpiar]')) { S.filtros = { subg: '', area: S.areaDefault, sector: '', grupo: '', q: '' }; return pintarPpa(); }
+    if (e.target.closest('[data-limpiar]')) { S.filtros = { subg: '', area: S.areaDefault, sector: '', grupo: '', q: '' }; S.indic = ''; return pintarPpa(); }
+    const ind = e.target.closest('[data-indic]');
+    if (ind) { S.indic = ind.dataset.indic; if (S.indic) { S.vista = 'registro'; S.grupoAbierto = ''; } return pintarPpa(); }
     const r = e.target.closest('[data-reg]'); if (r) return abrirAvance(r.dataset.reg);
     const rs = e.target.closest('[data-regs]'); if (rs) return abrirRegistros(rs.dataset.regs);
     const c = e.target.closest('.acc[data-id]'); if (c) return abrirAvance(c.dataset.id);
@@ -1085,8 +1183,8 @@ async function rcCargarRecursos() {
   const com = await rcComunas();
   const idsGrd = new Set(com.filter(c => a.comunas.includes(String(c.id))).map(c => String(c.id_comuna)));
   try {
-    const cols = 'id, codigo_ref, alias, tipo_recurso, tipo_movil, empresa, id_area, area, sector, id_comuna, comuna, zona_alerta, fecha_inicio_operacion, lat, lng, en_turno_hoy, proximo_turno';
-    const [v, x] = await Promise.all([leerTodo('v_planificador_recursos', cols), leerTodo('referencia_recursos', 'id, n_personas, fecha_termino_operacion, horario, trabajo_actual')]);
+    const cols = 'id, codigo_ref, alias, tipo_recurso, tipo_movil, empresa, id_area, area, sector, id_comuna, comuna, zona_alerta, fecha_inicio_operacion, lat, lng, en_turno_hoy, proximo_turno, icono_url';
+    const [v, x] = await Promise.all([leerTodo('v_planificador_recursos', cols), leerTodo('referencia_recursos', 'id, n_personas, fecha_termino_operacion, horario, trabajo_actual'), rcCargarIconos()]);
     const extra = new Map(x.map(r => [r.id, r]));
     const lista = v.filter(r => rcEnAlcance(r, a, idsGrd)).map(r => Object.assign({}, r, extra.get(r.id) || {}));
     RC.datos = { lista, fecha: new Date().toISOString() };
@@ -1096,6 +1194,52 @@ async function rcCargarRecursos() {
     RC.datos = c || { lista: [], error: e.message || String(e) };
     if (c) toast('📵 Sin señal: recursos guardados del ' + fmtFecha(c.fecha));
   }
+}
+/* ───────── Íconos de los recursos (v1.3.0) — mismo orden que el sistema web (js/17 y js/18):
+ *   1) ícono propio del recurso (recursos_maestro.icono_url, viene en v_planificador_recursos)
+ *   2) ícono del catálogo para su tipo (recursos_maestro: tipo_recurso → icono_url; exacto o contenido)
+ *   3) ícono del sistema (Punto de Faena = cosechadora, ../iconos/cosechadora.svg)
+ *   4) emoji del tipo (tipos_recurso.emoji) y, si no hay catálogo, el emoji por palabras (como emojiParaRecursoMaestro_). */
+const RC_ICONOS_SISTEMA = { PUNTODEFAENA: '../iconos/cosechadora.svg' };
+async function rcCargarIconos() {
+  if (RC.iconos) return RC.iconos;
+  const ic = { porTipo: {}, emoji: {} };
+  try {
+    const [m, t] = await Promise.all([
+      sb.from('recursos_maestro').select('tipo_recurso, icono_url').not('icono_url', 'is', null),
+      sb.from('tipos_recurso').select('nombre, emoji').eq('activo', true),
+    ]);
+    (m.data || []).forEach(r => { if (r.tipo_recurso && r.icono_url) ic.porTipo[rcClave(r.tipo_recurso)] = r.icono_url; });
+    (t.data || []).forEach(r => { if (r.nombre && r.emoji) ic.emoji[rcClave(r.nombre)] = r.emoji; });
+    if (Object.keys(ic.porTipo).length || Object.keys(ic.emoji).length) cacheSet('rc_iconos', ic);
+    else { const c = await cacheGet('rc_iconos'); if (c) Object.assign(ic, c); }
+  } catch (e) { const c = await cacheGet('rc_iconos'); if (c) Object.assign(ic, c); }
+  RC.iconos = ic;
+  return ic;
+}
+function rcEmojiPalabras(tipo) {
+  const t = String(tipo || '').toLowerCase();
+  if (t.includes('multiprop') || t.includes('disuasiv') || t.includes('camioneta')) return '🚚';
+  if (t.includes('montad') || t.includes('caballo')) return '🐴';
+  if (t.includes('motoriz') || t.includes('moto')) return '🏍️';
+  if (t.includes('dron')) return '🛸';
+  if (t.includes('camión') || t.includes('camion')) return '🚛';
+  if (t.includes('faena')) return '👷';
+  return '🚶';
+}
+function rcIcono(r) {
+  const ic = RC.iconos || { porTipo: {}, emoji: {} }, k = rcClave(r && r.tipo_recurso);
+  if (r && r.icono_url) return { url: r.icono_url };
+  if (ic.porTipo[k]) return { url: ic.porTipo[k] };
+  for (const kk of Object.keys(ic.porTipo)) if (k && (k.includes(kk) || kk.includes(k))) return { url: ic.porTipo[kk] };
+  if (RC_ICONOS_SISTEMA[k]) return { url: RC_ICONOS_SISTEMA[k] };
+  return { emoji: ic.emoji[k] || rcEmojiPalabras(r && r.tipo_recurso) };
+}
+// Ícono en HTML (lista, ficha, inicios): imagen sin fondo o emoji; si la imagen no carga, vuelve al emoji
+function rcIconoHtml(r, px) {
+  const i = rcIcono(r), e = esc((RC.iconos && RC.iconos.emoji[rcClave(r && r.tipo_recurso)]) || rcEmojiPalabras(r && r.tipo_recurso));
+  return '<span class="rc-ico" style="width:' + px + 'px;height:' + px + 'px;font-size:' + Math.round(px * .62) + 'px;">' +
+    (i.url ? '<img src="' + esc(i.url) + '" alt="" loading="lazy" style="width:' + px + 'px;height:' + px + 'px;" onerror="this.parentNode.textContent=\'' + e + '\'">' : esc(i.emoji)) + '</span>';
 }
 function rcEstado(r) {
   const hoy = hoyISO(), ini = r.fecha_inicio_operacion ? String(r.fecha_inicio_operacion).slice(0, 10) : '',
@@ -1170,20 +1314,20 @@ function rcHtmlLista(lista) {
   const grupos = new Map();
   lista.forEach(r => { const t = r.tipo_recurso || 'Sin tipo'; if (!grupos.has(t)) grupos.set(t, []); grupos.get(t).push(r); });
   return [...grupos.entries()].sort((x, y) => rcOrdenTipo(x[0]) - rcOrdenTipo(y[0]) || x[0].localeCompare(y[0], 'es')).map(([t, rs]) =>
-    '<div class="muted" style="font-weight:800;text-transform:uppercase;letter-spacing:.3px;margin:12px 2px 6px;">' + esc(rcTit(t)) + ' · ' + rs.length + '</div>' +
+    '<div class="muted" style="font-weight:800;text-transform:uppercase;letter-spacing:.3px;margin:12px 2px 6px;display:flex;align-items:center;gap:6px;">' + rcIconoHtml({ tipo_recurso: t }, 22) + esc(rcTit(t)) + ' · ' + rs.length + '</div>' +
     rs.sort((x, y) => String(x.alias || x.codigo_ref).localeCompare(String(y.alias || y.codigo_ref), 'es', { numeric: true })).map(r => {
       const e = rcEstado(r);
-      return '<div class="card acc" style="--c:' + e.c + ';cursor:pointer;" data-rc-rec="' + r.id + '">' +
-        '<div style="display:flex;justify-content:space-between;gap:8px;"><h3>' + esc(r.alias || r.codigo_ref || 'Recurso') + '</h3>' +
+      return '<div class="card acc" style="--c:' + e.c + ';cursor:pointer;display:flex;gap:12px;align-items:flex-start;" data-rc-rec="' + r.id + '">' + rcIconoHtml(r, 46) +
+        '<div style="flex:1;min-width:0;"><div style="display:flex;justify-content:space-between;gap:8px;"><h3>' + esc(r.alias || r.codigo_ref || 'Recurso') + '</h3>' +
           (r.en_turno_hoy ? '<span class="chip" style="--c:#16A34A">🟢 Turno hoy</span>' : '') + '</div>' +
         '<div class="muted">' + esc([r.codigo_ref !== r.alias ? r.codigo_ref : '', rcTit(r.comuna), r.sector, r.empresa].filter(Boolean).join(' · ')) + '</div>' +
-        '<div style="margin-top:6px;"><span class="chip" style="--c:' + e.c + '">' + esc(e.t) + '</span>' + (r.lat == null ? ' <span class="chip" style="--c:#DC2626">Sin ubicación</span>' : '') + '</div></div>';
+        '<div style="margin-top:6px;"><span class="chip" style="--c:' + e.c + '">' + esc(e.t) + '</span>' + (r.lat == null ? ' <span class="chip" style="--c:#DC2626">Sin ubicación</span>' : '') + '</div></div></div>';
     }).join('')).join('');
 }
 function rcAbrirRecurso(id) {
   const r = ((RC.datos && RC.datos.lista) || []).find(x => String(x.id) === String(id)); if (!r) return;
   $('av-sheet').innerHTML =
-    '<div class="av-top"><div style="min-width:0;flex:1;"><div class="av-grupo">' + esc(rcTit(r.tipo_recurso || 'Recurso')) + '</div>' +
+    '<div class="av-top">' + rcIconoHtml(r, 52) + '<div style="min-width:0;flex:1;"><div class="av-grupo">' + esc(rcTit(r.tipo_recurso || 'Recurso')) + '</div>' +
       '<h2 class="av-accion">' + esc(r.alias || r.codigo_ref) + '</h2><div class="av-meta">' + esc(rcTit(r.area || '')) + ' · solo consulta</div></div>' +
       '<button class="av-x" data-rc-cerrar="1" aria-label="Cerrar">✕</button></div>' +
     '<div class="av-body">' + (r.lat != null ? '<div class="av-mapa" id="rc-ficha-mapa" style="height:200px;margin-bottom:8px;"></div>' : '') + rcFichaHtml(r) + '</div>';
@@ -1200,8 +1344,12 @@ function rcMapaRecursos(lista) {
   const grupo = L.featureGroup().addTo(m.map);
   conUb.forEach(r => {
     const e = rcEstado(r);
-    L.circleMarker([r.lat, r.lng], { radius: r.en_turno_hoy ? 9 : 7, color: '#fff', weight: 2, fillColor: e.c, fillOpacity: .95 })
-      .bindTooltip(esc(r.alias || r.codigo_ref || ''), { direction: 'top', offset: [0, -6] })
+    // Ícono del recurso dentro de un círculo blanco con borde del color de su estado (más grande si está en turno hoy)
+    const d = r.en_turno_hoy ? 40 : 34;
+    L.marker([r.lat, r.lng], { icon: L.divIcon({ className: '', iconSize: [d, d], iconAnchor: [d / 2, d / 2], popupAnchor: [0, -d / 2],
+        html: '<div class="rc-pin" style="width:' + d + 'px;height:' + d + 'px;border-color:' + e.c + ';">' + rcIconoHtml(r, d - 10) +
+          (r.en_turno_hoy ? '<i class="rc-pin-turno"></i>' : '') + '</div>' }) })
+      .bindTooltip(esc(r.alias || r.codigo_ref || ''), { direction: 'top', offset: [0, -d / 2] })
       .bindPopup('<b>' + esc(r.alias || r.codigo_ref) + '</b><br>' + esc(rcTit(r.tipo_recurso)) + '<br>' + esc(rcTit(r.comuna || '')) +
         '<br><span style="color:' + e.c + ';font-weight:700;">' + esc(e.t) + '</span>' + (r.en_turno_hoy ? '<br>🟢 En turno hoy' : '') +
         '<br><a href="#" data-rc-rec="' + r.id + '">Ver ficha</a>')
@@ -1220,7 +1368,7 @@ function rcMapaRecursos(lista) {
     '<b style="font-size:13px;display:block;margin-top:12px;">Simbología de recursos</b><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">' +
     [['op', '#16A34A', 'Operando'], ['por', '#D97706', 'Inicia ≤ 15 días'], ['por2', '#2563EB', 'Inicia más adelante'], ['sin', '#94A3B8', 'Sin fecha'], ['term', '#64748B', 'Terminado']]
       .map(([k, c, t]) => '<span class="chip" style="--c:' + c + '">● ' + t + (k === 'op' || k === 'sin' || k === 'term' ? ' (' + cuenta(k) + ')' : '') + '</span>').join('') +
-    '</div><div class="muted" style="margin-top:6px;">Círculo más grande = en turno hoy.</div>';
+    '</div><div class="muted" style="margin-top:6px;">Cada recurso con su ícono; el borde indica el estado. Más grande y con punto verde = en turno hoy.</div>';
   RC.mapaCtx = { map: m.map, grupoRec: grupo, capas: { area: L.layerGroup().addTo(m.map), sectores: L.layerGroup().addTo(m.map), fundos: L.layerGroup().addTo(m.map) } };
   rcDibujarCapasContexto();
 }
@@ -1367,12 +1515,12 @@ function rcHtmlInicios(lista) {
   const tipos = new Map();
   est.forEach(({ r, e }) => { const t = r.tipo_recurso || 'Sin tipo'; const o = tipos.get(t) || { n: 0, op: 0 }; o.n++; if (e.k === 'op') o.op++; tipos.set(t, o); });
   html += '<div class="card"><b style="font-size:13px;">Por tipo de recurso</b>' + [...tipos.entries()].sort((x, y) => rcOrdenTipo(x[0]) - rcOrdenTipo(y[0]) || x[0].localeCompare(y[0], 'es')).map(([t, o]) =>
-    '<div style="margin-top:8px;font-size:12.5px;"><div style="display:flex;justify-content:space-between;"><span>' + esc(rcTit(t)) + '</span><b>' + o.op + ' / ' + o.n + '</b></div>' +
+    '<div style="margin-top:8px;font-size:12.5px;"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="display:flex;gap:6px;align-items:center;">' + rcIconoHtml({ tipo_recurso: t }, 22) + esc(rcTit(t)) + '</span><b>' + o.op + ' / ' + o.n + '</b></div>' +
     '<div class="barra" style="margin-top:3px;"><i style="width:' + Math.round(o.op / o.n * 100) + '%;--c:#16A34A"></i></div></div>').join('') + '</div>';
   // Próximos inicios
   const prox = est.filter(x => x.e.k === 'por').sort((x, y) => x.e.d - y.e.d).slice(0, 30);
   html += '<div class="card"><b style="font-size:13px;">Próximos inicios</b>' + (prox.length ? prox.map(({ r, e }) =>
-    '<div class="fila-dato" style="cursor:pointer;" data-rc-rec="' + r.id + '"><span><b>' + esc(r.alias || r.codigo_ref) + '</b><br><span class="muted">' + esc(rcTit(r.tipo_recurso)) + ' · ' + esc(rcTit(r.comuna || '')) + '</span></span>' +
+    '<div class="fila-dato" style="cursor:pointer;align-items:center;" data-rc-rec="' + r.id + '"><span style="display:flex;gap:8px;align-items:center;">' + rcIconoHtml(r, 30) + '<span><b>' + esc(r.alias || r.codigo_ref) + '</b><br><span class="muted">' + esc(rcTit(r.tipo_recurso)) + ' · ' + esc(rcTit(r.comuna || '')) + '</span></span></span>' +
     '<span style="text-align:right;"><b>' + fmtFecha(r.fecha_inicio_operacion) + '</b><br><span class="chip" style="--c:' + e.c + '">en ' + e.d + ' día' + (e.d === 1 ? '' : 's') + '</span></span></div>').join('')
     : '<div class="muted" style="margin-top:6px;">No hay recursos por iniciar.</div>') + '</div>';
   const sinF = est.filter(x => x.e.k === 'sin');
