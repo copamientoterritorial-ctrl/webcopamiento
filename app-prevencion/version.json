@@ -1,9 +1,9 @@
 {
-  "version": "1.5.3",
-  "fecha": "2026-11-17",
+  "version": "1.6.0",
+  "fecha": "2026-11-18",
   "notas": [
+    "Puedes eliminar un registro de avance que tú ingresaste (el Administrador, cualquiera).",
     "Se corrigió el ícono de cerrar sesión en Android.",
-    "Los sectores del mapa se leen de la base del sistema (nuevas Áreas de Relacionamiento MINGEO).",
-    "El PPA muestra solo las áreas de tu perfil (Jefe de Área, Gestor, Subgerente)."
+    "Los sectores del mapa se leen de la base del sistema (nuevas Áreas de Relacionamiento MINGEO)."
   ]
 }

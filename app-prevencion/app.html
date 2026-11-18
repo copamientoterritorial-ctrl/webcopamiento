@@ -136,6 +136,7 @@
   .av-adj { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
   .av-btn { border:1px solid var(--borde); background: var(--card); color: var(--txt); border-radius:10px; padding:9px 8px; font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
   .av-btn:active { background: var(--bg); }
+  .av-btn-del { color:#B91C1C; border-color:#FCA5A5; }
   .av-arch { font-size:12px; margin-top:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
   .av-quitar { border:0; background:transparent; color: var(--err); font-weight:800; cursor:pointer; padding:0 4px; }
   .av-mapa { position:relative; height:160px; border-radius:12px; overflow:hidden; border:1px solid var(--borde); background: var(--bg); display:flex; align-items:center; justify-content:center; }
@@ -259,7 +260,7 @@ function toast(m) { const t = document.createElement('div'); t.className = 'toas
  * nueva se FUERZA la actualización: primero se envían los pendientes y luego se recarga (el service worker trae app.html de la red).
  * Si hay un avance a medio registrar, espera a que se cierre el formulario. SIN señal: la actualización queda PENDIENTE
  * (localStorage) y se instala sola al volver la señal. La cola de pendientes y los datos guardados (IndexedDB) no se pierden al actualizar. */
-const APP_VERSION = '1.5.3';
+const APP_VERSION = '1.6.0';
 const ACT_KEY = 'pta-act-pendiente', ACT_CADA_MS = 15 * 60 * 1000;
 function actLeer() { try { return localStorage.getItem(ACT_KEY) || ''; } catch (e) { return ''; } }
 function actGuardar(v) { try { if (v) localStorage.setItem(ACT_KEY, v); else localStorage.removeItem(ACT_KEY); } catch (e) { /* sin almacenamiento */ } }
@@ -827,8 +828,27 @@ async function abrirRegistros(id) {
   $('rg-body').innerHTML = lista.length ? lista.map(regHtml).join('') : '<div class="vacio">Aún no hay registros para esta medida.</div>';
   $('rg-body').onclick = e => {
     const ed = e.target.closest('[data-edit]');
-    if (ed) abrirAvance(id, lista.find(x => String(x.id) === ed.dataset.edit));
+    if (ed) return abrirAvance(id, lista.find(x => String(x.id) === ed.dataset.edit));
+    const del = e.target.closest('[data-del]');
+    if (del) eliminarRegistro(id, lista.find(x => String(x.id) === del.dataset.del), del);
   };
+}
+// Elimina un registro (solo quien lo registró o el Administrador; lo valida la BD, SQL 181). Requiere señal.
+async function eliminarRegistro(idPpa, reg, btn) {
+  if (!reg) return;
+  if (!navigator.onLine) { toast('📵 Sin señal: para eliminar un registro necesitas conexión'); return; }
+  if (!confirm('¿Eliminar el registro del ' + fmtFecha(reg.fecha) + ' (cantidad ' + num(reg.cantidad) + ')?\nSe descuenta del avance de la medida.')) return;
+  btn.disabled = true; btn.textContent = 'Eliminando…';
+  const { data, error } = await sb.rpc('ppa_eliminar_avance_pwa', { p_id: Number(reg.id) });
+  if (error) {
+    btn.disabled = false; btn.textContent = '🗑️ Eliminar';
+    toast(esSinSenal(error) ? '📵 Sin señal: no se pudo eliminar' : (/ppa_eliminar_avance_pwa/.test(error.message) ? 'Falta habilitar la eliminación (SQL 181)' : error.message));
+    return;
+  }
+  if (data) await sb.storage.from(EVID_BUCKET).remove([data]).catch(() => {});   // evidencia que ya nadie usa
+  toast('🗑️ Registro eliminado');
+  await cargarDatos(); pintar();
+  abrirRegistros(idPpa);
 }
 function regHtml(v) {
   return '<div class="rg-item" id="rg-' + esc(v.id) + '">' +
@@ -836,7 +856,8 @@ function regHtml(v) {
     '<div class="muted">Registrado por <b>' + esc(v.registrado_nombre || '—') + '</b>' + (v.creado_en ? ' · ' + esc(fmtFecha(v.creado_en)) : '') + '</div>' +
     (v.observacion ? '<div class="rg-obs">' + esc(v.observacion) + '</div>' : '') +
     (v.evidencia_ruta ? '<div style="margin-top:4px;"><a href="#" data-evid="' + esc(v.evidencia_ruta) + '">📎 ' + esc(v.evidencia_nombre || 'evidencia') + '</a></div>' : '') +
-    (v.puede_editar ? '<div class="rg-acc"><button class="av-btn" data-edit="' + esc(v.id) + '">✏️ Modificar</button></div>' : '') +
+    (v.puede_editar ? '<div class="rg-acc"><button class="av-btn av-btn-del" data-del="' + esc(v.id) + '">🗑️ Eliminar</button>' +
+      '<button class="av-btn" data-edit="' + esc(v.id) + '">✏️ Modificar</button></div>' : '') +
     '</div>';
 }
 function cerrarMapasGrandes() { document.querySelectorAll('.av-mapa.grande').forEach(m => (m.cerrarGrande ? m.cerrarGrande() : m.remove())); }

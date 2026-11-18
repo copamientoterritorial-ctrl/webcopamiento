@@ -6,6 +6,14 @@
  * Se pueden volver a ver con «🆕 Novedades» (botón del encabezado de Ayuda, abrirNovedades_(true)). */
 const NOVEDADES = [
   {
+    id: '2026-11-18-ppa-eliminar', fecha: '18-11-2026', titulo: 'App Prevención Territorial',
+    items: [
+      { ico: '🗑️', t: 'Eliminar un registro del PPA', perfiles: ['admin', 'subgerente', 'jefe', 'grt'],
+        d: 'En la app, en los registros de una medida, quien ingresó un avance puede <b>modificarlo o eliminarlo</b> (el Administrador, cualquiera). ' +
+           'Los demás usuarios del área solo lo ven.' },
+    ],
+  },
+  {
     id: '2026-11-18-planificador-capas', fecha: '18-11-2026', titulo: 'Planificador de Alertas: más capas',
     items: [
       { ico: '🗺️', t: 'Entidades territoriales en el Planificador', perfiles: ['admin', 'subgerente', 'jefe', 'grt', 'grd', 'visor'],
