@@ -8,6 +8,9 @@ const NOVEDADES = [
   {
     id: '2026-11-18-ppa-eliminar', fecha: '18-11-2026', titulo: 'App Prevención Territorial',
     items: [
+      { ico: '🗂️', t: 'Sectores y fundos al registrar actividades', perfiles: ['admin', 'subgerente', 'jefe', 'grt'],
+        d: 'En la app, el mapa para ubicar una actividad muestra los <b>sectores</b> y los <b>fundos CMPC</b> del área con sus nombres. ' +
+           'Con el botón 🗂️ puedes apagar cada capa o las etiquetas; los nombres aparecen al acercarte.' },
       { ico: '🗑️', t: 'Eliminar un registro del PPA', perfiles: ['admin', 'subgerente', 'jefe', 'grt'],
         d: 'En la app, en los registros de una medida, quien ingresó un avance puede <b>modificarlo o eliminarlo</b> (el Administrador, cualquiera). ' +
            'Los demás usuarios del área solo lo ven.' },

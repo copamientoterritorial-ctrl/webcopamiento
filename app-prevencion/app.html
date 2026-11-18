@@ -156,6 +156,19 @@
   .av-mapa.grande .av-listo { display:block; }
   .av-mapa.grande .av-capas { top:calc(10px + env(safe-area-inset-top)); left:calc(10px + env(safe-area-inset-left)); }
   .av-mapa.grande .av-grande { top:calc(10px + env(safe-area-inset-top)); right:calc(10px + env(safe-area-inset-right)); }
+  /* v1.7.0: capas de contexto (sectores / fundos) del mapa de actividades */
+  .av-ctx-btn { position:absolute; top:56px; right:8px; z-index:1000; width:40px; height:40px; border:0; border-radius:10px; background: rgba(255,255,255,.94); font-size:19px; cursor:pointer; box-shadow: 0 2px 8px rgba(2,6,23,.3); }
+  .av-ctx-panel { position:absolute; top:56px; right:54px; z-index:1001; background:#fff; color:#0F172A; border-radius:12px; padding:10px 12px; box-shadow: 0 4px 16px rgba(2,6,23,.35); font-size:13px; display:flex; flex-direction:column; gap:7px; max-width:calc(100% - 70px); }
+  .av-ctx-panel[hidden] { display:none; }
+  .av-ctx-panel label { display:flex; align-items:center; gap:6px; font-weight:600; margin:0; }
+  .av-ctx-panel input { width:18px; height:18px; margin:0; }
+  .av-ctx-panel small { color:#64748B; font-weight:400; }
+  .av-mapa.grande .av-ctx-btn { top:calc(58px + env(safe-area-inset-top)); right:calc(10px + env(safe-area-inset-right)); }
+  .av-mapa.grande .av-ctx-panel { top:calc(58px + env(safe-area-inset-top)); right:calc(56px + env(safe-area-inset-right)); }
+  .av-etq { background:none; border:0; }
+  .av-etq span { display:inline-block; transform:translate(-50%, -50%); white-space:nowrap; font-size:10.5px; font-weight:700; padding:1px 5px; border-radius:6px; pointer-events:none; }
+  .av-etq-fundo span { color:#064E3B; background: rgba(236,253,245,.85); border:1px solid rgba(5,150,105,.5); }
+  .av-etq-sector span { color:#fff; background: rgba(15,23,42,.6); font-size:11.5px; }
   .av-mapa.grande .av-ayuda { top:calc(62px + env(safe-area-inset-top)); }
   .av-mapa.grande .av-cap { bottom:calc(14px + env(safe-area-inset-bottom)); font-size:13px; padding:6px 12px; }
   .av-mapa.grande .leaflet-bottom { bottom: env(safe-area-inset-bottom); }
@@ -260,7 +273,7 @@ function toast(m) { const t = document.createElement('div'); t.className = 'toas
  * nueva se FUERZA la actualización: primero se envían los pendientes y luego se recarga (el service worker trae app.html de la red).
  * Si hay un avance a medio registrar, espera a que se cierre el formulario. SIN señal: la actualización queda PENDIENTE
  * (localStorage) y se instala sola al volver la señal. La cola de pendientes y los datos guardados (IndexedDB) no se pierden al actualizar. */
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.7.0';
 const ACT_KEY = 'pta-act-pendiente', ACT_CADA_MS = 15 * 60 * 1000;
 function actLeer() { try { return localStorage.getItem(ACT_KEY) || ''; } catch (e) { return ''; } }
 function actGuardar(v) { try { if (v) localStorage.setItem(ACT_KEY, v); else localStorage.removeItem(ACT_KEY); } catch (e) { /* sin almacenamiento */ } }
@@ -953,10 +966,101 @@ function montarMapa(cont, lat, lng, opts) {
   cont.appendChild(btnL);
   // Los toques sobre los controles no deben mover el pincho
   cont.querySelectorAll('.av-capas, .av-grande, .av-listo').forEach(el => L.DomEvent.disableClickPropagation(el));
+  if (opts.contexto && opts.contexto.area) ctxMontar(cont, map, opts.contexto.area);
   setTimeout(() => map.invalidateSize(), 80);
   const vivo = { cont, ponerBase, map };
   MAPAS_VIVOS = MAPAS_VIVOS.filter(x => document.body.contains(x.cont)).concat(vivo);
   return { mover, map };
+}
+/* ───────── Capas de contexto del mapa de actividades (v1.7.0): 🗺️ sectores y 🌲 fundos CMPC del área de la medida ─────────
+ * Botón 🗂️ con interruptores (se recuerdan en el equipo, localStorage 'prev_capas_ctx'). Para no saturar el mapa:
+ *  · polígonos en canvas y NO interactivos (tocar el mapa sigue moviendo el pincho);
+ *  · etiquetas solo de lo que se ve, desde cierto acercamiento y con tope (las de fundos más grandes primero).
+ * Sectores: sectores_areas_geojson (SQL 179e) o get-area-layers; fundos: v_fundos_cmpc (rcFundos, RLS decide). Todo en caché. */
+const CTX_ZOOM_FUNDOS = 13, CTX_ZOOM_SECTORES = 10, CTX_MAX_ETQ_FUNDOS = 60, CTX_MAX_ETQ_SECTORES = 30;
+function ctxPrefs() {
+  let p = null; try { p = JSON.parse(localStorage.getItem('prev_capas_ctx') || 'null'); } catch (e) {}
+  return Object.assign({ sectores: true, fundos: true, etiquetas: true }, p || {});
+}
+function ctxGuardarPrefs(p) { try { localStorage.setItem('prev_capas_ctx', JSON.stringify(p)); } catch (e) {} }
+let CTX_SECTORES = null;
+async function ctxSectores() {
+  if (CTX_SECTORES) return CTX_SECTORES;
+  try {
+    let fc = null;
+    try { const r = await sb.rpc('sectores_areas_geojson'); if (!r.error && r.data && Array.isArray(r.data.features) && r.data.features.length) fc = r.data; } catch (e) {}
+    if (!fc) {
+      const { data, error } = await sb.functions.invoke('get-area-layers', { body: {} });
+      if (error) throw error;
+      fc = data && data.areaRelacionamiento && data.areaRelacionamiento.ok ? data.areaRelacionamiento.data : null;
+    }
+    if (!fc) throw new Error('sin capa');
+    CTX_SECTORES = (fc.features || []).filter(f => f && f.geometry);
+    cacheSet('av_sectores', CTX_SECTORES);
+  } catch (e) { CTX_SECTORES = (await cacheGet('av_sectores')) || []; }
+  return CTX_SECTORES;
+}
+function ctxMontar(cont, map, area) {
+  const pr = ctxPrefs();
+  const rend = L.canvas({ padding: 0.3 });
+  const capa = { sectores: L.layerGroup().addTo(map), fundos: L.layerGroup().addTo(map), etq: L.layerGroup().addTo(map) };
+  const datos = { sectores: [], fundos: [] };   // [{ nombre, centro: LatLng, ha }]
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'av-ctx-btn'; btn.title = 'Capas'; btn.setAttribute('aria-label', 'Capas del mapa'); btn.textContent = '🗂️';
+  const pan = document.createElement('div'); pan.className = 'av-ctx-panel'; pan.hidden = true;
+  const fila = (k, t) => '<label><input type="checkbox" data-ctx="' + k + '"' + (pr[k] ? ' checked' : '') + '> ' + t + ' <small data-ctx-n="' + k + '"></small></label>';
+  pan.innerHTML = '<b>Capas · ' + esc(area) + '</b>' + fila('sectores', '🗺️ Sectores') + fila('fundos', '🌲 Fundos CMPC') + fila('etiquetas', '🏷️ Etiquetas (nombres)') +
+    '<div class="muted" data-ctx-ayuda>Los nombres aparecen al acercarte.</div>';
+  cont.appendChild(btn); cont.appendChild(pan);
+  [btn, pan].forEach(el => { L.DomEvent.disableClickPropagation(el); L.DomEvent.disableScrollPropagation(el); });
+  btn.onclick = e => { e.stopPropagation(); pan.hidden = !pan.hidden; };
+  const n = (k, t) => { const el = pan.querySelector('[data-ctx-n="' + k + '"]'); if (el) el.textContent = t; };
+  const centro = g => { try { return L.geoJSON(g).getBounds().getCenter(); } catch (e) { return null; } };
+  const etiquetas = () => {
+    capa.etq.clearLayers();
+    if (!pr.etiquetas) return;
+    const z = map.getZoom(), vis = map.getBounds().pad(0.05);
+    const poner = (lista, max, cls) => lista.filter(d => d.centro && vis.contains(d.centro)).slice(0, max).forEach(d =>
+      L.marker(d.centro, { interactive: false, keyboard: false, icon: L.divIcon({ className: 'av-etq ' + cls, html: '<span>' + esc(d.nombre) + '</span>', iconSize: null }) }).addTo(capa.etq));
+    if (pr.fundos && z >= CTX_ZOOM_FUNDOS) poner(datos.fundos, CTX_MAX_ETQ_FUNDOS, 'av-etq-fundo');
+    if (pr.sectores && z >= CTX_ZOOM_SECTORES && z < CTX_ZOOM_FUNDOS + 2) poner(datos.sectores, CTX_MAX_ETQ_SECTORES, 'av-etq-sector');
+  };
+  const dibujarSectores = async () => {
+    capa.sectores.clearLayers(); datos.sectores = [];
+    if (!pr.sectores) { n('sectores', ''); return; }
+    n('sectores', 'cargando…');
+    const k = rcClave(area);
+    const feats = (await ctxSectores()).filter(f => rcClave((f.properties || {}).AREA) === k);
+    feats.forEach(f => {
+      L.geoJSON(f.geometry, { renderer: rend, interactive: false, style: { color: '#FFFFFF', weight: 2, dashArray: '6 4', opacity: .95, fillColor: '#60A5FA', fillOpacity: .05 } }).addTo(capa.sectores);
+      datos.sectores.push({ nombre: 'Sector ' + ((f.properties || {}).SECTOR || '—'), centro: centro(f.geometry) });
+    });
+    n('sectores', '(' + feats.length + ')');
+  };
+  const dibujarFundos = async () => {
+    capa.fundos.clearLayers(); datos.fundos = [];
+    if (!pr.fundos) { n('fundos', ''); return; }
+    n('fundos', 'cargando…');
+    const lista = await rcFundos(area);
+    lista.forEach(f => {
+      let g = f.geometry; try { if (typeof g === 'string') g = JSON.parse(g); } catch (e) { g = null; }
+      if (!g) return;
+      L.geoJSON(g, { renderer: rend, interactive: false, smoothFactor: 1.5, style: { color: '#059669', weight: 1.2, fillColor: '#34D399', fillOpacity: .15 } }).addTo(capa.fundos);
+      datos.fundos.push({ nombre: f.nombre_fundo || 'Fundo', centro: centro(g), ha: Number(f.sup_ha) || 0 });
+    });
+    datos.fundos.sort((x, y) => y.ha - x.ha);   // con el tope, primero los fundos más grandes
+    n('fundos', lista.length ? '(' + lista.length + ')' : '(sin datos o sin acceso)');
+  };
+  const todo = async () => { await Promise.all([dibujarSectores(), dibujarFundos()]); capa.sectores.eachLayer(l => l.bringToFront && l.bringToFront()); etiquetas(); };
+  pan.addEventListener('change', async e => {
+    const k = e.target.dataset.ctx; if (!k) return;
+    pr[k] = e.target.checked; ctxGuardarPrefs(pr);
+    if (k === 'sectores') await dibujarSectores(); else if (k === 'fundos') await dibujarFundos();
+    etiquetas();
+  });
+  let tEtq = null;
+  map.on('moveend zoomend', () => { clearTimeout(tEtq); tEtq = setTimeout(etiquetas, 120); });
+  todo();
 }
 // Cambio de base (un solo oyente para todos los mapas, también los que se dibujan después)
 document.addEventListener('click', e => {
@@ -1018,6 +1122,7 @@ function abrirAvance(id, reg) {
   const mp = (S.meteo && S.meteo.pos) || null;
   const mapaAv = montarMapa($('av-mapa'), tieneGeo ? reg.lat : null, tieneGeo ? reg.lng : null, {
     editable: true,
+    contexto: a.area_nombre ? { area: a.area_nombre } : null,
     onMove: (la, ln) => { geo = { lat: la, lng: ln }; $('av-geo-info').textContent = coordGms(la, ln) + ' · elegido en el mapa'; }
   });
   if (!tieneGeo && mp && mapaAv.map) mapaAv.map.setView([mp.lat, mp.lng], 14);

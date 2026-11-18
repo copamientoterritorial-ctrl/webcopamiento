@@ -1,9 +1,9 @@
 {
-  "version": "1.6.0",
+  "version": "1.7.0",
   "fecha": "2026-11-18",
   "notas": [
+    "El mapa para registrar una actividad muestra los sectores y los fundos CMPC del área, con sus nombres (botón 🗂️ para apagarlos).",
     "Puedes eliminar un registro de avance que tú ingresaste (el Administrador, cualquiera).",
-    "Se corrigió el ícono de cerrar sesión en Android.",
-    "Los sectores del mapa se leen de la base del sistema (nuevas Áreas de Relacionamiento MINGEO)."
+    "Se corrigió el ícono de cerrar sesión en Android."
   ]
 }
