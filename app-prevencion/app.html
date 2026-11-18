@@ -30,6 +30,8 @@
   .btn { border:0; border-radius:10px; padding:11px 14px; font:inherit; font-weight:700; cursor:pointer; background: var(--card); color: var(--txt); border:1px solid var(--borde); }
   .btn-p { background: var(--azul2); color:#fff; border-color: var(--azul2); }
   .btn-w { background: transparent; color:#fff; border-color: rgba(255,255,255,.4); padding:8px 10px; }
+  /* v1.5.3: ícono de cerrar sesión dibujado (el símbolo ⏻ no existe en las fuentes de Android y salía un cuadro vacío) */
+  .ico-salir { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; vertical-align:middle; }
   .btn:disabled { opacity:.5; }
   .card { background: var(--card); border:1px solid var(--borde); border-radius:14px; padding:12px 14px; margin-bottom:10px; }
   .muted { color: var(--sub); font-size:12px; }
@@ -214,7 +216,7 @@
       <small id="h-sub">Plan de Prevención por Área</small>
     </div>
     <button class="btn btn-w" id="h-actualizar" title="Actualizar datos">🔄</button>
-    <button class="btn btn-w" id="h-salir" title="Cerrar sesión">⏻</button>
+    <button class="btn btn-w" id="h-salir" title="Cerrar sesión" aria-label="Cerrar sesión"><svg class="ico-salir" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9"/><path d="M6.4 6.6a8 8 0 1 0 11.2 0"/></svg></button>
   </header>
   <main id="m-cuerpo"><div class="vacio">Cargando…</div></main>
   <nav class="menu" id="menu">
@@ -257,7 +259,7 @@ function toast(m) { const t = document.createElement('div'); t.className = 'toas
  * nueva se FUERZA la actualización: primero se envían los pendientes y luego se recarga (el service worker trae app.html de la red).
  * Si hay un avance a medio registrar, espera a que se cierre el formulario. SIN señal: la actualización queda PENDIENTE
  * (localStorage) y se instala sola al volver la señal. La cola de pendientes y los datos guardados (IndexedDB) no se pierden al actualizar. */
-const APP_VERSION = '1.5.2';
+const APP_VERSION = '1.5.3';
 const ACT_KEY = 'pta-act-pendiente', ACT_CADA_MS = 15 * 60 * 1000;
 function actLeer() { try { return localStorage.getItem(ACT_KEY) || ''; } catch (e) { return ''; } }
 function actGuardar(v) { try { if (v) localStorage.setItem(ACT_KEY, v); else localStorage.removeItem(ACT_KEY); } catch (e) { /* sin almacenamiento */ } }
@@ -481,7 +483,7 @@ function pintarPerfil() {
     '<div class="card"><div class="muted" style="margin-bottom:8px;">Áreas asignadas</div>' + areas + '</div>' +
     pendientesHtml() +
     '<div class="card"><button class="btn" data-actualizar="1" style="width:100%;margin-bottom:8px;">🔄 Actualizar datos</button>' +
-      '<button class="btn" data-salir="1" style="width:100%;color:var(--err);">⏻ Cerrar sesión</button></div>' +
+      '<button class="btn" data-salir="1" style="width:100%;color:var(--err);"><svg class="ico-salir" viewBox="0 0 24 24" aria-hidden="true" style="width:18px;height:18px;"><path d="M12 3v9"/><path d="M6.4 6.6a8 8 0 1 0 11.2 0"/></svg> Cerrar sesión</button></div>' +
     '<button class="btn" data-buscar-version="1" style="width:100%;margin-top:4px;">🆕 Buscar actualización</button>' +
     '<p class="muted" style="text-align:center;">Prevención Territorial · v' + APP_VERSION + (actLeer() && cmpVersion(actLeer(), APP_VERSION) > 0 ? ' · 🆕 v' + esc(actLeer()) + ' pendiente' : '') + '</p>';
 }

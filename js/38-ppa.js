@@ -1028,10 +1028,16 @@ async function ppaLeerExcel_(archivo) {
   const enc = filas[iEnc].map(c => String(c).trim().toUpperCase()), col = n => enc.indexOf(n.toUpperCase());
   const r1 = filas[iEnc - 2], r2 = filas[iEnc - 1], anioIni = Number(S.periodo.fecha_inicio.slice(0, 4)), mesIni = Number(S.periodo.fecha_inicio.slice(5, 7));
   const NOMBRES = PPA_MESES.map(n => n.toUpperCase());
-  const slots = [];
+  const slots = [], mesesPer = ppaMesesPeriodo_(), usados = new Set();
   r1.forEach((c, i) => {
-    const n = NOMBRES.indexOf(String(c).trim().toUpperCase().replace(/\s+\d{4}$/, '')); if (n < 0) return;
-    const mes = (n + 1 >= mesIni ? anioIni : anioIni + 1) + '-' + String(n + 1).padStart(2, '0') + '-01';
+    // 17-11-2026 (SQL 180): el período puede pasar de 12 meses (mar-2026 → abr-2027) y repetir MARZO / ABRIL → manda el año del
+    // encabezado («MARZO 2027», como lo descarga ⬇️ Excel); sin año, el primer mes del período con ese nombre aún no usado.
+    const txt = String(c).trim().toUpperCase(), anioTxt = (/\s(\d{4})$/.exec(txt) || [])[1];
+    const n = NOMBRES.indexOf(txt.replace(/\s+\d{4}$/, '')); if (n < 0) return;
+    const mm = String(n + 1).padStart(2, '0');
+    let mes = anioTxt ? anioTxt + '-' + mm + '-01' : mesesPer.find(x => x.slice(5, 7) === mm && !usados.has(x));
+    if (!mes) mes = (n + 1 >= mesIni ? anioIni : anioIni + 1) + '-' + mm + '-01';
+    usados.add(mes);
     for (let k = i; k < i + 6; k++) { const p = String(r2[k] || '').trim().toUpperCase(); const per = p === 'Q1' ? 'Q1' : p === 'Q2' ? 'Q2' : p.startsWith('MENSUAL') ? 'M' : null;
       if (per) slots.push({ mes, per, cM: k, cA: k + 1 }); }
   });

@@ -33,6 +33,92 @@ async function toggleZonasAlerta_() {
   if (document.querySelector('.rail-btn.active') && document.querySelector('.rail-btn.active').dataset.tab === 'capas') renderTab('capas');
 }
 
+/* ============ 🛰️ FOCOS DE CALOR NASA FIRMS (17-11-2026) ============
+ * Incendios activos detectados por satélite (VIIRS NOAA-20 / NOAA-21 y MODIS) desde los archivos públicos de NASA FIRMS.
+ * NASA no permite leerlos desde el navegador: los entrega la Edge Function «focos-nasa» (supabase/functions/focos-nasa),
+ * ya recortados a la zona centro-sur (Maule → Aysén). Período 24 h / 48 h / 7 días (state.focosNasaDias).
+ * Color por antigüedad de la detección; el círculo crece con la potencia del fuego (FRP). Se piden al encender la capa o al
+ * cambiar el período, y se guardan 10 min en el navegador. */
+const FOCOS_NASA_EDAD = [ [6, '#DC2626', '≤ 6 h'], [24, '#EA580C', '≤ 24 h'], [48, '#F59E0B', '≤ 48 h'], [Infinity, '#CA8A04', '> 48 h'] ];
+state.focosNasaOn = false;
+state.focosNasaDias = 1;
+state.focosNasaInfo = { cargado: false, ok: true, count: 0, enComuna: null };
+let focosNasaLayer = null;
+const focosNasaCache_ = {};   // dias -> { t, data }
+
+function focosNasaColor_(horas) { return (FOCOS_NASA_EDAD.find(e => horas <= e[0]) || FOCOS_NASA_EDAD[3])[1]; }
+/** 🔥 Llamita en SVG (17-11-2026): color = antigüedad, tamaño = potencia (FRP). Se usa en el mapa y en la leyenda de Capas. */
+function focosNasaLlamaSvg_(color, px, tenue) {
+  return '<svg width="' + px + '" height="' + px + '" viewBox="0 0 24 24" style="display:block;' + (tenue ? 'opacity:.6;' : '') +
+    'filter:drop-shadow(0 1px 1px rgba(0,0,0,.45));" aria-hidden="true">' +
+    '<path d="M12 2c.6 3.2-1.1 5-2.6 6.7C7.8 10.5 6 12.4 6 15.3 6 19 8.7 22 12 22s6-3 6-6.5c0-2.7-1.3-4.7-2.7-6.3-.3 1.6-1.1 2.8-2.4 3.4.5-3.6-.3-7.4-.9-10.6z" ' +
+    'fill="' + color + '" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/>' +
+    '<path d="M12 21c-1.7 0-3-1.4-3-3.2 0-1.6 1-2.6 1.9-3.6.4 1 1.1 1.6 1.9 1.8-.2-1.3.2-2.6.9-3.6 1 1.2 1.3 2.5 1.3 3.9 0 2.8-1.3 4.7-3 4.7z" ' +
+    'fill="#FDE68A"/></svg>';
+}
+function focosNasaFecha_(iso) {
+  try { return new Date(iso).toLocaleString('es-CL', { timeZone: 'America/Santiago', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+  catch (e) { return iso; }
+}
+async function cargarFocosNasa_() {
+  const dias = state.focosNasaDias, c = focosNasaCache_[dias];
+  if (c && Date.now() - c.t < 10 * 60 * 1000) return c.data;
+  const { data, error } = await supabaseClient.functions.invoke('focos-nasa', { body: { dias } });
+  if (error || !data || data.ok === false) {
+    const msg = (data && data.error) || (error && error.message) || 'sin respuesta';
+    throw new Error(/not found|404|Failed to send/i.test(msg) ? 'Falta crear la función «focos-nasa» en Supabase.' : msg);
+  }
+  focosNasaCache_[dias] = { t: Date.now(), data };
+  return data;
+}
+function dibujarFocosNasa_(data) {
+  if (focosNasaLayer) map.removeLayer(focosNasaLayer);
+  if (!map.getPane('focosNasaPane')) { map.createPane('focosNasaPane'); map.getPane('focosNasaPane').style.zIndex = 640; }
+  const ahora = Date.now();
+  let enComuna = 0, hayLimite = false;
+  try { hayLimite = typeof puntoDentroDeComuna_ === 'function' && limiteLayer.getBounds && limiteLayer.getBounds().isValid(); } catch (e) {}
+  focosNasaLayer = L.layerGroup();
+  ((data && data.features) || []).forEach(f => {
+    const [lng, lat] = f.geometry.coordinates, p = f.properties || {};
+    const horas = (ahora - new Date(p.fecha_utc).getTime()) / 36e5, color = focosNasaColor_(horas);
+    if (hayLimite) { try { if (puntoDentroDeComuna_(lat, lng)) enComuna++; } catch (e) {} }
+    const conf = { high: 'Alta', nominal: 'Nominal', low: 'Baja' }[p.confianza] || p.confianza || '—';
+    const px = Math.round(Math.min(26, 14 + 1.6 * Math.sqrt(Number(p.frp) || 0)));
+    L.marker([lat, lng], {
+      pane: 'focosNasaPane', keyboard: false,
+      icon: L.divIcon({ className: 'foco-nasa-icono', html: focosNasaLlamaSvg_(color, px, p.confianza === 'low'),
+        iconSize: [px, px], iconAnchor: [px / 2, px - 1], popupAnchor: [0, -px + 2] }),
+    }).bindPopup(
+      '<div class="popup-title">🛰️ Foco de calor NASA</div>' +
+      '<div class="popup-row">🕒 ' + escapeHtml_(focosNasaFecha_(p.fecha_utc)) + ' (hace ' + (horas < 1 ? '< 1 h' : Math.round(horas) + ' h') + ')</div>' +
+      '<div class="popup-row">📡 ' + escapeHtml_(p.sensor || '') + ' · ' + escapeHtml_(p.dia_noche || '') + '</div>' +
+      '<div class="popup-row">🎯 Confianza: ' + escapeHtml_(conf) + '</div>' +
+      '<div class="popup-row">🔥 Potencia (FRP): ' + (p.frp != null ? Number(p.frp).toFixed(1) + ' MW' : '—') + '</div>' +
+      '<div class="popup-row">📍 ' + lat.toFixed(5) + ', ' + lng.toFixed(5) + '</div>' +
+      '<div class="popup-row" style="color:var(--text-tertiary);font-size:11px;">Detección satelital (≈ 375 m VIIRS / 1 km MODIS): confirmar en terreno.</div>'
+    ).addTo(focosNasaLayer);
+  });
+  state.focosNasaInfo = { cargado: true, ok: true, count: ((data && data.features) || []).length, enComuna: hayLimite ? enComuna : null,
+    errores: (data && data.errores) || [] };
+  if (state.focosNasaOn) focosNasaLayer.addTo(map);
+}
+async function toggleFocosNasa_() {
+  state.focosNasaOn = !state.focosNasaOn;
+  if (state.focosNasaOn) await recargarFocosNasa_();
+  else if (focosNasaLayer) map.removeLayer(focosNasaLayer);
+  if (document.querySelector('.rail-btn.active') && document.querySelector('.rail-btn.active').dataset.tab === 'capas') renderTab('capas');
+}
+async function recargarFocosNasa_() {
+  state.focosNasaInfo = Object.assign({}, state.focosNasaInfo, { cargando: true });
+  try { dibujarFocosNasa_(await cargarFocosNasa_()); }
+  catch (e) { state.focosNasaInfo = { cargado: true, ok: false, count: 0, error: e.message }; state.focosNasaOn = false; if (focosNasaLayer) map.removeLayer(focosNasaLayer); }
+  if (document.querySelector('.rail-btn.active') && document.querySelector('.rail-btn.active').dataset.tab === 'capas') renderTab('capas');
+}
+function cambiarDiasFocosNasa_(dias) {
+  state.focosNasaDias = Number(dias) || 1;
+  if (state.focosNasaOn) recargarFocosNasa_();
+}
+
 function toggleEtiquetasRedVial_() {
   state.mostrarEtiquetasRedVial = !state.mostrarEtiquetasRedVial;
   declutterEtiquetasRedVial_();

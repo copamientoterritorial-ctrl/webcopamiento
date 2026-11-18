@@ -11,7 +11,9 @@
  * terrAbrirImportar_; edición de forma (js/20, tabla 'territorial') → terrGuardarForma_; onGeoData (js/19) → terrAlCambiarComuna_;
  * Capas (js/32) → terrSeccionCapas_; salir del dibujo (js/21, js/33) → terrSalirDibujo_. */
 state.terr = { tipos: [], elementos: [], incendios: [], comuna: null, cargando: false, catOcultas: new Set(), elemOn: true, incOn: true,
-  sinSql: false, enModo: false, guardadas: null, listeners: false };
+  sinSql: false, enModo: false, guardadas: null, listeners: false,
+  // 18-11-2026: también se ven (solo consulta) en el Planificador de Alertas — terrEnPlanificador_; visibilidad propia de ese mapa
+  enPlanif: false, planElemOn: true, planIncOn: false };
 state.modoTerritorial = null;   // { capa: 'elementos' | 'incendios', comunaId } mientras se dibuja
 const terrCapaElem = L.featureGroup();
 const terrCapaInc = L.featureGroup();
@@ -35,6 +37,7 @@ function terrNombreComuna_(id) { const c = (state.comunas || []).find(x => x.id 
 
 /* ── Entrada / salida del modo del mapa (las llama aplicarAmbienteMapa_, js/13) ── */
 function terrAlEntrarModo_() {
+  state.terr.enPlanif = false;
   if (!state.terr.enModo) {
     state.terr.enModo = true;
     // Fuera: incendios SIDCO, amebas e influencia (se restauran al salir)
@@ -55,6 +58,18 @@ function terrAlSalirModo_() {
   (state.terr.guardadas || []).forEach(l => { if (!map.hasLayer(l)) l.addTo(map); });
   state.terr.guardadas = null;
   document.getElementById('terr-menu').classList.remove('show');
+}
+/** 👁️ Planificador de Alertas (18-11-2026): las entidades e incendios registrados de la comuna se ven ahí SOLO CONSULTA (sin editar
+ * ni mover; se editan en Planificación Territorial). La llama aplicarAmbienteMapa_ (js/13) al cambiar de mapa y onGeoData (js/19)
+ * al cambiar de comuna. Encendido/apagado propio: state.terr.planElemOn / planIncOn (sección en 🗂️ Capas). */
+function terrEnPlanificador_(on) {
+  state.terr.enPlanif = !!on && state.modoMapa === 'planificador' && puedeTerritorial_();
+  if (!state.terr.enPlanif) {
+    if (!state.terr.enModo) [terrCapaElem, terrCapaInc].forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); });
+    return;
+  }
+  if (state.activeComunaId && state.terr.comuna !== state.activeComunaId) terrCargar_();
+  else terrAplicarVisibilidad_();
 }
 function terrAlCambiarComuna_() {
   if (map.hasLayer(incendiosContainerLayer)) map.removeLayer(incendiosContainerLayer);   // SIDCO no va en este mapa
@@ -84,7 +99,7 @@ async function terrCargar_() {
   state.terr.cargando = true;
   try {
     await terrCargarTipos_();
-    if (state.terr.sinSql) { mostrarToast_('⚠️ Falta ejecutar en Supabase el SQL 151 (Planificación Territorial).'); return; }
+    if (state.terr.sinSql) { if (state.terr.enModo) mostrarToast_('⚠️ Falta ejecutar en Supabase el SQL 151 (Planificación Territorial).'); return; }
     const [el, inc] = await Promise.all([terrLeerTodo_('v_terr_elementos', comuna), terrLeerTodo_('v_terr_incendios', comuna)]);
     const conGeo = r => Object.assign(r, { geojson: dgGeom_(r.geojson), geom_geojson: JSON.stringify(dgGeom_(r.geojson)) });
     state.terr.elementos = el.map(conGeo);
@@ -92,7 +107,8 @@ async function terrCargar_() {
     state.terr.comuna = comuna;
     terrDibujar_();
   } catch (e) {
-    mostrarToast_('No se pudo cargar la Planificación Territorial: ' + (e.message || e));
+    if (state.terr.enModo) mostrarToast_('No se pudo cargar la Planificación Territorial: ' + (e.message || e));
+    else console.warn('Entidades territoriales (Planificador):', e.message || e);
   } finally {
     state.terr.cargando = false;
     terrActualizarMenu_();
@@ -155,9 +171,11 @@ function terrDibujar_() {
   terrPuntosArrastrables_(!!state.modoTerritorial);
 }
 function terrAplicarVisibilidad_() {
-  if (!state.terr.enModo) return;
-  if (state.terr.elemOn) { if (!map.hasLayer(terrCapaElem)) terrCapaElem.addTo(map); } else if (map.hasLayer(terrCapaElem)) map.removeLayer(terrCapaElem);
-  if (state.terr.incOn) { if (!map.hasLayer(terrCapaInc)) terrCapaInc.addTo(map); } else if (map.hasLayer(terrCapaInc)) map.removeLayer(terrCapaInc);
+  if (!state.terr.enModo && !state.terr.enPlanif) return;
+  const elemOn = state.terr.enModo ? state.terr.elemOn : state.terr.planElemOn;
+  const incOn = state.terr.enModo ? state.terr.incOn : state.terr.planIncOn;
+  if (elemOn) { if (!map.hasLayer(terrCapaElem)) terrCapaElem.addTo(map); } else if (map.hasLayer(terrCapaElem)) map.removeLayer(terrCapaElem);
+  if (incOn) { if (!map.hasLayer(terrCapaInc)) terrCapaInc.addTo(map); } else if (map.hasLayer(terrCapaInc)) map.removeLayer(terrCapaInc);
   // Categorías ocultas: se sacan del grupo y se vuelven a poner al mostrarlas
   state.terr.elementos.forEach(e => {
     const ly = terrById[e.id]; if (!ly) return;
@@ -178,8 +196,9 @@ function terrPuntosArrastrables_(on) {
 function terrFecha_(f) { if (!f) return '—'; const [y, m, d] = String(f).slice(0, 10).split('-'); return d + '-' + m + '-' + y; }
 function terrPopup_(r, capa) {
   const fila = (t, v) => v == null || v === '' ? '' : '<tr><td>' + t + '</td><td>' + v + '</td></tr>';
-  const edit = terrPuedeEditarPerfil_();
-  const btns = edit ? '<div class="terr-pop-btns">' +
+  const edit = terrPuedeEditarPerfil_() && state.terr.enModo;   // en el Planificador de Alertas: solo consulta
+  const btns = !state.terr.enModo ? '<div class="terr-pop-nota" style="margin-top:6px;font-size:11px;color:var(--text-tertiary);">🗺️ Planificación Territorial · se edita en Gestión SIG › Planificación Territorial Comuna</div>'
+    : edit ? '<div class="terr-pop-btns">' +
       '<button class="popup-btn" onclick="terrEditarDatos_(\'' + r.id + '\')">✏️ Datos</button>' +
       (r.tipo_geometria !== 'punto' && r.geojson && /^(LineString|Polygon)$/.test(r.geojson.type) ? '<button class="popup-btn" onclick="terrEditarForma_(\'' + r.id + '\')">📐 Forma</button>' : '') +
       '<button class="popup-btn" style="color:#B91C1C;" onclick="terrEliminar_(\'' + r.id + '\')">🗑️</button></div>' : '';
@@ -437,22 +456,26 @@ function terrSeccionCapas_(c) {
     '<div class="toggle' + (on ? ' on' : '') + '" data-terr-capa="' + id + '"' + (extra || '') + '></div>' +
     '<div class="layer-left"><span class="flame-dot" style="background:' + color + '"></span><div><div class="layer-name">' + nombre + '</div>' +
     '<div class="layer-count">' + n + '</div></div></div></div>';
-  sec.innerHTML = '<p class="section-label">🗺️ Planificación Territorial · ' + escapeHtml_(terrNombreComuna_(state.activeComunaId)) + '</p>' +
-    tg('elementos', state.terr.elemOn, '🏷️ Entidades', state.terr.elementos.length + ' elemento(s)', TERR_COLOR.elementos) +
+  const enModo = state.terr.enModo, elemOn = enModo ? state.terr.elemOn : state.terr.planElemOn, incOn = enModo ? state.terr.incOn : state.terr.planIncOn;
+  sec.innerHTML = '<p class="section-label">🗺️ Planificación Territorial · ' + escapeHtml_(terrNombreComuna_(state.activeComunaId)) + (enModo ? '' : ' (consulta)') + '</p>' +
+    (state.terr.cargando && !state.terr.elementos.length ? '<p class="layer-empty-msg">Cargando entidades…</p>' : '') +
+    tg('elementos', elemOn, '🏷️ Entidades', state.terr.elementos.length + ' elemento(s)', TERR_COLOR.elementos) +
     Object.keys(cats).sort((a, b) => a.localeCompare(b, 'es')).map(k => tg('cat', !state.terr.catOcultas.has(k), escapeHtml_(k), cats[k], colorCat(k),
       ' data-cat="' + escapeHtml_(k) + '"', true)).join('') +
-    tg('incendios', state.terr.incOn, '🔥 Incendios registrados', state.terr.incendios.length + ' incendio(s)', TERR_INC_COLOR.Interfaz) +
+    tg('incendios', incOn, '🔥 Incendios registrados', state.terr.incendios.length + ' incendio(s)', TERR_INC_COLOR.Interfaz) +
     (state.terr.sinSql ? '<p class="layer-empty-msg">Falta ejecutar el SQL 151.</p>' : '');
   sec.addEventListener('click', ev => {
     const t = ev.target.closest('[data-terr-capa]'); if (!t) return;
     const k = t.dataset.terrCapa;
-    if (k === 'elementos') state.terr.elemOn = !state.terr.elemOn;
-    else if (k === 'incendios') state.terr.incOn = !state.terr.incOn;
+    const pre = state.terr.enModo ? '' : 'plan';
+    if (k === 'elementos') { const kk = pre ? 'planElemOn' : 'elemOn'; state.terr[kk] = !state.terr[kk]; }
+    else if (k === 'incendios') { const kk = pre ? 'planIncOn' : 'incOn'; state.terr[kk] = !state.terr[kk]; }
     else { const cat = t.dataset.cat; if (state.terr.catOcultas.has(cat)) state.terr.catOcultas.delete(cat); else state.terr.catOcultas.add(cat); }
     t.classList.toggle('on');
     terrAplicarVisibilidad_();
   });
-  c.insertBefore(sec, c.firstChild);
+  // En su propio mapa va arriba; en el Planificador de Alertas, al final (después de las capas propias de ese mapa)
+  if (enModo) c.insertBefore(sec, c.firstChild); else c.appendChild(sec);
 }
 
 /* ── 🏷️ Catálogo de entidades ── */

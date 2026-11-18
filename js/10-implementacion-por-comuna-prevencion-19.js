@@ -758,6 +758,150 @@ function agvMostrarContexto_() {
   });
 }
 
+/* ==================== 🌾 CAPAS DE AGRICULTORES EN EL PLANIFICADOR DE ALERTAS (18-11-2026) ====================
+ * Sección «🌾 Agricultores» en 🗂️ Capas del Planificador de Alertas (solo consulta; se registra en el módulo Agricultores):
+ *   · 🌾 Predios de agricultores (v_agr_predios, SQL 150; color por riesgo): Admin, Jefes / Subgerentes / GRT y Asociación.
+ *   · 👨‍🌾 Agricultores (agr_agricultores; color por riesgo) y 📝 Actividades registradas de los últimos 30 días (agr_registros; color por
+ *     formulario): quien ve el módulo Agricultores (puedeAgricultores_; en la BD puede_ver_agricultores_).
+ * Cada capa se lee UNA vez al encenderla (son de toda la Asociación). Se muestran solo en el Planificador (agrPlEnPlanificador_, js/13). */
+state.agPl = { enPlanif: false, on: { predios: false, agricultores: false, registros: false }, datos: {}, cargando: {}, error: {}, capas: {}, actividades: null };
+const AGR_PL_CAPAS = [
+  ['predios', '🌾 Predios de agricultores', '#16A34A'],
+  ['agricultores', '👨‍🌾 Agricultores (por riesgo)', '#D97706'],
+  ['registros', '📝 Actividades registradas (30 días)', '#2563EB'],
+];
+const AGR_PL_DIAS = 30;
+function agrPlPuede_(k) {
+  if (!state.perfil) return false;
+  if (k === 'predios') return (typeof esAdminOJefe_ === 'function' && esAdminOJefe_()) || esAsociacion_();
+  return puedeAgricultores_();
+}
+function agrPlRefrescarPanel_() {
+  if (state.vistaActual === 'mapa' && state.panelMapaAbierto && state.panelMapaTab === 'capas') renderTab('capas');
+}
+/** Muestra / oculta las capas encendidas según el mapa activo (solo en el Planificador de Alertas). */
+function agrPlEnPlanificador_(on) {
+  const S = state.agPl;
+  S.enPlanif = !!on;
+  Object.keys(S.capas).forEach(k => {
+    const l = S.capas[k], ver = S.enPlanif && S.on[k];
+    if (ver) { if (!map.hasLayer(l)) l.addTo(map); } else if (map.hasLayer(l)) map.removeLayer(l);
+  });
+}
+async function agrPlLeer_(k) {
+  if (k === 'predios') {
+    const out = [];
+    for (let d = 0; ; d += 1000) {
+      const { data, error } = await supabaseClient.from('v_agr_predios')
+        .select('id, nombre, nombre_predio, agricultor, celular, riesgo, tipo_cultivo, sup_ha, comuna, capa, geojson').range(d, d + 999);
+      if (error) throw error;
+      out.push(...(data || [])); if (!data || data.length < 1000) break;
+    }
+    return out;
+  }
+  if (k === 'agricultores') {
+    const { data, error } = await supabaseClient.from('agr_agricultores')
+      .select('id, codigo, nombre, fundo, telefono, superficie_ha, cultivos, nivel_riesgo, comuna, lat, lng, ultima_visita, visitas')
+      .not('lat', 'is', null).order('nombre');
+    if (error) throw error;
+    return data || [];
+  }
+  if (!state.agPl.actividades) {
+    const { data } = await supabaseClient.from('agr_actividades').select('id, nombre, icono');
+    state.agPl.actividades = {}; (data || []).forEach(a => { state.agPl.actividades[a.id] = a; });
+  }
+  const desde = new Date(Date.now() - AGR_PL_DIAS * 864e5).toISOString();
+  const { data, error } = await supabaseClient.from('agr_registros')
+    .select('id, actividad_id, formulario, fecha, lat, lng, comuna, participantes, datos')
+    .gte('fecha', desde).not('lat', 'is', null).order('fecha', { ascending: false }).limit(3000);
+  if (error) throw error;
+  return data || [];
+}
+function agrPlCrearCapa_(k, filas) {
+  if (!map.getPane('agrPlPane')) { map.createPane('agrPlPane'); map.getPane('agrPlPane').style.zIndex = 425; }
+  const pane = 'agrPlPane';
+  const pop = (tit, lineas) => '<div class="agv-popup"><b>' + tit + '</b>' + lineas.filter(Boolean).map(x => '<div>' + x + '</div>').join('') +
+    '<div style="margin-top:5px;font-size:11px;color:var(--text-tertiary);">🌾 Agricultores · solo consulta</div></div>';
+  const ha = v => v != null && v !== '' ? Number(v).toLocaleString('es-CL', { maximumFractionDigits: 1 }) + ' ha' : '';
+  const tel = t => t ? '📞 <a href="tel:' + escapeHtml_(String(t).replace(/[^\d+]/g, '')) + '">' + escapeHtml_(t) + '</a>' : '';
+  if (k === 'predios') {
+    const fc = { type: 'FeatureCollection', features: filas.map(p => {
+      let g = p.geojson; if (typeof g === 'string') { try { g = JSON.parse(g); } catch (e) { g = null; } }
+      return g ? { type: 'Feature', geometry: g, properties: p } : null; }).filter(Boolean) };
+    return L.geoJSON(fc, { pane,
+      style: f => { const c = agvColorRiesgo_(f.properties.riesgo); return { color: c, weight: 1.8, fillColor: c, fillOpacity: 0.22 }; },
+      onEachFeature: (f, l) => { const p = f.properties;
+        l.bindTooltip('🌾 ' + escapeHtml_(p.nombre_predio || p.nombre || 'Predio'), { sticky: true });
+        l.bindPopup(pop('🌾 ' + escapeHtml_(p.nombre_predio || p.nombre || 'Predio'), [
+          p.agricultor ? '👨‍🌾 ' + escapeHtml_(p.agricultor) : '', tel(p.celular),
+          escapeHtml_([p.riesgo ? 'Riesgo ' + p.riesgo : '', p.tipo_cultivo || '', ha(p.sup_ha), p.comuna || ''].filter(Boolean).join(' · ')),
+          p.capa ? '<small>Capa: ' + escapeHtml_(p.capa) + '</small>' : ''])); } });
+  }
+  const g = L.layerGroup();
+  if (k === 'agricultores') {
+    filas.forEach(a => {
+      const c = AGR_RIESGO_COLOR[a.nivel_riesgo] || '#7C3AED';
+      L.circleMarker([a.lat, a.lng], { pane, radius: 7, color: '#fff', weight: 2, fillColor: c, fillOpacity: 0.95 })
+        .bindTooltip('👨‍🌾 ' + escapeHtml_(a.nombre), { sticky: true })
+        .bindPopup(pop('👨‍🌾 ' + escapeHtml_(a.nombre) + ' <small>' + escapeHtml_(a.codigo || '') + '</small>', [
+          a.fundo ? '🏡 ' + escapeHtml_(a.fundo) : '', tel(a.telefono),
+          escapeHtml_([a.nivel_riesgo ? 'Riesgo ' + a.nivel_riesgo : '', (a.cultivos || []).join(', '), ha(a.superficie_ha), a.comuna || ''].filter(Boolean).join(' · ')),
+          (a.visitas || 0) + ' visita(s)' + (a.ultima_visita ? ' · última ' + new Date(a.ultima_visita).toLocaleDateString('es-CL') : '')]))
+        .addTo(g);
+    });
+    return g;
+  }
+  filas.forEach(r => {
+    const act = (state.agPl.actividades || {})[r.actividad_id] || { nombre: r.actividad_id, icono: '•' };
+    const d = r.datos || {}, c = AGR_COLOR_FORM[r.formulario] || '#475569';
+    const titulo = d.nombre_agricultor || d.organizacion || d.ruta_rol || d.tipo_reunion || act.nombre;
+    L.circleMarker([r.lat, r.lng], { pane, radius: 5.5, color: '#fff', weight: 1.5, fillColor: c, fillOpacity: 0.9 })
+      .bindTooltip(escapeHtml_((act.icono || '') + ' ' + titulo), { sticky: true })
+      .bindPopup(pop(escapeHtml_((act.icono || '📝') + ' ' + titulo), [
+        escapeHtml_(r.actividad_id + ' · ' + act.nombre),
+        '🕒 ' + escapeHtml_(new Date(r.fecha).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })),
+        escapeHtml_([r.comuna || '', r.participantes ? r.participantes + ' participante(s)' : ''].filter(Boolean).join(' · '))]))
+      .addTo(g);
+  });
+  return g;
+}
+async function agrPlToggle_(k) {
+  const S = state.agPl;
+  S.on[k] = !S.on[k];
+  if (S.on[k] && !S.capas[k]) {
+    S.cargando[k] = true; S.error[k] = null; agrPlRefrescarPanel_();
+    try {
+      S.datos[k] = await agrPlLeer_(k);
+      S.capas[k] = agrPlCrearCapa_(k, S.datos[k]);
+    } catch (e) {
+      S.on[k] = false;
+      S.error[k] = /does not exist|schema cache|permission|42501/i.test((e && e.message) || '') ? 'Sin acceso a esta capa (o falta su SQL).' : ((e && e.message) || String(e));
+    }
+    S.cargando[k] = false;
+  }
+  agrPlEnPlanificador_(S.enPlanif);
+  agrPlRefrescarPanel_();
+}
+/** Sección «🌾 Agricultores» en 🗂️ Capas (js/32 la llama en el Planificador de Alertas). */
+function agrPlSeccionCapas_(c) {
+  const S = state.agPl, ks = AGR_PL_CAPAS.filter(([k]) => agrPlPuede_(k));
+  if (!ks.length) return;
+  const sec = document.createElement('div');
+  sec.innerHTML = '<p class="section-label">🌾 Agricultores · Asociación (consulta)</p>' + ks.map(([k, nom, col]) => {
+    const n = S.cargando[k] ? 'Cargando…' : S.error[k] ? 'Error' : S.datos[k] ? S.datos[k].length + ' elemento(s)' : 'Asociación de Agricultores';
+    return '<div class="layer-row"><div class="toggle' + (S.on[k] ? ' on' : '') + '" data-agrpl="' + k + '"></div>' +
+      '<div class="layer-left"><span class="flame-dot" style="background:' + col + '"></span><div><div class="layer-name">' + nom + '</div>' +
+      '<div class="layer-count">' + escapeHtml_(n) + '</div></div></div></div>' +
+      (S.error[k] ? '<p class="layer-empty-msg">' + escapeHtml_(S.error[k]) + '</p>' : '');
+  }).join('') +
+  (S.on.predios || S.on.agricultores ? '<div class="rv-leyenda">' + [['alto', 'Riesgo alto'], ['medio', 'Medio'], ['bajo', 'Bajo']].map(([r, t]) =>
+    '<span><i style="background:' + AGR_RIESGO_COLOR[r] + ';"></i>' + t + '</span>').join('') + '</div>' : '') +
+  (S.on.registros ? '<div class="rv-leyenda">' + Object.keys(AGR_COLOR_FORM).map(f =>
+    '<span><i style="background:' + AGR_COLOR_FORM[f] + ';border-radius:50%;"></i>' + escapeHtml_((AGR_FORMULARIOS[f] || {}).nombre || f) + '</span>').join('') + '</div>' : '');
+  sec.addEventListener('click', ev => { const t = ev.target.closest('[data-agrpl]'); if (t) agrPlToggle_(t.dataset.agrpl); });
+  c.appendChild(sec);
+}
+
 function clicAgricultores_(e) {
   const D = state.ag.datos; if (!D) return;
   const t = e.target;

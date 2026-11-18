@@ -6,6 +6,32 @@
  * Se pueden volver a ver con «🆕 Novedades» (botón del encabezado de Ayuda, abrirNovedades_(true)). */
 const NOVEDADES = [
   {
+    id: '2026-11-18-planificador-capas', fecha: '18-11-2026', titulo: 'Planificador de Alertas: más capas',
+    items: [
+      { ico: '🗺️', t: 'Entidades territoriales en el Planificador', perfiles: ['admin', 'subgerente', 'jefe', 'grt', 'grd', 'visor'],
+        d: 'Lo cargado en <b>Planificación Territorial Comuna</b> (juntas de vecinos, fuentes de agua, escuelas, puentes… e incendios registrados) ' +
+           'ahora también se ve en el <b>Planificador de Alertas</b>, en 🗂️ Capas › «🗺️ Planificación Territorial». Ahí es solo consulta: se edita en su propio módulo.' },
+      { ico: '🌾', t: 'Capas de Agricultores en el Planificador', perfiles: ['admin', 'subgerente', 'jefe', 'grt'],
+        d: 'En 🗂️ Capas › «🌾 Agricultores»: <b>predios</b> y <b>agricultores</b> por nivel de riesgo, y las <b>actividades registradas</b> de los últimos 30 días.' },
+    ],
+  },
+  {
+    id: '2026-11-17-focos-nasa', fecha: '17-11-2026', titulo: 'Focos de calor NASA',
+    items: [
+      { ico: '🛰️', t: 'Capa «Focos de calor NASA»', perfiles: ['admin', 'subgerente', 'jefe', 'grt', 'grd', 'visor'],
+        d: 'En el mapa, panel <b>Capas</b>: incendios activos detectados por los satélites de la NASA (VIIRS y MODIS) en las últimas <b>24 h, 48 h o 7 días</b>. ' +
+           'El color indica hace cuánto se detectó y el tamaño la potencia del fuego. Toca un punto para ver hora, satélite y confianza. Es una detección satelital: confírmala en terreno.' },
+    ],
+  },
+  {
+    id: '2026-11-17-windfinder', fecha: '17-11-2026', titulo: 'Meteorología: Windfinder',
+    items: [
+      { ico: '🪁', t: 'Pestaña Windfinder en Meteorología', perfiles: ['admin', 'subgerente', 'jefe', 'grt', 'grd', 'visor'],
+        d: 'En el Dashboard, junto a <b>API Meteorología</b>, <b>Windy</b> y <b>DGAC</b>, ahora está <b>🪁 Windfinder</b>: pronóstico de viento, ráfagas, ' +
+           'temperatura y lluvia del lugar de Windfinder más cercano a la comuna. Puedes elegir otro lugar cercano y de 2 a 4 días.' },
+    ],
+  },
+  {
     id: '2026-11-16', fecha: '16-11-2026', titulo: 'Novedades de noviembre',
     items: [
       { ico: '📋', t: 'PPA para Jefes de Área y Gestores', perfiles: ['jefe', 'grt', 'subgerente'],

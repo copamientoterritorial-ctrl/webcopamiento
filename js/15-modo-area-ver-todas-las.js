@@ -36,6 +36,9 @@ const CAPAS_PERMISO = [
   { k: 'areasPobladas', nombre: 'Áreas Pobladas' },
   { k: 'redVial',       nombre: 'Red Vial (MOP)' },
   { k: 'zonasAlerta',   nombre: 'Zonas de alerta CMPC' },
+  { k: 'focosNasa',     nombre: 'Focos de calor NASA (FIRMS)' },
+  { k: 'territorial',   nombre: 'Planificación Territorial (entidades, en el Planificador de Alertas)' },
+  { k: 'agricultores',  nombre: 'Agricultores (predios, agricultores y actividades)' },
   { k: 'capasZona',     nombre: 'Capas por zona (Fundos, Red Vial CMPC, Áreas de Relacionamiento, Recursos)' },
   { k: 'patrullaje',    nombre: 'Patrullaje' },
   { k: 'appMovil',      nombre: 'App Móvil — Patrulleros' },
@@ -232,17 +235,25 @@ function aplicarPermisosCapas_(c) {
   if (state.modoMapa === 'territorial') { ocultas.add('alertas'); ocultas.add('incendios'); }   // Planificación Territorial: sin alertas ni SIDCO
   if (!ocultas.size || !c) return;
   const SECCIONES = [['Capas por zona', 'capasZona'], ['Patrullaje', 'patrullaje'], ['App Móvil', 'appMovil'],
-    ['Red de Prevención', 'redPrevencion'], ['Alertas Territoriales', 'alertas'], ['Incendios', 'incendios']];
+    ['Red de Prevención', 'redPrevencion'], ['Alertas Territoriales', 'alertas'], ['Incendios', 'incendios'],
+    ['🗺️ Planificación Territorial', 'territorial'], ['🌾 Agricultores', 'agricultores']];
   let seccion = null, previa = null;
   Array.from(c.children).forEach(el => {
     let k = null;
-    if (el.classList.contains('section-label')) {
+    // Secciones que vienen en su propio contenedor (Planificación Territorial y Agricultores, 18-11-2026): se identifican por su título
+    const lblInt = !el.classList.contains('section-label') && el.querySelector(':scope > .section-label');
+    if (lblInt) {
+      const s = SECCIONES.find(([txt]) => lblInt.textContent.startsWith(txt));
+      k = s ? s[1] : null;
+      if (k === 'territorial' && state.modoMapa === 'territorial') k = null;   // en su propio mapa no se oculta
+    } else if (el.classList.contains('section-label')) {
       const s = SECCIONES.find(([txt]) => el.textContent.startsWith(txt));
       seccion = s ? s[1] : null; k = seccion;
     } else if (seccion) k = seccion;
     else if (el.querySelector('#toggle-limite-comunal, #chk-limites-raiz')) k = 'limites';
     else if (el.querySelector('[data-layer="__areasPobladas"]')) k = 'areasPobladas';
     else if (el.querySelector('#toggle-zonas-alerta') || el.classList.contains('za-leyenda')) k = 'zonasAlerta';
+    else if (el.querySelector('#toggle-focos-nasa') || el.classList.contains('fn-leyenda')) k = 'focosNasa';
     else if (el.querySelector('#toggle-red-vial') || el.classList.contains('rv-leyenda')) k = 'redVial';
     else if (el.classList.contains('layer-empty-msg')) k = previa;
     previa = k;

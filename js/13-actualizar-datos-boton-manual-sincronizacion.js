@@ -428,11 +428,15 @@ function aplicarAmbienteMapa_() {
     if (!state._periodosGuardados) state._periodosGuardados = Object.assign({}, state.periodoLayersOn);
     Object.keys(periodoLayers).forEach(k => { if (map.hasLayer(periodoLayers[k])) map.removeLayer(periodoLayers[k]); state.periodoLayersOn[k] = false; });
     if (panelSimb) panelSimb.style.display = 'none';
+    if (typeof agrPlEnPlanificador_ === 'function') agrPlEnPlanificador_(false);   // 🌾 Agricultores: solo en el Planificador de Alertas
     terrAlEntrarModo_();
     if (state.vistaActual === 'mapa' && state.panelMapaAbierto && state.panelMapaTab === 'capas') renderTab('capas');
     return;
   }
   if (typeof terrAlSalirModo_ === 'function') terrAlSalirModo_();
+  // 18-11-2026: entidades de la Planificación Territorial (consulta) y capas de Agricultores en el Planificador de Alertas
+  if (typeof terrEnPlanificador_ === 'function') terrEnPlanificador_(state.modoMapa === 'planificador');
+  if (typeof agrPlEnPlanificador_ === 'function') agrPlEnPlanificador_(state.modoMapa === 'planificador');
   if (state.modoMapa === 'emergencia') {
     // Fuera: escenarios (se guardan para volver a mostrarlos en Alertas)
     if (!state._alertasGuardadas) state._alertasGuardadas = Object.assign({}, state.alertaLayersOn);

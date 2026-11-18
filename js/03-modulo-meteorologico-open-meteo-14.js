@@ -278,9 +278,84 @@ function mvUrlWindy_() {
     '&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1';
 }
 
-/** Carga (o recarga) el contenido de la pestaña activa si es Windy o DGAC. */
+/* 🪁 WINDFINDER (17-11-2026) ─────────────────────────────────────────────────────────────────────────────────────────────
+ * El sitio de Windfinder no se deja incrustar (frame-ancestors 'none'), pero su WIDGET oficial de pronóstico sí
+ * (www.windfinder.com/widget/forecast/<lugar>, el mismo que arma su generador de widgets). El código del lugar sale de la capa de
+ * lugares de su mapa (tilesapicdn.windfinder.com/v3/maps/spots/tile, CORS abierto, sin clave): se piden las teselas alrededor de la
+ * comuna y se ofrecen los lugares con pronóstico (etiqueta meteo.wind_fc_wf) ordenados por distancia; el más cercano por defecto.
+ * Uso justo de Windfinder: ≤ 3 widgets por página y no en páginas que se recargan solas → aquí 1 widget, solo con la pestaña abierta. */
+const MV_WF_TILES = 'https://tilesapicdn.windfinder.com/v3/maps/spots/tile/';
+const MV_WF_CACHE = {};
+let mvWfTurno = 0;
+
+function mvWfTesela_(lat, lng, z) {
+  const n = Math.pow(2, z), lr = lat * Math.PI / 180;
+  return { x: Math.floor((lng + 180) / 360 * n), y: Math.floor((1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n) };
+}
+function mvWfKm_(a, b, c, d) {
+  const r = Math.PI / 180, x = Math.sin((c - a) * r / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin((d - b) * r / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(x));
+}
+/** Lugares de Windfinder con pronóstico cerca de un punto (máx. 10, por distancia). Zoom 10 (±60 km); si no hay, zoom 9. */
+async function mvWfLugares_(lat, lng) {
+  const k = lat.toFixed(3) + ',' + lng.toFixed(3);
+  if (MV_WF_CACHE[k]) return MV_WF_CACHE[k];
+  for (const z of [10, 9]) {
+    const t = mvWfTesela_(lat, lng, z), pedidos = [];
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      pedidos.push(fetch(MV_WF_TILES + '?x=' + (t.x + dx) + '&y=' + (t.y + dy) + '&z=' + z + '&lang=es')
+        .then(r => r.ok ? r.json() : { spots: [] }).catch(() => ({ spots: [] })));
+    }
+    const vistos = new Set(), lista = [];
+    (await Promise.all(pedidos)).forEach(j => (j.spots || []).forEach(s => {
+      if (!s.kw || vistos.has(s.kw) || !(s.tags || []).includes('meteo.wind_fc_wf')) return;
+      vistos.add(s.kw);
+      lista.push({ kw: s.kw, nombre: s.n, km: mvWfKm_(lat, lng, s.lat, s.lon) });
+    }));
+    if (lista.length) { MV_WF_CACHE[k] = lista.sort((a, b) => a.km - b.km).slice(0, 10); return MV_WF_CACHE[k]; }
+  }
+  MV_WF_CACHE[k] = [];
+  return [];
+}
+function mvWfMostrar_(kw) {
+  const f = document.getElementById('mv-wf-frame'), abrir = document.getElementById('mv-wf-abrir');
+  if (!kw) { if (f && f.dataset.url) { f.dataset.url = ''; f.src = 'about:blank'; } return; }
+  const dias = (document.getElementById('mv-wf-dias') || {}).value || '4';
+  const url = 'https://www.windfinder.com/widget/forecast/' + encodeURIComponent(kw) +
+    '?unit_wind=kmh&unit_temperature=c&unit_wave=m&unit_rain=mm&unit_pressure=hPa&days=' + dias + '&show_day=1&domain=' + encodeURIComponent(location.hostname || '');
+  if (f && f.dataset.url !== url) { f.dataset.url = url; f.src = url; }
+  if (abrir) abrir.href = 'https://www.windfinder.com/forecast/' + encodeURIComponent(kw);
+}
+/** Pestaña Windfinder: busca los lugares cercanos a la comuna (una vez por comuna) y muestra el elegido. */
+async function mvCargarWindfinder_() {
+  const c = state.meteoVisionCtx, sel = document.getElementById('mv-wf-lugar'), nota = document.getElementById('mv-wf-nota');
+  if (!sel) return;
+  const ctxKey = Number(c.lat).toFixed(3) + ',' + Number(c.lng).toFixed(3);
+  if (sel.dataset.ctx === ctxKey) { mvWfMostrar_(sel.value); return; }
+  const turno = ++mvWfTurno;
+  sel.innerHTML = '<option value="">Buscando…</option>';
+  if (nota) nota.textContent = '📍 ' + c.comuna;
+  const lugares = await mvWfLugares_(Number(c.lat), Number(c.lng));
+  if (turno !== mvWfTurno) return;   // cambió la comuna mientras buscaba
+  sel.dataset.ctx = ctxKey;
+  if (!lugares.length) {
+    sel.innerHTML = '<option value="">Sin lugares cercanos</option>';
+    if (nota) nota.textContent = '📍 ' + c.comuna + ' · Windfinder no tiene pronóstico a menos de ~120 km';
+    const abrir = document.getElementById('mv-wf-abrir');
+    if (abrir) abrir.href = 'https://www.windfinder.com/#10/' + Number(c.lat).toFixed(4) + '/' + Number(c.lng).toFixed(4);
+    mvWfMostrar_('');
+    return;
+  }
+  sel.innerHTML = lugares.map(l => '<option value="' + escapeHtml_(l.kw) + '">' + escapeHtml_(l.nombre) + ' · ' +
+    (l.km < 1 ? '< 1' : Math.round(l.km)) + ' km</option>').join('');
+  if (nota) nota.textContent = '📍 ' + c.comuna + ' · lugar de Windfinder más cercano';
+  mvWfMostrar_(sel.value);
+}
+
+/** Carga (o recarga) el contenido de la pestaña activa si es Windy, DGAC o Windfinder. */
 function mvCargarVision_() {
   const c = state.meteoVisionCtx;
+  if (state.meteoVision === 'windfinder') { mvCargarWindfinder_().catch(e => console.error('Windfinder:', e)); return; }
   if (state.meteoVision === 'windy') {
     const f = document.getElementById('mv-windy-frame'), url = mvUrlWindy_();
     if (f && f.dataset.url !== url) { f.dataset.url = url; f.src = url; }
@@ -300,9 +375,9 @@ function mvCargarVision_() {
   }
 }
 
-/** Cambia de visión (api | windy | dgac). */
+/** Cambia de visión (api | windy | dgac | windfinder). */
 function mvVer_(vision) {
-  if (!['api', 'windy', 'dgac'].includes(vision)) vision = 'api';
+  if (!['api', 'windy', 'dgac', 'windfinder'].includes(vision)) vision = 'api';
   state.meteoVision = vision;
   try { localStorage.setItem('meteo_vision', vision); } catch (e) {}
   document.querySelectorAll('#meteo-visiones [data-mvision]').forEach(b => b.classList.toggle('on', b.dataset.mvision === vision));
@@ -312,6 +387,7 @@ function mvVer_(vision) {
   const det = document.getElementById('meteo-detalle'); if (det) det.hidden = !api;
   const w = document.getElementById('meteo-vision-windy'); if (w) w.hidden = vision !== 'windy';
   const d = document.getElementById('meteo-vision-dgac'); if (d) d.hidden = vision !== 'dgac';
+  const wf = document.getElementById('meteo-vision-windfinder'); if (wf) wf.hidden = vision !== 'windfinder';
   mvCargarVision_();
 }
 
@@ -322,6 +398,10 @@ document.addEventListener('DOMContentLoaded', () => {
   ['mv-windy-capa', 'mv-windy-modelo'].forEach(id => { const s = document.getElementById(id); if (s) s.addEventListener('change', mvCargarVision_); });
   const reg = document.getElementById('mv-dgac-region');
   if (reg) reg.addEventListener('change', () => { reg.dataset.manual = '1'; mvCargarVision_(); });
+  ['mv-wf-lugar', 'mv-wf-dias'].forEach(id => {
+    const s = document.getElementById(id);
+    if (s) s.addEventListener('change', () => mvWfMostrar_((document.getElementById('mv-wf-lugar') || {}).value));
+  });
   mvVer_(state.meteoVision);
 });
 

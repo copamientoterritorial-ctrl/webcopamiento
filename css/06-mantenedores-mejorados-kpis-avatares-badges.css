@@ -366,3 +366,7 @@ body.tema-oscuro .planificar-item:hover{ background:#1E293B; }
 body.tema-oscuro .planificar-header{ border-color:#334155; }
 body.tema-oscuro .planificar-item{ border-color:#334155; }
 
+
+/* 🛰️ Focos de calor NASA (17-11-2026, js/16): llamita SVG sin el fondo/borde por defecto de L.divIcon */
+.foco-nasa-icono{background:none;border:none;}
+.foco-nasa-icono:hover{z-index:1000 !important;transform-origin:bottom center;}

@@ -316,6 +316,36 @@ function renderTabInterno_(tab) {
       }
     }
 
+    // 🛰️ Focos de calor NASA FIRMS (17-11-2026, js/16): Edge Function «focos-nasa»; período 24 h / 48 h / 7 días
+    {
+      const fi = state.focosNasaInfo;
+      const rowFN = document.createElement('div'); rowFN.className = 'layer-row';
+      const cuenta = fi.cargando ? 'Consultando NASA…' : !fi.cargado ? 'Satélites VIIRS y MODIS' : !fi.ok ? 'Error'
+        : fi.count + ' foco(s) en el centro-sur' + (fi.enComuna != null ? ' · ' + fi.enComuna + ' en la comuna' : '');
+      rowFN.innerHTML =
+        '<div class="toggle ' + (state.focosNasaOn ? 'on' : '') + '" id="toggle-focos-nasa"></div>' +
+        '<div class="layer-left"><span style="display:inline-flex;margin-right:6px;">' + focosNasaLlamaSvg_('#DC2626', 16) + '</span>' +
+        '<div><div class="layer-name">🛰️ Focos de calor NASA</div><div class="layer-count">' + escapeHtml_(cuenta) + '</div></div></div>';
+      c.appendChild(rowFN);
+      c.querySelector('#toggle-focos-nasa').addEventListener('click', toggleFocosNasa_);
+      if (state.focosNasaOn) {
+        const ley = document.createElement('div'); ley.className = 'rv-leyenda fn-leyenda';
+        ley.innerHTML =
+          '<span>Período: <select id="fn-dias" style="font-size:11px;padding:1px 4px;">' +
+            [[1, '24 h'], [2, '48 h'], [7, '7 días']].map(([v, t]) => '<option value="' + v + '"' + (state.focosNasaDias === v ? ' selected' : '') + '>' + t + '</option>').join('') +
+          '</select></span>' +
+          FOCOS_NASA_EDAD.map(e => '<span style="display:inline-flex;align-items:center;gap:3px;">' + focosNasaLlamaSvg_(e[1], 14) + e[2] + '</span>').join('') +
+          '<span style="color:var(--text-tertiary);">Fuente: NASA FIRMS</span>';
+        c.appendChild(ley);
+        ley.querySelector('#fn-dias').addEventListener('change', e => cambiarDiasFocosNasa_(e.target.value));
+      }
+      if (fi.ok === false && fi.error) {
+        const msg = document.createElement('div'); msg.className = 'layer-empty-msg';
+        msg.textContent = fi.error;
+        c.appendChild(msg);
+      }
+    }
+
     const rolCalificaZonas = state.perfil.perfil === 'Administrador' || state.perfil.perfil === 'Jefe de Área Relacionamiento';
     if (rolCalificaZonas) {
       const labelZonas = document.createElement('p'); labelZonas.className = 'section-label'; labelZonas.style.marginTop = '14px';
@@ -737,6 +767,10 @@ function renderTabInterno_(tab) {
       });
     });
     if (state.modoMapa === 'territorial' && typeof terrSeccionCapas_ === 'function') terrSeccionCapas_(c);   // 🗺️ Planificación Territorial (js/36)
+    if (state.modoMapa === 'planificador') {   // 18-11-2026: en el Planificador de Alertas, solo consulta
+      if (state.terr && state.terr.enPlanif && typeof terrSeccionCapas_ === 'function') terrSeccionCapas_(c);
+      if (typeof agrPlSeccionCapas_ === 'function') agrPlSeccionCapas_(c);   // 🌾 Agricultores (js/10)
+    }
     aplicarPermisosCapas_(c);   // capas que el Administrador ocultó a este usuario (SQL 83)
   }
 

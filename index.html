@@ -104,6 +104,7 @@
             <button type="button" class="on" data-mvision="api">📡 API Meteorología</button>
             <button type="button" data-mvision="windy">🌬️ Windy</button>
             <button type="button" data-mvision="dgac">🇨🇱 DGAC · Meteochile</button>
+            <button type="button" data-mvision="windfinder">🪁 Windfinder</button>
           </div>
           <div id="dash-meteo"></div>
           <div id="meteo-vision-windy" class="meteo-vision" hidden>
@@ -145,6 +146,22 @@
               <a id="mv-dgac-abrir" href="https://www.meteochile.gob.cl/PortalDMC-web/index.xhtml" target="_blank" rel="noopener" class="mv-abrir">Abrir en Meteochile ↗</a>
             </div>
             <iframe id="mv-dgac-frame" class="meteo-vision-frame" title="Pronóstico DGAC" loading="lazy" referrerpolicy="no-referrer"></iframe>
+          </div>
+          <!-- 17-11-2026: Windfinder (widget oficial de pronóstico; el lugar = el más cercano a la comuna, js/03 mvWfLugares_) -->
+          <div id="meteo-vision-windfinder" class="meteo-vision" hidden>
+            <div class="meteo-vision-barra">
+              <span>Lugar:</span>
+              <select id="mv-wf-lugar" class="comuna-select"><option value="">Buscando…</option></select>
+              <span>Días:</span>
+              <select id="mv-wf-dias" class="comuna-select">
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4" selected>4</option>
+              </select>
+              <span class="dash-fuente" id="mv-wf-nota"></span>
+              <a id="mv-wf-abrir" href="https://www.windfinder.com/" target="_blank" rel="noopener" class="mv-abrir">Abrir en Windfinder ↗</a>
+            </div>
+            <iframe id="mv-wf-frame" class="meteo-vision-frame" title="Windfinder" loading="lazy"></iframe>
           </div>
         </div>
         <!-- 📊 Análisis meteorológico detallado (22-10-2026): plegado por defecto; arriba queda el resumen simple para
@@ -1584,6 +1601,7 @@
           <li style="margin-bottom:5px;"><b>Pronóstico:</b> <a href="https://open-meteo.com/" target="_blank" rel="noopener" style="color:var(--cobalt);">Open-Meteo</a>, que combina modelos de servicios meteorológicos nacionales (ECMWF, NOAA, DWD, Météo-France y UKMO, entre otros).</li>
           <li style="margin-bottom:5px;"><b>Sensores:</b> el sistema no tiene estaciones propias. Las condiciones actuales son estimadas por los modelos, que integran observaciones de estaciones, radar y satélites.</li>
           <li style="margin-bottom:5px;"><b>Referencia visual:</b> <a href="https://www.windy.com/" target="_blank" rel="noopener" style="color:var(--cobalt);">Windy</a>, para comparar mapas de viento y lluvia.</li>
+          <li style="margin-bottom:5px;"><b>Windfinder:</b> widget oficial de <a href="https://www.windfinder.com/" target="_blank" rel="noopener" style="color:var(--cobalt);">Windfinder</a> con el pronóstico de viento del lugar de Windfinder más cercano a la comuna. Al mostrarlo, la dirección IP del equipo se envía a Windfinder.com GmbH &amp; Co. KG, que la borra a los 7 días.</li>
           <li style="margin-bottom:5px;"><b>Punto consultado:</b> el centro de la comuna (vista <b>v_comunas_centro</b>) o el centro de su límite cargado.</li>
           <li style="margin-bottom:5px;"><b>Horizonte:</b> 14 días, hora de Chile continental.</li>
           <li style="margin-bottom:5px;"><b>Cálculos propios:</b> riesgo de incendio, horas críticas, puelche y riesgo de tormentas.</li>
