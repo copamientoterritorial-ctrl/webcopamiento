@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bitácora">
-<title>Bitácora · Aperturas</title>
+<title>Bitácora</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -164,6 +164,39 @@
   body.cargando main { opacity:.45; pointer-events:none; }
   body.cargando #h-actualizar { animation: giro 1s linear infinite; }
   @keyframes giro { to { transform: rotate(360deg); } }
+  /* Mi jornada (cuenta de recurso) */
+  .mj { border-radius:16px; padding:16px; margin-bottom:12px; color:#fff; background: var(--c); box-shadow: 0 8px 20px rgba(2,6,23,.12); }
+  .mj .mj-rec { font-size:13px; font-weight:700; opacity:.9; }
+  .mj .mj-est { font-size:24px; font-weight:800; margin:4px 0 2px; }
+  .mj .mj-sub { font-size:13.5px; opacity:.95; }
+  .mj-datos { display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:12px; }
+  .mj-datos div { background: rgba(255,255,255,.16); border-radius:10px; padding:8px 10px; font-size:12px; }
+  .mj-datos b { display:block; font-size:15px; margin-top:1px; }
+  .btn-xl { width:100%; min-height:58px; font-size:17px; border-radius:14px; border:0; background: linear-gradient(90deg, #15803D, #0F766E); color:#fff; font-weight:800; cursor:pointer; box-shadow: 0 8px 18px rgba(21,128,61,.3); margin-bottom:10px; }
+  .btn-xl.azul { background: linear-gradient(90deg, #1D4ED8, #0E7490); box-shadow: 0 8px 18px rgba(29,78,216,.28); }
+  .fila-btn { display:flex; gap:8px; margin-bottom:10px; }
+  .fila-btn .btn { flex:1; }
+  /* Actividades */
+  .act { display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--borde); cursor:pointer; }
+  .act:last-child { border-bottom:0; }
+  .act .a-hora { flex:0 0 auto; width:58px; font-size:12px; font-weight:800; color: var(--sub); text-align:right; line-height:1.3; }
+  .act .a-cuerpo { flex:1; min-width:0; font-size:14px; }
+  .act .a-cuerpo b { font-weight:700; }
+  .act .a-cuerpo small { display:block; color: var(--sub); font-size:12px; margin-top:1px; }
+  .act-lista { max-height:46vh; overflow-y:auto; border:1px solid var(--borde); border-radius:12px; margin-top:6px; }
+  .act-lista button { display:block; width:100%; text-align:left; border:0; border-bottom:1px solid var(--borde); background: var(--card); padding:11px 12px; font:inherit; font-size:14px; cursor:pointer; }
+  .act-lista button:last-child { border-bottom:0; }
+  .act-lista .g-t { position:sticky; top:0; background: var(--bg); font-size:11.5px; font-weight:800; color: var(--sub); text-transform:uppercase; padding:6px 12px; }
+  .act-sel { display:flex; align-items:center; gap:10px; background: color-mix(in srgb, var(--pri2) 10%, white); border:1px solid var(--pri2); border-radius:12px; padding:10px 12px; }
+  .act-sel b { flex:1; font-size:15px; }
+  .fotos { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+  .foto { position:relative; width:84px; height:84px; border-radius:10px; overflow:hidden; background: var(--bg); border:1px solid var(--borde); }
+  .foto img { width:100%; height:100%; object-fit:cover; display:block; }
+  .foto .quitar { position:absolute; top:2px; right:2px; background: rgba(255,255,255,.9); border-radius:50%; width:26px; height:26px; padding:0; font-size:13px; }
+  .foto .f-pend { position:absolute; left:0; right:0; bottom:0; background: rgba(120,53,15,.8); color:#fff; font-size:10px; font-weight:700; text-align:center; padding:1px 0; }
+  .foto-add { width:84px; height:84px; border-radius:10px; border:2px dashed var(--borde); background: var(--card); font-size:26px; cursor:pointer; }
+  .foto-ver { position:fixed; inset:0; z-index:80; background: rgba(2,6,23,.92); display:flex; align-items:center; justify-content:center; }
+  .foto-ver img { max-width:100%; max-height:100%; }
   @media (max-width:380px) { .kpi b { font-size:19px; } .seg button { font-size:12.5px; } }
 </style>
 </head>
@@ -173,12 +206,13 @@
 <section id="v-login" class="login" style="display:none;">
   <div class="lg-card">
     <img class="lg-logo" src="icon-192.png" alt="Bitácora">
-    <h1 class="lg-titulo">Bitácora · Aperturas</h1>
-    <p class="lg-sub">Ingresa con el mismo correo y clave del sistema de Copamiento Territorial</p>
-    <label for="l-mail">Correo</label>
-    <input id="l-mail" type="email" autocomplete="username" placeholder="nombre@empresa.cl">
+    <h1 class="lg-titulo">Bitácora</h1>
+    <p class="lg-sub">Ingresa con el usuario del recurso (p. ej. amedina) o con tu correo y clave del sistema de Copamiento Territorial</p>
+    <label for="l-mail">Usuario o correo</label>
+    <input id="l-mail" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="amedina o nombre@empresa.cl">
     <label for="l-clave">Clave</label>
     <input id="l-clave" type="password" autocomplete="current-password" placeholder="Tu clave">
+    <label class="chk"><input type="checkbox" id="l-recordar"> Recordar usuario y clave en este teléfono</label>
     <div id="l-err" class="aviso err" style="display:none;margin-top:12px;"></div>
     <button class="btn lg-btn" id="l-entrar">Ingresar</button>
     <div class="lg-pie">Acceso restringido · Uso interno</div>
@@ -197,7 +231,7 @@
   </header>
   <main id="m-cuerpo"><div class="vacio">Cargando…</div></main>
   <nav class="menu" id="menu">
-    <button data-s="hoy" class="on"><span class="ico">🏠</span>Día</button>
+    <button data-s="hoy" class="on" id="menu-1"><span class="ico">🏠</span><span id="menu-1-txt">Día</span></button>
     <button data-s="semana"><span class="ico">🗓️</span>Semana</button>
     <button data-s="mapa"><span class="ico">🗺️</span>Mapa</button>
     <button data-s="perfil"><span class="ico">👤</span>Mi cuenta</button>
@@ -211,7 +245,10 @@
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════
- * APP BITÁCORA · ETAPA 1: APERTURAS DE JORNADA (SQL 183, tablas bit_*)
+ * APP BITÁCORA · ETAPA 1: APERTURAS DE JORNADA (SQL 183, tablas bit_*) · ETAPA 2: ACTIVIDADES + FOTOS (SQL 187)
+ * Cuenta de recurso: primera vista «Mi jornada» (estado de hoy, Iniciar apertura, Registrar actividad, Cerrar jornada).
+ * Actividades: solo con la jornada abierta y En servicio; fotos opcionales (bucket bit-fotos, comprimidas en el teléfono, cola sin señal).
+ * «Recordar usuario y clave»: decisión del usuario (22-11-2026): la clave queda en localStorage de ESTE teléfono ('bit-clave').
  * Mismo login de la plataforma (Supabase Auth). Lo que ve y puede hacer lo decide la base (bit_mi_contexto):
  *   admin ...... todo · gestion (Jefe / Subgerente / GRT) ...... abre y corrige en sus áreas
  *   recurso .... cuenta vinculada a un recurso: su jornada de hoy · consulta (GRD …) ...... solo ver
@@ -222,11 +259,15 @@
 const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-bitacora-app', detectSessionInUrl: false } });
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
+const DOMINIO_CUENTAS = 'recursos.copamientoterritorial.cl';   // = Edge Function admin-cuentas-recurso y js/41 de la web
 const DIAS_CARGA = 14;   // aperturas que se descargan hacia atrás
 
-const S = { ctx: null, cat: { estados: [], focos: [], turnos: [], tipos: [] }, recursos: [], jornadas: [], desde: '', descarga: null,
-  pendientes: [], sincronizando: false, sec: 'hoy', fecha: '', filtros: { area: '', tipo: '', q: '', kpi: '' }, fundos: {}, jIdx: new Map(), mapaTab: null };
+const DIAS_ACT = 2;      // actividades que se descargan hacia atrás (las de días anteriores se piden al abrir la ficha)
+const BUCKET_FOTOS = 'bit-fotos';
+const S = { ctx: null, cat: { estados: [], focos: [], turnos: [], tipos: [], grupos: [], actividades: [], habil: {} }, recursos: [], jornadas: [], desde: '', descarga: null,
+  actividades: [], actDesde: '', actJornadas: new Set(), sinActividades: false, aIdx: new Map(), urlFotos: new Map(),
+  pendientes: [], sincronizando: false, sec: '', fecha: '', filtros: { area: '', tipo: '', q: '', kpi: '' }, fundos: {}, jIdx: new Map(), mapaTab: null };
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const pad = n => String(n).padStart(2, '0');
@@ -324,17 +365,30 @@ async function aplicarActualizacion(v, manual) {
 
 /* ───────── Sesión ───────── */
 async function entrar() {
-  const mail = $('l-mail').value.trim(), clave = $('l-clave').value;
+  const escrito = $('l-mail').value.trim(), clave = $('l-clave').value;
+  // Cuenta de recurso (🔑 Usuarios Recursos, SQL 186): basta el usuario; el correo técnico es <usuario>@DOMINIO_CUENTAS
+  const mail = escrito.includes('@') ? escrito : escrito.toLowerCase() + '@' + DOMINIO_CUENTAS;
   $('l-err').style.display = 'none';
-  if (!mail || !clave) { $('l-err').textContent = 'Escribe correo y clave.'; $('l-err').style.display = ''; return; }
+  if (!escrito || !clave) { $('l-err').textContent = 'Escribe tu usuario (o correo) y clave.'; $('l-err').style.display = ''; return; }
   if (!navigator.onLine) { $('l-err').textContent = 'Para ingresar la primera vez necesitas señal.'; $('l-err').style.display = ''; return; }
   $('l-entrar').disabled = true;
   const { error } = await sb.auth.signInWithPassword({ email: mail, password: clave });
   $('l-entrar').disabled = false;
   if (error) { $('l-err').textContent = 'No se pudo ingresar: ' + error.message; $('l-err').style.display = ''; return; }
-  try { localStorage.setItem('bit-correo', mail); } catch (e) { /* sin almacenamiento */ }
+  recordarCredenciales(escrito, clave, $('l-recordar').checked);
   await mostrarApp();
 }
+// Usuario: siempre se recuerda. Clave: solo si se marcó «Recordar» (queda en este teléfono; «Mi cuenta › Olvidar clave» la borra).
+// Además se ofrece al gestor de contraseñas del navegador (Chrome Android), que la guarda cifrada.
+function recordarCredenciales(usuario, clave, conClave) {
+  try {
+    localStorage.setItem('bit-correo', usuario);
+    if (conClave) localStorage.setItem('bit-clave', clave); else localStorage.removeItem('bit-clave');
+  } catch (e) { /* sin almacenamiento */ }
+  try { if (window.PasswordCredential && navigator.credentials) navigator.credentials.store(new PasswordCredential({ id: usuario, password: clave })).catch(() => {}); } catch (e) { /* no soportado */ }
+}
+const claveGuardada = () => { try { return localStorage.getItem('bit-clave') || ''; } catch (e) { return ''; } };
+function olvidarClave() { try { localStorage.removeItem('bit-clave'); } catch (e) {} toast('🔑 Clave olvidada en este teléfono'); pintar(); }
 async function mostrarApp() {
   $('v-login').style.display = 'none'; $('v-app').style.display = '';
   S.fecha = hoyISO();
@@ -372,7 +426,7 @@ async function cargarTodo() {
       sb.from('bit_turno').select('*').order('hora_inicio'),
       sb.from('bit_tipo_recurso').select('*').order('orden')]);
     [e, f, t, ti].forEach(x => { if (x.error) throw x.error; });
-    S.cat = { estados: e.data || [], focos: f.data || [], turnos: t.data || [], tipos: ti.data || [] };
+    S.cat = { estados: e.data || [], focos: f.data || [], turnos: t.data || [], tipos: ti.data || [], grupos: S.cat.grupos || [], actividades: S.cat.actividades || [], habil: S.cat.habil || {} };
     cacheSet('cat', S.cat);
     const rr = await sb.rpc('bit_mis_recursos');
     if (rr.error) throw rr.error;
@@ -381,12 +435,14 @@ async function cargarTodo() {
     S.jornadas = await leerTodo('v_bit_jornadas', '*', q => q.gte('fecha_operativa', desde).order('fecha_operativa'));
     S.desde = desde; S.descarga = new Date().toISOString();
     cacheSet('jornadas', { lista: S.jornadas, desde: S.desde, fecha: S.descarga });
+    await cargarActividades();
   } catch (e) {
     const sinSenal = esSinSenal(e);
     const c = await cacheGet('ctx');
     if (c) {
-      S.ctx = c; S.cat = (await cacheGet('cat')) || S.cat; S.recursos = (await cacheGet('recursos')) || [];
+      S.ctx = c; S.cat = Object.assign({}, S.cat, (await cacheGet('cat')) || {}); S.recursos = (await cacheGet('recursos')) || [];
       const j = await cacheGet('jornadas'); if (j) { S.jornadas = j.lista || []; S.desde = j.desde; S.descarga = j.fecha; }
+      const a = await cacheGet('actividades'); if (a) { S.actividades = a.lista || []; S.actDesde = a.desde || ''; S.sinActividades = !!a.sin; }
       toast(sinSenal ? '📵 Sin señal: datos guardados del ' + fmtFechaHora(S.descarga) : 'No se pudieron actualizar los datos: ' + msgError(e), 4500);
     } else {
       S.errorCarga = /bit_mi_contexto|bit_mis_recursos|v_bit_jornadas|schema cache|does not exist/i.test(msgError(e))
@@ -394,9 +450,42 @@ async function cargarTodo() {
     }
   }
   if (S.ctx && S.ctx.hoy && !S.fecha) S.fecha = hoyISO();
+  if (!S.sec) S.sec = esCuentaRecurso() ? 'inicio' : 'hoy';
   await refrescarPendientes();
   document.body.classList.remove('cargando');
   pintar();
+}
+// Catálogo de actividades (SQL 187) y actividades de los últimos días. Sin el 187 la app sigue funcionando solo con aperturas.
+async function cargarActividades() {
+  try {
+    const [g, a, h] = await Promise.all([
+      sb.from('bit_grupo_actividad').select('*').eq('activo', true).order('orden'),
+      sb.from('bit_actividad').select('*').eq('activo', true).order('nombre'),
+      leerTodo('bit_actividad_tipo', 'actividad_codigo,tipo_codigo').then(data => ({ data }), error => ({ error }))]);
+    [g, a, h].forEach(x => { if (x.error) throw x.error; });
+    const habil = {};
+    (h.data || []).forEach(x => { (habil[x.tipo_codigo] = habil[x.tipo_codigo] || []).push(x.actividad_codigo); });
+    S.cat.grupos = g.data || []; S.cat.actividades = a.data || []; S.cat.habil = habil;
+    cacheSet('cat', S.cat);
+    const desde = sumarDias(hoyISO(), -DIAS_ACT);
+    S.actividades = await leerTodo('v_bit_actividades', '*', q => q.gte('fecha_operativa', desde).order('inicio'));
+    S.actDesde = desde; S.actJornadas = new Set(); S.sinActividades = false;
+  } catch (e) {
+    if (esSinSenal(e)) throw e;
+    if (/bit_actividad|bit_grupo_actividad|v_bit_actividades|schema cache|does not exist/i.test(msgError(e))) { S.sinActividades = true; S.actividades = []; }
+    else toast('No se pudieron leer las actividades: ' + msgError(e), 4500);
+  }
+  cacheSet('actividades', { lista: S.actividades, desde: S.actDesde, sin: S.sinActividades });
+}
+// Actividades de una jornada anterior a lo descargado (al abrir su ficha, con señal)
+async function asegurarActividades(j) {
+  if (!j || S.sinActividades || !navigator.onLine || j._pend) return;
+  if ((S.actDesde && j.fecha_operativa >= S.actDesde) || S.actJornadas.has(j.id)) return;
+  try {
+    const lista = await leerTodo('v_bit_actividades', '*', q => q.eq('jornada_id', j.id).order('inicio'));
+    S.actividades = S.actividades.filter(a => a.jornada_id !== j.id).concat(lista);
+    S.actJornadas.add(j.id);
+  } catch (e) { /* sin señal: se muestra lo que hay */ }
 }
 // Fecha anterior a lo descargado: se piden esas aperturas
 async function asegurarFecha(f) {
@@ -481,6 +570,7 @@ function indexar() {
   });
   S.jIdx = new Map();
   m.forEach(j => { const k = j.recurso_id + '|' + j.fecha_operativa, x = S.jIdx.get(k); if (!x || (j._pend && !x._pend)) S.jIdx.set(k, j); });
+  indexarAct();
 }
 const jornadaDe = (rid, f) => S.jIdx.get(rid + '|' + f) || null;
 // ¿Estaba de turno según el calendario del copamiento? true / false / null (sin dato)
@@ -509,6 +599,70 @@ function chipsExtra(st) {
   return out.length ? '<div class="chips">' + out.join('') + '</div>' : '';
 }
 
+/* ───────── Actividades (SQL 187): reglas e índice ───────── */
+const esCuentaRecurso = () => !!(S.ctx && S.ctx.rol === 'recurso');
+const actCat = c => S.cat.actividades.find(a => a.codigo === c);
+const grupoCat = c => S.cat.grupos.find(g => g.codigo === c);
+const habilitadas = r => { const l = new Set((S.cat.habil || {})[r.tipo_codigo] || []); return S.cat.actividades.filter(a => l.has(a.codigo)); };
+const durTxt = min => { min = Math.max(0, Math.round(min || 0)); const h = Math.floor(min / 60), m = min % 60; return h ? h + ' h' + (m ? ' ' + m + ' min' : '') : m + ' min'; };
+const hhmm = d => pad(d.getHours()) + ':' + pad(d.getMinutes());
+function tiempoHasta(ts) {
+  const min = Math.round((new Date(ts).getTime() - Date.now()) / 60000);
+  return min <= 0 ? 'ya pasó' : 'en ' + durTxt(min);
+}
+// ¿Puede registrar actividades en la jornada? Debe estar En servicio; la cuenta del recurso, solo mientras esté abierta.
+function puedeRegistrar(r, j) {
+  if (!r || !j || S.sinActividades || !S.cat.actividades.length) return false;
+  if (!j.en_servicio) return false;
+  if (r.puede_gestionar) return true;
+  return !!r.propio && !cerradaDe(j);
+}
+// Fila «como la de la vista» armada con una actividad aún no enviada
+function filaDesdeAct(p, base) {
+  const a = actCat(p.actividad) || {}, g = grupoCat(a.grupo_codigo) || {};
+  return Object.assign({}, base || {}, {
+    id: p.id, jornada_id: p.jornada_id, recurso_id: p.recurso_id, fecha_operativa: p.fecha_operativa,
+    actividad_codigo: p.actividad, actividad: a.nombre || p.actividad, grupo_codigo: a.grupo_codigo, grupo: g.nombre, grupo_emoji: g.emoji, es_combate: !!g.es_combate,
+    inicio: p.inicio, fin: p.fin, minutos: Math.round((new Date(p.fin) - new Date(p.inicio)) / 60000), cantidad: Number(p.cantidad) || 1,
+    lat: p.lat, lng: p.lng, precision_m: p.precision_m, cod_fundo: p.cod_fundo || null, fundo_nombre: p.fundo_nombre || null,
+    observacion: p.observacion || null, creado_dispositivo_en: p.creado_dispositivo_en, fotos: (base && base.fotos) || []
+  });
+}
+// Índice jornada → actividades (lo del servidor + lo pendiente de envío encima)
+function indexarAct() {
+  const m = new Map(S.actividades.map(a => [a.id, Object.assign({}, a, { fotos: (a.fotos || []).slice() })]));
+  S.pendientes.forEach(it => {
+    if (it.tipo === 'actividad') m.set(it.jid, Object.assign(filaDesdeAct(it.payload, m.get(it.jid)), { _pend: true, _err: it.error || '' }));
+    else if (it.tipo === 'eliminar_act') m.delete(it.jid);
+    else if (it.tipo === 'foto') { const a = m.get(it.payload.registro_id); if (a) { a.fotos = a.fotos.concat([{ id: it.payload.id, blob: it.payload.blob, _pend: true, _err: it.error || '' }]); } }
+  });
+  S.aIdx = new Map();
+  m.forEach(a => { const l = S.aIdx.get(a.jornada_id) || []; l.push(a); S.aIdx.set(a.jornada_id, l); });
+  S.aIdx.forEach(l => l.sort((x, y) => String(x.inicio).localeCompare(String(y.inicio))));
+}
+const actividadesDe = jid => (jid && S.aIdx.get(jid)) || [];
+const actividadPorId = id => { for (const l of S.aIdx.values()) { const a = l.find(x => x.id === id); if (a) return a; } return null; };
+const minutosAct = l => l.reduce((s, a) => s + (Number(a.minutos) || 0), 0);
+// Jornada vigente de un recurso: la de hoy; si no hay, la de ayer en servicio que aún no se cierra (turno nocturno)
+function jornadaActual(r) {
+  const hoy = hoyISO(), jh = jornadaDe(r.id, hoy);
+  if (jh) return { f: hoy, j: jh };
+  const ay = sumarDias(hoy, -1), ja = jornadaDe(r.id, ay);
+  if (ja && ja.en_servicio && !cerradaDe(ja)) return { f: ay, j: ja };
+  return { f: hoy, j: null };
+}
+function actListaHtml(l, conVacio) {
+  if (!l.length) return conVacio ? '<div class="muted" style="padding:6px 0;">' + conVacio + '</div>' : '';
+  return l.map(a => {
+    const ini = new Date(a.inicio), fin = new Date(a.fin), nf = (a.fotos || []).length;
+    return '<div class="act" data-act="' + esc(a.id) + '"><div class="a-hora">' + hhmm(ini) + '<br>' + hhmm(fin) + '</div><div class="a-cuerpo"><b>' + esc((a.grupo_emoji || '') + ' ' + (a.actividad || '')) + '</b>' +
+      (a.cantidad > 1 ? ' <span class="pill">×' + a.cantidad + '</span>' : '') +
+      '<small>' + esc([durTxt(a.minutos), a.fundo_nombre ? '🌲 ' + a.fundo_nombre : '', nf ? '📷 ' + nf : '', a.observacion || ''].filter(Boolean).join(' · ')) + '</small>' +
+      (a._pend ? (a._err ? '<span class="chip-e">⚠️ No enviada: ' + esc(a._err) + '</span>' : '<span class="chip-p">⏳ Por enviar</span>') : '') +
+      ((a.fotos || []).some(f => f._err) ? '<span class="chip-e">⚠️ Foto no enviada</span>' : '') + '</div></div>';
+  }).join('');
+}
+
 /* ───────── Pintado general ───────── */
 function pintarPendPill() {
   const b = $('h-pend'); if (!b) return;
@@ -519,16 +673,22 @@ function pintarPendPill() {
 function pintar() {
   indexar();
   if (S.sec !== 'mapa' && S.mapaTab) { try { S.mapaTab.remove(); } catch (e) {} S.mapaTab = null; }
+  // Cuenta de recurso: el primer botón del menú es «Mi jornada» en vez de la lista del día
+  const m1 = $('menu-1'); if (m1) { m1.dataset.s = esCuentaRecurso() ? 'inicio' : 'hoy'; $('menu-1-txt').textContent = esCuentaRecurso() ? 'Mi jornada' : 'Día'; }
+  if (!S.sec) S.sec = 'hoy';
+  if (S.sec === 'inicio' && !esCuentaRecurso()) S.sec = 'hoy';
+  if (S.sec === 'hoy' && esCuentaRecurso()) S.sec = 'inicio';
   document.querySelectorAll('#menu button').forEach(b => b.classList.toggle('on', b.dataset.s === S.sec));
   const red = navigator.onLine ? '' : ' · 📵 sin señal';
-  $('h-titulo').textContent = { hoy: '📋 Aperturas', semana: '🗓️ Semana', mapa: '🗺️ Mapa del día', perfil: '👤 Mi cuenta' }[S.sec];
+  $('h-titulo').textContent = { inicio: '🏠 Mi jornada', hoy: '📋 Aperturas', semana: '🗓️ Semana', mapa: '🗺️ Mapa del día', perfil: '👤 Mi cuenta' }[S.sec];
   $('h-sub').textContent = (S.ctx ? ROL_TXT[S.ctx.rol] || '' : 'Bitácora') + red;
   if (S.errorCarga && !S.ctx) { $('m-cuerpo').innerHTML = '<div class="card"><div class="aviso err">' + esc(S.errorCarga) + '</div><button class="btn" data-recargar="1" style="width:100%;">🔄 Reintentar</button></div>' + (S.sec === 'perfil' ? perfilHtml() : ''); return; }
   if (S.ctx && S.ctx.rol === 'sin_acceso' && S.sec !== 'perfil') {
     $('m-cuerpo').innerHTML = '<div class="card"><div class="aviso">Tu cuenta no tiene áreas ni recursos asignados para la Bitácora. Pide al Administrador que te asigne tus áreas en la plataforma o que vincule tu cuenta a un recurso.</div></div>';
     return;
   }
-  if (S.sec === 'hoy') pintarDia();
+  if (S.sec === 'inicio') pintarInicio();
+  else if (S.sec === 'hoy') pintarDia();
   else if (S.sec === 'semana') pintarSemana();
   else if (S.sec === 'mapa') pintarMapaTab();
   else $('m-cuerpo').innerHTML = perfilHtml();
@@ -555,6 +715,50 @@ function filtrosHtml() {
     '<input id="f-q" type="search" placeholder="🔎 Buscar clave, código, empresa o comuna" value="' + esc(S.filtros.q) + '"></div>';
 }
 const ORDEN_ST = { falta: 0, abierta: 1, sin: 2, otro: 3, cerrada: 4 };
+// «Mi jornada»: primera vista de la cuenta de recurso. Estado de HOY de un vistazo y la acción que corresponde.
+function pintarInicio() {
+  const propios = S.recursos.filter(r => r.propio);
+  if (!propios.length) { $('m-cuerpo').innerHTML = '<div class="card"><div class="aviso">Tu cuenta no está vinculada a un recurso activo de la Bitácora. Pide al Administrador que la revise.</div></div>'; return; }
+  $('m-cuerpo').innerHTML = propios.map(inicioRecursoHtml).join('') +
+    (S.descarga ? '<p class="muted" style="text-align:center;">Datos de las ' + esc(fmtHora(S.descarga)) + (navigator.onLine ? '' : ' · 📵 sin señal') + '</p>' : '');
+}
+function inicioRecursoHtml(r) {
+  const { f, j } = jornadaActual(r), st = estadoRecurso(r, f), nom = (TIPO_EMOJI[r.tipo_codigo] || '') + ' ' + (r.clave_radial || r.codigo_ref || 'Recurso');
+  const ayer = f !== hoyISO() ? ' (desde ayer)' : '';
+  let html = '';
+  if (!j) {
+    const t = turnoCat(r.turno_sugerido);
+    html += '<div class="mj" style="--c:' + (st.plan ? '#B91C1C' : '#475569') + '"><div class="mj-rec">' + esc(nom) + ' · ' + esc(fmtDia(f)) + '</div>' +
+      '<div class="mj-est">' + (st.plan ? '⚠️ Sin apertura' : 'Sin apertura') + '</div>' +
+      '<div class="mj-sub">' + (st.plan ? 'Según el calendario estás <b>de turno</b> hoy.' : st.plan === false ? 'Según el calendario hoy estás <b>libre</b>.' : 'Aún no registras la jornada de hoy.') + '</div>' +
+      (t ? '<div class="mj-datos"><div>Turno del recurso<b>' + esc(turnoTxt(t)) + '</b></div><div>Nómina<b>' + (r.nomina || []).length + ' personas</b></div></div>' : '') + '</div>';
+    html += puedeEditar(r, null, f) ? '<button class="btn-xl" data-abrir-ap="' + esc(r.id) + '" data-f="' + f + '">▶️ Iniciar apertura</button>'
+      : '<div class="aviso">No puedes abrir la jornada desde esta cuenta. Pídelo a tu Jefe de Área.</div>';
+    return html;
+  }
+  const abierta = !cerradaDe(j), l = actividadesDe(j.id), hAp = j.creado_dispositivo_en || j.creado_en;
+  if (!j.en_servicio) {
+    html += '<div class="mj" style="--c:#6D28D9"><div class="mj-rec">' + esc(nom) + ' · ' + esc(fmtDia(f)) + '</div><div class="mj-est">' + esc((j.estado_emoji || '') + ' ' + (j.estado || '')) + '</div>' +
+      '<div class="mj-sub">Registrado' + (hAp ? ' a las ' + esc(fmtHora(hAp)) : '') + (j._pend ? ' · ⏳ por enviar' : '') + '</div>' + (j.observacion ? '<div class="mj-sub" style="margin-top:6px;">' + esc(j.observacion) + '</div>' : '') + '</div>';
+    html += chipsExtra(st) + '<div class="fila-btn"><button class="btn" data-rec="' + esc(r.id) + '" data-f="' + f + '">📋 Ver registro</button>' +
+      (puedeEditar(r, j) ? '<button class="btn" data-editar-ap="' + esc(r.id) + '" data-f="' + f + '">✏️ Cambiar</button>' : '') + '</div>';
+    return html;
+  }
+  html += '<div class="mj" style="--c:' + (abierta ? '#15803D' : '#1D4ED8') + '"><div class="mj-rec">' + esc(nom) + ' · ' + esc(fmtDia(f)) + '</div>' +
+    '<div class="mj-est">' + (abierta ? '🟢 Jornada abierta' + ayer : '✅ Jornada cerrada') + '</div>' +
+    '<div class="mj-sub">' + (abierta ? 'Apertura a las ' + esc(fmtHora(hAp)) + (j._pend ? ' · ⏳ por enviar' : '') : 'Cerrada ' + esc(fmtFechaHora(j.cierre_en || j.cierre_programado)) + (j.cierre_en ? '' : ' (automático)')) + '</div>' +
+    '<div class="mj-datos"><div>Turno<b>' + esc(j.turno || '—') + '</b></div><div>Dotación<b>👥 ' + (j.dotacion_n || 0) + (j.jefe_nombre ? ' · ⭐ ' + esc(j.jefe_nombre.split(' ')[0]) : '') + '</b></div>' +
+    '<div>Actividades<b>🧩 ' + l.length + ' · ' + esc(durTxt(minutosAct(l))) + '</b></div>' +
+    '<div>' + (abierta ? 'Se cierra sola' : 'Fundo') + '<b>' + (abierta ? esc((isoDe(new Date(j.cierre_programado)) > hoyISO() ? 'mañana ' : '') + fmtHora(j.cierre_programado)) + ' <small style="font-weight:600;">(' + esc(tiempoHasta(j.cierre_programado)) + ')</small>' : esc(j.fundo_nombre || '—')) + '</b></div></div></div>';
+  html += chipsExtra(st);
+  if (puedeRegistrar(r, j)) html += '<button class="btn-xl azul" data-act-nueva="' + esc(j.id) + '">➕ Registrar actividad</button>';
+  else if (S.sinActividades) html += '<div class="aviso">El registro de actividades aún no está habilitado en la base (falta el SQL 187).</div>';
+  html += '<div class="card"><div class="sec-t">🧩 Actividades de la jornada<span class="muted">' + l.length + ' · ' + esc(durTxt(minutosAct(l))) + '</span></div>' +
+    actListaHtml(l, abierta ? 'Aún no registras actividades. Toca «Registrar actividad» al terminar cada una.' : 'Sin actividades registradas.') + '</div>';
+  html += '<div class="fila-btn"><button class="btn" data-rec="' + esc(r.id) + '" data-f="' + f + '">📋 Ver apertura</button>' +
+    (abierta ? '<button class="btn" data-cerrarj-ini="' + esc(r.id) + '" data-f="' + f + '">🔒 Cerrar jornada</button>' : '') + '</div>';
+  return html;
+}
 function pintarDia() {
   const f = S.fecha, lista = recursosFiltrados().map(r => ({ r, st: estadoRecurso(r, f) }));
   const n = k => lista.filter(x => x.st.k === k).length;
@@ -574,7 +778,8 @@ function pintarDia() {
     if (variasAreas && r.area !== areaAct && !S.filtros.kpi) { areaAct = r.area; html += '<div class="grupo-t">' + esc(r.area || 'Sin área') + '</div>'; }
     const j = st.j, c = st.k === 'otro' ? ST.otro.c : ST[st.k].c;
     let det = '';
-    if (j && j.en_servicio) det = '<div class="r-det">🕒 ' + esc(j.turno || '—') + ' · 👥 ' + (j.dotacion_n || 0) + (j.jefe_nombre ? ' · ⭐ ' + esc(j.jefe_nombre) : '') + (j.fundo_nombre ? '<br>🌲 ' + esc(j.fundo_nombre) : '') + '</div>';
+    const na = j ? actividadesDe(j.id).length : 0;
+    if (j && j.en_servicio) det = '<div class="r-det">🕒 ' + esc(j.turno || '—') + ' · 👥 ' + (j.dotacion_n || 0) + (j.jefe_nombre ? ' · ⭐ ' + esc(j.jefe_nombre) : '') + (na ? ' · 🧩 ' + na + ' act.' : '') + (j.fundo_nombre ? '<br>🌲 ' + esc(j.fundo_nombre) : '') + '</div>';
     else if (j && j.observacion) det = '<div class="r-det muted">' + esc(j.observacion) + '</div>';
     html += '<div class="rec" data-rec="' + esc(r.id) + '" style="--c:' + c + '"><div class="r-ico">' + (TIPO_EMOJI[r.tipo_codigo] || '🚩') + '</div><div class="r-cuerpo">' +
       '<div class="r-top"><span class="r-nom">' + esc(r.clave_radial || r.codigo_ref || 'Recurso') + '</span>' + chipEstado(st) + '</div>' +
@@ -693,7 +898,7 @@ function perfilHtml() {
   const propios = (c.recursos_propios || []).map(id => recurso(id)).filter(Boolean);
   const pend = S.pendientes.map(it => {
     const j = S.jIdx && [...S.jIdx.values()].find(x => x.id === it.jid), r = j ? recurso(j.recurso_id) : (it.payload && recurso(it.payload.recurso_id));
-    const qu = { guardar: '📋 Apertura', cerrar: '🔒 Cierre', reabrir: '🔓 Reapertura', eliminar: '🗑️ Eliminación' }[it.tipo] || it.tipo;
+    const qu = { guardar: '📋 Apertura', cerrar: '🔒 Cierre', reabrir: '🔓 Reapertura', eliminar: '🗑️ Eliminación', actividad: '🧩 Actividad', eliminar_act: '🗑️ Actividad eliminada', foto: '📷 Foto' }[it.tipo] || it.tipo;
     return '<div class="pend-item"><b>' + qu + '</b> · ' + esc(r ? (r.clave_radial || r.codigo_ref) : '') + ' · ' + esc(fmtFecha((it.payload && it.payload.fecha_operativa) || (j && j.fecha_operativa))) +
       '<div class="muted">Guardado ' + esc(fmtFechaHora(it.creado)) + '</div>' + (it.error ? '<div class="chip-e" style="display:inline-block;margin-top:4px;">' + esc(it.error) + '</div>' : '') +
       '<div style="text-align:right;margin-top:6px;"><button class="btn btn-mini btn-rojo" data-descartar="' + it.id + '">Descartar</button></div></div>';
@@ -708,9 +913,10 @@ function perfilHtml() {
       '<button class="btn btn-p" data-sync="1" style="width:100%;margin-top:10px;"' + (navigator.onLine && S.pendientes.length ? '' : ' disabled') + '>🔄 Enviar ahora</button>' +
       '<div class="muted" style="margin-top:6px;">Sin señal las aperturas quedan en el teléfono y se envían solas al recuperar la conexión.</div></div>' +
     '<div class="card"><button class="btn" data-recargar="1" style="width:100%;margin-bottom:8px;">🔄 Actualizar datos</button>' +
+      (claveGuardada() ? '<button class="btn" data-olvidar="1" style="width:100%;margin-bottom:8px;">🔑 Olvidar la clave guardada en este teléfono</button>' : '') +
       '<button class="btn" data-buscar-version="1" style="width:100%;margin-bottom:8px;">🆕 Buscar actualización</button>' +
       '<button class="btn btn-rojo" data-salir="1" style="width:100%;"><svg class="ico-salir" viewBox="0 0 24 24" aria-hidden="true" style="width:18px;height:18px;"><path d="M12 3v9"/><path d="M6.4 6.6a8 8 0 1 0 11.2 0"/></svg> Cerrar sesión</button></div>' +
-    '<p class="muted" style="text-align:center;">Bitácora · Aperturas · v' + APP_VERSION + (S.descarga ? ' · datos del ' + esc(fmtFechaHora(S.descarga)) : '') + '</p>';
+    '<p class="muted" style="text-align:center;">Bitácora · v' + APP_VERSION + (S.descarga ? ' · datos del ' + esc(fmtFechaHora(S.descarga)) : '') + '</p>';
 }
 
 /* ───────── Ficha de la apertura (consulta) ───────── */
@@ -752,6 +958,12 @@ function abrirRecurso(rid, fecha) {
     html += '<div class="sec"><div class="sec-t">👥 Dotación · fuerza ' + (j.dotacion_n || (j.dotacion || []).length) + '</div>' +
       ((j.dotacion || []).map(p => '<div class="dato"><span>' + (p.es_jefe ? '⭐ ' : '') + esc(p.nombre) + (p.es_reemplazo ? ' <small>(reemplazo)</small>' : '') + '</span><b>' + esc(p.cargo || '') + (p.telefono ? ' ' + telLinks(p.telefono) : '') + '</b></div>').join('') || '<div class="muted">Sin personas</div>') + '</div>';
     if (j.lat != null) html += '<div class="sec"><div class="sec-t">📍 Ubicación de la apertura</div><div class="av-mapa" id="fv-mapa"></div></div>';
+    if (!S.sinActividades) {
+      const l = actividadesDe(j.id);
+      html += '<div class="sec"><div class="sec-t">🧩 Actividades · ' + l.length + ' · ' + esc(durTxt(minutosAct(l))) + '</div>' +
+        (puedeRegistrar(r, j) ? '<button class="btn btn-p" data-act-nueva="' + esc(j.id) + '" style="width:100%;margin-bottom:6px;">➕ Registrar actividad</button>' : '') +
+        actListaHtml(l, 'Sin actividades registradas.') + '</div>';
+    }
   }
   html += d('Observación', esc(j.observacion || ''));
   html += '<div class="sec">' + d('Plan del calendario', j.plan_de_turno == null ? '' : (j.plan_de_turno ? 'De turno' : 'Libre')) +
@@ -769,6 +981,10 @@ function abrirRecurso(rid, fecha) {
   abrirHoja(html);
   S.hoja = { r, f, j };
   if (j.lat != null && $('fv-mapa')) montarMapa($('fv-mapa'), j.lat, j.lng, {});
+  // Jornada antigua: sus actividades se piden al abrirla (con señal) y la ficha se vuelve a pintar
+  if (j.en_servicio && !j._pend && !S.sinActividades && S.actDesde && j.fecha_operativa < S.actDesde && !S.actJornadas.has(j.id) && navigator.onLine) {
+    asegurarActividades(j).then(() => { if ($('ov').classList.contains('show') && S.hoja && S.hoja.j && S.hoja.j.id === j.id && !F) { indexarAct(); abrirRecurso(rid, f); } });
+  }
 }
 
 /* ───────── Formulario de apertura ───────── */
@@ -938,11 +1154,229 @@ async function guardarFormulario(btn) {
   } catch (err) { btn.disabled = false; errorForm('No se pudo guardar: ' + msgError(err)); }
 }
 
+/* ───────── Registro de actividad (SQL 187) ───────── */
+// Hora «HH:MM» → instante, dentro de la jornada: en un turno que cruza la medianoche, lo anterior a su inicio es del día siguiente
+function instanteDe(j, hm_) {
+  const [h, m] = String(hm_).split(':').map(Number), p = j.fecha_operativa.split('-').map(Number);
+  const t = turnoCat(j.turno_codigo);
+  let dia = p[2];
+  if (t) {
+    const [h1, m1] = hm(t.hora_inicio).split(':').map(Number), [h2, m2] = hm(t.hora_fin).split(':').map(Number);
+    if ((h2 * 60 + m2) <= (h1 * 60 + m1) && (h * 60 + m) < (h1 * 60 + m1) - 120) dia += 1;
+  }
+  return new Date(p[0], p[1] - 1, dia, h, m);
+}
+const redondear5 = d => new Date(Math.floor(d.getTime() / 300000) * 300000);
+function abrirActividad(r, j, a, volver) {
+  const l = actividadesDe(j.id).filter(x => !a || x.id !== a.id);
+  let ini, fin;
+  if (a) { ini = hhmm(new Date(a.inicio)); fin = hhmm(new Date(a.fin)); }
+  else {
+    const ahora = new Date(Math.floor(Date.now() / 60000) * 60000), ult = l.length ? new Date(l[l.length - 1].fin) : null;
+    let d = ult && ult <= ahora ? ult : (j.inicio_programado && new Date(j.inicio_programado) < ahora ? new Date(j.inicio_programado) : new Date(ahora.getTime() - 3600e3));
+    if (ahora - d > 12 * 3600e3) d = new Date(ahora.getTime() - 3600e3);
+    const p0 = j.fecha_operativa.split('-').map(Number), dia0 = new Date(p0[0], p0[1] - 1, p0[2], 0, 0);
+    if (d < dia0) d = dia0;   // no antes de las 00:00 del día operativo
+    ini = hhmm(d); fin = hhmm(ahora);
+  }
+  F = {
+    modo: 'actividad', r, j, nuevo: !a, id: a ? a.id : uuid(), volver: volver || null,
+    actividad: a ? a.actividad_codigo : '', buscando: !a, q: '', grupo: '',
+    ini, fin, cantidad: a ? String(a.cantidad || 1) : '1',
+    lat: a ? a.lat : null, lng: a ? a.lng : null, precision_m: a ? a.precision_m : null,
+    cod_fundo: a ? a.cod_fundo || '' : '', fundo_nombre: a ? a.fundo_nombre || '' : '', fundoManual: !!(a && (a.fundo_nombre || a.cod_fundo)),
+    observacion: a ? a.observacion || '' : '', creado_dispositivo_en: a ? a.creado_dispositivo_en : null,
+    fotos: a ? (a.fotos || []).slice() : [], fotosNuevas: []
+  };
+  pintarActividadForm();
+  if (F.nuevo) usarGps(true);
+}
+function pintarActividadForm() {
+  const r = F.r, j = F.j;
+  let html = cabeceraHoja(r, j.fecha_operativa, F.nuevo ? '➕ Registrar actividad' : '✏️ Corregir actividad') + '<div class="sh-body">';
+  html += '<div class="sec" id="fs-act"></div>';
+  html += '<div class="sec"><div class="sec-t">🕒 Horario</div><div class="fila"><div><label for="fa-ini">Inicio</label><input id="fa-ini" type="time" value="' + esc(F.ini) + '"></div>' +
+    '<div><label for="fa-fin">Término</label><input id="fa-fin" type="time" value="' + esc(F.fin) + '"></div></div>' +
+    '<div class="geo-row" style="margin-top:6px;"><span id="fa-dur" class="muted"></span><button type="button" class="btn btn-mini" data-ahora="1">Término = ahora</button></div></div>';
+  html += '<div class="sec" id="fs-cant"></div>';
+  html += '<div class="sec"><div class="sec-t">📍 Lugar</div><div class="geo-row"><button type="button" class="btn btn-mini" data-gps="1">📍 Usar mi ubicación</button><span id="ff-gps" class="muted"></span></div><div class="av-mapa" id="ff-mapa"></div><div id="fs-fundo"></div></div>';
+  html += '<div class="sec"><div class="sec-t">📷 Fotos <span class="muted">opcional · hasta 6</span></div><div class="fotos" id="fs-fotos"></div>' +
+    '<input type="file" id="fa-foto" accept="image/*" capture="environment" style="display:none;"></div>';
+  html += '<div class="sec"><label for="ff-obs">Observación</label><textarea id="ff-obs" rows="2" maxlength="500" placeholder="Opcional">' + esc(F.observacion) + '</textarea></div>';
+  html += '<div id="ff-err" class="aviso err" style="display:none;"></div></div>';
+  html += '<div class="sh-foot"><button class="btn" data-act-volver="1">Cancelar</button>' + (F.nuevo ? '' : '<button class="btn btn-rojo" data-act-eliminar="1">🗑️ Eliminar</button>') +
+    '<button class="btn btn-grande" data-guardar="1" style="flex:2;">' + (F.nuevo ? '✅ Guardar actividad' : '💾 Guardar corrección') + '</button></div>';
+  abrirHoja(html);
+  pintarSelAct(); pintarCant(); pintarDur(); pintarFotos(); pintarFundo();
+  F.mapa = montarMapa($('ff-mapa'), F.lat, F.lng, { editable: true, onMove: (la, ln) => { F.lat = la; F.lng = ln; F.precision_m = null; $('ff-gps').textContent = 'Punto marcado a mano'; sugerirFundo(); } });
+}
+// Elección de la actividad: frecuentes del recurso, búsqueda y lista por grupo (solo las habilitadas para su tipo)
+function pintarSelAct() {
+  const c = $('fs-act'); if (!c) return;
+  const sel = actCat(F.actividad);
+  if (sel && !F.buscando) {
+    const g = grupoCat(sel.grupo_codigo) || {};
+    c.innerHTML = '<div class="sec-t">🧩 Actividad</div><div class="act-sel"><span style="font-size:22px;">' + esc(g.emoji || '🧩') + '</span><b>' + esc(sel.nombre) + '<small class="muted" style="display:block;font-weight:600;">' + esc(g.nombre || '') + '</small></b><button type="button" class="btn btn-mini" data-act-cambiar="1">Cambiar</button></div>';
+    return;
+  }
+  const lista = habilitadas(F.r), q = norm(F.q);
+  const cuenta = new Map();
+  S.actividades.concat([...S.aIdx.values()].flat()).forEach(a => { if (a.recurso_id === F.r.id) cuenta.set(a.actividad_codigo, (cuenta.get(a.actividad_codigo) || 0) + 1); });
+  const frec = lista.filter(a => cuenta.has(a.codigo)).sort((x, y) => cuenta.get(y.codigo) - cuenta.get(x.codigo)).slice(0, 6);
+  let h = '<div class="sec-t">🧩 ¿Qué actividad hiciste?</div>';
+  if (!lista.length) { c.innerHTML = h + '<div class="aviso">No hay actividades habilitadas para este tipo de recurso. Avisa al Administrador.</div>'; return; }
+  if (frec.length && !q && !F.grupo) h += '<div class="muted" style="margin-bottom:4px;">Frecuentes</div><div class="opc" style="margin-bottom:8px;">' + frec.map(a => '<button type="button" data-act-sel="' + esc(a.codigo) + '">' + esc(((grupoCat(a.grupo_codigo) || {}).emoji || '') + ' ' + a.nombre) + '</button>').join('') + '</div>';
+  h += '<input id="fa-q" type="search" placeholder="🔎 Buscar actividad" value="' + esc(F.q) + '" autocomplete="off">';
+  const grupos = S.cat.grupos.filter(g => lista.some(a => a.grupo_codigo === g.codigo));
+  if (!q) h += '<div class="opc" style="margin-top:8px;">' + grupos.map(g => '<button type="button" data-grupo="' + esc(g.codigo) + '"' + (F.grupo === g.codigo ? ' class="on"' : '') + '>' + esc((g.emoji || '') + ' ' + g.nombre) + '</button>').join('') + '</div>';
+  const vis = q ? lista.filter(a => norm(a.nombre + ' ' + a.codigo).includes(q)) : (F.grupo ? lista.filter(a => a.grupo_codigo === F.grupo) : []);
+  if (q || F.grupo) {
+    let gAct = null;
+    h += '<div class="act-lista">' + (vis.length ? vis.sort((x, y) => (grupoCat(x.grupo_codigo) || {}).orden - (grupoCat(y.grupo_codigo) || {}).orden || x.nombre.localeCompare(y.nombre, 'es')).map(a => {
+      let t = '';
+      if (q && a.grupo_codigo !== gAct) { gAct = a.grupo_codigo; t = '<div class="g-t">' + esc(((grupoCat(gAct) || {}).emoji || '') + ' ' + ((grupoCat(gAct) || {}).nombre || '')) + '</div>'; }
+      return t + '<button type="button" data-act-sel="' + esc(a.codigo) + '"' + (a.codigo === F.actividad ? ' style="font-weight:800;"' : '') + '>' + esc(a.nombre) + '</button>';
+    }).join('') : '<div class="muted" style="padding:10px 12px;">Ninguna actividad coincide.</div>') + '</div>';
+  } else h += '<div class="muted" style="margin-top:6px;">Elige un grupo o busca por nombre.</div>';
+  c.innerHTML = h;
+}
+function pintarCant() {
+  const c = $('fs-cant'); if (!c) return;
+  const a = actCat(F.actividad);
+  c.style.display = a && a.pide_cantidad ? '' : 'none';
+  c.innerHTML = a && a.pide_cantidad ? '<label for="fa-cant">Cantidad realizada <span class="muted">(casas, charlas, focos, km…)</span></label><input id="fa-cant" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="' + esc(F.cantidad) + '">' : '';
+}
+function horasForm() {
+  if (!F || !/^\d{2}:\d{2}$/.test(F.ini) || !/^\d{2}:\d{2}$/.test(F.fin)) return null;
+  const i = instanteDe(F.j, F.ini); let f = instanteDe(F.j, F.fin);
+  if (i - f >= 6 * 3600e3) f = new Date(f.getTime() + 864e5);   // p. ej. 22:00 → 02:00: termina pasada la medianoche
+  return { i, f, min: Math.round((f - i) / 60000) };
+}
+function pintarDur() {
+  const x = $('fa-dur'); if (!x) return;
+  const h = horasForm();
+  x.textContent = !h ? '' : h.min <= 0 ? '⚠️ El término debe ser posterior al inicio' : 'Duración: ' + durTxt(h.min) + (h.f.getDate() !== h.i.getDate() ? ' (termina al día siguiente)' : '');
+}
+function pintarFotos() {
+  const c = $('fs-fotos'); if (!c) return;
+  const tot = F.fotos.length + F.fotosNuevas.length;
+  c.innerHTML = F.fotos.map(f => '<div class="foto" data-foto-ver="' + esc(f.id) + '"><img alt="Foto" data-foto-img="' + esc(f.id) + '">' + (f._pend ? '<span class="f-pend">' + (f._err ? '⚠️ error' : '⏳ por enviar') + '</span>' : '') + '</div>').join('') +
+    F.fotosNuevas.map((f, i) => '<div class="foto"><img alt="Foto nueva" src="' + f.url + '"><button type="button" class="quitar" data-foto-quitar="' + i + '" aria-label="Quitar foto">✕</button><span class="f-pend">nueva</span></div>').join('') +
+    (tot < 6 ? '<button type="button" class="foto-add" data-foto-add="1" aria-label="Agregar foto">📷</button>' : '');
+  cargarMiniaturas(F.fotos);
+}
+// Miniaturas: las pendientes desde el teléfono; las enviadas con URL firmada (1 h) del bucket privado
+async function cargarMiniaturas(fotos) {
+  fotos.forEach(f => { if (f.blob) { const img = document.querySelector('[data-foto-img="' + f.id + '"]'); if (img) img.src = URL.createObjectURL(f.blob); } });
+  const faltan = fotos.filter(f => f.storage_path && !f.blob && !(S.urlFotos.get(f.storage_path) && S.urlFotos.get(f.storage_path).exp > Date.now()));
+  if (faltan.length && navigator.onLine) {
+    try {
+      const { data, error } = await sb.storage.from(BUCKET_FOTOS).createSignedUrls(faltan.map(f => f.storage_path), 3600);
+      if (!error) (data || []).forEach(d => { if (d.signedUrl) S.urlFotos.set(d.path, { url: d.signedUrl, exp: Date.now() + 3500e3 }); });
+    } catch (e) { /* sin señal */ }
+  }
+  fotos.forEach(f => { const u = f.storage_path && S.urlFotos.get(f.storage_path), img = document.querySelector('[data-foto-img="' + f.id + '"]'); if (img && u) img.src = u.url; else if (img && !f.blob) img.alt = navigator.onLine ? 'Foto' : 'Sin señal'; });
+}
+// Foto comprimida en el teléfono: lado mayor 1600 px, JPEG 0,72 (≈ 200–400 KB)
+async function comprimirFoto(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((ok, mal) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => mal(new Error('No se pudo leer la foto')); i.src = url; });
+    const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    cv.getContext('2d').drawImage(img, 0, 0, w, h);
+    const blob = await new Promise(ok => cv.toBlob(ok, 'image/jpeg', 0.72));
+    if (!blob) throw new Error('No se pudo comprimir la foto');
+    return { blob, ancho: w, alto: h, bytes: blob.size };
+  } finally { URL.revokeObjectURL(url); }
+}
+function leerCamposAct() {
+  if (!F || F.modo !== 'actividad') return;
+  if ($('fa-ini')) F.ini = $('fa-ini').value;
+  if ($('fa-fin')) F.fin = $('fa-fin').value;
+  if ($('fa-cant')) F.cantidad = $('fa-cant').value.replace(/\D/g, '');
+  leerCamposForm();
+}
+async function guardarActividad(btn) {
+  leerCamposAct();
+  const a = actCat(F.actividad);
+  if (!a) return errorForm('Elige la actividad.');
+  const h = horasForm();
+  if (!h) return errorForm('Indica la hora de inicio y de término.');
+  if (h.min <= 0) return errorForm('La hora de término debe ser posterior a la de inicio.');
+  if (h.min > 24 * 60) return errorForm('Una actividad no puede durar más de 24 horas.');
+  if (h.f.getTime() > Date.now() + 15 * 60000) return errorForm('La hora de término está en el futuro: registra la actividad al terminarla.');
+  const cruce = actividadesDe(F.j.id).find(x => x.id !== F.id && new Date(x.inicio) < h.f && new Date(x.fin) > h.i);
+  if (cruce) return errorForm('Se cruza con «' + cruce.actividad + '» (' + hhmm(new Date(cruce.inicio)) + ' – ' + hhmm(new Date(cruce.fin)) + '). Ajusta las horas.');
+  if (a.pide_cantidad && !(Number(F.cantidad) >= 1)) return errorForm('Indica la cantidad (1 o más).');
+  const payload = {
+    id: F.id, jornada_id: F.j.id, recurso_id: F.r.id, fecha_operativa: F.j.fecha_operativa, actividad: a.codigo,
+    inicio: h.i.toISOString(), fin: h.f.toISOString(), cantidad: a.pide_cantidad ? Number(F.cantidad) : 1,
+    lat: F.lat, lng: F.lng, precision_m: F.precision_m, cod_fundo: F.cod_fundo || null, fundo_nombre: F.fundo_nombre || null,
+    observacion: (F.observacion || '').trim() || null, creado_dispositivo_en: F.creado_dispositivo_en || new Date().toISOString(),
+    origen: F.r.puede_gestionar ? 'app' : 'app_recurso'
+  };
+  btn.disabled = true;
+  try {
+    const res = await ejecutar('actividad', F.id, payload, F.j.id);
+    let enCola = res === 'cola';
+    for (const fo of F.fotosNuevas) {
+      const fid = uuid();
+      const r2 = await ejecutar('foto', fid, { id: fid, registro_id: F.id, recurso_id: F.r.id, fecha_operativa: F.j.fecha_operativa, blob: fo.blob,
+        bytes: fo.bytes, ancho: fo.ancho, alto: fo.alto, tomada_en: fo.tomada_en }, F.id);
+      if (r2 === 'cola') enCola = true;
+      URL.revokeObjectURL(fo.url);
+    }
+    const volver = F.volver;
+    cerrarHoja();
+    toast(enCola ? '📵 Actividad guardada en el teléfono: se enviará al tener señal' : '✅ Actividad registrada');
+    pintar();
+    if (volver) abrirRecurso(volver.rid, volver.f);
+  } catch (err) { btn.disabled = false; errorForm('No se pudo guardar: ' + msgError(err)); }
+}
+async function eliminarActividad() {
+  if (!confirm('¿Eliminar esta actividad' + (F.fotos.length ? ' y sus fotos' : '') + '?')) return;
+  try {
+    const res = await ejecutar('eliminar_act', F.id, { p_id: F.id, recurso_id: F.r.id, fecha_operativa: F.j.fecha_operativa }, F.j.id);
+    const volver = F.volver;
+    cerrarHoja(); toast(res === 'cola' ? '📵 Eliminación guardada en el teléfono' : '🗑️ Actividad eliminada'); pintar();
+    if (volver) abrirRecurso(volver.rid, volver.f);
+  } catch (e) { errorForm('No se pudo eliminar: ' + msgError(e)); }
+}
+// Detalle de una actividad: se corrige si se puede; si no, solo consulta
+function verActividad(id, volver) {
+  const a = actividadPorId(id); if (!a) return;
+  const j = [...S.jIdx.values()].find(x => x.id === a.jornada_id), r = recurso(a.recurso_id || (j && j.recurso_id));
+  if (!r || !j) return;
+  if (puedeRegistrar(r, j)) return abrirActividad(r, j, a, volver);
+  const d = (k, v) => v == null || v === '' ? '' : '<div class="dato"><span>' + k + '</span><b>' + v + '</b></div>';
+  let html = cabeceraHoja(r, j.fecha_operativa, '🧩 Actividad') + '<div class="sh-body">' +
+    d('Actividad', esc((a.grupo_emoji || '') + ' ' + a.actividad)) + d('Grupo', esc(a.grupo || '')) +
+    d('Horario', esc(hhmm(new Date(a.inicio)) + ' – ' + hhmm(new Date(a.fin)) + ' · ' + durTxt(a.minutos))) +
+    (a.cantidad > 1 ? d('Cantidad', String(a.cantidad)) : '') + d('Fundo', esc(a.fundo_nombre || '')) + d('Observación', esc(a.observacion || '')) +
+    d('Registró', a._pend ? '⏳ en este teléfono (por enviar)' : esc((a.creado_por_nombre || '—') + ' · ' + fmtFechaHora(a.creado_en)));
+  if ((a.fotos || []).length) html += '<div class="sec"><div class="sec-t">📷 Fotos</div><div class="fotos">' + a.fotos.map(f => '<div class="foto" data-foto-ver="' + esc(f.id) + '"><img alt="Foto" data-foto-img="' + esc(f.id) + '"></div>').join('') + '</div></div>';
+  if (a.lat != null) html += '<div class="sec"><div class="sec-t">📍 Lugar</div><div class="av-mapa" id="fv-mapa"></div></div>';
+  html += '</div><div class="sh-foot"><button class="btn" data-act-volver-ficha="1">Volver</button></div>';
+  abrirHoja(html);
+  S.verAct = { a, volver };
+  if (a.lat != null) montarMapa($('fv-mapa'), a.lat, a.lng, {});
+  cargarMiniaturas(a.fotos || []);
+}
+function verFotoGrande(src) {
+  if (!src) return;
+  const d = document.createElement('div'); d.className = 'foto-ver'; d.innerHTML = '<img alt="Foto">'; d.querySelector('img').src = src;
+  d.onclick = () => d.remove(); document.body.appendChild(d);
+}
+
 /* ───────── Cierre, reapertura y eliminación ───────── */
 function abrirCierre() {
-  const { r, f, j } = S.hoja;
+  const { r, f, j } = S.hoja, l = actividadesDe(j.id);
   abrirHoja(cabeceraHoja(r, f, '🔒 Cerrar jornada') + '<div class="sh-body">' +
-    '<div class="aviso info">Al cerrar, la jornada queda bloqueada para el recurso. Si no la cierras, se cierra sola el ' + esc(fmtFechaHora(j.cierre_programado)) + '.</div>' +
+    '<div class="aviso info">Al cerrar, la jornada queda bloqueada para el recurso: ya no se pueden registrar ni corregir actividades. Si no la cierras, se cierra sola el ' + esc(fmtFechaHora(j.cierre_programado)) + '.</div>' +
+    (S.sinActividades ? '' : '<div class="dato"><span>Actividades registradas</span><b>🧩 ' + l.length + ' · ' + esc(durTxt(minutosAct(l))) + '</b></div>' +
+      (l.length ? '' : '<div class="aviso">No hay actividades registradas en esta jornada. Regístralas antes de cerrar.</div>')) +
     (r.pide_km ? '<label for="fc-km">Km final' + (j.km_inicio != null ? ' (inicial ' + j.km_inicio + ')' : '') + '</label><input id="fc-km" inputmode="numeric" pattern="[0-9]*" maxlength="7">' : '') +
     '<label for="fc-obs">Observación de cierre</label><textarea id="fc-obs" rows="2" maxlength="500" placeholder="Opcional"></textarea><div id="ff-err" class="aviso err" style="display:none;"></div></div>' +
     '<div class="sh-foot"><button class="btn" data-volver="1">Volver</button><button class="btn btn-grande" data-cerrar-ok="1" style="flex:2;">🔒 Cerrar jornada</button></div>');
@@ -974,10 +1408,27 @@ async function enviar(tipo, payload) {
   else if (tipo === 'cerrar') r = await sb.rpc('bit_cerrar_jornada', payload);
   else if (tipo === 'reabrir') r = await sb.rpc('bit_reabrir_jornada', payload);
   else if (tipo === 'eliminar') r = await sb.rpc('bit_eliminar_jornada', payload);
+  else if (tipo === 'actividad') r = await sb.rpc('bit_guardar_actividad', { p: payload });
+  else if (tipo === 'eliminar_act') {
+    r = await sb.rpc('bit_eliminar_actividad', { p_id: payload.p_id });
+    if (!r.error && r.data && (r.data.fotos || []).length) { try { await sb.storage.from(BUCKET_FOTOS).remove(r.data.fotos); } catch (e) { /* el archivo queda; lo limpia el Administrador */ } }
+  } else if (tipo === 'foto') {
+    // 1) archivo al bucket (si ya estaba de un intento anterior, sigue) 2) fila en bit_foto
+    const ruta = payload.recurso_id + '/' + payload.fecha_operativa + '/' + payload.registro_id + '/' + payload.id + '.jpg';
+    const up = await sb.storage.from(BUCKET_FOTOS).upload(ruta, payload.blob, { contentType: 'image/jpeg', upsert: false });
+    if (up.error && !/exist|duplicate|409/i.test(msgError(up.error) + ' ' + (up.error.statusCode || ''))) throw up.error;
+    r = await sb.rpc('bit_registrar_foto', { p: { id: payload.id, registro_id: payload.registro_id, storage_path: ruta, bytes: payload.bytes, ancho: payload.ancho, alto: payload.alto, tomada_en: payload.tomada_en } });
+  }
   if (r.error) throw r.error;
   return r.data;
 }
 function aplicarRespuesta(tipo, jid, fila) {
+  if (tipo === 'actividad' || tipo === 'foto' || tipo === 'eliminar_act') {
+    if (tipo === 'eliminar_act') S.actividades = S.actividades.filter(x => x.id !== jid);
+    else if (fila && fila.id) { S.actividades = S.actividades.filter(x => x.id !== fila.id); S.actividades.push(fila); }
+    cacheSet('actividades', { lista: S.actividades, desde: S.actDesde, sin: S.sinActividades });
+    return;
+  }
   if (tipo === 'eliminar') S.jornadas = S.jornadas.filter(x => x.id !== jid);
   else if (fila && fila.id) {
     S.jornadas = S.jornadas.filter(x => x.id !== jid && x.id !== fila.id && !(x.recurso_id === fila.recurso_id && x.fecha_operativa === fila.fecha_operativa));
@@ -985,10 +1436,11 @@ function aplicarRespuesta(tipo, jid, fila) {
   }
   cacheSet('jornadas', { lista: S.jornadas, desde: S.desde, fecha: S.descarga });
 }
-// Con señal y sin nada pendiente de ese registro: se envía al tiro. Si no, va a la cola (respeta el orden).
-async function ejecutar(tipo, jid, payload) {
+// Con señal y sin nada pendiente de ese registro (ni de aquel del que depende: la jornada de una actividad, la actividad
+// de una foto): se envía al tiro. Si no, va a la cola (respeta el orden).
+async function ejecutar(tipo, jid, payload, dep) {
   await refrescarPendientes();
-  const enCola = S.pendientes.some(p => p.jid === jid);
+  const enCola = S.pendientes.some(p => p.jid === jid || (dep && p.jid === dep));
   if (navigator.onLine && !enCola) {
     try { const fila = await enviar(tipo, payload); aplicarRespuesta(tipo, jid, fila); return 'ok'; }
     catch (e) { if (!esSinSenal(e)) throw e; }
@@ -1007,7 +1459,9 @@ async function sincronizarPendientes() {
   const renombre = new Map();   // id del teléfono → id que quedó en el servidor (otro equipo abrió primero)
   for (const it0 of S.pendientes) {
     const it = Object.assign({}, it0);
+    it.payload = Object.assign({}, it0.payload);
     if (renombre.has(it.jid)) { const nid = renombre.get(it.jid); it.jid = nid; if (it.payload.p_id) it.payload.p_id = nid; if (it.payload.id) it.payload.id = nid; }
+    if (it.payload.jornada_id && renombre.has(it.payload.jornada_id)) it.payload.jornada_id = renombre.get(it.payload.jornada_id);   // actividad de una jornada que otro equipo abrió primero
     try {
       const fila = await enviar(it.tipo, it.payload);
       if (it.tipo === 'guardar' && fila && fila.id && fila.id !== it.jid) renombre.set(it0.jid, fila.id);
@@ -1029,6 +1483,7 @@ async function sincronizarPendientes() {
 /* ───────── Eventos ───────── */
 document.addEventListener('DOMContentLoaded', async () => {
   try { const m = localStorage.getItem('bit-correo'); if (m) { $('l-mail').value = m; } } catch (e) { /* sin almacenamiento */ }
+  if (claveGuardada()) { $('l-clave').value = claveGuardada(); $('l-recordar').checked = true; }
   $('l-entrar').onclick = entrar;
   $('l-clave').addEventListener('keydown', e => { if (e.key === 'Enter') entrar(); });
   $('h-actualizar').onclick = async () => { if (!navigator.onLine) return toast('📵 Sin señal: se muestran los datos guardados'); await sincronizarPendientes(); await cargarTodo(); toast('✅ Datos actualizados'); };
@@ -1039,6 +1494,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const t = e.target;
     const dia = t.closest('[data-dia]'); if (dia) { const nf = sumarDias(S.fecha, Number(dia.dataset.dia)); if (nf > hoyISO()) return; S.fecha = nf; await asegurarFecha(sumarDias(nf, S.sec === 'semana' ? -6 : 0)); return pintar(); }
     const k = t.closest('[data-kpi]'); if (k) { e.preventDefault(); S.filtros.kpi = S.filtros.kpi === k.dataset.kpi ? '' : k.dataset.kpi; return pintar(); }
+    // Mi jornada
+    const ap = t.closest('[data-abrir-ap]'); if (ap) { const r = recurso(ap.dataset.abrirAp); if (r) abrirFormulario(r, ap.dataset.f, null); return; }
+    const ea = t.closest('[data-editar-ap]'); if (ea) { const r = recurso(ea.dataset.editarAp), j = r && jornadaDe(r.id, ea.dataset.f); if (r && j) abrirFormulario(r, ea.dataset.f, j); return; }
+    const ci = t.closest('[data-cerrarj-ini]'); if (ci) { const r = recurso(ci.dataset.cerrarjIni), j = r && jornadaDe(r.id, ci.dataset.f); if (r && j) { S.hoja = { r, f: ci.dataset.f, j }; abrirCierre(); } return; }
+    const an = t.closest('[data-act-nueva]'); if (an) { const j = [...S.jIdx.values()].find(x => x.id === an.dataset.actNueva), r = j && recurso(j.recurso_id); if (r) abrirActividad(r, j, null, null); return; }
+    const av = t.closest('[data-act]'); if (av) return verActividad(av.dataset.act, null);
+    if (t.closest('[data-olvidar]')) return olvidarClave();
     const rc = t.closest('[data-rec]'); if (rc) { if (S.mapaTab) S.mapaTab.closePopup(); return abrirRecurso(rc.dataset.rec, rc.dataset.f || S.fecha); }
     if (t.closest('[data-recargar]')) { S.errorCarga = ''; return cargarTodo(); }
     if (t.closest('[data-sync]')) return sincronizarPendientes();
@@ -1070,7 +1532,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     const cok = t.closest('[data-cerrar-ok]'); if (cok) return confirmarCierre(cok);
     if (t.closest('[data-reabrir]')) return accionSimple('reabrir');
     if (t.closest('[data-eliminar]')) return accionSimple('eliminar');
+    // Actividades desde la ficha de la apertura (vuelven a la ficha al terminar)
+    const fv = t.closest('[data-foto-ver]'); if (fv) { const img = fv.querySelector('img'); return verFotoGrande(img && img.src); }
+    const an = t.closest('[data-act-nueva]');
+    if (an && !F) { const { r, f, j } = S.hoja; return abrirActividad(r, j, null, { rid: r.id, f }); }
+    const av = t.closest('[data-act]');
+    if (av && !F) { const { r, f } = S.hoja; return verActividad(av.dataset.act, { rid: r.id, f }); }
+    if (t.closest('[data-act-volver-ficha]')) { const v = S.verAct && S.verAct.volver; cerrarHoja(); if (v) abrirRecurso(v.rid, v.f); return; }
     if (!F) return;
+    if (F.modo === 'actividad') {
+      if (t.closest('[data-act-volver]')) { const v = F.volver; F.fotosNuevas.forEach(x => URL.revokeObjectURL(x.url)); cerrarHoja(); if (v) abrirRecurso(v.rid, v.f); return; }
+      if (t.closest('[data-act-eliminar]')) return eliminarActividad();
+      if (t.closest('[data-act-cambiar]')) { leerCamposAct(); F.buscando = true; F.grupo = (actCat(F.actividad) || {}).grupo_codigo || ''; return pintarSelAct(); }
+      const as = t.closest('[data-act-sel]'); if (as) { leerCamposAct(); F.actividad = as.dataset.actSel; F.buscando = false; F.q = ''; pintarSelAct(); return pintarCant(); }
+      const gr = t.closest('[data-grupo]'); if (gr) { F.grupo = F.grupo === gr.dataset.grupo ? '' : gr.dataset.grupo; return pintarSelAct(); }
+      if (t.closest('[data-ahora]')) { F.fin = hhmm(new Date()); if ($('fa-fin')) $('fa-fin').value = F.fin; return pintarDur(); }
+      if (t.closest('[data-foto-add]')) { const inp = $('fa-foto'); if (inp) { inp.value = ''; inp.click(); } return; }
+      const fq = t.closest('[data-foto-quitar]'); if (fq) { const x = F.fotosNuevas.splice(Number(fq.dataset.fotoQuitar), 1)[0]; if (x) URL.revokeObjectURL(x.url); return pintarFotos(); }
+      if (t.closest('[data-gps]')) return usarGps(false);
+      const ga = t.closest('[data-guardar]'); if (ga) return guardarActividad(ga);
+      return;
+    }
     const es = t.closest('[data-estado]');
     if (es) { leerCamposForm(); const antes = estadoCat(F.estado); F.estado = es.dataset.estado; const ahora = estadoCat(F.estado); pintarFormulario(); if (ahora && ahora.en_servicio && !(antes && antes.en_servicio) && F.lat == null) usarGps(true); return; }
     if (t.closest('[data-repetir]')) { leerCamposForm(); const ref = F.ref; return abrirFormulario(F.r, F.fecha_operativa, null, ref); }
@@ -1090,9 +1572,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (t.closest('[data-gps]')) return usarGps(false);
     const g = t.closest('[data-guardar]'); if (g) return guardarFormulario(g);
   });
-  hoja.addEventListener('change', e => {
+  hoja.addEventListener('change', async e => {
     if (!F) return;
     const t = e.target;
+    if (t.id === 'fa-foto' && t.files && t.files[0]) {
+      if (F.fotos.length + F.fotosNuevas.length >= 6) return toast('Hasta 6 fotos por actividad');
+      try { const fo = await comprimirFoto(t.files[0]); if (!F) return; fo.url = URL.createObjectURL(fo.blob); fo.tomada_en = new Date().toISOString(); F.fotosNuevas.push(fo); pintarFotos(); }
+      catch (err) { toast(msgError(err)); }
+      return;
+    }
+    if (t.id === 'fa-ini' || t.id === 'fa-fin') { leerCamposAct(); return pintarDur(); }
     if (t.dataset.pres != null) { const p = F.dot[Number(t.dataset.pres)]; p.presente = t.checked; if (!t.checked) p.es_jefe = false; return pintarDot(); }
     if (t.id === 'ff-turno' && t.value) { F.turno = t.value; return pintarTurno(); }
     if (t.id === 'ff-fundo') {
@@ -1100,6 +1589,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       F.fundo_nombre = t.value ? (t.options[t.selectedIndex].text.split(' · ')[0] || '') : '';
       return pintarFundo();
     }
+  });
+  let espAct = null;
+  hoja.addEventListener('input', e => {
+    const t = e.target;
+    if (!F || F.modo !== 'actividad') return;
+    if (t.id === 'fa-ini' || t.id === 'fa-fin') { leerCamposAct(); return pintarDur(); }
+    if (t.id !== 'fa-q') return;
+    clearTimeout(espAct);
+    espAct = setTimeout(() => { if (!F) return; F.q = t.value; pintarSelAct(); const q = $('fa-q'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250);
   });
   $('ov').addEventListener('click', e => { if (e.target.id === 'ov' && !F) cerrarHoja(); });
 
@@ -1111,7 +1609,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw-bitacora.js').catch(() => {});
   buscarActualizacion();
   const { data } = await sb.auth.getSession();
-  if (data && data.session) await mostrarApp(); else $('v-login').style.display = '';
+  if (data && data.session) await mostrarApp();
+  else {
+    $('v-login').style.display = '';
+    // Sesión vencida o cerrada con la clave recordada: vuelve a entrar sola (con señal)
+    if (claveGuardada() && $('l-mail').value && navigator.onLine) entrar();
+  }
 });
 </script>
 </body>

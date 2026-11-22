@@ -186,6 +186,7 @@ function actualizarConteoUsuario_() {
   const verComunas = perfil !== 'Administrador', verZonas = perfil === 'Jefe de Área Relacionamiento' || perfil === PERFIL_GRT;
   const nombres = marcadas.map(i => i.closest('label').textContent.trim());
   res.innerHTML = perfil === 'Administrador' ? '🔑 El Administrador ve todas las comunas y áreas.' :
+    perfil === PERFIL_SSO ? '🦺 El Perfil SSO ve todas las áreas (solo consulta): no necesita comunas.' :
     (verZonas ? '<b>Zonas:</b> ' + (zonas.length ? escapeHtml_(zonas.join(', ')) : '<span style="color:#DC2626;">ninguna</span>') + '<br>' : '') +
     (verComunas ? '<b>Comunas (' + nombres.length + '):</b> ' + (nombres.length ? escapeHtml_(nombres.slice(0, 12).join(', ')) + (nombres.length > 12 ? '…' : '') : '<span style="color:' + (verZonas ? 'inherit' : '#DC2626') + ';">ninguna</span>') : '');
 }
@@ -239,6 +240,7 @@ function actualizarVisibilidadComunasSegunPerfil_() {
   document.getElementById('u-areas-wrap').style.display = esJefeArea ? 'block' : 'none';
   document.getElementById('u-subg-wrap').style.display = esSubg ? 'block' : 'none';
   if (esSubg) poblarSubgerenciasUsuario_();
+  actualizarConteoUsuario_();   // el resumen (comunas / zonas) depende del perfil elegido
 }
 /** Subgerencias que existen (según los recursos) y sus áreas, para el formulario de usuario. */
 async function poblarSubgerenciasUsuario_() {
@@ -328,9 +330,12 @@ async function guardarUsuarioDesdeModal_() {
   btn.textContent = 'Guardando…'; btn.disabled = true;
 
   const action = editingUsuarioId ? 'actualizar' : 'crear';
+  // Perfil SSO: la Edge Function admin-usuarios exige una comuna a todo Visor → se manda una de relleno y asignar_sso
+  // (SQL 186) la quita al marcar el perfil. El SSO ve todas las áreas por su marca, no por comunas.
+  const comunasEnvio = esSso && !comunaIds.length && (state.comunas || []).length ? [state.comunas[0].id] : comunaIds;
   const payload = editingUsuarioId
-    ? { action, perfil_id: editingUsuarioId, nombre_completo: nombre, cargo, perfil, comuna_ids: comunaIds, area_ids: areaIds }
-    : { action, email, nombre_completo: nombre, cargo, perfil, comuna_ids: comunaIds, area_ids: areaIds };
+    ? { action, perfil_id: editingUsuarioId, nombre_completo: nombre, cargo, perfil, comuna_ids: comunasEnvio, area_ids: areaIds }
+    : { action, email, nombre_completo: nombre, cargo, perfil, comuna_ids: comunasEnvio, area_ids: areaIds };
 
   const { data, error } = await supabaseClient.functions.invoke('admin-usuarios', { body: payload });
 

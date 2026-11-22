@@ -78,7 +78,7 @@ async function abrirSeguimiento_() {
       const c = e.target.closest('[data-sg-f]'); if (!c) return;
       const [k, v] = c.dataset.sgF.split('|');
       if (k === 'pRecargar') { state.sg.personas = null; renderSeguimiento_(); return; }
-      state.sg[k] = state.sg[k] === v && k !== 'area' && k !== 'rArea' && k !== 'tPer' ? '' : v;
+      state.sg[k] = state.sg[k] === v && k !== 'area' && k !== 'rArea' && k !== 'tPer' && k !== 'ppaArea' ? '' : v;
       renderSeguimiento_();
     });
     cuerpo.addEventListener('input', e => { if (e.target.id === 'sg-q') { clearTimeout(state.sg.tq); state.sg.tq = setTimeout(() => { state.sg.q = e.target.value; renderSeguimiento_(true); }, 200); } });
@@ -557,7 +557,14 @@ async function renderSgPpa_() {
     catch (e) { cuerpo.innerHTML = '<div class="tb-vacio">No se pudo leer el PPA: ' + escapeHtml_(e.message || String(e)) + '</div>'; return; }
     if (S.vista !== 'ppa') return;
   }
-  const R = sgPpaDatos_(), T = R.T, n = SG_PPA_NUM, pctTxt = SG_PPA_PCT;
+  const R0 = sgPpaDatos_(), n = SG_PPA_NUM, pctTxt = SG_PPA_PCT;
+  // 22-11-2026: filtro por Área (como en «Comunas y copamiento»): resumen y tarjetas solo del área elegida
+  if (S.ppaArea && !R0.areas.some(x => x.k === S.ppaArea)) S.ppaArea = '';
+  const areasVis = S.ppaArea ? R0.areas.filter(x => x.k === S.ppaArea) : R0.areas;
+  const R = Object.assign({}, R0, { areas: areasVis, T: S.ppaArea ? sgPpaResumir_(areasVis.flatMap(x => x.med)) : R0.T }), T = R.T;
+  const chipArea = (v, txt, c) => '<button class="sg-chip' + ((S.ppaArea || '') === v ? ' on' : '') + '" data-sg-f="ppaArea|' + escapeHtml_(v) + '">' + txt + '<small>' + c + '</small></button>';
+  const filtroArea = R0.areas.length > 1 ? '<div class="sg-chips"><span class="tit">Área</span>' + chipArea('', 'Todas', R0.T.total) +
+    [...R0.areas].sort((p, q) => p.nombre.localeCompare(q.nombre, 'es')).map(x => chipArea(x.k, escapeHtml_(aTitulo_(x.nombre)), x.total)).join('') + '</div>' : '';
   const mesTxt = (R.mesAct ? ppaMesTxt_(R.mesAct) : 'el mes').toLowerCase();
   // 16-11-2026: tarjeta por área con los números destacados; los botones abren los modales de pendientes y de acciones registradas
   const tile = (ico, v, t, c, accion) => '<div class="sg-ppa-tile' + (accion ? ' clic' : '') + '" style="--t:' + c + '"' + (accion ? ' data-sg-ppa="' + accion + '" title="Ver el detalle"' : '') + '>' +
@@ -585,8 +592,9 @@ async function renderSgPpa_() {
       '. <b>% de avance a la fecha</b> = acciones que lleva ÷ acciones que debe llevar (metas de las quincenas ya terminadas). <b>⏰ Vencida</b>: no alcanzó lo exigido. ' +
       '<b>⏳ Por vencer</b>: al día, con meta pendiente antes de fin de ' + escapeHtml_(mesTxt) + '.</span>' +
       '<button class="sg-chip" data-sg-f="ppaRecargar|1" style="margin-left:auto;">🔄 Volver a leer</button></div>' +
+    filtroArea +
     '<div class="sg-resumen sg-ppa-resumen">' +
-      '<div style="--c:#2563EB"><b>' + T.total + '</b><span>📋 total medidas (' + R.areas.length + ' áreas)</span></div>' +
+      '<div style="--c:#2563EB"><b>' + T.total + '</b><span>📋 total medidas (' + (S.ppaArea && R.areas[0] ? escapeHtml_(aTitulo_(R.areas[0].nombre)) : R.areas.length + ' áreas') + ')</span></div>' +
       '<div style="--c:#D97706"><b>' + T.porVencer + '</b><span>⏳ por vencer en ' + escapeHtml_(mesTxt) + '</span></div>' +
       '<div style="--c:#DC2626"><b>' + T.vencidas + '</b><span>⏰ vencidas · faltan ' + n(T.falta) + ' acciones</span></div>' +
       '<div style="--c:' + SG_PPA_COL(T.pctGen) + '"><b>' + pctTxt(T.pctGen) + '</b><span>📊 avance general (' + n(T.llevaGen) + ' de ' + n(T.metaTot) + ' del período)</span></div>' +

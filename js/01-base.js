@@ -381,9 +381,12 @@ async function bootstrap(authUser) {
     .single();
 
   if (perfilErr || !perfil) {
+    // Cuentas de recurso de la App Bitácora (SQL 186): no tienen perfil en el copamiento
+    const esCuentaRecurso = authUser && authUser.app_metadata && authUser.app_metadata.sistema === 'bitacora';
     await supabaseClient.auth.signOut();
     showLogin();
-    mostrarErrorLogin_('No se encontró tu perfil en el sistema. Contacta a un Administrador.');
+    mostrarErrorLogin_(esCuentaRecurso ? 'Esta es una cuenta de recurso: úsala en la App Bitácora (copamientoterritorial.cl/app-bitacora/app.html).'
+      : 'No se encontró tu perfil en el sistema. Contacta a un Administrador.');
     return;
   }
   if (perfil.estado === 'inactivo') {
@@ -632,6 +635,7 @@ async function entrarAlSistemaInterno_() {
       state.sso = !!s;
     } catch (e) { /* sin el SQL 184 */ }
   }
+  if (state.simulacion && state.simulacion.sso) state.sso = true;   // «Ver como… › Modo SSO» (Administrador)
   document.body.classList.toggle('es-sso', !!state.sso);
   document.body.classList.toggle('es-asociacion', !!state.asociacion);
   document.body.classList.toggle('es-subgerente', !!state.subgerencia);

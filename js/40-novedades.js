@@ -6,6 +6,16 @@
  * Se pueden volver a ver con «🆕 Novedades» (botón del encabezado de Ayuda, abrirNovedades_(true)). */
 const NOVEDADES = [
   {
+    id: '2026-11-21-usuarios-recursos', fecha: '21-11-2026', titulo: 'Usuarios Recursos y Modo SSO',
+    items: [
+      { ico: '🔑', t: 'Usuarios Recursos (App Bitácora)', perfiles: ['admin'],
+        d: 'En Administración › <b>🔑 Usuarios Recursos</b> creas la cuenta de cada recurso de prevención: usuario = inicial del nombre + apellido del líder / ⭐ titular (Alex Medina → <code>amedina</code>) y clave por defecto <code>bmp.2627</code> en las BMP (cada tipo con su sigla), ' +
+           'una por una o <b>todas las faltantes</b> de un área (baja un Excel con usuarios y claves). Cambias claves y activas / desactivas cuentas. Estas cuentas solo entran a la App Bitácora.' },
+      { ico: '🦺', t: 'Modo SSO y perfil SSO sin comunas', perfiles: ['admin'],
+        d: 'En tu menú de usuario › «Ver como…» está el <b>🦺 Modo SSO</b> para revisar lo que ve ese perfil. Al crear un usuario SSO ya no se piden comunas.' },
+    ],
+  },
+  {
     id: '2026-11-21-turnos-gestores-temporada', fecha: '21-11-2026', titulo: 'Turnos de Gestores',
     items: [
       { ico: '👥', t: 'Turnos de Gestores por temporada', perfiles: ['admin', 'subgerente', 'jefe', 'grt'],

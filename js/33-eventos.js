@@ -45,6 +45,8 @@ function bindEvents() {
     const vic = (state.comunas || []).find(c => Number(c.id_comuna) === 9211);
     entrarSimulacion_({ perfil: 'Visor', asociacion: 'MALLECO', comunaId: vic ? vic.id : (state.activeComunaId || null) });
   });
+  // Modo SSO (SQL 184): Visor + marca SSO → solo Planificador gráfico, Tablero y Gestión de Recursos (consulta, todas las áreas)
+  document.getElementById('btn-sim-sso').addEventListener('click', () => entrarSimulacion_({ perfil: 'Visor', sso: true }));
   document.getElementById('btn-sim-salir').addEventListener('click', salirSimulacion_);
 
   document.getElementById('btn-open-change-password').addEventListener('click', () => {

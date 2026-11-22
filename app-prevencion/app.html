@@ -327,7 +327,7 @@ function toast(m) { const t = document.createElement('div'); t.className = 'toas
  * nueva se FUERZA la actualización: primero se envían los pendientes y luego se recarga (el service worker trae app.html de la red).
  * Si hay un avance a medio registrar, espera a que se cierre el formulario. SIN señal: la actualización queda PENDIENTE
  * (localStorage) y se instala sola al volver la señal. La cola de pendientes y los datos guardados (IndexedDB) no se pierden al actualizar. */
-const APP_VERSION = '1.8.1';
+const APP_VERSION = '1.8.2';
 const ACT_KEY = 'pta-act-pendiente', ACT_CADA_MS = 15 * 60 * 1000;
 function actLeer() { try { return localStorage.getItem(ACT_KEY) || ''; } catch (e) { return ''; } }
 function actGuardar(v) { try { if (v) localStorage.setItem(ACT_KEY, v); else localStorage.removeItem(ACT_KEY); } catch (e) { /* sin almacenamiento */ } }
@@ -1245,9 +1245,9 @@ function abrirAvance(id, reg) {
       '<input type="file" id="av-f-gal" accept="image/*,application/pdf" hidden>' +
       '<div id="av-arch" class="av-arch">' + arcInicial + '</div>' +
       '<label>Observación</label><textarea id="av-obs" rows="2" placeholder="Qué se hizo, dónde, con quién…">' + esc(editando ? (reg.observacion || '') : '') + '</textarea>' +
-      '<label>Ubicación</label>' +
+      '<label>Ubicación <span style="color:var(--err);">*</span> <span class="muted" style="font-weight:400;">(obligatoria)</span></label>' +
       '<div class="av-mapa" id="av-mapa" style="height:210px;"></div>' +
-      '<div class="av-geo-row"><button type="button" class="av-btn" id="av-geo">📍 Usar mi ubicación</button><span class="muted" id="av-geo-info">' + (tieneGeo ? coordGms(reg.lat, reg.lng) : 'Opcional · toca el mapa para elegir el lugar') + '</span></div>' +
+      '<div class="av-geo-row"><button type="button" class="av-btn" id="av-geo">📍 Usar mi ubicación</button><span class="muted" id="av-geo-info">' + (tieneGeo ? coordGms(reg.lat, reg.lng) : 'Obligatoria · usa tu ubicación o toca el mapa en el lugar de la acción') + '</span></div>' +
       '<div id="av-err" class="aviso err" style="display:none;"></div>' +
       (!editando && hist.length ? '<details class="av-hist"><summary>Historial (' + hist.length + ')</summary>' + historialHtml(id) + '</details>' : '') +
     '</div>' +
@@ -1262,7 +1262,7 @@ function abrirAvance(id, reg) {
   const mapaAv = montarMapa($('av-mapa'), tieneGeo ? reg.lat : null, tieneGeo ? reg.lng : null, {
     editable: true,
     contexto: a.area_nombre ? { area: a.area_nombre } : null,
-    onMove: (la, ln) => { geo = { lat: la, lng: ln }; $('av-geo-info').textContent = coordGms(la, ln) + ' · elegido en el mapa'; }
+    onMove: (la, ln) => { geo = { lat: la, lng: ln }; $('av-geo-info').style.color = ''; $('av-geo-info').textContent = coordGms(la, ln) + ' · elegido en el mapa'; }
   });
   if (!tieneGeo && mp && mapaAv.map) mapaAv.map.setView([mp.lat, mp.lng], 14);
   $('av-geo').onclick = () => {
@@ -1271,8 +1271,10 @@ function abrirAvance(id, reg) {
     navigator.geolocation.getCurrentPosition(p => {
       geo = { lat: p.coords.latitude, lng: p.coords.longitude };
       mapaAv.mover(geo.lat, geo.lng, true);
+      $('av-geo-info').style.color = '';
       $('av-geo-info').textContent = coordGms(geo.lat, geo.lng) + ' · precisión ±' + Math.round(p.coords.accuracy) + ' m';
-    }, () => { $('av-geo-info').textContent = 'No se pudo obtener la ubicación (permiso denegado o sin señal).'; }, { enableHighAccuracy: true, timeout: 12000 });
+      if ($('av-err').style.display !== 'none' && /ubicaci/i.test($('av-err').textContent)) $('av-err').style.display = 'none';
+    }, () => { $('av-geo-info').textContent = 'No se pudo obtener la ubicación: activa el GPS y el permiso de ubicación, o toca el mapa en el lugar de la acción.'; }, { enableHighAccuracy: true, timeout: 15000 });
   };
   const mostrarArchivo = () => {
     $('av-arch').innerHTML = archivo
@@ -1368,6 +1370,7 @@ async function guardarEdicion(a, reg, v) {
   const cant = v.cant(), fecha = v.fecha();
   if (!(cant > 0)) return err('La cantidad debe ser mayor que 0.');
   if (!fecha || fecha > hoyISO()) return err('Elige una fecha válida (no futura).');
+  if (!geoValida(v.geo())) return faltaUbicacion(err);
   $('av-err').style.display = 'none';
   const btn = $('av-guardar'); btn.disabled = true; btn.textContent = 'Guardando…';
   const arch = v.archivo();
@@ -1401,11 +1404,21 @@ async function reducirImagen(file) {
   const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.8));
   return new File([blob || file], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
 }
+// Ubicación OBLIGATORIA al registrar o modificar una acción (v1.8.2)
+function geoValida(g) {
+  return !!g && isFinite(g.lat) && isFinite(g.lng) && Math.abs(g.lat) <= 90 && Math.abs(g.lng) <= 180 && !(g.lat === 0 && g.lng === 0);
+}
+function faltaUbicacion(err) {
+  err('📍 La ubicación es obligatoria: toca «Usar mi ubicación» (funciona sin señal con el GPS encendido) o toca el mapa en el lugar de la acción.');
+  const m = $('av-mapa'); if (m && m.scrollIntoView) m.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const i = $('av-geo-info'); if (i) i.style.color = 'var(--err)';
+}
 async function guardarAvance(a, v) {
   const err = m => { $('av-err').textContent = m; $('av-err').style.display = ''; };
   const cant = v.cant(), fecha = v.fecha();
   if (!(cant > 0)) return err('La cantidad debe ser mayor que 0.');
   if (!fecha || fecha > hoyISO()) return err('Elige una fecha válida (no futura).');
+  if (!geoValida(v.geo())) return faltaUbicacion(err);
   $('av-err').style.display = 'none';
   const btn = $('av-guardar'); btn.disabled = true; btn.textContent = 'Guardando…';
   const arch = v.archivo();

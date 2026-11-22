@@ -79,9 +79,9 @@ function renderSimulacionPerfil_() {
   let franja = document.getElementById('franja-simulacion');
   if (!state.simulacion) { if (franja) franja.remove(); return; }
   const s = state.simulacion;
-  const nombrePerfil = s.asociacion ? 'Asociación de Agricultores' : s.subgerencia ? 'Subgerente' : s.perfil === 'Jefe de Área Relacionamiento' ? 'Jefe de Área' : s.perfil;
+  const nombrePerfil = s.sso ? 'Perfil SSO' : s.asociacion ? 'Asociación de Agricultores' : s.subgerencia ? 'Subgerente' : s.perfil === 'Jefe de Área Relacionamiento' ? 'Jefe de Área' : s.perfil;
   const cm = (state.comunas || []).find(c => c.id === s.comunaId);
-  const donde = s.asociacion ? aTitulo_(s.asociacion) + ' · área ' + aTitulo_(AGR_AREA_VISIBLE)
+  const donde = s.sso ? 'Todas las áreas · solo consulta' : s.asociacion ? aTitulo_(s.asociacion) + ' · área ' + aTitulo_(AGR_AREA_VISIBLE)
     : s.subgerencia ? 'Subgerencia ' + aTitulo_(s.subgerencia) + ' (' + (state.misAreasIds || []).length + ' áreas)'
     : s.perfil === 'Jefe de Área Relacionamiento' ? 'Área ' + s.area : (cm ? cm.comuna : s.comunaId);
   if (!franja) {
