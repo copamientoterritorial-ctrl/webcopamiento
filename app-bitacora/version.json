@@ -1,9 +1,10 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "fecha": "2026-11-22",
   "notas": [
-    "Nueva vista «Mi jornada»: el estado de hoy de tu recurso y el botón para iniciar la apertura o registrar actividades.",
-    "Registro de actividades de la jornada (con fotos opcionales), también sin señal.",
-    "Opción «Recordar usuario y clave en este teléfono» al ingresar."
+    "Actividades encadenadas: la primera parte a la hora del turno, cada una sigue a la anterior y una barra muestra el avance del turno.",
+    "Apertura por secciones plegables: turno Diurno / Nocturno con el turno propuesto, reemplazantes con RUT, patente opcional.",
+    "Mapa con los fundos de tu área, búsqueda por nombre o código y coordenadas en grados-minutos-segundos.",
+    "Aviso en el teléfono si pasan 2 horas sin registrar actividades."
   ]
 }

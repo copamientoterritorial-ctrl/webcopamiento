@@ -1160,7 +1160,10 @@ function grpRender_() {
   const si = v => v ? '<span class="gr-pill ok">Sí</span>' : '<span style="color:var(--text-tertiary);">No</span>';
   const porCargo = {}; lista.forEach(p => { porCargo[p.cargo] = (porCargo[p.cargo] || 0) + 1; });
   const filas = lista.map(p => '<tr' + (p.titular ? ' class="grp-titular"' : '') + '>' +
-    '<td>' + (p.titular ? '⭐ ' : '') + '<b>' + escapeHtml_(p.nombre) + '</b></td><td>' + escapeHtml_(p.rut) + '</td><td>' + escapeHtml_(p.cargo) + '</td>' +
+    '<td>' + (p.titular ? '⭐ ' : '') + '<b>' + escapeHtml_(p.nombre) + '</b>' +
+      (p.es_reemplazante ? ' <span class="gr-pill" style="background:#FEF3C7;color:#92400E;" title="Agregado desde la App Bitácora como reemplazo (SQL 188)">Reemplazante' +
+        (p.reemplazante_desde ? ' · desde ' + escapeHtml_(String(p.reemplazante_desde).slice(8, 10) + '-' + String(p.reemplazante_desde).slice(5, 7)) : '') + '</span>' : '') +
+      '</td><td>' + escapeHtml_(p.rut) + '</td><td>' + escapeHtml_(p.cargo) + '</td>' +
     '<td>' + si(p.titular) + '</td><td>' + si(p.conductor) + '</td><td>' + si(p.curso_call_fire) + '</td>' +
     '<td>' + escapeHtml_(p.telefono || '—') + '</td><td>' + escapeHtml_(p.correo || '—') + '</td><td>' + escapeHtml_(p.direccion || '—') + '</td><td style="text-align:center;">' + escapeHtml_(grTemporadas_(p.temporada)) + '</td>' +
     '<td style="white-space:nowrap;">' + (editable ? '<button class="gr-del" style="width:auto;padding:0 7px;" data-grp="editar" data-id="' + escapeHtml_(p.id) + '" title="Editar">✏️</button> ' +
@@ -1312,6 +1315,7 @@ async function descargarPersonasGestion_() {
       'Área': r.area || '', 'Sector': r.sector || '', 'Comuna': r.comuna || '', 'Empresa (EESS)': r.empresa || '', 'Turno': r.actividad || '',
       'N° personas del recurso': r.n_personas == null ? '' : Number(r.n_personas),
       'Nombre completo': p.nombre, 'RUT': p.rut, 'Cargo': p.cargo, 'Titular': sn(p.titular), 'Conductor': sn(p.conductor),
+      'Reemplazante (App Bitácora)': p.es_reemplazante ? 'Sí' + (p.reemplazante_desde ? ' · desde ' + p.reemplazante_desde : '') : '',
       'Curso certificado Call Fire': sn(p.curso_call_fire), 'Teléfono': p.telefono || '', 'Correo': p.correo || '', 'Dirección': p.direccion || '',
       'N° temporadas trabajando': p.temporada == null ? '' : Number(p.temporada), 'Registrado el': fh(p.creado_en), 'Actualizado el': fh(p.actualizado_en),
       'Actualizado por': quien[p.actualizado_por] || p.actualizado_por || '', 'ID persona': p.id }; })
@@ -1617,6 +1621,7 @@ async function descargarGestion_() {
       const filasP = pers.map(p => { const r = porId[p.recurso_id] || {}; return {
         'Clave radial': claveRecurso_(r) || '', 'ID': r.codigo_ref || '', 'Tipo de recurso': r.tipo_recurso || '', 'Área': r.area || '',
         'Nombre completo': p.nombre, 'RUT': p.rut, 'Cargo': p.cargo, 'Titular': sn(p.titular), 'Conductor': sn(p.conductor),
+        'Reemplazante': p.es_reemplazante ? 'Sí' : '',
         'Curso Call Fire': sn(p.curso_call_fire), 'Teléfono': p.telefono || '', 'Correo': p.correo || '', 'Dirección': p.direccion || '', 'N° temporadas': p.temporada == null ? '' : Number(p.temporada) }; })
         .sort((a, b) => String(a['Área']).localeCompare(String(b['Área']), 'es') || String(a.ID).localeCompare(String(b.ID), 'es', { numeric: true }) ||
           (a.Titular === 'Sí' ? -1 : b.Titular === 'Sí' ? 1 : 0));

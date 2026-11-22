@@ -679,6 +679,26 @@ body.es-sso #gr-nuevo, body.es-sso #gr-subir, body.es-sso #gr-empresas{display:n
 @media (max-width:800px){.dg-cuerpo{flex-direction:column;} .dg-lado{width:auto;} .dg-mapa-caja{min-height:360px;}}
 #turnosgestor-panel{position:absolute;top:60px;left:0;right:0;bottom:0;z-index:350;background:var(--bg-light);display:none;flex-direction:column;color:var(--text-primary);}
 #turnosgestor-panel.show{display:flex;}
+/* 📋 Bitácora · Aperturas (js/42, 22-11-2026) */
+#bitacora-panel{position:absolute;top:60px;left:0;right:0;bottom:0;z-index:350;background:var(--bg-light);display:none;flex-direction:column;color:var(--text-primary);}
+#bitacora-panel.show{display:flex;}
+#bitacora-panel .bt-f{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--text-secondary);}
+.bt-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;padding:8px 14px 0;}
+.bt-kpi{background:var(--white);border:1px solid var(--border);border-top:4px solid var(--c);border-radius:10px;padding:8px 10px;}
+.bt-kpi b{display:block;font-size:20px;line-height:1.1;}
+.bt-kpi span{font-size:11px;color:var(--text-secondary);font-weight:700;}
+#bitacora-panel .gr-cuerpo{flex:1;min-height:0;display:flex;flex-direction:column;padding:8px 14px 12px;}
+.bt-tabla td{padding:6px 8px;vertical-align:top;}
+.bt-tabla td small{color:var(--text-secondary);}
+.bt-fila{cursor:pointer;}
+.bt-fila.on td{background:color-mix(in srgb,#0F766E 8%,transparent);}
+.bt-chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);white-space:nowrap;}
+.bt-av{height:8px;border-radius:999px;background:var(--border);overflow:hidden;margin-top:3px;}
+.bt-av i{display:block;height:100%;border-radius:999px;}
+.bt-det td{background:var(--bg-light);white-space:normal;}
+.bt-det-in{padding:6px 4px 10px;}
+.bt-dot{border-collapse:collapse;margin-top:6px;font-size:12px;}
+.bt-dot th,.bt-dot td{border-bottom:1px solid var(--border);padding:4px 10px;text-align:left;}
 .tg-pinceles{display:flex;gap:4px;flex-wrap:wrap;}
 .tg-pinceles button{border:1px solid var(--border);background:var(--white);border-radius:8px;padding:5px 9px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
 .tg-pinceles button i{width:12px;height:12px;border-radius:4px;display:inline-block;}

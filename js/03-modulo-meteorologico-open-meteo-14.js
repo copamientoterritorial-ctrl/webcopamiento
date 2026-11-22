@@ -1103,6 +1103,7 @@ const AUD_CAPACIDADES = [
   ['🌲 Planificador CMPC', 'Turnos de Gestores: programar (fines de semana y feriados desde hoy; + delegado de prevención del área, SQL 185)', null, null, ['si (también días pasados)', 'no (solo ve)', 'Sus áreas', 'no (solo ve; salvo delegado)', 'no', 'no', 'no']],
   ['🌲 Planificador CMPC', 'Turnos de Gestores de relacionamiento: ver', null, null, ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
   ['⚙️ Administración', '🔑 Usuarios Recursos: crear cuentas de los recursos para la App Bitácora, claves, activar / desactivar (SQL 186)', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
+  ['🌲 Planificador CMPC', '📋 Bitácora: Aperturas — tabla de aperturas de la App Bitácora y Excel (Aperturas / Personal) (js/42, SQL 188)', null, null, ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
   ['🧭 Planificador de Alertas', 'Al crear una ruta (no CMPC): ofrecer agregarla a Amarilla / Roja', 'planificador_mapa', 'editar', ['si', 'si', 'si', 'si', 'Desde Amarilla', 'no', 'no']],
   ['🧭 Planificador de Alertas', 'Descargar PDF del plan', 'planificador_mapa', 'ver', ['si', 'si', 'si', 'si', 'no', 'no', 'no']],
   ['🔥 Periodo Crítico', 'Ver periodos críticos y copamiento', 'periodo_critico', 'ver', ['si', 'si', 'si', 'si', 'si', 'si', 'no']],

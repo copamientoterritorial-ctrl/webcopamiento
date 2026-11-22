@@ -138,6 +138,9 @@ const MENU_MODULOS = [
     nivel: () => (tgEsAdmin_() || state.esDelegadoPrev || (esJefeAreaPerfil_(state.perfil.perfil) && !esSubgerente_() && !state.esGRT)) ? 'editar' : 'ver',
     nota: () => tgEsAdmin_() ? 'Incluye días pasados' : state.esDelegadoPrev ? 'Delegado de prevención: su área' :
       (esJefeAreaPerfil_(state.perfil.perfil) && !esSubgerente_() && !state.esGRT) ? 'Sus áreas · fines de semana y feriados' : 'Solo ve' },
+  // 📋 Bitácora · Aperturas (22-11-2026, SQL 183/188; js/42): solo consulta + Excel; el RLS de bit_jornada limita a sus áreas
+  { id: 'tab-bitacora', grupo: '🌲 Planificador CMPC', nombre: 'Bitácora: Aperturas (App Bitácora)', ver: () => puedeBitacoraWeb_(), nivel: () => 'ver',
+    nota: () => state.perfil && state.perfil.perfil === 'Administrador' ? 'Todas las áreas' : 'Sus áreas' },
   { id: 'tab-planificador', grupo: '🌲 Planificador CMPC', nombre: 'Planificador gráfico', ver: () => puedeVerModulo_('planificador_grafico'), nivel: () => nivelPermiso_('planificador_grafico') },
   { id: 'tab-tablero', grupo: '🌲 Planificador CMPC', nombre: 'Tablero de Recursos', ver: () => puedeVerModulo_('planificador_grafico'), nivel: () => 'ver' },
   { id: 'tab-gestion', grupo: '🌲 Planificador CMPC', nombre: 'Gestión de Recursos', ver: () => puedeGestionRecursos_(), nivel: () => esSSO_() ? 'ver' : 'editar',

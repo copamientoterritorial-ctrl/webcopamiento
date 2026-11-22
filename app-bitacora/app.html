@@ -197,6 +197,50 @@
   .foto-add { width:84px; height:84px; border-radius:10px; border:2px dashed var(--borde); background: var(--card); font-size:26px; cursor:pointer; }
   .foto-ver { position:fixed; inset:0; z-index:80; background: rgba(2,6,23,.92); display:flex; align-items:center; justify-content:center; }
   .foto-ver img { max-width:100%; max-height:100%; }
+  /* v1.2.0 · Formulario de apertura en secciones plegables */
+  .tg { border:1px solid var(--borde); border-radius:14px; margin-top:10px; background: var(--card); overflow:hidden; }
+  .tg.err-tg { border-color:#FCA5A5; }
+  .tg-h { width:100%; display:flex; align-items:center; gap:10px; border:0; background: #F8FAFC; padding:12px 12px; font:inherit; text-align:left; cursor:pointer; color: var(--txt); }
+  .tg.on .tg-h { border-bottom:1px solid var(--borde); }
+  .tg-ico { font-size:20px; flex:0 0 auto; width:26px; text-align:center; }
+  .tg-t { flex:1; min-width:0; font-size:14.5px; font-weight:800; }
+  .tg-t small { display:block; font-size:12px; font-weight:600; color: var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+  .tg-ok { flex:0 0 auto; font-size:11px; font-weight:800; padding:2px 8px; border-radius:999px; }
+  .tg-ok.si { background:#DCFCE7; color:#166534; } .tg-ok.no { background:#FEE2E2; color:#991B1B; } .tg-ok.op { background: var(--borde); color: var(--sub); }
+  .tg-car { flex:0 0 auto; color: var(--sub); font-size:14px; transition: transform .15s; }
+  .tg.on .tg-car { transform: rotate(180deg); }
+  .tg-b { display:none; padding:4px 12px 12px; }
+  .tg.on .tg-b { display:block; }
+  .tg-b > .sec-t:first-child { margin-top:6px; }
+  .turnos { display:grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap:6px; }
+  .turnos button { border:1px solid var(--borde); background: var(--card); border-radius:12px; padding:9px 6px; font:inherit; font-size:14px; font-weight:800; cursor:pointer; position:relative; }
+  .turnos button small { display:block; font-size:10.5px; font-weight:700; color: var(--sub); }
+  .turnos button.on { background: var(--pri2); color:#fff; border-color: var(--pri2); }
+  .turnos button.on small { color:#DCFCE7; }
+  .turnos button.prop { box-shadow: inset 0 0 0 2px #F59E0B; }
+  .fu-sel { display:flex; align-items:center; gap:10px; background: color-mix(in srgb, #A16207 9%, white); border:1px solid #D9A441; border-radius:12px; padding:9px 12px; margin-top:8px; }
+  .fu-sel b { flex:1; font-size:14px; min-width:0; }
+  .fu-lista { max-height:240px; overflow-y:auto; border:1px solid var(--borde); border-radius:12px; margin-top:6px; }
+  .fu-lista button { display:flex; justify-content:space-between; gap:8px; width:100%; text-align:left; border:0; border-bottom:1px solid var(--borde); background: var(--card); padding:10px 12px; font:inherit; font-size:13.5px; cursor:pointer; }
+  .fu-lista button:last-child { border-bottom:0; }
+  .fu-lista button small { color: var(--sub); white-space:nowrap; }
+  .gms { font-variant-numeric: tabular-nums; }
+  .fu-tt { background: rgba(15,23,42,.82); color:#fff; border:0; font-weight:700; font-size:11px; box-shadow:none; }
+  .fu-tt::before { display:none; }
+  /* Avance del turno (registro de actividades) */
+  .prog { margin-top:12px; }
+  .prog-bar { height:12px; border-radius:999px; background: rgba(255,255,255,.28); overflow:hidden; }
+  .prog-bar i { display:block; height:100%; border-radius:999px; background:#FDE047; }
+  .prog-txt { display:flex; justify-content:space-between; font-size:12px; font-weight:700; margin-top:4px; gap:8px; }
+  .prog.claro .prog-bar { background: var(--borde); }
+  .prog.claro .prog-bar i { background: linear-gradient(90deg, #15803D, #0F766E); }
+  .prog.claro .prog-bar i.ok { background:#16A34A; }
+  .prog.claro .prog-txt { color: var(--sub); }
+  .alerta-2h { background:#FEE2E2; color:#7F1D1D; border:2px solid #F87171; border-radius:14px; padding:12px 14px; margin-bottom:10px; font-weight:700; font-size:14px; animation: latido 1.4s ease-in-out infinite; }
+  @keyframes latido { 50% { box-shadow: 0 0 0 6px rgba(248,113,113,.25); } }
+  .hora-fija { display:flex; align-items:center; justify-content:space-between; gap:8px; background: var(--bg); border-radius:10px; padding:10px 12px; font-size:14px; }
+  .hora-fija b { font-size:18px; }
+  .rapidos { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
   @media (max-width:380px) { .kpi b { font-size:19px; } .seg button { font-size:12.5px; } }
 </style>
 </head>
@@ -254,20 +298,26 @@
  *   recurso .... cuenta vinculada a un recurso: su jornada de hoy · consulta (GRD …) ...... solo ver
  * Sin señal: todo se guarda en el teléfono (IndexedDB 'bitacora-pwa': cache + cola) y se envía al volver la señal.
  * El id de cada apertura lo genera el teléfono → reenviar no duplica (bit_guardar_jornada es idempotente).
+ * v1.2.0 (SQL 188): apertura en secciones plegables, turno por Diurno / Nocturno con el propuesto, reemplazantes con RUT a las personas
+ *   del recurso, fundos del área en el mapa (polígonos) y búsqueda «nombre (código)», coordenadas en grados-minutos-segundos,
+ *   «Actividad general» (antes Foco planificado). Actividades ENCADENADAS: la 1ª desde el inicio del turno y cada una desde el fin de la
+ *   anterior; barra de avance del turno (100 % = fin del turno); se elimina solo la última; aviso tras 2 h sin registrar (app abierta).
  * Versión: subir el MISMO número en APP_VERSION, en VERSION de sw-bitacora.js y en version.json.
  * ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-bitacora-app', detectSessionInUrl: false } });
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const DOMINIO_CUENTAS = 'recursos.copamientoterritorial.cl';   // = Edge Function admin-cuentas-recurso y js/41 de la web
 const DIAS_CARGA = 14;   // aperturas que se descargan hacia atrás
 
 const DIAS_ACT = 2;      // actividades que se descargan hacia atrás (las de días anteriores se piden al abrir la ficha)
 const BUCKET_FOTOS = 'bit-fotos';
+const HORAS_ALERTA = 2;      // aviso si pasan 2 h dentro del turno sin registrar actividades
+const ALERTA_REPITE_MIN = 30; // el aviso se repite cada 30 min mientras siga sin registrar
 const S = { ctx: null, cat: { estados: [], focos: [], turnos: [], tipos: [], grupos: [], actividades: [], habil: {} }, recursos: [], jornadas: [], desde: '', descarga: null,
   actividades: [], actDesde: '', actJornadas: new Set(), sinActividades: false, aIdx: new Map(), urlFotos: new Map(),
-  pendientes: [], sincronizando: false, sec: '', fecha: '', filtros: { area: '', tipo: '', q: '', kpi: '' }, fundos: {}, jIdx: new Map(), mapaTab: null };
+  pendientes: [], sincronizando: false, sec: '', fecha: '', filtros: { area: '', tipo: '', q: '', kpi: '' }, fundos: {}, fundosGeo: {}, jIdx: new Map(), mapaTab: null };
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const pad = n => String(n).padStart(2, '0');
@@ -454,6 +504,7 @@ async function cargarTodo() {
   await refrescarPendientes();
   document.body.classList.remove('cargando');
   pintar();
+  revisarAlertas();
 }
 // Catálogo de actividades (SQL 187) y actividades de los últimos días. Sin el 187 la app sigue funcionando solo con aperturas.
 async function cargarActividades() {
@@ -508,6 +559,32 @@ async function fundosDeArea(idArea) {
   } catch (e) { S.fundos[k] = (await cacheGet(k)) || []; }
   return S.fundos[k];
 }
+// Polígonos de los fundos CMPC del área (SQL 188, simplificados) para el mapa; quedan en el teléfono para usarlos sin señal
+async function fundosGeoDeArea(idArea) {
+  if (idArea == null) return null;
+  const k = 'fundosgeo_' + idArea;
+  if (S.fundosGeo[k] !== undefined) return S.fundosGeo[k];
+  try {
+    const { data, error } = await sb.rpc('bit_fundos_area_geo', { p_id_area: Number(idArea) });
+    if (error) throw error;
+    S.fundosGeo[k] = data && Array.isArray(data.features) ? data : null;
+    if (S.fundosGeo[k]) cacheSet(k, S.fundosGeo[k]);
+  } catch (e) { S.fundosGeo[k] = (await cacheGet(k)) || null; }
+  return S.fundosGeo[k];
+}
+const fundoTxt = x => (x.nombre || 'Fundo') + (x.cod_fundo ? ' (' + x.cod_fundo + ')' : '');
+// ¿En qué fundo cae el punto? Polígono que lo contiene (si hay polígonos); si no, null
+function fundoEnPunto(fc, lat, lng) {
+  if (!fc || lat == null || lng == null) return null;
+  const enAnillo = (ring) => { let d = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1]; if (((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / ((yj - yi) || 1e-12) + xi)) d = !d; } return d; };
+  const enPol = pol => pol.length && enAnillo(pol[0]) && !pol.slice(1).some(enAnillo);
+  for (const f of fc.features) {
+    const g = f.geometry; if (!g) continue;
+    const pols = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+    if (pols.some(enPol)) return f.properties || {};
+  }
+  return null;
+}
 
 /* ───────── Reglas (mismas que el servidor) ───────── */
 const ROL_TXT = { admin: 'Administrador', gestion: 'Gestión de sus áreas', recurso: 'Cuenta de recurso', consulta: 'Solo consulta', sin_acceso: 'Sin acceso' };
@@ -527,13 +604,16 @@ const turnoTxt = t => t ? hm(t.hora_inicio) + '–' + hm(t.hora_fin) : '';
 const gracia = () => Number(S.ctx && S.ctx.horas_gracia_cierre) || 4;
 const recurso = id => S.recursos.find(r => r.id === id);
 // Cierre automático = fin del turno (+1 día si cruza la medianoche) + horas de gracia; sin turno: fin del día operativo + gracia
+// Inicio y fin del turno (el nocturno termina al día siguiente), en la hora del teléfono
+function horarioTurno(fecha, turnoCod) {
+  const t = turnoCat(turnoCod); if (!t || !fecha) return null;
+  const p = fecha.split('-').map(Number);
+  const [h1, m1] = hm(t.hora_inicio).split(':').map(Number), [h2, m2] = hm(t.hora_fin).split(':').map(Number);
+  return { ini: new Date(p[0], p[1] - 1, p[2], h1, m1), fin: new Date(p[0], p[1] - 1, p[2] + ((h2 * 60 + m2) <= (h1 * 60 + m1) ? 1 : 0), h2, m2) };
+}
 function cierreProgramado(fecha, turnoCod) {
-  const t = turnoCat(turnoCod), p = fecha.split('-').map(Number);
-  let fin;
-  if (t) {
-    const [h1, m1] = hm(t.hora_inicio).split(':').map(Number), [h2, m2] = hm(t.hora_fin).split(':').map(Number);
-    fin = new Date(p[0], p[1] - 1, p[2] + ((h2 * 60 + m2) <= (h1 * 60 + m1) ? 1 : 0), h2, m2);
-  } else fin = new Date(p[0], p[1] - 1, p[2] + 1, 0, 0);
+  const h = horarioTurno(fecha, turnoCod), p = fecha.split('-').map(Number);
+  const fin = h ? h.fin : new Date(p[0], p[1] - 1, p[2] + 1, 0, 0);
   return new Date(fin.getTime() + gracia() * 3600e3).toISOString();
 }
 const cerradaDe = j => !!j && (!!j.cierre_en || (!!j.cierre_programado && Date.now() > new Date(j.cierre_programado).getTime()));
@@ -555,7 +635,9 @@ function filaDesdePayload(p, base) {
     km_inicio: p.km_inicio === '' || p.km_inicio == null ? null : Number(p.km_inicio), cod_fundo: p.cod_fundo || null, fundo_nombre: p.fundo_nombre || null,
     lat: p.lat, lng: p.lng, precision_m: p.precision_m, observacion: p.observacion || null, dotacion: p.dotacion || [], dotacion_n: (p.dotacion || []).length,
     jefe_nombre: jefe ? jefe.nombre : null, jefe_telefono: jefe ? jefe.telefono : null,
-    cierre_programado: cierreProgramado(p.fecha_operativa, p.turno), creado_dispositivo_en: p.creado_dispositivo_en
+    cierre_programado: cierreProgramado(p.fecha_operativa, p.turno), creado_dispositivo_en: p.creado_dispositivo_en,
+    inicio_programado: (horarioTurno(p.fecha_operativa, p.turno) || {}).ini ? horarioTurno(p.fecha_operativa, p.turno).ini.toISOString() : null,
+    fin_programado: (horarioTurno(p.fecha_operativa, p.turno) || {}).fin ? horarioTurno(p.fecha_operativa, p.turno).fin.toISOString() : null
   });
 }
 // Índice recurso|fecha → apertura (lo del servidor + lo pendiente de envío encima)
@@ -651,6 +733,58 @@ function jornadaActual(r) {
   if (ja && ja.en_servicio && !cerradaDe(ja)) return { f: ay, j: ja };
   return { f: hoy, j: null };
 }
+// Avance del turno: 100 % = actividades registradas hasta el fin del turno (12:00 → 20:00; 22:00 → 06:00 del día siguiente)
+function avanceDe(j) {
+  if (!j || !j.en_servicio) return null;
+  const h = j.inicio_programado && j.fin_programado ? { ini: new Date(j.inicio_programado), fin: new Date(j.fin_programado) } : horarioTurno(j.fecha_operativa, j.turno_codigo);
+  if (!h || !(h.fin > h.ini)) return null;
+  const l = actividadesDe(j.id);
+  const hasta = l.length ? new Date(Math.max(...l.map(a => new Date(a.fin).getTime()))) : null;
+  const pct = hasta ? Math.max(0, Math.min(100, Math.round(100 * (hasta - h.ini) / (h.fin - h.ini)))) : 0;
+  const desde = hasta || h.ini;   // la próxima actividad empieza aquí
+  return { ini: h.ini, fin: h.fin, hasta, desde, pct, completo: !!hasta && hasta >= new Date(h.fin.getTime() - 60000), n: l.length };
+}
+function progHtml(j, claro) {
+  const a = avanceDe(j); if (!a) return '';
+  return '<div class="prog' + (claro ? ' claro' : '') + '"><div class="prog-bar" role="progressbar" aria-valuenow="' + a.pct + '" aria-valuemin="0" aria-valuemax="100"><i' + (a.completo ? ' class="ok"' : '') + ' style="width:' + a.pct + '%"></i></div>' +
+    '<div class="prog-txt"><span>' + (a.completo ? '✅ Turno completo' : 'Avance del turno ' + a.pct + ' %') + '</span><span>' + (a.hasta ? 'registrado hasta ' + hhmm(a.hasta) : 'sin actividades') + ' · turno ' + hhmm(a.ini) + '–' + hhmm(a.fin) + '</span></div></div>';
+}
+// ¿Lleva 2 h o más dentro del turno sin registrar? Devuelve los minutos sin registrar (o 0)
+function minutosSinRegistrar(j) {
+  const a = avanceDe(j); if (!a || a.completo || cerradaDe(j)) return 0;
+  const ahora = new Date(), tope = ahora < a.fin ? ahora : a.fin;
+  if (ahora < a.ini) return 0;
+  const min = Math.round((tope - a.desde) / 60000);
+  return min >= HORAS_ALERTA * 60 ? min : 0;
+}
+// Aviso tras 2 h sin registrar (cuenta del recurso): franja en «Mi jornada», vibración, mensaje y notificación del teléfono.
+// Funciona con la app abierta o recién en segundo plano (una app web no puede avisar con la app cerrada sin notificaciones push).
+function pedirPermisoAvisos() {
+  try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {}); } catch (e) { /* sin notificaciones */ }
+}
+async function notificar(titulo, cuerpo, tag) {
+  try {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const op = { body: cuerpo, tag, renotify: true, icon: 'icon-192.png', badge: 'icon-192.png', vibrate: [300, 150, 300] };
+    const reg = navigator.serviceWorker ? await navigator.serviceWorker.getRegistration() : null;
+    if (reg && reg.showNotification) await reg.showNotification(titulo, op); else new Notification(titulo, op);
+  } catch (e) { /* el navegador no permite la notificación */ }
+}
+function revisarAlertas() {
+  if (!S.ctx || S.sinActividades) return;
+  S.recursos.filter(r => r.propio).forEach(r => {
+    const { j } = jornadaActual(r); if (!j || !j.en_servicio) return;
+    const min = minutosSinRegistrar(j); if (!min) return;
+    const k = 'bit-alerta-' + j.id; let ult = 0;
+    try { ult = Number(localStorage.getItem(k)) || 0; } catch (e) { ult = S.ultAlerta || 0; }
+    if (Date.now() - ult < ALERTA_REPITE_MIN * 60000) return;
+    try { localStorage.setItem(k, String(Date.now())); } catch (e) { S.ultAlerta = Date.now(); }
+    const txt = 'Llevas ' + durTxt(min) + ' sin registrar actividades (' + (r.clave_radial || r.codigo_ref) + '). Registra lo que hiciste desde las ' + hhmm(avanceDe(j).desde) + '.';
+    try { if (navigator.vibrate) navigator.vibrate([400, 200, 400]); } catch (e) { /* sin vibración */ }
+    toast('⏰ ' + txt, 7000);
+    notificar('⏰ Bitácora: registra tus actividades', txt, 'bit-2h-' + j.id);
+  });
+}
 function actListaHtml(l, conVacio) {
   if (!l.length) return conVacio ? '<div class="muted" style="padding:6px 0;">' + conVacio + '</div>' : '';
   return l.map(a => {
@@ -744,14 +878,20 @@ function inicioRecursoHtml(r) {
       (puedeEditar(r, j) ? '<button class="btn" data-editar-ap="' + esc(r.id) + '" data-f="' + f + '">✏️ Cambiar</button>' : '') + '</div>';
     return html;
   }
+  const sinReg = abierta ? minutosSinRegistrar(j) : 0, av = avanceDe(j);
+  if (sinReg) html += '<div class="alerta-2h" role="alert">⏰ Llevas ' + esc(durTxt(sinReg)) + ' sin registrar actividades. Registra lo que hiciste desde las ' + esc(hhmm(av.desde)) + '.</div>';
   html += '<div class="mj" style="--c:' + (abierta ? '#15803D' : '#1D4ED8') + '"><div class="mj-rec">' + esc(nom) + ' · ' + esc(fmtDia(f)) + '</div>' +
     '<div class="mj-est">' + (abierta ? '🟢 Jornada abierta' + ayer : '✅ Jornada cerrada') + '</div>' +
     '<div class="mj-sub">' + (abierta ? 'Apertura a las ' + esc(fmtHora(hAp)) + (j._pend ? ' · ⏳ por enviar' : '') : 'Cerrada ' + esc(fmtFechaHora(j.cierre_en || j.cierre_programado)) + (j.cierre_en ? '' : ' (automático)')) + '</div>' +
     '<div class="mj-datos"><div>Turno<b>' + esc(j.turno || '—') + '</b></div><div>Dotación<b>👥 ' + (j.dotacion_n || 0) + (j.jefe_nombre ? ' · ⭐ ' + esc(j.jefe_nombre.split(' ')[0]) : '') + '</b></div>' +
     '<div>Actividades<b>🧩 ' + l.length + ' · ' + esc(durTxt(minutosAct(l))) + '</b></div>' +
-    '<div>' + (abierta ? 'Se cierra sola' : 'Fundo') + '<b>' + (abierta ? esc((isoDe(new Date(j.cierre_programado)) > hoyISO() ? 'mañana ' : '') + fmtHora(j.cierre_programado)) + ' <small style="font-weight:600;">(' + esc(tiempoHasta(j.cierre_programado)) + ')</small>' : esc(j.fundo_nombre || '—')) + '</b></div></div></div>';
+    '<div>' + (abierta ? 'Se cierra sola' : 'Fundo') + '<b>' + (abierta ? esc((isoDe(new Date(j.cierre_programado)) > hoyISO() ? 'mañana ' : '') + fmtHora(j.cierre_programado)) + ' <small style="font-weight:600;">(' + esc(tiempoHasta(j.cierre_programado)) + ')</small>' : esc(j.fundo_nombre || '—')) + '</b></div></div>' +
+    progHtml(j) + '</div>';
   html += chipsExtra(st);
-  if (puedeRegistrar(r, j)) html += '<button class="btn-xl azul" data-act-nueva="' + esc(j.id) + '">➕ Registrar actividad</button>';
+  if (puedeRegistrar(r, j) && av && new Date() < av.ini) html += '<div class="aviso info">🕒 Tu turno comienza a las <b>' + esc(hhmm(av.ini)) + '</b>. Desde esa hora registras tus actividades.</div>';
+  else if (puedeRegistrar(r, j) && av && av.completo) html += '<div class="aviso ok">✅ Registraste todo el turno. Ya puedes cerrar la jornada.</div>' +
+    (new Date(j.cierre_programado) > new Date() ? '<button class="btn" data-act-nueva="' + esc(j.id) + '" style="width:100%;margin-bottom:10px;">➕ Registrar actividad fuera de turno (desde las ' + esc(hhmm(av.desde)) + ')</button>' : '');
+  else if (puedeRegistrar(r, j)) html += '<button class="btn-xl azul" data-act-nueva="' + esc(j.id) + '">➕ Registrar actividad' + (av ? ' desde las ' + esc(hhmm(av.desde)) : '') + '</button>';
   else if (S.sinActividades) html += '<div class="aviso">El registro de actividades aún no está habilitado en la base (falta el SQL 187).</div>';
   html += '<div class="card"><div class="sec-t">🧩 Actividades de la jornada<span class="muted">' + l.length + ' · ' + esc(durTxt(minutosAct(l))) + '</span></div>' +
     actListaHtml(l, abierta ? 'Aún no registras actividades. Toca «Registrar actividad» al terminar cada una.' : 'Sin actividades registradas.') + '</div>';
@@ -820,7 +960,14 @@ function capasBase(map, modo, capas) {
   return MAPA_BASES[modo].capas.map(c => L.tileLayer(ESRI + c.s + '/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: c.nz, crossOrigin: true, className: c.relieve ? 'av-relieve-capa' : '' }).addTo(map));
 }
 const PIN_SVG = '<svg viewBox="0 0 24 32" width="30" height="40"><path d="M12 0C5.4 0 0 5.3 0 11.8 0 20.6 12 32 12 32s12-11.4 12-20.2C24 5.3 18.6 0 12 0z" fill="#E8553A" stroke="#fff" stroke-width="1.5"/><circle cx="12" cy="12" r="4.5" fill="#fff"/></svg>';
-const coordTxt = (la, ln) => la.toFixed(5).replace('.', ',') + ' · ' + ln.toFixed(5).replace('.', ',');
+// Coordenadas en grados-minutos-segundos: 38°14'25,3" S · 72°20'11,8" O
+function gms(v, pos, neg) {
+  const s = v < 0 ? neg : pos; v = Math.abs(v);
+  let g = Math.floor(v), m = Math.floor((v - g) * 60), se = Math.round(((v - g) * 60 - m) * 600) / 10;
+  if (se >= 60) { se = 0; m++; } if (m >= 60) { m = 0; g++; }
+  return g + '°' + pad(m) + "'" + se.toFixed(1).padStart(4, '0').replace('.', ',') + '" ' + s;
+}
+const coordTxt = (la, ln) => gms(la, 'N', 'S') + ' · ' + gms(ln, 'E', 'O');
 // Mapa pequeño del formulario: tocar o arrastrar el pincho mueve la ubicación; ⛶ lo agranda
 function montarMapa(cont, lat, lng, opts) {
   opts = opts || {};
@@ -844,6 +991,26 @@ function montarMapa(cont, lat, lng, opts) {
   };
   if (hay) mover(lat, lng, false); else pintarCap();
   if (opts.editable) map.on('click', e => { mover(e.latlng.lat, e.latlng.lng, false); opts.onMove && opts.onMove(e.latlng.lat, e.latlng.lng); });
+  // Fundos CMPC del área (polígonos): tocar uno marca el punto ahí y elige el fundo; el elegido se resalta
+  let capaFundos = null, fundoSel = opts.fundoSel || '';
+  const estiloFundo = f => { const on = fundoSel && String((f.properties || {}).cod_fundo) === String(fundoSel);
+    return { color: on ? '#F59E0B' : '#FDE68A', weight: on ? 3 : 1.4, fillColor: on ? '#F59E0B' : '#FACC15', fillOpacity: on ? 0.28 : 0.08 }; };
+  const setFundos = fc => {
+    if (capaFundos) { map.removeLayer(capaFundos); capaFundos = null; }
+    if (!fc || !fc.features || !fc.features.length) return;
+    capaFundos = L.geoJSON(fc, { renderer: L.canvas({ padding: 0.3 }), style: estiloFundo, interactive: true,
+      onEachFeature: (f, ly) => {
+        ly.bindTooltip(esc(fundoTxt(f.properties || {})), { sticky: true, className: 'fu-tt', direction: 'top' });
+        ly.on('click', e => {
+          L.DomEvent.stopPropagation(e);
+          if (opts.editable) { mover(e.latlng.lat, e.latlng.lng, false); opts.onMove && opts.onMove(e.latlng.lat, e.latlng.lng, f.properties || {}); }
+        });
+      } }).addTo(map);
+    if (pin) pin.setZIndexOffset(1000);
+    if (!pin && !hay) { try { map.fitBounds(capaFundos.getBounds(), { padding: [10, 10], maxZoom: 13 }); } catch (e) {} }
+  };
+  const marcarFundo = cod => { fundoSel = cod || ''; if (capaFundos) capaFundos.setStyle(estiloFundo); };
+  if (opts.fundos) setFundos(opts.fundos);
   const btnG = cont.querySelector('.av-grande'); let marca = null;
   const grande = on => {
     if (on && !cont.classList.contains('grande')) { marca = document.createComment('mapa'); cont.parentNode.insertBefore(marca, cont); document.body.appendChild(cont); }
@@ -857,7 +1024,14 @@ function montarMapa(cont, lat, lng, opts) {
   btnL.onclick = e => { e.stopPropagation(); grande(false); }; cont.appendChild(btnL);
   cont.querySelectorAll('.av-capas, .av-grande, .av-listo').forEach(el => L.DomEvent.disableClickPropagation(el));
   setTimeout(() => map.invalidateSize(), 80);
-  return { mover, map };
+  return { mover, map, setFundos, marcarFundo, refrescar: () => { map.invalidateSize(); if (pin) map.panTo(pin.getLatLng()); } };
+}
+// Pone los fundos del área del formulario abierto en su mapa (desde el teléfono si ya se descargaron)
+async function fundosEnMapaForm() {
+  if (!F || !F.mapa || !F.mapa.setFundos) return;
+  const fc = await fundosGeoDeArea(F.r.id_area);
+  if (!F || !F.mapa) return;
+  F.fc = fc; F.mapa.setFundos(fc); F.mapa.marcarFundo(F.cod_fundo);
 }
 // Mapa del día: aperturas con su ubicación y los recursos sin apertura en su punto base
 function pintarMapaTab() {
@@ -950,14 +1124,15 @@ function abrirRecurso(rid, fecha) {
   let html = cabeceraHoja(r, f, chipEstado(st)) + '<div class="sh-body">' + chipsExtra(st);
   html += d('Estado del día', esc((j.estado_emoji || e.emoji || '') + ' ' + (j.estado || e.nombre || '')));
   if (j.en_servicio) {
-    html += d('Turno', esc((j.turno_codigo || '') + ' · ' + (j.turno || ''))) + d('Foco', esc(j.foco || '—')) +
+    html += progHtml(j, true);
+    html += d('Turno', esc((j.turno_codigo || '') + ' · ' + (j.turno || ''))) + d('Actividad general', esc(j.foco || '—')) +
       d('Móvil', esc((j.patente || '—') + (j.cambio_movil ? ' (cambio de móvil)' : ''))) +
       (r.pide_km ? d('Kilometraje', esc((j.km_inicio != null ? j.km_inicio : '—') + ' → ' + (j.km_fin != null ? j.km_fin : '—'))) : '') +
       d('Fundo', esc(j.fundo_nombre || '—') + (j.cod_fundo ? ' <span class="muted">(' + esc(j.cod_fundo) + ')</span>' : '')) +
       d('Jefe', j.jefe_nombre ? esc(j.jefe_nombre) + (j.jefe_telefono ? ' · ' + telLinks(j.jefe_telefono) : '') : '');
     html += '<div class="sec"><div class="sec-t">👥 Dotación · fuerza ' + (j.dotacion_n || (j.dotacion || []).length) + '</div>' +
-      ((j.dotacion || []).map(p => '<div class="dato"><span>' + (p.es_jefe ? '⭐ ' : '') + esc(p.nombre) + (p.es_reemplazo ? ' <small>(reemplazo)</small>' : '') + '</span><b>' + esc(p.cargo || '') + (p.telefono ? ' ' + telLinks(p.telefono) : '') + '</b></div>').join('') || '<div class="muted">Sin personas</div>') + '</div>';
-    if (j.lat != null) html += '<div class="sec"><div class="sec-t">📍 Ubicación de la apertura</div><div class="av-mapa" id="fv-mapa"></div></div>';
+      ((j.dotacion || []).map(p => '<div class="dato"><span>' + (p.es_jefe ? '⭐ ' : '') + esc(p.nombre) + (p.es_reemplazo ? ' <small>(reemplazante)</small>' : '') + '</span><b>' + esc(p.cargo || '') + (p.telefono ? ' ' + telLinks(p.telefono) : '') + '</b></div>').join('') || '<div class="muted">Sin personas</div>') + '</div>';
+    if (j.lat != null) html += '<div class="sec"><div class="sec-t">📍 Ubicación de la apertura</div><div class="muted gms" style="margin-bottom:6px;">' + esc(coordTxt(j.lat, j.lng)) + '</div><div class="av-mapa" id="fv-mapa"></div></div>';
     if (!S.sinActividades) {
       const l = actividadesDe(j.id);
       html += '<div class="sec"><div class="sec-t">🧩 Actividades · ' + l.length + ' · ' + esc(durTxt(minutosAct(l))) + '</div>' +
@@ -994,126 +1169,267 @@ function ultimaApertura(rid, antesDe) {
   S.jIdx.forEach(j => { if (j.recurso_id === rid && j.fecha_operativa < antesDe && j.en_servicio && (!mejor || j.fecha_operativa > mejor.fecha_operativa)) mejor = j; });
   return mejor;
 }
+// Cargos válidos según el tipo (mismos que cargos_recurso_ del SQL 147)
+const cargosDe = r => r && r.tipo_codigo === 'BMP' ? ['Jefe de Brigada', 'Motosierrista', 'Manual'] : ['Vigía'];
+const rutLimpio = r => String(r || '').toUpperCase().replace(/[^0-9K]/g, '');
+function rutValido(r) {
+  const c = rutLimpio(r); if (!/^\d{7,8}[0-9K]$/.test(c)) return false;
+  let s = 0, m = 2;
+  for (let i = c.length - 2; i >= 0; i--) { s += Number(c[i]) * m; m = m === 7 ? 2 : m + 1; }
+  const x = 11 - (s % 11);
+  return (x === 11 ? '0' : x === 10 ? 'K' : String(x)) === c.slice(-1);
+}
+const rutFormato = r => { const c = rutLimpio(r); return c.length < 2 ? c : c.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + c.slice(-1); };
 function dotacionBase(r, j, ref) {
   const fuente = j ? (j.dotacion || []) : (ref ? (ref.dotacion || []) : null);
-  const lista = (r.nomina || []).map(p => ({ persona_id: p.id, nombre: p.nombre, rut: p.rut, telefono: p.telefono, cargo: p.cargo, presente: false, es_jefe: false, es_reemplazo: false, nomina: true }));
+  const lista = (r.nomina || []).map(p => ({ persona_id: p.id, nombre: p.nombre, rut: p.rut, telefono: p.telefono, cargo: p.cargo, presente: false, es_jefe: false,
+    es_reemplazo: !!p.es_reemplazante, reemplazante: !!p.es_reemplazante, desde: p.reemplazante_desde || null, nomina: true }));
   if (fuente) {
     fuente.forEach(d => {
-      const x = lista.find(p => (d.persona_id && p.persona_id === d.persona_id) || norm(p.nombre) === norm(d.nombre));
+      const x = lista.find(p => (d.persona_id && p.persona_id === d.persona_id) || (d.rut && p.rut && rutLimpio(p.rut) === rutLimpio(d.rut)) || norm(p.nombre) === norm(d.nombre));
       if (x) { x.presente = true; x.es_jefe = !!d.es_jefe; }
-      else lista.push({ persona_id: null, nombre: d.nombre, rut: d.rut, telefono: d.telefono, cargo: d.cargo, presente: true, es_jefe: !!d.es_jefe, es_reemplazo: true, nomina: false });
+      else lista.push({ persona_id: null, nombre: d.nombre, rut: d.rut, telefono: d.telefono, cargo: d.cargo, presente: true, es_jefe: !!d.es_jefe, es_reemplazo: true, reemplazante: true, nomina: false });
     });
-  } else lista.forEach(p => { p.presente = true; });   // primera apertura: toda la nómina presente; se desmarca a quien falte
+  } else lista.forEach(p => { p.presente = !p.reemplazante; });   // primera apertura: la nómina titular presente; se desmarca a quien falte
   if (!lista.some(p => p.es_jefe)) { const t = lista.find(p => p.presente && /jefe/i.test(p.cargo || '')); if (t) t.es_jefe = true; }
   return lista;
 }
+// Turno propuesto: el horario del recurso; si no tiene, el de su última apertura
+function turnoPropuesto(r, ref) { return (r.turno_sugerido && turnoCat(r.turno_sugerido)) ? r.turno_sugerido : (ref && ref.turno_codigo) || ''; }
 function abrirFormulario(r, fecha, j, repetir) {
   const ref = repetir || (!j ? ultimaApertura(r.id, fecha) : null);
   const plan = planDe(r, fecha, j);
   const base = j || (repetir ? repetir : null);
+  const prop = turnoPropuesto(r, ref || ultimaApertura(r.id, fecha));
+  const turno = base ? base.turno_codigo : prop;
   F = {
     r, nuevo: !j, id: j ? j.id : uuid(), recurso_id: r.id, fecha_operativa: fecha,
     estado: j ? j.estado_codigo : (repetir ? repetir.estado_codigo : (plan === false ? 'DIA_LIBRE' : 'EN_SERVICIO')),
-    turno: base ? base.turno_codigo : (r.turno_sugerido || ''), foco: base ? base.foco_codigo : '',
+    turno: turno || '', propuesto: prop, jt: (turnoCat(turno || prop) || {}).jornada || 'Diurna', foco: base ? base.foco_codigo : '',
     patente: base ? (base.patente || '') : (ref ? ref.patente || '' : ''), cambio_movil: j ? !!j.cambio_movil : false,
     km_inicio: j ? (j.km_inicio != null ? String(j.km_inicio) : '') : (ref && ref.km_fin != null ? String(ref.km_fin) : ''),
-    cod_fundo: base ? base.cod_fundo || '' : '', fundo_nombre: base ? base.fundo_nombre || '' : '', fundoManual: !!(base && base.fundo_nombre),
+    cod_fundo: base ? base.cod_fundo || '' : '', fundo_nombre: base ? base.fundo_nombre || '' : '', fundoManual: !!(base && base.fundo_nombre), fq: '',
     lat: j ? j.lat : null, lng: j ? j.lng : null, precision_m: j ? j.precision_m : null,
     observacion: j ? j.observacion || '' : '', creado_dispositivo_en: j ? j.creado_dispositivo_en : null,
-    dot: dotacionBase(r, j, ref), agregando: false, plan, ref: !j && !repetir ? ref : null
+    dot: dotacionBase(r, j, ref), agregando: false, plan, ref: !j && !repetir ? ref : null,
+    tieneAct: !!(j && actividadesDe(j.id).length),
+    abiertos: new Set(j ? [] : ['dot', 'turno'])
   };
   pintarFormulario();
+  cargarFundosForm();
   if (F.nuevo && F.lat == null && estadoCat(F.estado) && estadoCat(F.estado).en_servicio) usarGps(true);
+}
+// Sección plegable del formulario (toggle): encabezado con resumen y estado; el cuerpo se ve al abrirla
+function tgHtml(k, ico, tit, cuerpo) {
+  return '<div class="tg' + (F.abiertos.has(k) ? ' on' : '') + '" id="tg-' + k + '"><button type="button" class="tg-h" data-tg="' + k + '" aria-expanded="' + F.abiertos.has(k) + '">' +
+    '<span class="tg-ico">' + ico + '</span><span class="tg-t">' + tit + '<small id="tgs-' + k + '"></small></span><span class="tg-ok" id="tgo-' + k + '"></span><span class="tg-car">▾</span></button>' +
+    '<div class="tg-b">' + cuerpo + '</div></div>';
+}
+function abrirSeccion(k, on) {
+  const el = $('tg-' + k); if (!el || !F || !F.abiertos) return;
+  if (on === undefined) on = !F.abiertos.has(k);
+  if (on) F.abiertos.add(k); else F.abiertos.delete(k);
+  el.classList.toggle('on', on);
+  const b = el.querySelector('.tg-h'); if (b) b.setAttribute('aria-expanded', on);
+  if (k === 'ubic' && on) { if (F.mapa) setTimeout(() => F.mapa && F.mapa.refrescar(), 30); else montarMapaForm(); }
 }
 function pintarFormulario() {
   const r = F.r, e = estadoCat(F.estado) || {};
   const planTxt = F.plan === true ? '<div class="aviso info">📅 Según el calendario del copamiento, <b>estaba de turno</b>.</div>' : F.plan === false ? '<div class="aviso">📅 Según el calendario del copamiento, este día estaba <b>libre</b>.</div>' : '';
+  F.mapa = null;
   let html = cabeceraHoja(r, F.fecha_operativa, F.nuevo ? 'Nueva apertura' : 'Corregir apertura') + '<div class="sh-body">';
   if (F.ref) html += '<button class="btn" data-repetir="1" style="width:100%;margin-bottom:8px;">↺ Repetir la apertura del ' + esc(fmtFecha(F.ref.fecha_operativa)) + '</button>';
   html += planTxt;
-  html += '<div class="sec"><div class="sec-t">Estado del día</div><div class="seg">' + S.cat.estados.map(x => '<button type="button" data-estado="' + esc(x.codigo) + '"' + (x.codigo === F.estado ? ' class="on"' : '') + '>' + esc((x.emoji || '') + ' ' + x.nombre) + '</button>').join('') + '</div></div>';
+  html += '<div class="sec"><div class="sec-t">Estado del día</div><div class="seg">' + S.cat.estados.map(x => '<button type="button" data-estado="' + esc(x.codigo) + '"' + (x.codigo === F.estado ? ' class="on"' : '') + '>' + esc((x.emoji || '') + ' ' + x.nombre) + '</button>').join('') + '</div>' +
+    (F.tieneAct ? '<div class="muted" style="margin-top:6px;">🔒 Ya hay actividades registradas: el estado y el turno no se pueden cambiar.</div>' : '') + '</div>';
   if (e.en_servicio) {
-    html += '<div class="sec" id="fs-dot"></div><div class="sec" id="fs-turno"></div>';
-    html += '<div class="sec"><div class="sec-t">🚙 Móvil</div><div class="fila"><div><label for="ff-patente">Patente</label><input id="ff-patente" autocapitalize="characters" maxlength="10" value="' + esc(F.patente) + '" placeholder="ABCD12"></div>' +
+    html += tgHtml('dot', '👥', 'Dotación', '<div id="fs-dot"></div>');
+    html += tgHtml('turno', '🕒', 'Turno', '<div id="fs-turno"></div>');
+    html += tgHtml('foco', '🎯', 'Actividad general', '<div id="fs-foco"></div>');
+    html += tgHtml('movil', '🚙', 'Móvil', '<div class="fila"><div><label for="ff-patente">Patente <span style="font-weight:600;">(opcional)</span></label><input id="ff-patente" autocapitalize="characters" maxlength="10" value="' + esc(F.patente) + '" placeholder="Opcional por ahora"></div>' +
       (r.pide_km ? '<div><label for="ff-km">Km inicial</label><input id="ff-km" inputmode="numeric" pattern="[0-9]*" maxlength="7" value="' + esc(F.km_inicio) + '" placeholder="Odómetro"></div>' : '') + '</div>' +
-      '<label class="chk"><input type="checkbox" id="ff-cambio"' + (F.cambio_movil ? ' checked' : '') + '> Cambio de móvil (vehículo de reemplazo)</label></div>';
-    html += '<div class="sec"><div class="sec-t">📍 Ubicación y fundo</div><div class="geo-row"><button type="button" class="btn btn-mini" data-gps="1">📍 Usar mi ubicación</button><span id="ff-gps" class="muted"></span></div><div class="av-mapa" id="ff-mapa"></div><div id="fs-fundo"></div></div>';
-    html += '<div class="sec" id="fs-foco"></div>';
+      '<label class="chk"><input type="checkbox" id="ff-cambio"' + (F.cambio_movil ? ' checked' : '') + '> Cambio de móvil (vehículo de reemplazo)</label>' +
+      '<div class="muted" style="margin-top:6px;">La patente es opcional mientras se incorpora el dato correcto de cada móvil.</div>');
+    html += tgHtml('ubic', '📍', 'Ubicación y fundo', '<div class="geo-row" style="margin-top:6px;"><button type="button" class="btn btn-mini" data-gps="1">📍 Usar mi ubicación</button><span id="ff-gps" class="muted gms"></span></div>' +
+      '<div class="av-mapa" id="ff-mapa"></div><div class="muted" style="margin-top:4px;">Toca el mapa o un fundo (contorno amarillo) para marcar el lugar.</div><div id="fs-fundo"></div>');
   }
-  html += '<div class="sec"><label for="ff-obs">Observación</label><textarea id="ff-obs" rows="2" maxlength="500" placeholder="Opcional">' + esc(F.observacion) + '</textarea></div>';
+  html += tgHtml('obs', '📝', 'Observación', '<textarea id="ff-obs" rows="2" maxlength="500" placeholder="Opcional" style="margin-top:6px;">' + esc(F.observacion) + '</textarea>');
   html += '<div id="ff-err" class="aviso err" style="display:none;"></div></div>';
   html += '<div class="sh-foot"><button class="btn" data-cerrar="1">Cancelar</button><button class="btn btn-grande" data-guardar="1" style="flex:2;">' + (F.nuevo ? (e.en_servicio ? '✅ Abrir jornada' : '✅ Guardar') : '💾 Guardar corrección') + '</button></div>';
   abrirHoja(html);
   if (e.en_servicio) {
-    pintarDot(); pintarTurno(); pintarFoco(); pintarFundo();
-    F.mapa = montarMapa($('ff-mapa'), F.lat, F.lng, { editable: true, onMove: (la, ln) => { F.lat = la; F.lng = ln; F.precision_m = null; $('ff-gps').textContent = 'Punto marcado a mano'; sugerirFundo(); } });
+    pintarDot(); pintarTurno(); pintarFoco(); pintarFundo(); pintarGpsTxt();
+    if (F.abiertos.has('ubic')) montarMapaForm();
   }
+  resumenForm();
+}
+// Mapa del formulario (apertura o actividad) con los fundos del área; se monta al abrir la sección (Leaflet necesita verla)
+function montarMapaForm() {
+  if (!F || F.mapa || !$('ff-mapa')) return;
+  F.mapa = montarMapa($('ff-mapa'), F.lat, F.lng, { editable: true, fundoSel: F.cod_fundo, fundos: F.fc || null, onMove: (la, ln, props) => {
+    F.lat = la; F.lng = ln; F.precision_m = null; F.gpsTxt = 'Punto marcado a mano'; pintarGpsTxt();
+    if (props && props.cod_fundo) { F.cod_fundo = String(props.cod_fundo); F.fundo_nombre = props.nombre || ''; F.fundoManual = true; if (F.mapa) F.mapa.marcarFundo(F.cod_fundo); pintarFundo(); resumenForm(); }
+    else sugerirFundo();
+  } });
+  if (!F.fc) fundosEnMapaForm();
+}
+// Polígonos de los fundos: se piden al abrir el formulario (también sirven para sugerir el fundo por el GPS)
+async function cargarFundosForm() {
+  const f0 = F; if (!f0) return;
+  const fc = await fundosGeoDeArea(f0.r.id_area);
+  if (F !== f0) return;
+  F.fc = fc;
+  if (F.mapa && F.mapa.setFundos) { F.mapa.setFundos(fc); F.mapa.marcarFundo(F.cod_fundo); }
+  if (F.lat != null && !F.fundoManual && !F.cod_fundo) sugerirFundo();
+}
+function pintarGpsTxt() {
+  const x = $('ff-gps'); if (!x || !F) return;
+  x.textContent = F.lat != null ? (F.gpsTxt ? F.gpsTxt + ' · ' : (F.precision_m ? '± ' + F.precision_m + ' m · ' : '')) + coordTxt(F.lat, F.lng) : (F.gpsTxt || 'Sin ubicación');
+}
+// Resumen de cada sección en su encabezado (✓ listo · Falta · Opcional)
+function resumenForm() {
+  if (!F || F.modo === 'actividad' || !F.abiertos) return;
+  const pon = (k, txt, est) => {
+    const s = $('tgs-' + k), o = $('tgo-' + k); if (!s || !o) return;
+    s.textContent = txt; o.className = 'tg-ok ' + est; o.textContent = est === 'si' ? '✓' : est === 'no' ? 'Falta' : 'Opcional';
+  };
+  const pres = F.dot.filter(p => p.presente), jefe = pres.find(p => p.es_jefe), nRee = pres.filter(p => p.es_reemplazo || p.reemplazante).length;
+  pon('dot', 'Fuerza ' + pres.length + (jefe ? ' · ⭐ ' + jefe.nombre.split(' ')[0] : (F.r.pide_jefe ? ' · falta el jefe' : '')) + (nRee ? ' · ' + nRee + ' reemplazante' + (nRee > 1 ? 's' : '') : ''),
+    pres.length && (!F.r.pide_jefe || jefe) ? 'si' : 'no');
+  const t = turnoCat(F.turno);
+  pon('turno', t ? turnoTxt(t) + ' · ' + t.jornada + (F.turno === F.propuesto ? ' · ⭐ propuesto' : '') : 'Elige el turno', t ? 'si' : 'no');
+  const fo = focoCat(F.foco);
+  pon('foco', fo ? (fo.emoji || '') + ' ' + fo.nombre : 'Sin indicar', fo ? 'si' : 'op');
+  pon('movil', (F.patente ? '🚙 ' + F.patente : 'Patente opcional') + (F.r.pide_km && F.km_inicio ? ' · km ' + F.km_inicio : '') + (F.cambio_movil ? ' · cambio de móvil' : ''), F.patente ? 'si' : 'op');
+  pon('ubic', F.cod_fundo ? '🌲 ' + fundoTxt({ nombre: F.fundo_nombre, cod_fundo: F.cod_fundo }) : F.fundo_nombre ? '📍 ' + F.fundo_nombre : F.lat != null ? coordTxt(F.lat, F.lng) : 'Sin ubicación', F.lat != null ? 'si' : 'op');
+  pon('obs', F.observacion ? F.observacion.slice(0, 60) : 'Sin observación', F.observacion ? 'si' : 'op');
 }
 function pintarDot() {
   const c = $('fs-dot'); if (!c) return;
   const pres = F.dot.filter(p => p.presente).length;
-  let h = '<div class="sec-t"><span>👥 Dotación · fuerza <b>' + pres + '</b></span>' + (F.r.pide_jefe ? '<span class="muted">⭐ = jefe</span>' : '<span class="muted">⭐ = a cargo</span>') + '</div>';
+  let h = '<div class="sec-t" style="margin-top:6px;"><span>Presentes: <b>' + pres + '</b></span>' + (F.r.pide_jefe ? '<span class="muted">⭐ = jefe de brigada</span>' : '<span class="muted">⭐ = a cargo</span>') + '</div>';
   if (!(F.r.nomina || []).length) h += '<div class="aviso">Este recurso no tiene nómina en Gestión de Recursos (👥 Personas). Agrega a las personas presentes.</div>';
   h += F.dot.map((p, i) => '<div class="dot-row' + (p.presente ? '' : ' fuera') + '"><label><input type="checkbox" data-pres="' + i + '"' + (p.presente ? ' checked' : '') + '><span>' + esc(p.nombre) +
-    '<small>' + esc([p.cargo, p.telefono, p.nomina ? '' : 'reemplazo'].filter(Boolean).join(' · ')) + '</small></span></label>' +
+    (p.reemplazante || !p.nomina ? ' <span class="pill" style="background:#FEF3C7;color:#92400E;">Reemplazante</span>' : '') +
+    '<small>' + esc([p.cargo, p.rut ? rutFormato(p.rut) : '', p.telefono, !p.nomina ? 'nuevo: queda en la nómina del recurso' : (p.desde ? 'desde ' + fmtFecha(p.desde) : '')].filter(Boolean).join(' · ')) + '</small></span></label>' +
     '<button type="button" class="star' + (p.es_jefe ? ' on' : '') + '" data-jefe="' + i + '" aria-label="Marcar como jefe">⭐</button>' +
     (p.nomina ? '' : '<button type="button" class="quitar" data-quitar="' + i + '" aria-label="Quitar">✕</button>') + '</div>').join('');
+  const cargos = cargosDe(F.r);
   h += F.agregando
-    ? '<div class="agregar"><label for="fa-nom">Nombre completo</label><input id="fa-nom" autocomplete="off"><div class="fila"><div><label for="fa-tel">Teléfono</label><input id="fa-tel" inputmode="tel"></div><div><label for="fa-cargo">Cargo</label><input id="fa-cargo" placeholder="' + (F.r.pide_jefe ? 'Brigadista' : 'Vigía') + '"></div></div>' +
-      '<div class="fila" style="margin-top:8px;"><button type="button" class="btn btn-mini" data-agregar-no="1">Cancelar</button><button type="button" class="btn btn-mini btn-p" data-agregar-ok="1">➕ Agregar</button></div></div>'
-    : '<button type="button" class="btn btn-mini" data-agregar="1" style="margin-top:8px;">➕ Agregar persona (reemplazo)</button>';
+    ? '<div class="agregar"><div class="sec-t" style="margin:0;">➕ Reemplazante</div><div class="muted">Queda registrado en las personas del recurso como <b>reemplazante</b> y aparecerá en las próximas aperturas.</div>' +
+      '<label for="fa-nom">Nombre completo</label><input id="fa-nom" autocomplete="off">' +
+      '<div class="fila"><div><label for="fa-rut">RUT</label><input id="fa-rut" autocomplete="off" placeholder="12.345.678-9" maxlength="12"></div><div><label for="fa-tel">Teléfono</label><input id="fa-tel" inputmode="tel" placeholder="9 1234 5678"></div></div>' +
+      '<label for="fa-cargo">Cargo</label><select id="fa-cargo">' + cargos.map(x => '<option>' + esc(x) + '</option>').join('') + '</select>' +
+      '<div id="fa-err" class="aviso err" style="display:none;"></div>' +
+      '<div class="fila" style="margin-top:8px;"><button type="button" class="btn btn-mini" data-agregar-no="1">Cancelar</button><button type="button" class="btn btn-mini btn-p" data-agregar-ok="1">➕ Agregar reemplazante</button></div></div>'
+    : '<button type="button" class="btn btn-mini" data-agregar="1" style="margin-top:8px;">➕ Agregar reemplazante</button>';
   c.innerHTML = h;
+  resumenForm();
+}
+// Agrega el reemplazante del formulario a la dotación (valida RUT; si el RUT ya está en la nómina, lo marca presente)
+function agregarReemplazante() {
+  const err = m => { const x = $('fa-err'); if (x) { x.textContent = m; x.style.display = ''; } };
+  const nom = ($('fa-nom').value || '').trim().replace(/\s+/g, ' '), rut = ($('fa-rut').value || '').trim();
+  if (nom.split(' ').length < 2 || nom.length < 5) return err('Escribe el nombre y apellido.');
+  if (!rutValido(rut)) return err('El RUT no es válido (revisa el dígito verificador).');
+  const ya = F.dot.find(p => p.rut && rutLimpio(p.rut) === rutLimpio(rut));
+  if (ya) { ya.presente = true; F.agregando = false; toast('Esa persona ya está en la nómina: quedó marcada presente'); return pintarDot(); }
+  F.dot.push({ persona_id: null, nombre: nom, rut: rutFormato(rut), telefono: ($('fa-tel').value || '').trim(), cargo: $('fa-cargo').value,
+    presente: true, es_jefe: false, es_reemplazo: true, reemplazante: true, nomina: false });
+  F.agregando = false; pintarDot();
 }
 function pintarTurno() {
   const c = $('fs-turno'); if (!c) return;
-  const usados = [];
-  S.jIdx.forEach(j => { if (j.recurso_id === F.r.id && j.turno_codigo) usados.push([j.fecha_operativa, j.turno_codigo]); });
-  usados.sort((a, b) => b[0].localeCompare(a[0]));
-  const cand = [...new Set([F.turno, F.r.turno_sugerido].concat(usados.map(u => u[1])).filter(Boolean))].slice(0, 4);
-  c.innerHTML = '<div class="sec-t">🕒 Turno</div><div class="opc">' + cand.map(cod => { const t = turnoCat(cod); if (!t) return ''; return '<button type="button" data-turno="' + esc(cod) + '"' + (cod === F.turno ? ' class="on"' : '') + '>' + esc(turnoTxt(t)) + ' <small>' + (cod === F.r.turno_sugerido ? 'horario del recurso' : t.jornada) + '</small></button>'; }).join('') + '</div>' +
-    '<select id="ff-turno" style="margin-top:8px;"><option value="">Otro turno…</option>' + S.cat.turnos.filter(t => t.activo).map(t => '<option value="' + esc(t.codigo) + '"' + (t.codigo === F.turno && !cand.includes(t.codigo) ? ' selected' : '') + '>' + esc(turnoTxt(t) + ' · ' + t.jornada + ' (' + t.codigo + ')') + '</option>').join('') + '</select>' +
-    (F.r.horario ? '<div class="muted" style="margin-top:4px;">Horario del recurso: ' + esc(F.r.horario) + '</div>' : '');
+  const bloq = F.tieneAct;
+  const lista = S.cat.turnos.filter(t => t.activo && t.jornada === F.jt).sort((a, b) => hm(a.hora_inicio).localeCompare(hm(b.hora_inicio)) || hm(a.hora_fin).localeCompare(hm(b.hora_fin)));
+  const prop = turnoCat(F.propuesto);
+  let h = '<div class="seg" style="margin-top:6px;"><button type="button" data-jt="Diurna"' + (F.jt === 'Diurna' ? ' class="on"' : '') + (bloq ? ' disabled' : '') + '>☀️ Diurno</button>' +
+    '<button type="button" data-jt="Nocturna"' + (F.jt === 'Nocturna' ? ' class="on"' : '') + (bloq ? ' disabled' : '') + '>🌙 Nocturno</button></div>';
+  if (prop) h += '<div class="aviso info" style="display:flex;align-items:center;gap:8px;justify-content:space-between;"><span>⭐ Propuesto: <b>' + esc(turnoTxt(prop)) + '</b> · ' + esc(prop.jornada) +
+    (F.propuesto === F.r.turno_sugerido ? ' (horario del recurso)' : ' (última apertura)') + '</span>' + (F.turno !== F.propuesto && !bloq ? '<button type="button" class="btn btn-mini btn-p" data-turno="' + esc(F.propuesto) + '">Usar</button>' : '') + '</div>';
+  h += '<div class="turnos" style="margin-top:8px;">' + lista.map(t => '<button type="button" data-turno="' + esc(t.codigo) + '" class="' + (t.codigo === F.turno ? 'on ' : '') + (t.codigo === F.propuesto ? 'prop' : '') + '"' + (bloq ? ' disabled' : '') + '>' +
+    esc(turnoTxt(t)) + '<small>' + (t.codigo === F.propuesto ? '⭐ propuesto · ' : '') + durTxt(t.minutos) + '</small></button>').join('') + '</div>';
+  if (!lista.length) h += '<div class="muted">No hay turnos ' + (F.jt === 'Diurna' ? 'diurnos' : 'nocturnos') + ' en el catálogo.</div>';
+  if (F.turno && turnoCat(F.turno) && turnoCat(F.turno).jornada !== F.jt) h += '<div class="muted" style="margin-top:6px;">Turno elegido: ' + esc(turnoTxt(turnoCat(F.turno)) + ' · ' + turnoCat(F.turno).jornada) + '</div>';
+  if (F.r.horario) h += '<div class="muted" style="margin-top:6px;">Horario del recurso en el copamiento: ' + esc(F.r.horario) + '</div>';
+  c.innerHTML = h;
+  resumenForm();
 }
 function pintarFoco() {
   const c = $('fs-foco'); if (!c) return;
-  c.innerHTML = '<div class="sec-t">🎯 Foco planificado</div><div class="opc">' + S.cat.focos.map(x => '<button type="button" data-foco="' + esc(x.codigo) + '"' + (x.codigo === F.foco ? ' class="on"' : '') + '>' + esc((x.emoji || '') + ' ' + x.nombre) + '</button>').join('') + '</div>';
+  c.innerHTML = '<div class="opc" style="margin-top:6px;">' + S.cat.focos.map(x => '<button type="button" data-foco="' + esc(x.codigo) + '"' + (x.codigo === F.foco ? ' class="on"' : '') + '>' + esc((x.emoji || '') + ' ' + x.nombre) + '</button>').join('') + '</div>' +
+    '<div class="muted" style="margin-top:6px;">La actividad general planificada para la jornada. Toca de nuevo para quitarla.</div>';
+  resumenForm();
 }
 const distKm = (a, b, c, d) => { const R = 6371, r = x => x * Math.PI / 180, dl = r(c - a), dg = r(d - b); const h = Math.sin(dl / 2) ** 2 + Math.cos(r(a)) * Math.cos(r(c)) * Math.sin(dg / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
+// Fundo: elegido (nombre (código) + Cambiar) o búsqueda por nombre o código con los más cercanos primero
 async function pintarFundo() {
   const c = $('fs-fundo'); if (!c) return;
   const fundos = await fundosDeArea(F.r.id_area);
   if (!F || !$('fs-fundo')) return;
-  let lista = fundos.map(x => Object.assign({}, x, { d: (F.lat != null && x.lat != null) ? distKm(F.lat, F.lng, x.lat, x.lng) : null }));
-  lista.sort((a, b) => (a.d != null && b.d != null) ? a.d - b.d : String(a.nombre).localeCompare(String(b.nombre), 'es'));
-  if (F.lat != null) lista = lista.slice(0, 40);
-  const sel = F.cod_fundo ? lista.find(x => String(x.cod_fundo) === String(F.cod_fundo)) : null;
-  let h = '<label for="ff-fundo">Fundo' + (F.lat != null && fundos.length ? ' (más cercanos primero)' : '') + '</label>';
-  if (fundos.length) {
-    h += '<select id="ff-fundo"><option value="">— Sin fundo / otro lugar —</option>' +
-      (F.cod_fundo && !sel ? '<option value="' + esc(F.cod_fundo) + '" selected>' + esc(F.fundo_nombre || F.cod_fundo) + '</option>' : '') +
-      lista.map(x => '<option value="' + esc(x.cod_fundo) + '"' + (sel && x === sel ? ' selected' : '') + '>' + esc((x.nombre || 'Fundo') + (x.d != null ? ' · ' + (x.d < 10 ? x.d.toFixed(1).replace('.', ',') : Math.round(x.d)) + ' km' : '') + (x.sector ? ' · ' + x.sector : '')) + '</option>').join('') + '</select>';
+  F._fundos = fundos;
+  let h = '';
+  if (F.cod_fundo) {
+    h = '<div class="fu-sel"><span style="font-size:20px;">🌲</span><b>' + esc(fundoTxt({ nombre: F.fundo_nombre, cod_fundo: F.cod_fundo })) + '</b><button type="button" class="btn btn-mini" data-fu-cambiar="1">Cambiar</button></div>';
+  } else {
+    if (fundos.length) h += '<label for="ff-fq">Fundo · busca por nombre o código</label><input id="ff-fq" type="search" autocomplete="off" placeholder="🔎 Nombre o código del fundo" value="' + esc(F.fq || '') + '"><div class="fu-lista" id="ff-fl"></div>';
+    h += '<label for="ff-lugar">' + (fundos.length ? 'O escribe el lugar (si no es un fundo CMPC)' : 'Fundo o lugar') + '</label><input id="ff-lugar" maxlength="120" placeholder="Lugar" value="' + esc(F.fundo_nombre) + '">';
+    if (!fundos.length) h += '<div class="muted" style="margin-top:4px;">' + (navigator.onLine ? 'No hay fundos CMPC disponibles para tu perfil en esta área.' : 'La lista de fundos se descarga con señal.') + '</div>';
   }
-  if (!F.cod_fundo) h += '<input id="ff-lugar" style="margin-top:6px;" maxlength="120" placeholder="' + (fundos.length ? 'O escribe el lugar' : 'Fundo o lugar') + '" value="' + esc(F.fundo_nombre) + '">';
-  if (!fundos.length) h += '<div class="muted" style="margin-top:4px;">' + (navigator.onLine ? 'No hay fundos CMPC disponibles para tu perfil en esta área.' : 'La lista de fundos se descarga con señal.') + '</div>';
   c.innerHTML = h;
+  pintarListaFundos();
+  resumenForm();
 }
+function pintarListaFundos() {
+  const c = $('ff-fl'); if (!c || !F) return;
+  const q = norm(F.fq);
+  let lista = (F._fundos || []).map(x => Object.assign({}, x, { d: (F.lat != null && x.lat != null) ? distKm(F.lat, F.lng, x.lat, x.lng) : null }));
+  if (q) lista = lista.filter(x => norm((x.nombre || '') + ' ' + (x.cod_fundo || '')).includes(q));
+  lista.sort((a, b) => (a.d != null && b.d != null) ? a.d - b.d : String(a.nombre).localeCompare(String(b.nombre), 'es'));
+  const tot = lista.length;
+  lista = lista.slice(0, 40);
+  c.innerHTML = lista.length ? lista.map(x => '<button type="button" data-fu-sel="' + esc(x.cod_fundo) + '"><span>' + esc(fundoTxt(x)) + '</span><small>' +
+      esc([x.d != null ? (x.d < 10 ? x.d.toFixed(1).replace('.', ',') : Math.round(x.d)) + ' km' : '', x.sector || ''].filter(Boolean).join(' · ')) + '</small></button>').join('') +
+      (tot > 40 ? '<div class="muted" style="padding:8px 12px;">… y ' + (tot - 40) + ' más: escribe para filtrar</div>' : '')
+    : '<div class="muted" style="padding:10px 12px;">Ningún fundo coincide con «' + esc(F.fq) + '».</div>';
+}
+function elegirFundo(cod) {
+  const x = (F._fundos || []).find(f => String(f.cod_fundo) === String(cod)); if (!x) return;
+  F.cod_fundo = String(x.cod_fundo); F.fundo_nombre = x.nombre || ''; F.fundoManual = true; F.fq = '';
+  if (F.lat == null && x.lat != null) { F.lat = x.lat; F.lng = x.lng; F.precision_m = null; F.gpsTxt = 'Centro del fundo'; if (F.mapa) F.mapa.mover(x.lat, x.lng, true); pintarGpsTxt(); }
+  if (F.mapa) F.mapa.marcarFundo(F.cod_fundo);
+  pintarFundo();
+}
+// Fundo sugerido por el punto: el polígono que lo contiene; sin polígonos, el más cercano a ≤ 3 km
 async function sugerirFundo() {
   if (!F) return;
-  if (!F.fundoManual) {
-    const fundos = await fundosDeArea(F.r.id_area);
-    let mejor = null;
-    fundos.forEach(x => { if (x.lat == null) return; const d = distKm(F.lat, F.lng, x.lat, x.lng); if (!mejor || d < mejor.d) mejor = { x, d }; });
-    if (mejor && mejor.d <= 3) { F.cod_fundo = String(mejor.x.cod_fundo || ''); F.fundo_nombre = mejor.x.nombre || ''; if ($('ff-gps')) $('ff-gps').textContent += ' · fundo sugerido por cercanía'; }
+  if (!F.fundoManual && F.lat != null) {
+    // Nota del GPS sin restos de un mensaje anterior («Sin ubicación…», «⏳ Buscando…» o una sugerencia previa)
+    const base = /^(Sin ubicación|⏳|No se pudo)/.test(F.gpsTxt || '') ? '' : String(F.gpsTxt || '').replace(/ ?·? ?(dentro del fundo|fundo sugerido por cercanía)$/, '');
+    F.gpsTxt = base;
+    const p = fundoEnPunto(F.fc, F.lat, F.lng);
+    if (p && p.cod_fundo) { F.cod_fundo = String(p.cod_fundo); F.fundo_nombre = p.nombre || ''; F.gpsTxt = (F.gpsTxt ? F.gpsTxt + ' · ' : '') + 'dentro del fundo'; }
+    else {
+      const fundos = await fundosDeArea(F.r.id_area);
+      if (!F) return;
+      let mejor = null;
+      fundos.forEach(x => { if (x.lat == null) return; const d = distKm(F.lat, F.lng, x.lat, x.lng); if (!mejor || d < mejor.d) mejor = { x, d }; });
+      if (mejor && mejor.d <= 3 && !F.fc) { F.cod_fundo = String(mejor.x.cod_fundo || ''); F.fundo_nombre = mejor.x.nombre || ''; F.gpsTxt = (F.gpsTxt ? F.gpsTxt + ' · ' : '') + 'fundo sugerido por cercanía'; }
+      else if (F.fc) { F.cod_fundo = ''; if (!F.fundoManual) F.fundo_nombre = ''; }
+    }
+    pintarGpsTxt();
   }
+  if (F.mapa && F.mapa.marcarFundo) F.mapa.marcarFundo(F.cod_fundo);
   pintarFundo();
 }
 function usarGps(silencioso) {
   if (!F || !navigator.geolocation) { if (!silencioso) toast('Este teléfono no entrega ubicación'); return; }
-  const txt = $('ff-gps'); if (txt) txt.textContent = '⏳ Buscando ubicación…';
-  const ok = p => { if (!F) return; F.lat = p.coords.latitude; F.lng = p.coords.longitude; F.precision_m = Math.round(p.coords.accuracy || 0);
-    if ($('ff-gps')) $('ff-gps').textContent = '± ' + F.precision_m + ' m';
-    if (F.mapa) F.mapa.mover(F.lat, F.lng, true); sugerirFundo(); };
-  const mal = () => { if ($('ff-gps')) $('ff-gps').textContent = silencioso ? 'Sin ubicación: toca el mapa para marcarla' : 'No se pudo obtener la ubicación (revisa el permiso de ubicación del navegador)'; };
+  F.gpsTxt = '⏳ Buscando ubicación…'; pintarGpsTxt();
+  const f0 = F;
+  const ok = p => { if (F !== f0) return; F.lat = p.coords.latitude; F.lng = p.coords.longitude; F.precision_m = Math.round(p.coords.accuracy || 0); F.gpsTxt = '';
+    if (!F.fundoManual) F.cod_fundo = '';
+    pintarGpsTxt(); if (F.mapa) F.mapa.mover(F.lat, F.lng, true); sugerirFundo(); };
+  const mal = () => { if (F !== f0) return; F.gpsTxt = silencioso ? 'Sin ubicación: abre «Ubicación» y toca el mapa' : 'No se pudo obtener la ubicación (revisa el permiso de ubicación del navegador)'; pintarGpsTxt(); };
   navigator.geolocation.getCurrentPosition(ok, () => navigator.geolocation.getCurrentPosition(ok, mal, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }),
     { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
 }
@@ -1126,16 +1442,20 @@ function leerCamposForm() {
   if ($('ff-obs')) F.observacion = v('ff-obs');
   if ($('ff-lugar') && !F.cod_fundo) F.fundo_nombre = v('ff-lugar').trim();
 }
-function errorForm(m) { const x = $('ff-err'); if (x) { x.textContent = m; x.style.display = ''; x.scrollIntoView({ block: 'nearest' }); } else toast(m); }
+// Error del formulario; si se indica la sección, la abre y la marca
+function errorForm(m, k) {
+  if (k && F && F.abiertos) { abrirSeccion(k, true); const s = $('tg-' + k); if (s) { s.classList.add('err-tg'); setTimeout(() => s.classList.remove('err-tg'), 4000); } }
+  const x = $('ff-err'); if (x) { x.textContent = m; x.style.display = ''; x.scrollIntoView({ block: 'nearest' }); } else toast(m);
+}
 async function guardarFormulario(btn) {
   leerCamposForm();
   const e = estadoCat(F.estado);
   if (!e) return errorForm('Elige el estado del día.');
   const dot = F.dot.filter(p => p.presente);
   if (e.en_servicio) {
-    if (!F.turno) return errorForm('Elige el turno.');
-    if (!dot.length) return errorForm('Marca al menos una persona presente.');
-    if (F.r.pide_jefe && !dot.some(p => p.es_jefe)) return errorForm('Marca con ⭐ quién es el jefe de la brigada.');
+    if (!dot.length) return errorForm('Marca al menos una persona presente.', 'dot');
+    if (F.r.pide_jefe && !dot.some(p => p.es_jefe)) return errorForm('Marca con ⭐ quién es el jefe de la brigada.', 'dot');
+    if (!F.turno) return errorForm('Elige el turno.', 'turno');
   }
   const payload = {
     id: F.id, recurso_id: F.recurso_id, fecha_operativa: F.fecha_operativa, estado: F.estado,
@@ -1145,72 +1465,79 @@ async function guardarFormulario(btn) {
     lat: F.lat, lng: F.lng, precision_m: F.precision_m, observacion: F.observacion || null,
     creado_dispositivo_en: F.creado_dispositivo_en || new Date().toISOString(),
     origen: F.r.puede_gestionar ? 'app' : 'app_recurso',
-    dotacion: e.en_servicio ? dot.map(p => ({ persona_id: p.persona_id, nombre: p.nombre, rut: p.rut || null, telefono: p.telefono || null, cargo: p.cargo || null, es_jefe: !!p.es_jefe, es_reemplazo: !p.nomina })) : []
+    dotacion: e.en_servicio ? dot.map(p => ({ persona_id: p.persona_id, nombre: p.nombre, rut: p.rut || null, telefono: p.telefono || null, cargo: p.cargo || null,
+      es_jefe: !!p.es_jefe, es_reemplazo: !p.nomina || !!p.reemplazante })) : []
   };
   btn.disabled = true;
   try {
     const res = await ejecutar('guardar', F.id, payload);
+    const nuevaPropia = F.nuevo && e.en_servicio && F.r.propio;
     cerrarHoja(); toast(res === 'cola' ? '📵 Guardado en el teléfono: se enviará al tener señal' : '✅ Apertura guardada'); pintar();
+    if (nuevaPropia) pedirPermisoAvisos();
   } catch (err) { btn.disabled = false; errorForm('No se pudo guardar: ' + msgError(err)); }
 }
 
-/* ───────── Registro de actividad (SQL 187) ───────── */
-// Hora «HH:MM» → instante, dentro de la jornada: en un turno que cruza la medianoche, lo anterior a su inicio es del día siguiente
-function instanteDe(j, hm_) {
-  const [h, m] = String(hm_).split(':').map(Number), p = j.fecha_operativa.split('-').map(Number);
-  const t = turnoCat(j.turno_codigo);
-  let dia = p[2];
-  if (t) {
-    const [h1, m1] = hm(t.hora_inicio).split(':').map(Number), [h2, m2] = hm(t.hora_fin).split(':').map(Number);
-    if ((h2 * 60 + m2) <= (h1 * 60 + m1) && (h * 60 + m) < (h1 * 60 + m1) - 120) dia += 1;
-  }
-  return new Date(p[0], p[1] - 1, dia, h, m);
-}
-const redondear5 = d => new Date(Math.floor(d.getTime() / 300000) * 300000);
+/* ───────── Registro de actividad (SQL 187 · encadenadas desde el SQL 188) ───────── */
+// La 1ª actividad empieza a la hora de inicio del turno y cada una siguiente donde terminó la anterior (sin vacíos).
+// Solo se elige el TÉRMINO. Una actividad ya registrada no cambia su inicio; solo la última cambia su término.
 function abrirActividad(r, j, a, volver) {
-  const l = actividadesDe(j.id).filter(x => !a || x.id !== a.id);
-  let ini, fin;
-  if (a) { ini = hhmm(new Date(a.inicio)); fin = hhmm(new Date(a.fin)); }
+  const l = actividadesDe(j.id), av = avanceDe(j);
+  if (!av) return toast('La apertura no tiene turno: corrígela antes de registrar actividades.', 4500);
+  let iniD, fin;
+  if (a) { iniD = new Date(a.inicio); fin = hhmm(new Date(a.fin)); }
   else {
-    const ahora = new Date(Math.floor(Date.now() / 60000) * 60000), ult = l.length ? new Date(l[l.length - 1].fin) : null;
-    let d = ult && ult <= ahora ? ult : (j.inicio_programado && new Date(j.inicio_programado) < ahora ? new Date(j.inicio_programado) : new Date(ahora.getTime() - 3600e3));
-    if (ahora - d > 12 * 3600e3) d = new Date(ahora.getTime() - 3600e3);
-    const p0 = j.fecha_operativa.split('-').map(Number), dia0 = new Date(p0[0], p0[1] - 1, p0[2], 0, 0);
-    if (d < dia0) d = dia0;   // no antes de las 00:00 del día operativo
-    ini = hhmm(d); fin = hhmm(ahora);
+    const ahora = new Date(Math.floor(Date.now() / 60000) * 60000), cierre = new Date(j.cierre_programado);
+    iniD = av.desde;
+    if (iniD >= cierre) return toast('La jornada ya llegó a su hora de cierre: no se pueden registrar más actividades.', 4500);
+    if (ahora <= iniD) return toast('La próxima actividad empieza a las ' + hhmm(iniD) + (iniD.getTime() === av.ini.getTime() ? ' (inicio del turno)' : '') + ': regístrala cuando la termines.', 4500);
+    fin = hhmm(ahora < cierre ? ahora : cierre);
   }
+  const ultima = !a || !l.some(x => x.id !== a.id && new Date(x.inicio).getTime() >= new Date(a.fin).getTime());
   F = {
     modo: 'actividad', r, j, nuevo: !a, id: a ? a.id : uuid(), volver: volver || null,
     actividad: a ? a.actividad_codigo : '', buscando: !a, q: '', grupo: '',
-    ini, fin, cantidad: a ? String(a.cantidad || 1) : '1',
+    grupoFijo: a ? (a.grupo_codigo || (actCat(a.actividad_codigo) || {}).grupo_codigo || '') : '',
+    iniD, esUltima: ultima, primera: iniD.getTime() === av.ini.getTime(), fin, cantidad: a ? String(a.cantidad || 1) : '1',
     lat: a ? a.lat : null, lng: a ? a.lng : null, precision_m: a ? a.precision_m : null,
-    cod_fundo: a ? a.cod_fundo || '' : '', fundo_nombre: a ? a.fundo_nombre || '' : '', fundoManual: !!(a && (a.fundo_nombre || a.cod_fundo)),
+    cod_fundo: a ? a.cod_fundo || '' : '', fundo_nombre: a ? a.fundo_nombre || '' : '', fundoManual: !!(a && (a.fundo_nombre || a.cod_fundo)), fq: '',
     observacion: a ? a.observacion || '' : '', creado_dispositivo_en: a ? a.creado_dispositivo_en : null,
     fotos: a ? (a.fotos || []).slice() : [], fotosNuevas: []
   };
   pintarActividadForm();
+  cargarFundosForm();
   if (F.nuevo) usarGps(true);
 }
 function pintarActividadForm() {
   const r = F.r, j = F.j;
+  F.mapa = null;
   let html = cabeceraHoja(r, j.fecha_operativa, F.nuevo ? '➕ Registrar actividad' : '✏️ Corregir actividad') + '<div class="sh-body">';
+  html += progHtml(j, true);
   html += '<div class="sec" id="fs-act"></div>';
-  html += '<div class="sec"><div class="sec-t">🕒 Horario</div><div class="fila"><div><label for="fa-ini">Inicio</label><input id="fa-ini" type="time" value="' + esc(F.ini) + '"></div>' +
-    '<div><label for="fa-fin">Término</label><input id="fa-fin" type="time" value="' + esc(F.fin) + '"></div></div>' +
-    '<div class="geo-row" style="margin-top:6px;"><span id="fa-dur" class="muted"></span><button type="button" class="btn btn-mini" data-ahora="1">Término = ahora</button></div></div>';
+  html += '<div class="sec"><div class="sec-t">🕒 Horario</div>' +
+    '<div class="hora-fija"><span>Inicio <small class="muted">· ' + (F.primera ? 'inicio del turno' : 'término de la actividad anterior') + '</small></span><b>' + esc(hhmm(F.iniD)) + '</b></div>';
+  if (F.esUltima) {
+    const hTurno = avanceDe(j), finTurnoOk = hTurno && hTurno.fin.getTime() <= Date.now() + 15 * 60000 && hTurno.fin > F.iniD;
+    html += '<label for="fa-fin">Término</label><input id="fa-fin" type="time" value="' + esc(F.fin) + '">' +
+      '<div class="rapidos"><button type="button" class="btn btn-mini" data-ahora="1">Término = ahora</button>' +
+      (finTurnoOk ? '<button type="button" class="btn btn-mini" data-fin-turno="1">Término = fin del turno (' + esc(hhmm(hTurno.fin)) + ')</button>' : '') + '</div>';
+  } else {
+    html += '<div class="hora-fija" style="margin-top:6px;"><span>Término <small class="muted">· solo la última actividad cambia su término</small></span><b>' + esc(F.fin) + '</b></div>';
+  }
+  html += '<div id="fa-dur" class="muted" style="margin-top:6px;"></div></div>';
   html += '<div class="sec" id="fs-cant"></div>';
-  html += '<div class="sec"><div class="sec-t">📍 Lugar</div><div class="geo-row"><button type="button" class="btn btn-mini" data-gps="1">📍 Usar mi ubicación</button><span id="ff-gps" class="muted"></span></div><div class="av-mapa" id="ff-mapa"></div><div id="fs-fundo"></div></div>';
+  html += '<div class="sec"><div class="sec-t">📍 Lugar</div><div class="geo-row"><button type="button" class="btn btn-mini" data-gps="1">📍 Usar mi ubicación</button><span id="ff-gps" class="muted gms"></span></div><div class="av-mapa" id="ff-mapa"></div><div id="fs-fundo"></div></div>';
   html += '<div class="sec"><div class="sec-t">📷 Fotos <span class="muted">opcional · hasta 6</span></div><div class="fotos" id="fs-fotos"></div>' +
     '<input type="file" id="fa-foto" accept="image/*" capture="environment" style="display:none;"></div>';
   html += '<div class="sec"><label for="ff-obs">Observación</label><textarea id="ff-obs" rows="2" maxlength="500" placeholder="Opcional">' + esc(F.observacion) + '</textarea></div>';
   html += '<div id="ff-err" class="aviso err" style="display:none;"></div></div>';
-  html += '<div class="sh-foot"><button class="btn" data-act-volver="1">Cancelar</button>' + (F.nuevo ? '' : '<button class="btn btn-rojo" data-act-eliminar="1">🗑️ Eliminar</button>') +
+  html += '<div class="sh-foot"><button class="btn" data-act-volver="1">Cancelar</button>' + (!F.nuevo && F.esUltima ? '<button class="btn btn-rojo" data-act-eliminar="1">🗑️ Eliminar</button>' : '') +
     '<button class="btn btn-grande" data-guardar="1" style="flex:2;">' + (F.nuevo ? '✅ Guardar actividad' : '💾 Guardar corrección') + '</button></div>';
   abrirHoja(html);
-  pintarSelAct(); pintarCant(); pintarDur(); pintarFotos(); pintarFundo();
-  F.mapa = montarMapa($('ff-mapa'), F.lat, F.lng, { editable: true, onMove: (la, ln) => { F.lat = la; F.lng = ln; F.precision_m = null; $('ff-gps').textContent = 'Punto marcado a mano'; sugerirFundo(); } });
+  pintarSelAct(); pintarCant(); pintarDur(); pintarFotos(); pintarFundo(); pintarGpsTxt();
+  montarMapaForm();
 }
-// Elección de la actividad: frecuentes del recurso, búsqueda y lista por grupo (solo las habilitadas para su tipo)
+// Elección de la actividad: frecuentes del recurso, búsqueda y lista por grupo (solo las habilitadas para su tipo).
+// Al corregir, solo actividades del MISMO grupo.
 function pintarSelAct() {
   const c = $('fs-act'); if (!c) return;
   const sel = actCat(F.actividad);
@@ -1219,22 +1546,25 @@ function pintarSelAct() {
     c.innerHTML = '<div class="sec-t">🧩 Actividad</div><div class="act-sel"><span style="font-size:22px;">' + esc(g.emoji || '🧩') + '</span><b>' + esc(sel.nombre) + '<small class="muted" style="display:block;font-weight:600;">' + esc(g.nombre || '') + '</small></b><button type="button" class="btn btn-mini" data-act-cambiar="1">Cambiar</button></div>';
     return;
   }
-  const lista = habilitadas(F.r), q = norm(F.q);
+  let lista = habilitadas(F.r);
+  if (F.grupoFijo) { lista = lista.filter(a => a.grupo_codigo === F.grupoFijo); if (sel && !lista.includes(sel)) lista.push(sel); }
+  const q = norm(F.q);
   const cuenta = new Map();
   S.actividades.concat([...S.aIdx.values()].flat()).forEach(a => { if (a.recurso_id === F.r.id) cuenta.set(a.actividad_codigo, (cuenta.get(a.actividad_codigo) || 0) + 1); });
   const frec = lista.filter(a => cuenta.has(a.codigo)).sort((x, y) => cuenta.get(y.codigo) - cuenta.get(x.codigo)).slice(0, 6);
-  let h = '<div class="sec-t">🧩 ¿Qué actividad hiciste?</div>';
+  let h = '<div class="sec-t">🧩 ' + (F.grupoFijo ? 'Cambiar por otra actividad del mismo grupo' : '¿Qué actividad hiciste?') + '</div>';
+  if (F.grupoFijo) h += '<div class="muted" style="margin-bottom:6px;">Al corregir, solo puedes elegir actividades de «' + esc((grupoCat(F.grupoFijo) || {}).nombre || F.grupoFijo) + '».</div>';
   if (!lista.length) { c.innerHTML = h + '<div class="aviso">No hay actividades habilitadas para este tipo de recurso. Avisa al Administrador.</div>'; return; }
-  if (frec.length && !q && !F.grupo) h += '<div class="muted" style="margin-bottom:4px;">Frecuentes</div><div class="opc" style="margin-bottom:8px;">' + frec.map(a => '<button type="button" data-act-sel="' + esc(a.codigo) + '">' + esc(((grupoCat(a.grupo_codigo) || {}).emoji || '') + ' ' + a.nombre) + '</button>').join('') + '</div>';
+  if (frec.length && !q && !F.grupo && !F.grupoFijo) h += '<div class="muted" style="margin-bottom:4px;">Frecuentes</div><div class="opc" style="margin-bottom:8px;">' + frec.map(a => '<button type="button" data-act-sel="' + esc(a.codigo) + '">' + esc(((grupoCat(a.grupo_codigo) || {}).emoji || '') + ' ' + a.nombre) + '</button>').join('') + '</div>';
   h += '<input id="fa-q" type="search" placeholder="🔎 Buscar actividad" value="' + esc(F.q) + '" autocomplete="off">';
   const grupos = S.cat.grupos.filter(g => lista.some(a => a.grupo_codigo === g.codigo));
-  if (!q) h += '<div class="opc" style="margin-top:8px;">' + grupos.map(g => '<button type="button" data-grupo="' + esc(g.codigo) + '"' + (F.grupo === g.codigo ? ' class="on"' : '') + '>' + esc((g.emoji || '') + ' ' + g.nombre) + '</button>').join('') + '</div>';
-  const vis = q ? lista.filter(a => norm(a.nombre + ' ' + a.codigo).includes(q)) : (F.grupo ? lista.filter(a => a.grupo_codigo === F.grupo) : []);
-  if (q || F.grupo) {
+  if (!q && !F.grupoFijo) h += '<div class="opc" style="margin-top:8px;">' + grupos.map(g => '<button type="button" data-grupo="' + esc(g.codigo) + '"' + (F.grupo === g.codigo ? ' class="on"' : '') + '>' + esc((g.emoji || '') + ' ' + g.nombre) + '</button>').join('') + '</div>';
+  const vis = q ? lista.filter(a => norm(a.nombre + ' ' + a.codigo).includes(q)) : (F.grupoFijo ? lista : (F.grupo ? lista.filter(a => a.grupo_codigo === F.grupo) : []));
+  if (q || F.grupo || F.grupoFijo) {
     let gAct = null;
     h += '<div class="act-lista">' + (vis.length ? vis.sort((x, y) => (grupoCat(x.grupo_codigo) || {}).orden - (grupoCat(y.grupo_codigo) || {}).orden || x.nombre.localeCompare(y.nombre, 'es')).map(a => {
       let t = '';
-      if (q && a.grupo_codigo !== gAct) { gAct = a.grupo_codigo; t = '<div class="g-t">' + esc(((grupoCat(gAct) || {}).emoji || '') + ' ' + ((grupoCat(gAct) || {}).nombre || '')) + '</div>'; }
+      if (q && !F.grupoFijo && a.grupo_codigo !== gAct) { gAct = a.grupo_codigo; t = '<div class="g-t">' + esc(((grupoCat(gAct) || {}).emoji || '') + ' ' + ((grupoCat(gAct) || {}).nombre || '')) + '</div>'; }
       return t + '<button type="button" data-act-sel="' + esc(a.codigo) + '"' + (a.codigo === F.actividad ? ' style="font-weight:800;"' : '') + '>' + esc(a.nombre) + '</button>';
     }).join('') : '<div class="muted" style="padding:10px 12px;">Ninguna actividad coincide.</div>') + '</div>';
   } else h += '<div class="muted" style="margin-top:6px;">Elige un grupo o busca por nombre.</div>';
@@ -1246,16 +1576,21 @@ function pintarCant() {
   c.style.display = a && a.pide_cantidad ? '' : 'none';
   c.innerHTML = a && a.pide_cantidad ? '<label for="fa-cant">Cantidad realizada <span class="muted">(casas, charlas, focos, km…)</span></label><input id="fa-cant" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="' + esc(F.cantidad) + '">' : '';
 }
+// Término «HH:MM» → instante: el primero posterior al inicio (un turno nocturno termina al día siguiente)
 function horasForm() {
-  if (!F || !/^\d{2}:\d{2}$/.test(F.ini) || !/^\d{2}:\d{2}$/.test(F.fin)) return null;
-  const i = instanteDe(F.j, F.ini); let f = instanteDe(F.j, F.fin);
-  if (i - f >= 6 * 3600e3) f = new Date(f.getTime() + 864e5);   // p. ej. 22:00 → 02:00: termina pasada la medianoche
+  if (!F || !F.iniD || !/^\d{2}:\d{2}$/.test(F.fin)) return null;
+  const i = F.iniD, [h, m] = F.fin.split(':').map(Number);
+  let f = new Date(i.getFullYear(), i.getMonth(), i.getDate(), h, m);
+  if (f <= i) f = new Date(f.getTime() + 864e5);
   return { i, f, min: Math.round((f - i) / 60000) };
 }
 function pintarDur() {
   const x = $('fa-dur'); if (!x) return;
-  const h = horasForm();
-  x.textContent = !h ? '' : h.min <= 0 ? '⚠️ El término debe ser posterior al inicio' : 'Duración: ' + durTxt(h.min) + (h.f.getDate() !== h.i.getDate() ? ' (termina al día siguiente)' : '');
+  const h = horasForm(), av = avanceDe(F.j);
+  if (!h) { x.textContent = ''; return; }
+  const pct = av ? Math.max(0, Math.min(100, Math.round(100 * (Math.max(h.f, av.hasta || h.f) - av.ini) / (av.fin - av.ini)))) : null;
+  x.textContent = 'Duración: ' + durTxt(h.min) + (h.f.getDate() !== h.i.getDate() ? ' · termina al día siguiente' : '') + (pct != null ? ' · el turno queda al ' + pct + ' %' : '') +
+    (h.f > new Date(F.j.cierre_programado) ? ' · ⚠️ pasa del cierre de la jornada (' + hhmm(new Date(F.j.cierre_programado)) + ')' : '');
 }
 function pintarFotos() {
   const c = $('fs-fotos'); if (!c) return;
@@ -1293,7 +1628,6 @@ async function comprimirFoto(file) {
 }
 function leerCamposAct() {
   if (!F || F.modo !== 'actividad') return;
-  if ($('fa-ini')) F.ini = $('fa-ini').value;
   if ($('fa-fin')) F.fin = $('fa-fin').value;
   if ($('fa-cant')) F.cantidad = $('fa-cant').value.replace(/\D/g, '');
   leerCamposForm();
@@ -1303,9 +1637,10 @@ async function guardarActividad(btn) {
   const a = actCat(F.actividad);
   if (!a) return errorForm('Elige la actividad.');
   const h = horasForm();
-  if (!h) return errorForm('Indica la hora de inicio y de término.');
-  if (h.min <= 0) return errorForm('La hora de término debe ser posterior a la de inicio.');
+  if (!h) return errorForm('Indica la hora de término.');
+  if (h.min <= 0) return errorForm('La hora de término debe ser posterior al inicio (' + hhmm(h.i) + ').');
   if (h.min > 24 * 60) return errorForm('Una actividad no puede durar más de 24 horas.');
+  if (h.f > new Date(F.j.cierre_programado)) return errorForm('La actividad no puede terminar después del cierre de la jornada (' + fmtFechaHora(F.j.cierre_programado) + ': fin del turno + ' + gracia() + ' h).');
   if (h.f.getTime() > Date.now() + 15 * 60000) return errorForm('La hora de término está en el futuro: registra la actividad al terminarla.');
   const cruce = actividadesDe(F.j.id).find(x => x.id !== F.id && new Date(x.inicio) < h.f && new Date(x.fin) > h.i);
   if (cruce) return errorForm('Se cruza con «' + cruce.actividad + '» (' + hhmm(new Date(cruce.inicio)) + ' – ' + hhmm(new Date(cruce.fin)) + '). Ajusta las horas.');
@@ -1336,7 +1671,8 @@ async function guardarActividad(btn) {
   } catch (err) { btn.disabled = false; errorForm('No se pudo guardar: ' + msgError(err)); }
 }
 async function eliminarActividad() {
-  if (!confirm('¿Eliminar esta actividad' + (F.fotos.length ? ' y sus fotos' : '') + '?')) return;
+  if (!F.esUltima) return errorForm('Solo se puede eliminar la última actividad. Elimina primero las que vienen después.');
+  if (!confirm('¿Eliminar esta actividad' + (F.fotos.length ? ' y sus fotos' : '') + '? La siguiente que registres empezará a las ' + hhmm(F.iniD) + '.')) return;
   try {
     const res = await ejecutar('eliminar_act', F.id, { p_id: F.id, recurso_id: F.r.id, fecha_operativa: F.j.fecha_operativa }, F.j.id);
     const volver = F.volver;
@@ -1372,14 +1708,19 @@ function verFotoGrande(src) {
 
 /* ───────── Cierre, reapertura y eliminación ───────── */
 function abrirCierre() {
-  const { r, f, j } = S.hoja, l = actividadesDe(j.id);
+  const { r, f, j } = S.hoja, l = actividadesDe(j.id), av = avanceDe(j);
+  const falta = !S.sinActividades && av && !av.completo;
+  // SQL 188: la cuenta del recurso cierra solo con el 100 % del turno registrado; el gestor puede cerrar igual (con aviso)
+  const bloquea = falta && !r.puede_gestionar;
   abrirHoja(cabeceraHoja(r, f, '🔒 Cerrar jornada') + '<div class="sh-body">' +
     '<div class="aviso info">Al cerrar, la jornada queda bloqueada para el recurso: ya no se pueden registrar ni corregir actividades. Si no la cierras, se cierra sola el ' + esc(fmtFechaHora(j.cierre_programado)) + '.</div>' +
-    (S.sinActividades ? '' : '<div class="dato"><span>Actividades registradas</span><b>🧩 ' + l.length + ' · ' + esc(durTxt(minutosAct(l))) + '</b></div>' +
-      (l.length ? '' : '<div class="aviso">No hay actividades registradas en esta jornada. Regístralas antes de cerrar.</div>')) +
+    (S.sinActividades ? '' : progHtml(j, true) + '<div class="dato"><span>Actividades registradas</span><b>🧩 ' + l.length + ' · ' + esc(durTxt(minutosAct(l))) + '</b></div>' +
+      (falta ? '<div class="aviso' + (bloquea ? ' err' : '') + '">' + (bloquea ? '⛔ Para cerrar, registra tus actividades hasta el fin del turno (' + esc(hhmm(av.fin)) + '). Vas en el ' + av.pct + ' %.'
+        : '⚠️ Las actividades llegan al ' + av.pct + ' % del turno. Como gestor puedes cerrar igual.') + '</div>' : '')) +
     (r.pide_km ? '<label for="fc-km">Km final' + (j.km_inicio != null ? ' (inicial ' + j.km_inicio + ')' : '') + '</label><input id="fc-km" inputmode="numeric" pattern="[0-9]*" maxlength="7">' : '') +
     '<label for="fc-obs">Observación de cierre</label><textarea id="fc-obs" rows="2" maxlength="500" placeholder="Opcional"></textarea><div id="ff-err" class="aviso err" style="display:none;"></div></div>' +
-    '<div class="sh-foot"><button class="btn" data-volver="1">Volver</button><button class="btn btn-grande" data-cerrar-ok="1" style="flex:2;">🔒 Cerrar jornada</button></div>');
+    '<div class="sh-foot"><button class="btn" data-volver="1">Volver</button>' + (bloquea ? (puedeRegistrar(r, j) && av && new Date() > av.desde ? '<button class="btn btn-grande" data-act-nueva="1" style="flex:2;">➕ Registrar actividad</button>' : '')
+      : '<button class="btn btn-grande" data-cerrar-ok="1" style="flex:2;">🔒 Cerrar jornada</button>') + '</div>');
 }
 async function confirmarCierre(btn) {
   const { j } = S.hoja;
@@ -1540,35 +1881,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (av && !F) { const { r, f } = S.hoja; return verActividad(av.dataset.act, { rid: r.id, f }); }
     if (t.closest('[data-act-volver-ficha]')) { const v = S.verAct && S.verAct.volver; cerrarHoja(); if (v) abrirRecurso(v.rid, v.f); return; }
     if (!F) return;
+    // Comunes a la apertura y a la actividad: fundo (buscar / elegir / cambiar)
+    const fs = t.closest('[data-fu-sel]'); if (fs) { leerCamposForm(); return elegirFundo(fs.dataset.fuSel); }
+    if (t.closest('[data-fu-cambiar]')) { leerCamposForm(); F.cod_fundo = ''; F.fundo_nombre = ''; F.fundoManual = true; F.fq = ''; if (F.mapa) F.mapa.marcarFundo(''); pintarFundo(); const q = $('ff-fq'); if (q) q.focus(); return; }
     if (F.modo === 'actividad') {
       if (t.closest('[data-act-volver]')) { const v = F.volver; F.fotosNuevas.forEach(x => URL.revokeObjectURL(x.url)); cerrarHoja(); if (v) abrirRecurso(v.rid, v.f); return; }
       if (t.closest('[data-act-eliminar]')) return eliminarActividad();
       if (t.closest('[data-act-cambiar]')) { leerCamposAct(); F.buscando = true; F.grupo = (actCat(F.actividad) || {}).grupo_codigo || ''; return pintarSelAct(); }
       const as = t.closest('[data-act-sel]'); if (as) { leerCamposAct(); F.actividad = as.dataset.actSel; F.buscando = false; F.q = ''; pintarSelAct(); return pintarCant(); }
       const gr = t.closest('[data-grupo]'); if (gr) { F.grupo = F.grupo === gr.dataset.grupo ? '' : gr.dataset.grupo; return pintarSelAct(); }
-      if (t.closest('[data-ahora]')) { F.fin = hhmm(new Date()); if ($('fa-fin')) $('fa-fin').value = F.fin; return pintarDur(); }
+      if (t.closest('[data-ahora]')) { const ci = new Date(F.j.cierre_programado), ah = new Date(); F.fin = hhmm(ah < ci ? ah : ci); if ($('fa-fin')) $('fa-fin').value = F.fin; return pintarDur(); }
+      if (t.closest('[data-fin-turno]')) { const av = avanceDe(F.j); if (av) { F.fin = hhmm(av.fin); if ($('fa-fin')) $('fa-fin').value = F.fin; } return pintarDur(); }
       if (t.closest('[data-foto-add]')) { const inp = $('fa-foto'); if (inp) { inp.value = ''; inp.click(); } return; }
       const fq = t.closest('[data-foto-quitar]'); if (fq) { const x = F.fotosNuevas.splice(Number(fq.dataset.fotoQuitar), 1)[0]; if (x) URL.revokeObjectURL(x.url); return pintarFotos(); }
       if (t.closest('[data-gps]')) return usarGps(false);
       const ga = t.closest('[data-guardar]'); if (ga) return guardarActividad(ga);
       return;
     }
+    const tg = t.closest('[data-tg]'); if (tg) { leerCamposForm(); resumenForm(); return abrirSeccion(tg.dataset.tg); }
     const es = t.closest('[data-estado]');
-    if (es) { leerCamposForm(); const antes = estadoCat(F.estado); F.estado = es.dataset.estado; const ahora = estadoCat(F.estado); pintarFormulario(); if (ahora && ahora.en_servicio && !(antes && antes.en_servicio) && F.lat == null) usarGps(true); return; }
+    if (es) {
+      if (F.tieneAct && es.dataset.estado !== F.estado) return toast('Esta apertura ya tiene actividades: el estado no se puede cambiar.', 4000);
+      leerCamposForm(); const antes = estadoCat(F.estado); F.estado = es.dataset.estado; const ahora = estadoCat(F.estado); pintarFormulario(); if (ahora && ahora.en_servicio && !(antes && antes.en_servicio) && F.lat == null) usarGps(true); return;
+    }
     if (t.closest('[data-repetir]')) { leerCamposForm(); const ref = F.ref; return abrirFormulario(F.r, F.fecha_operativa, null, ref); }
-    const tu = t.closest('[data-turno]'); if (tu) { F.turno = tu.dataset.turno; return pintarTurno(); }
+    const jt = t.closest('[data-jt]'); if (jt) { if (F.tieneAct) return; F.jt = jt.dataset.jt; return pintarTurno(); }
+    const tu = t.closest('[data-turno]'); if (tu) { if (F.tieneAct) return toast('Esta apertura ya tiene actividades: el turno no se puede cambiar.', 4000); F.turno = tu.dataset.turno; F.jt = (turnoCat(F.turno) || {}).jornada || F.jt; return pintarTurno(); }
     const fo = t.closest('[data-foco]'); if (fo) { F.foco = F.foco === fo.dataset.foco ? '' : fo.dataset.foco; return pintarFoco(); }
     const je = t.closest('[data-jefe]');
     if (je) { const i = Number(je.dataset.jefe), on = !F.dot[i].es_jefe; F.dot.forEach(p => { p.es_jefe = false; }); F.dot[i].es_jefe = on; if (on) F.dot[i].presente = true; return pintarDot(); }
     const qu = t.closest('[data-quitar]'); if (qu) { F.dot.splice(Number(qu.dataset.quitar), 1); return pintarDot(); }
     if (t.closest('[data-agregar]')) { F.agregando = true; pintarDot(); const n = $('fa-nom'); if (n) n.focus(); return; }
     if (t.closest('[data-agregar-no]')) { F.agregando = false; return pintarDot(); }
-    if (t.closest('[data-agregar-ok]')) {
-      const nom = ($('fa-nom').value || '').trim().replace(/\s+/g, ' ');
-      if (nom.length < 3) { toast('Escribe el nombre completo'); return; }
-      F.dot.push({ persona_id: null, nombre: nom, telefono: ($('fa-tel').value || '').trim(), cargo: ($('fa-cargo').value || '').trim() || (F.r.pide_jefe ? 'Brigadista' : 'Vigía'), presente: true, es_jefe: false, es_reemplazo: true, nomina: false });
-      F.agregando = false; return pintarDot();
-    }
+    if (t.closest('[data-agregar-ok]')) return agregarReemplazante();
     if (t.closest('[data-gps]')) return usarGps(false);
     const g = t.closest('[data-guardar]'); if (g) return guardarFormulario(g);
   });
@@ -1581,20 +1926,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       catch (err) { toast(msgError(err)); }
       return;
     }
-    if (t.id === 'fa-ini' || t.id === 'fa-fin') { leerCamposAct(); return pintarDur(); }
+    if (t.id === 'fa-fin') { leerCamposAct(); return pintarDur(); }
     if (t.dataset.pres != null) { const p = F.dot[Number(t.dataset.pres)]; p.presente = t.checked; if (!t.checked) p.es_jefe = false; return pintarDot(); }
-    if (t.id === 'ff-turno' && t.value) { F.turno = t.value; return pintarTurno(); }
-    if (t.id === 'ff-fundo') {
-      F.fundoManual = true; F.cod_fundo = t.value;
-      F.fundo_nombre = t.value ? (t.options[t.selectedIndex].text.split(' · ')[0] || '') : '';
-      return pintarFundo();
-    }
+    if (t.id === 'fa-rut' && t.value) { if (rutValido(t.value)) t.value = rutFormato(t.value); return; }
+    if (t.id === 'ff-cambio') { leerCamposForm(); return resumenForm(); }
   });
-  let espAct = null;
+  let espAct = null, espFu = null;
   hoja.addEventListener('input', e => {
     const t = e.target;
-    if (!F || F.modo !== 'actividad') return;
-    if (t.id === 'fa-ini' || t.id === 'fa-fin') { leerCamposAct(); return pintarDur(); }
+    if (!F) return;
+    if (t.id === 'ff-fq') { clearTimeout(espFu); espFu = setTimeout(() => { if (!F) return; F.fq = t.value; pintarListaFundos(); }, 200); return; }
+    if (['ff-patente', 'ff-km', 'ff-obs', 'ff-lugar'].includes(t.id)) { leerCamposForm(); return resumenForm(); }
+    if (F.modo !== 'actividad') return;
+    if (t.id === 'fa-fin') { leerCamposAct(); return pintarDur(); }
     if (t.id !== 'fa-q') return;
     clearTimeout(espAct);
     espAct = setTimeout(() => { if (!F) return; F.q = t.value; pintarSelAct(); const q = $('fa-q'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250);
@@ -1603,7 +1947,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   window.addEventListener('online', async () => { toast('🟢 Conexión recuperada: enviando pendientes'); try { await sincronizarPendientes(); } catch (e) {} buscarActualizacion(); if (!$('ov').classList.contains('show')) pintar(); });
   window.addEventListener('offline', () => { toast('🔴 Sin señal: las aperturas se guardarán en el teléfono'); avisoPendienteOffline(); if (!$('ov').classList.contains('show')) pintar(); });
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { buscarActualizacion(); if (navigator.onLine) sincronizarPendientes(); } });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    buscarActualizacion(); if (navigator.onLine) sincronizarPendientes();
+    revisarAlertas(); if (S.sec === 'inicio' && !$('ov').classList.contains('show')) pintar();
+  });
+  // Cada minuto: aviso de 2 h sin registrar y avance de «Mi jornada» al día
+  setInterval(() => { revisarAlertas(); if (S.sec === 'inicio' && S.ctx && !$('ov').classList.contains('show')) pintar(); }, 60 * 1000);
   setInterval(buscarActualizacion, ACT_CADA_MS);
   setInterval(() => { if (navigator.onLine) sincronizarPendientes(); }, 5 * 60 * 1000);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw-bitacora.js').catch(() => {});

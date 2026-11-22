@@ -6,6 +6,16 @@
  * Se pueden volver a ver con «🆕 Novedades» (botón del encabezado de Ayuda, abrirNovedades_(true)). */
 const NOVEDADES = [
   {
+    id: '2026-11-22-bitacora-aperturas', fecha: '22-11-2026', titulo: 'Bitácora: tabla de aperturas',
+    items: [
+      { ico: '📋', t: 'Planificador CMPC › Bitácora: Aperturas', perfiles: ['admin', 'subgerente', 'grt', 'jefe'],
+        d: 'Tabla con todas las aperturas de jornada de la App Bitácora de tus áreas: estado, turno, actividad general, <b>avance del turno</b> (actividades registradas), ' +
+           'dotación con jefe y reemplazantes, patente, km, fundo y coordenadas. Toca una fila para ver la dotación. <b>⬇️ Excel</b> con 2 hojas: Aperturas y Personal.' },
+      { ico: '👥', t: 'Reemplazantes en Personas del recurso', perfiles: ['admin', 'subgerente', 'grt', 'jefe'],
+        d: 'Quien entra como reemplazo en una apertura (con su RUT) queda en Gestión de Recursos › 👥 Personas marcado <b>Reemplazante</b>.' },
+    ],
+  },
+  {
     id: '2026-11-21-usuarios-recursos', fecha: '21-11-2026', titulo: 'Usuarios Recursos y Modo SSO',
     items: [
       { ico: '🔑', t: 'Usuarios Recursos (App Bitácora)', perfiles: ['admin'],

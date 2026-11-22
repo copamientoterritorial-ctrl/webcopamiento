@@ -700,6 +700,10 @@
     <div class="gr-cuerpo" id="tg-cuerpo" style="overflow:auto;"><div class="tb-vacio">Cargando…</div></div>
   </div>
 
+  <!-- 📋 Bitácora · Aperturas (Planificador CMPC ▾, 22-11-2026, SQL 183/188; js/42): tabla de las aperturas de la App Bitácora
+       con la información de cada brigada y Excel de 2 hojas (Aperturas / Personal). Admin y Jefe / Subgerente / GRT (sus áreas). -->
+  <div id="bitacora-panel"></div>
+
   <!-- 🌾 Gestión Asociación Malleco (Agricultores ▾, 20-10-2026, SQL 129): agenda de prevención de la Asociación de
        Agricultores (metas mensuales del Excel), control diario, planificación, agricultores y mapa. Registran el Administrador
        y la Asociación (app de terreno app-agricultores/app.html); los Jefes del área Victoria solo ven. -->
@@ -969,6 +973,7 @@
           <div class="vista-submenu">
             <button class="vista-subitem" data-vista="turnos" id="tab-turnos" style="display:none;"><span class="vs-ico">📅</span><span><b>Turnos de Recursos</b><small>Calendario de turnos por área</small></span></button>
             <button class="vista-subitem" data-vista="turnosgestor" id="tab-turnosgestor" style="display:none;"><span class="vs-ico">👥</span><span><b>Turnos de Gestores</b><small>Turnos de los gestores de relacionamiento por área</small></span></button>
+            <button class="vista-subitem" data-vista="bitacora" id="tab-bitacora" style="display:none;"><span class="vs-ico">📋</span><span><b>Bitácora: Aperturas</b><small>Aperturas de la App Bitácora con su brigada · Excel</small></span></button>
             <button class="vista-subitem" data-vista="planificador" id="tab-planificador"><span class="vs-ico">🧭</span><span><b>Planificador gráfico de Recursos</b><small>Recursos del área en el mapa</small></span></button>
             <button class="vista-subitem" data-vista="tablero" id="tab-tablero"><span class="vs-ico">📊</span><span><b>Tablero de Recursos</b><small>Resumen, activación por quincena y descarga</small></span></button>
             <button class="vista-subitem" data-vista="gestion" id="tab-gestion" style="display:none;"><span class="vs-ico">🗂️</span><span><b>Gestión de Recursos</b><small>Datos y contacto de cada recurso · carga masiva</small></span></button>
@@ -2418,5 +2423,6 @@
 <script src="js/39-limpiar-filtros.js"></script>
 <script src="js/40-novedades.js"></script>
 <script src="js/41-usuarios-recursos.js"></script>
+<script src="js/42-bitacora-aperturas.js"></script>
 </body>
 </html>
