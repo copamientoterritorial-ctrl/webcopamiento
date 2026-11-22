@@ -832,6 +832,7 @@ function cargarSeccionAdmin_(seccion) {
     limpieza: adminSeccionLimpieza_,   // js/37 (SQL 154)
     delegados: adminSeccionDelegados_,   // js/12 (SQL 185): delegados de prevención por área y feriados
     usuariosRecursos: adminSeccionUsuariosRecursos_,   // js/41 (SQL 186): cuentas de los recursos para la App Bitácora
+    correos: adminSeccionCorreos_,   // js/43 (SQL 189): correos automáticos (Resumen semanal del PPA)
   }[seccion];
   if (fn) fn(c);
 }
@@ -1103,6 +1104,7 @@ const AUD_CAPACIDADES = [
   ['🌲 Planificador CMPC', 'Turnos de Gestores: programar (fines de semana y feriados desde hoy; + delegado de prevención del área, SQL 185)', null, null, ['si (también días pasados)', 'no (solo ve)', 'Sus áreas', 'no (solo ve; salvo delegado)', 'no', 'no', 'no']],
   ['🌲 Planificador CMPC', 'Turnos de Gestores de relacionamiento: ver', null, null, ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
   ['⚙️ Administración', '🔑 Usuarios Recursos: crear cuentas de los recursos para la App Bitácora, claves, activar / desactivar (SQL 186)', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
+  ['⚙️ Administración', '✉️ Correos automáticos por temática: PPA semanal por área y PPA de la subgerencia, destinatarios, prueba e historial (SQL 189/190)', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
   ['🌲 Planificador CMPC', '📋 Bitácora: Aperturas — tabla de aperturas de la App Bitácora y Excel (Aperturas / Personal) (js/42, SQL 188)', null, null, ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
   ['🧭 Planificador de Alertas', 'Al crear una ruta (no CMPC): ofrecer agregarla a Amarilla / Roja', 'planificador_mapa', 'editar', ['si', 'si', 'si', 'si', 'Desde Amarilla', 'no', 'no']],
   ['🧭 Planificador de Alertas', 'Descargar PDF del plan', 'planificador_mapa', 'ver', ['si', 'si', 'si', 'si', 'no', 'no', 'no']],

@@ -1,10 +1,10 @@
 {
-  "version": "1.2.0",
+  "version": "1.3.0",
   "fecha": "2026-11-22",
   "notas": [
-    "Actividades encadenadas: la primera parte a la hora del turno, cada una sigue a la anterior y una barra muestra el avance del turno.",
-    "Apertura por secciones plegables: turno Diurno / Nocturno con el turno propuesto, reemplazantes con RUT, patente opcional.",
-    "Mapa con los fundos de tu área, búsqueda por nombre o código y coordenadas en grados-minutos-segundos.",
-    "Aviso en el teléfono si pasan 2 horas sin registrar actividades."
+    "Nuevo «🧩 Historial»: tus actividades por día en el mapa, con tu ruta asignada del copamiento y sus fundos.",
+    "Registrar actividad por secciones: primero el grupo y luego la actividad; el mapa muestra los fundos y las otras actividades del día.",
+    "Coordenadas en grados-minutos-segundos: puedes escribirlas a mano y buscarlas en el mapa (🔎).",
+    "Bienvenida con tu nombre y teléfono, e indicador de conexión en el encabezado."
   ]
 }

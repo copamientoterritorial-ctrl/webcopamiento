@@ -44,7 +44,7 @@
   .vacio { text-align:center; color: var(--sub); padding:30px 10px; }
   .pill { display:inline-block; padding:3px 9px; border-radius:999px; background: var(--borde); font-size:11.5px; font-weight:700; margin:2px 3px 2px 0; white-space:nowrap; }
   /* Menú inferior */
-  .menu { flex:0 0 auto; display:grid; grid-template-columns: repeat(4,1fr); background: var(--card); border-top:1px solid var(--borde); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); z-index:6; }
+  .menu { flex:0 0 auto; display:grid; grid-template-columns: repeat(5,1fr); background: var(--card); border-top:1px solid var(--borde); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); z-index:6; }
   .menu button { border:0; background:none; color: var(--sub); font:inherit; font-size:11px; font-weight:700; padding:6px 2px; cursor:pointer; }
   .menu button.on { color: var(--pri2); }
   .menu .ico { font-size:20px; display:block; }
@@ -241,6 +241,38 @@
   .hora-fija { display:flex; align-items:center; justify-content:space-between; gap:8px; background: var(--bg); border-radius:10px; padding:10px 12px; font-size:14px; }
   .hora-fija b { font-size:18px; }
   .rapidos { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  /* v1.3.0 · Conexión (punto con ondas), bienvenida, grupos de actividades, coordenadas, historial */
+  .red { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; opacity:.95; }
+  .red-dot { position:relative; width:8px; height:8px; border-radius:50%; background:#4ADE80; flex:0 0 auto; }
+  .red-dot::before, .red-dot::after { content:''; position:absolute; inset:0; border-radius:50%; border:1.5px solid #4ADE80; animation: onda 2.4s ease-out infinite; }
+  .red-dot::after { animation-delay: 1.2s; }
+  .red.off .red-dot { background:#FCA5A5; }
+  .red.off .red-dot::before, .red.off .red-dot::after { border-color:#FCA5A5; animation-duration: 3.6s; }
+  @keyframes onda { 0% { transform:scale(1); opacity:.7; } 100% { transform:scale(2.8); opacity:0; } }
+  @media (prefers-reduced-motion: reduce) { .red-dot::before, .red-dot::after { animation:none; opacity:0; } }
+  .hola { display:flex; align-items:center; gap:12px; background: var(--card); border:1px solid var(--borde); border-radius:16px; padding:12px 14px; margin-bottom:12px; }
+  .hola .avatar { width:46px; height:46px; font-size:16px; }
+  .hola-t { flex:1; min-width:0; }
+  .hola-t b { display:block; font-size:17px; }
+  .hola-t span { display:block; font-size:12.5px; color: var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .grupos { display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:8px; margin-top:8px; }
+  .grupos button { display:flex; align-items:center; gap:8px; text-align:left; border:1px solid var(--borde); background: var(--card); border-radius:12px; padding:11px 10px; font:inherit; font-size:13.5px; font-weight:700; cursor:pointer; }
+  .grupos button span:first-child { font-size:22px; }
+  .grupos button small { display:block; font-size:11px; font-weight:600; color: var(--sub); }
+  .grupo-cab { display:flex; align-items:center; gap:8px; margin-top:8px; font-weight:800; }
+  .coord-man { background: var(--bg); border-radius:12px; padding:10px; margin-top:8px; }
+  .coord-fila { display:flex; align-items:center; gap:4px; margin-top:6px; font-size:13px; font-weight:700; }
+  .coord-fila input { width:58px; padding:8px 6px; text-align:center; }
+  .coord-fila span.h { width:26px; text-align:center; color: var(--sub); }
+  .av-buscar { position:absolute; top:56px; right:8px; z-index:1000; width:40px; height:40px; border:0; border-radius:10px; background: rgba(255,255,255,.94); font-size:17px; cursor:pointer; box-shadow: 0 2px 8px rgba(2,6,23,.3); }
+  .busca-gms { position:absolute; left:8px; right:56px; top:52px; z-index:1001; display:flex; gap:6px; background: rgba(255,255,255,.97); border-radius:12px; padding:6px; box-shadow: 0 4px 14px rgba(2,6,23,.3); }
+  .busca-gms input { flex:1; min-width:0; padding:8px 9px; font-size:13px; }
+  .busca-gms button { border:0; border-radius:9px; padding:0 12px; font:inherit; font-weight:800; background: var(--azul); color:#fff; cursor:pointer; }
+  .busca-gms .bg-x { background: var(--bg); color: var(--sub); }
+  .num-pin { background:none; border:0; }
+  .num-pin div { width:24px; height:24px; border-radius:50%; border:2px solid #fff; color:#fff; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+  .hist-dia { font-size:12px; font-weight:800; color: var(--sub); text-transform:uppercase; letter-spacing:.4px; margin:14px 2px 6px; }
+  .ruta-info { font-size:12.5px; margin-top:8px; }
   @media (max-width:380px) { .kpi b { font-size:19px; } .seg button { font-size:12.5px; } }
 </style>
 </head>
@@ -268,7 +300,7 @@
   <header>
     <div style="flex:1;min-width:0;">
       <h1 id="h-titulo">📋 Aperturas</h1>
-      <small id="h-sub">Bitácora de recursos de prevención</small>
+      <small><span class="red" id="h-red" role="status"><span class="red-dot" aria-hidden="true"></span><span id="h-red-txt">En línea</span></span> · <span id="h-sub">Bitácora de recursos de prevención</span></small>
     </div>
     <button class="pend-pill" id="h-pend" style="display:none;" title="Pendientes de envío"></button>
     <button class="btn-w" id="h-actualizar" title="Actualizar datos" aria-label="Actualizar datos">🔄</button>
@@ -276,6 +308,7 @@
   <main id="m-cuerpo"><div class="vacio">Cargando…</div></main>
   <nav class="menu" id="menu">
     <button data-s="hoy" class="on" id="menu-1"><span class="ico">🏠</span><span id="menu-1-txt">Día</span></button>
+    <button data-s="historial"><span class="ico">🧩</span>Historial</button>
     <button data-s="semana"><span class="ico">🗓️</span>Semana</button>
     <button data-s="mapa"><span class="ico">🗺️</span>Mapa</button>
     <button data-s="perfil"><span class="ico">👤</span>Mi cuenta</button>
@@ -307,7 +340,7 @@
 const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-bitacora-app', detectSessionInUrl: false } });
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 const DOMINIO_CUENTAS = 'recursos.copamientoterritorial.cl';   // = Edge Function admin-cuentas-recurso y js/41 de la web
 const DIAS_CARGA = 14;   // aperturas que se descargan hacia atrás
 
@@ -723,7 +756,11 @@ function indexarAct() {
   S.aIdx.forEach(l => l.sort((x, y) => String(x.inicio).localeCompare(String(y.inicio))));
 }
 const actividadesDe = jid => (jid && S.aIdx.get(jid)) || [];
-const actividadPorId = id => { for (const l of S.aIdx.values()) { const a = l.find(x => x.id === id); if (a) return a; } return null; };
+const actividadPorId = id => {
+  for (const l of S.aIdx.values()) { const a = l.find(x => x.id === id); if (a) return a; }
+  for (const d of Object.values((S.hist && S.hist.datos) || {})) { const a = (d.lista || []).find(x => x.id === id); if (a) return a; }   // historial (días anteriores)
+  return null;
+};
 const minutosAct = l => l.reduce((s, a) => s + (Number(a.minutos) || 0), 0);
 // Jornada vigente de un recurso: la de hoy; si no hay, la de ayer en servicio que aún no se cierra (turno nocturno)
 function jornadaActual(r) {
@@ -804,18 +841,48 @@ function pintarPendPill() {
   b.style.display = n ? '' : 'none';
   b.textContent = '⏳ ' + n;
 }
+// Indicador de conexión del encabezado: punto con ondas suaves (verde en línea, rosado sin señal)
+function pintarRed() {
+  const x = $('h-red'); if (!x) return;
+  const on = navigator.onLine;
+  x.classList.toggle('off', !on);
+  $('h-red-txt').textContent = on ? 'En línea' : 'Sin señal';
+  x.title = on ? 'Con conexión: lo que registras se envía al tiro' : 'Sin conexión: lo que registras queda en el teléfono y se envía al volver la señal';
+}
+// Datos de la persona que usa la app (SQL 192: nombre y teléfono); en una cuenta de recurso, si falta, el ⭐ titular del recurso
+function datosUsuario() {
+  const c = S.ctx || {};
+  let nombre = c.nombre || '', tel = c.telefono || '';
+  const propio = S.recursos.find(r => r.propio);
+  if (propio && (!nombre || /^Cuenta /i.test(nombre) || !tel)) {
+    const t = (propio.nomina || []).find(p => p.titular) || (propio.nomina || []).find(p => /jefe/i.test(p.cargo || ''));
+    if (t && (!nombre || /^Cuenta /i.test(nombre))) nombre = t.nombre;
+    if (t && !tel) tel = t.telefono || '';
+  }
+  const pila = (nombre && !/^Cuenta /i.test(nombre) ? nombre.split(/\s+/)[0] : '') || '';
+  return { nombre, tel, pila: pila ? pila.charAt(0).toUpperCase() + pila.slice(1).toLowerCase() : '', usuario: c.usuario || (c.correo || '').split('@')[0] };
+}
+function holaHtml() {
+  const u = datosUsuario(), h = new Date().getHours();
+  const saludo = h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
+  const ini = (u.nombre || u.usuario || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+  return '<div class="hola"><div class="avatar">' + esc(ini) + '</div><div class="hola-t"><b>¡Bienvenido' + (u.pila ? ', ' + esc(u.pila) : '') + '! 👋</b>' +
+    '<span>' + esc(saludo) + (u.nombre ? ' · ' + u.nombre : '') + '</span>' +
+    '<span>' + (u.tel ? '📞 ' + esc(u.tel) + ' · ' : '') + '👤 ' + esc(u.usuario || '') + '</span></div></div>';
+}
 function pintar() {
   indexar();
   if (S.sec !== 'mapa' && S.mapaTab) { try { S.mapaTab.remove(); } catch (e) {} S.mapaTab = null; }
+  if (S.sec !== 'historial' && S.mapaHist) { try { S.mapaHist.remove(); } catch (e) {} S.mapaHist = null; }
   // Cuenta de recurso: el primer botón del menú es «Mi jornada» en vez de la lista del día
   const m1 = $('menu-1'); if (m1) { m1.dataset.s = esCuentaRecurso() ? 'inicio' : 'hoy'; $('menu-1-txt').textContent = esCuentaRecurso() ? 'Mi jornada' : 'Día'; }
   if (!S.sec) S.sec = 'hoy';
   if (S.sec === 'inicio' && !esCuentaRecurso()) S.sec = 'hoy';
   if (S.sec === 'hoy' && esCuentaRecurso()) S.sec = 'inicio';
   document.querySelectorAll('#menu button').forEach(b => b.classList.toggle('on', b.dataset.s === S.sec));
-  const red = navigator.onLine ? '' : ' · 📵 sin señal';
-  $('h-titulo').textContent = { inicio: '🏠 Mi jornada', hoy: '📋 Aperturas', semana: '🗓️ Semana', mapa: '🗺️ Mapa del día', perfil: '👤 Mi cuenta' }[S.sec];
-  $('h-sub').textContent = (S.ctx ? ROL_TXT[S.ctx.rol] || '' : 'Bitácora') + red;
+  $('h-titulo').textContent = { inicio: '🏠 Mi jornada', hoy: '📋 Aperturas', historial: '🧩 Historial de actividades', semana: '🗓️ Semana', mapa: '🗺️ Mapa del día', perfil: '👤 Mi cuenta' }[S.sec];
+  $('h-sub').textContent = S.ctx ? ROL_TXT[S.ctx.rol] || '' : 'Bitácora';
+  pintarRed();
   if (S.errorCarga && !S.ctx) { $('m-cuerpo').innerHTML = '<div class="card"><div class="aviso err">' + esc(S.errorCarga) + '</div><button class="btn" data-recargar="1" style="width:100%;">🔄 Reintentar</button></div>' + (S.sec === 'perfil' ? perfilHtml() : ''); return; }
   if (S.ctx && S.ctx.rol === 'sin_acceso' && S.sec !== 'perfil') {
     $('m-cuerpo').innerHTML = '<div class="card"><div class="aviso">Tu cuenta no tiene áreas ni recursos asignados para la Bitácora. Pide al Administrador que te asigne tus áreas en la plataforma o que vincule tu cuenta a un recurso.</div></div>';
@@ -823,6 +890,7 @@ function pintar() {
   }
   if (S.sec === 'inicio') pintarInicio();
   else if (S.sec === 'hoy') pintarDia();
+  else if (S.sec === 'historial') pintarHistorial();
   else if (S.sec === 'semana') pintarSemana();
   else if (S.sec === 'mapa') pintarMapaTab();
   else $('m-cuerpo').innerHTML = perfilHtml();
@@ -853,7 +921,7 @@ const ORDEN_ST = { falta: 0, abierta: 1, sin: 2, otro: 3, cerrada: 4 };
 function pintarInicio() {
   const propios = S.recursos.filter(r => r.propio);
   if (!propios.length) { $('m-cuerpo').innerHTML = '<div class="card"><div class="aviso">Tu cuenta no está vinculada a un recurso activo de la Bitácora. Pide al Administrador que la revise.</div></div>'; return; }
-  $('m-cuerpo').innerHTML = propios.map(inicioRecursoHtml).join('') +
+  $('m-cuerpo').innerHTML = holaHtml() + propios.map(inicioRecursoHtml).join('') +
     (S.descarga ? '<p class="muted" style="text-align:center;">Datos de las ' + esc(fmtHora(S.descarga)) + (navigator.onLine ? '' : ' · 📵 sin señal') + '</p>' : '');
 }
 function inicioRecursoHtml(r) {
@@ -907,7 +975,7 @@ function pintarDia() {
   const vis = S.filtros.kpi ? lista.filter(x => x.st.k === S.filtros.kpi) : lista;
   vis.sort((a, b) => (ORDEN_ST[a.st.k] - ORDEN_ST[b.st.k]) || String(a.r.area).localeCompare(String(b.r.area), 'es') || String(a.r.clave_radial).localeCompare(String(b.r.clave_radial), 'es', { numeric: true }));
   const variasAreas = new Set(vis.map(x => x.r.id_area)).size > 1;
-  let html = fechaNavHtml();
+  let html = holaHtml() + fechaNavHtml();
   if (!S.recursos.length) { $('m-cuerpo').innerHTML = html + '<div class="vacio">No tienes recursos de la Bitácora en tu alcance.</div>'; return; }
   html += '<div class="kpis" style="grid-template-columns:repeat(5,1fr);">' + kp.map(k =>
     '<div class="kpi' + (S.filtros.kpi === k[0] && k[0] ? ' on' : '') + '" data-kpi="' + k[0] + '" style="--c:' + k[3] + '"><b>' + k[2] + '</b><span>' + esc(k[1]) + '</span></div>').join('') + '</div>';
@@ -927,6 +995,124 @@ function pintarDia() {
   });
   if (!vis.length) html += '<div class="vacio">Ningún recurso con este filtro.</div>';
   $('m-cuerpo').innerHTML = html;
+}
+/* ───────── 🧩 Historial de actividades (v1.3.0): por día, con mapa de pinchos, ruta asignada y sus fundos ───────── */
+const HIST_DIAS = [[1, 'Hoy'], [3, '3 días'], [7, '7 días'], [14, '14 días']];
+const COLORES_GRUPO = ['#2563EB', '#16A34A', '#D97706', '#7C3AED', '#DC2626', '#0891B2', '#65A30D', '#DB2777', '#B91C1C', '#475569'];
+const colorGrupo = cod => { const i = S.cat.grupos.findIndex(g => g.codigo === cod); return COLORES_GRUPO[(i < 0 ? 9 : i) % COLORES_GRUPO.length]; };
+S.hist = { rid: '', dias: 3, datos: {}, cargando: false };
+// Ruta asignada al recurso en el copamiento (escenario Normal) y los fundos que recorre (SQL 192); queda en el teléfono
+async function rutaDeRecurso(rid) {
+  const k = 'ruta_' + rid;
+  S.rutas = S.rutas || {};
+  if (S.rutas[k] !== undefined) return S.rutas[k];
+  try {
+    const { data, error } = await sb.rpc('bit_ruta_recurso', { p_recurso: rid });
+    if (error) throw error;
+    S.rutas[k] = data || null; if (data) cacheSet(k, data);
+  } catch (e) { S.rutas[k] = (await cacheGet(k)) || null; }
+  return S.rutas[k];
+}
+// Actividades del recurso de los últimos N días (con señal se piden; sin señal, lo guardado + lo pendiente)
+async function cargarHistorial(rid, dias) {
+  const desde = sumarDias(hoyISO(), -(dias - 1)), k = 'hist_' + rid;
+  let lista = null;
+  if (navigator.onLine && !S.sinActividades) {
+    try { lista = await leerTodo('v_bit_actividades', '*', q => q.eq('recurso_id', rid).gte('fecha_operativa', desde).order('inicio')); cacheSet(k, { lista, desde }); }
+    catch (e) { lista = null; }
+  }
+  if (!lista) { const c = await cacheGet(k); lista = c && c.lista ? c.lista : []; }
+  S.hist.datos[rid + '|' + dias] = { lista, desde, en: Date.now() };
+}
+function actividadesHistorial(rid, dias) {
+  const d = S.hist.datos[rid + '|' + dias], desde = sumarDias(hoyISO(), -(dias - 1));
+  const m = new Map(((d && d.lista) || []).map(a => [a.id, a]));
+  S.aIdx.forEach(l => l.forEach(a => { if (a.recurso_id === rid && a.fecha_operativa >= desde) m.set(a.id, a); }));   // lo del día y lo pendiente encima
+  S.pendientes.forEach(it => { if (it.tipo === 'eliminar_act') m.delete(it.jid); });
+  return [...m.values()].sort((x, y) => String(x.inicio).localeCompare(String(y.inicio)));
+}
+function pintarHistorial() {
+  const H = S.hist;
+  if (!S.recursos.length) { $('m-cuerpo').innerHTML = '<div class="vacio">No tienes recursos de la Bitácora en tu alcance.</div>'; return; }
+  if (!H.rid || !recurso(H.rid)) H.rid = (S.recursos.find(r => r.propio) || S.recursos[0]).id;
+  const r = recurso(H.rid), clave = H.rid + '|' + H.dias, d = H.datos[clave];
+  let html = '';
+  if (S.recursos.length > 1) html += '<div class="filtros" style="grid-template-columns:1fr;"><select id="h-rec">' + S.recursos.map(x => '<option value="' + esc(x.id) + '"' + (x.id === H.rid ? ' selected' : '') + '>' +
+    esc((TIPO_EMOJI[x.tipo_codigo] || '') + ' ' + (x.clave_radial || x.codigo_ref) + ' · ' + (x.area || '')) + '</option>').join('') + '</select></div>';
+  html += '<div class="opc" style="margin-bottom:10px;">' + HIST_DIAS.map(x => '<button type="button" data-hdias="' + x[0] + '"' + (x[0] === H.dias ? ' class="on"' : '') + '>' + x[1] + '</button>').join('') + '</div>';
+  const l = actividadesHistorial(H.rid, H.dias);
+  const dias = [...new Set(l.map(a => a.fecha_operativa))].sort().reverse();
+  html += '<div class="kpis" style="grid-template-columns:repeat(3,1fr);"><div class="kpi" style="--c:#2563EB"><b>' + l.length + '</b><span>Actividades</span></div>' +
+    '<div class="kpi" style="--c:#16A34A"><b>' + esc(durTxt(minutosAct(l)).replace(' min', 'm')) + '</b><span>Tiempo registrado</span></div>' +
+    '<div class="kpi" style="--c:#D97706"><b>' + l.filter(a => a.lat != null).length + '</b><span>Con ubicación</span></div></div>';
+  html += '<div class="mapa-tab" id="mh" style="height:46vh;min-height:260px;"></div><div id="h-ruta" class="ruta-info muted"></div>';
+  html += '<div class="leyenda">' + S.cat.grupos.filter(g => l.some(a => a.grupo_codigo === g.codigo)).map(g => '<span><b style="color:' + colorGrupo(g.codigo) + '">●</b> ' + esc((g.emoji || '') + ' ' + g.nombre) + '</span>').join('') +
+    '<span style="color:#1D4ED8;">━ Ruta asignada</span><span style="color:#B45309;">▢ Fundos de la ruta</span></div>';
+  if (!d && H.cargando) html += '<div class="vacio">Cargando actividades…</div>';
+  else if (!l.length) html += '<div class="vacio">Sin actividades registradas en ' + (H.dias === 1 ? 'el día de hoy' : 'los últimos ' + H.dias + ' días') + '.</div>';
+  let n = 0;
+  const numero = new Map(l.map(a => [a.id, ++n]));
+  dias.forEach(f => {
+    const del = l.filter(a => a.fecha_operativa === f);
+    html += '<div class="hist-dia">' + esc(fmtDia(f)) + ' · ' + del.length + ' · ' + esc(durTxt(minutosAct(del))) + '</div><div class="card" style="padding:4px 14px;">' +
+      actListaHtml(del).replace(/<div class="a-hora">/g, '<div class="a-hora">') + '</div>';
+  });
+  $('m-cuerpo').innerHTML = html;
+  // Números de los pinchos en la lista (mismo orden que el mapa)
+  document.querySelectorAll('#m-cuerpo .act').forEach(el => { const k = numero.get(el.dataset.act); if (k) { const a = l.find(x => x.id === el.dataset.act); el.querySelector('.a-hora').insertAdjacentHTML('afterbegin', '<span class="pill" style="background:' + colorGrupo(a.grupo_codigo) + ';color:#fff;">' + k + '</span><br>'); } });
+  dibujarMapaHistorial(r, l, numero);
+  if (!d && !H.cargando) { H.cargando = true; cargarHistorial(H.rid, H.dias).finally(() => { H.cargando = false; if (S.sec === 'historial' && !$('ov').classList.contains('show')) pintarHistorial(); }); }
+}
+async function dibujarMapaHistorial(r, l, numero) {
+  const cont = $('mh'); if (!cont) return;
+  if (typeof L === 'undefined') { cont.innerHTML = '<div class="vacio">Mapa no disponible sin conexión.</div>'; return; }
+  if (S.mapaHist) { try { S.mapaHist.remove(); } catch (e) {} }
+  const map = S.mapaHist = L.map(cont, { attributionControl: false }).setView(MAPA_CENTRO_DEF, 8);
+  map.zoomControl.setPosition('bottomright');
+  map.invalidateSize();   // tamaño real antes de dibujar (el lienzo de los fundos se ubica con él)
+  let modo = mapaBaseActual(), capas = capasBase(map, modo);
+  const bx = document.createElement('div'); bx.className = 'mt-base';
+  bx.innerHTML = Object.keys(MAPA_BASES).map(k => '<button type="button" data-mb="' + k + '"' + (k === modo ? ' class="on"' : '') + '>' + MAPA_BASES[k].txt + '</button>').join('');
+  cont.appendChild(bx); L.DomEvent.disableClickPropagation(bx);
+  bx.querySelectorAll('[data-mb]').forEach(b => b.onclick = () => { modo = b.dataset.mb; guardarBase(modo); capas = capasBase(map, modo, capas); bx.querySelectorAll('[data-mb]').forEach(x => x.classList.toggle('on', x.dataset.mb === modo)); });
+  agregarBuscadorCoord(cont, map, null);
+  const lim = [];
+  const pts = l.filter(a => a.lat != null && a.lng != null);
+  pts.forEach(a => {
+    const ic = L.divIcon({ className: 'num-pin', html: '<div style="background:' + colorGrupo(a.grupo_codigo) + '">' + numero.get(a.id) + '</div>', iconSize: [24, 24], iconAnchor: [12, 12] });
+    L.marker([a.lat, a.lng], { icon: ic, zIndexOffset: 500 }).addTo(map)
+      .bindPopup('<div class="pop"><b>' + numero.get(a.id) + '. ' + esc((a.grupo_emoji || '') + ' ' + (a.actividad || '')) + '</b><div>' + esc(fmtFecha(a.fecha_operativa) + ' · ' + hhmm(new Date(a.inicio)) + '–' + hhmm(new Date(a.fin)) + ' · ' + durTxt(a.minutos)) + '</div>' +
+        (a.fundo_nombre ? '<div>🌲 ' + esc(fundoTxt({ nombre: a.fundo_nombre, cod_fundo: a.cod_fundo })) + '</div>' : '') + '<div class="gms">' + esc(coordTxt(a.lat, a.lng)) + '</div>' +
+        '<div style="margin-top:6px;"><button class="btn btn-mini" data-act="' + esc(a.id) + '">Ver actividad</button></div></div>');
+    lim.push([a.lat, a.lng]);
+  });
+  // Línea del recorrido del período (en orden de hora)
+  if (pts.length > 1) L.polyline(pts.map(a => [a.lat, a.lng]), { color: '#334155', weight: 2, opacity: .55, dashArray: '4 6' }).addTo(map);
+  const [fc, ruta] = await Promise.all([fundosGeoDeArea(r.id_area), rutaDeRecurso(r.id)]);
+  if (S.mapaHist !== map) return;
+  const codRuta = new Set(((ruta && ruta.fundos) || []).map(f => String(f.cod_fundo)));
+  if (fc && fc.features && fc.features.length) {
+    L.geoJSON(fc, { renderer: L.canvas({ padding: 0.3 }), interactive: true,
+      style: f => { const on = codRuta.has(String((f.properties || {}).cod_fundo)); return { color: on ? '#B45309' : '#FDE68A', weight: on ? 2.2 : 1, fillColor: on ? '#F59E0B' : '#FACC15', fillOpacity: on ? 0.22 : 0.05 }; },
+      onEachFeature: (f, ly) => ly.bindTooltip(esc(fundoTxt(f.properties || {})), { sticky: true, className: 'fu-tt', direction: 'top' }) }).addTo(map);
+  }
+  const rf = ruta && ruta.rutas && ruta.rutas.features ? ruta.rutas.features : [];
+  if (rf.length) {
+    const capa = L.geoJSON(ruta.rutas, { style: { color: '#1D4ED8', weight: 5, opacity: .85 },
+      onEachFeature: (f, ly) => ly.bindTooltip(esc((f.properties.descripcion || 'Ruta asignada') + (f.properties.km != null ? ' · ' + String(f.properties.km).replace('.', ',') + ' km' : '')), { sticky: true, className: 'fu-tt' }) }).addTo(map);
+    try { const b = capa.getBounds(); lim.push(b.getSouthWest(), b.getNorthEast()); } catch (e) {}
+  }
+  const info = $('h-ruta');
+  if (info) {
+    const km = rf.reduce((s, f) => s + (Number(f.properties.km) || 0), 0);
+    info.innerHTML = rf.length ? '🛣️ <b>Ruta asignada</b> (copamiento, escenario Normal): ' + rf.length + ' tramo' + (rf.length > 1 ? 's' : '') + ' · ' + String(Math.round(km * 10) / 10).replace('.', ',') + ' km' +
+        (codRuta.size ? '<br>🌲 Fundos de la ruta: ' + esc(ruta.fundos.map(fundoTxt).join(', ')) : '')
+      : (ruta ? '🛣️ Este recurso no tiene una ruta asignada en el copamiento.' : (navigator.onLine ? '' : '🛣️ La ruta asignada se descarga con señal.'));
+  }
+  map.invalidateSize();
+  // Sin animación: si se cambia de pestaña durante el zoom, Leaflet falla al quitar el mapa (_leaflet_pos)
+  if (lim.length) map.fitBounds(lim, { padding: [30, 30], maxZoom: 15, animate: false });
+  else if (fc && fc.features && fc.features.length) { try { map.fitBounds(L.geoJSON(fc).getBounds(), { maxZoom: 12, animate: false }); } catch (e) {} }
 }
 function pintarSemana() {
   const fin = S.fecha, dias = Array.from({ length: 7 }, (_, i) => sumarDias(fin, i - 6)), hoy = hoyISO();
@@ -968,6 +1154,62 @@ function gms(v, pos, neg) {
   return g + '°' + pad(m) + "'" + se.toFixed(1).padStart(4, '0').replace('.', ',') + '" ' + s;
 }
 const coordTxt = (la, ln) => gms(la, 'N', 'S') + ' · ' + gms(ln, 'E', 'O');
+// Partes de un valor decimal en grados-minutos-segundos (para los campos de ingreso manual)
+function gmsPartes(v) {
+  v = Math.abs(v); let g = Math.floor(v), m = Math.floor((v - g) * 60), s = Math.round(((v - g) * 60 - m) * 600) / 10;
+  if (s >= 60) { s = 0; m++; } if (m >= 60) { m = 0; g++; }
+  return { g, m, s };
+}
+// Texto → { lat, lng }. Acepta GMS (38°14'25,3" S 72°20'11,8" O · 38 14 25.3 S 72 20 11.8 W) o decimal (-38.2357, -72.3351).
+// Sin letra de hemisferio se asume Sur y Oeste (Chile). Devuelve null si no se entiende.
+function parseCoord(txt) {
+  let t = String(txt || '').toUpperCase().replace(/(\d),(\d)/g, '$1.$2').replace(/[º˚]/g, '°').replace(/[′’‘´`]/g, "'").replace(/[″“”]/g, '"').replace(/''/g, '"');
+  const letras = (t.match(/[NSEOW]/g) || []);
+  const nums = (t.match(/-?\d+(\.\d+)?/g) || []).map(Number);
+  let la, ln;
+  if (nums.length === 2) { la = nums[0]; ln = nums[1]; }
+  else if (nums.length === 4) { la = Math.abs(nums[0]) + nums[1] / 60; ln = Math.abs(nums[2]) + nums[3] / 60; }
+  else if (nums.length === 6) {
+    if (nums[1] >= 60 || nums[2] >= 60 || nums[4] >= 60 || nums[5] >= 60) return null;
+    la = Math.abs(nums[0]) + nums[1] / 60 + nums[2] / 3600; ln = Math.abs(nums[3]) + nums[4] / 60 + nums[5] / 3600;
+  } else return null;
+  const hl = letras.find(x => x === 'N' || x === 'S'), hg = letras.find(x => x === 'E' || x === 'O' || x === 'W');
+  if (nums.length !== 2 || hl || hg) {   // GMS (o decimal con letras): el signo lo da la letra; sin letra, S y O
+    la = Math.abs(la) * (hl === 'N' ? 1 : -1); ln = Math.abs(ln) * (hg === 'E' ? 1 : -1);
+  } else if (la > 0 && ln > 0 && la < 60 && ln > 60) { la = -la; ln = -ln; }   // «38.23, 72.33» sin signos: Chile
+  if (!(la >= -90 && la <= 90 && ln >= -180 && ln <= 180)) return null;
+  return { lat: la, lng: ln };
+}
+// Buscador de coordenadas (GMS o decimal) sobre un mapa: 🔎 abre la caja; «Ir» centra y marca el punto
+function agregarBuscadorCoord(cont, map, onPunto) {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'av-buscar'; b.title = 'Buscar una coordenada'; b.setAttribute('aria-label', 'Buscar una coordenada'); b.textContent = '🔎';
+  cont.appendChild(b);
+  let caja = null, marca = null;
+  const cerrar = () => { if (caja) { caja.remove(); caja = null; } };
+  b.onclick = e => {
+    e.stopPropagation();
+    if (caja) return cerrar();
+    caja = document.createElement('div'); caja.className = 'busca-gms';
+    caja.innerHTML = '<input type="text" inputmode="text" placeholder="38°14\'25&quot; S 72°20\'11&quot; O" aria-label="Coordenada"><button type="button" class="bg-ir">Ir</button><button type="button" class="bg-x" aria-label="Cerrar">✕</button>';
+    cont.appendChild(caja);
+    L.DomEvent.disableClickPropagation(caja);
+    const inp = caja.querySelector('input'); inp.focus();
+    const ir = () => {
+      const p = parseCoord(inp.value);
+      if (!p) return toast('No entendí la coordenada. Ej.: 38°14\'25" S 72°20\'11" O', 4500);
+      map.setView([p.lat, p.lng], Math.max(map.getZoom(), 15));
+      if (marca) map.removeLayer(marca);
+      marca = L.circleMarker([p.lat, p.lng], { radius: 9, color: '#2563EB', weight: 3, fillColor: '#93C5FD', fillOpacity: .6 }).addTo(map)
+        .bindTooltip(coordTxt(p.lat, p.lng), { permanent: true, direction: 'top', className: 'fu-tt' });
+      cerrar();
+      if (onPunto) onPunto(p.lat, p.lng);
+    };
+    caja.querySelector('.bg-ir').onclick = ir;
+    caja.querySelector('.bg-x').onclick = cerrar;
+    inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') ir(); });
+  };
+  L.DomEvent.disableClickPropagation(b);
+}
 // Mapa pequeño del formulario: tocar o arrastrar el pincho mueve la ubicación; ⛶ lo agranda
 function montarMapa(cont, lat, lng, opts) {
   opts = opts || {};
@@ -1011,6 +1253,18 @@ function montarMapa(cont, lat, lng, opts) {
   };
   const marcarFundo = cod => { fundoSel = cod || ''; if (capaFundos) capaFundos.setStyle(estiloFundo); };
   if (opts.fundos) setFundos(opts.fundos);
+  // Pinchos tenues de otras actividades de la jornada (referencia; no se pueden tocar para mover)
+  let capaOtros = null;
+  const setOtros = lista => {
+    if (capaOtros) { map.removeLayer(capaOtros); capaOtros = null; }
+    const pts = (lista || []).filter(x => x.lat != null && x.lng != null);
+    if (!pts.length) return;
+    capaOtros = L.layerGroup(pts.map(x => L.circleMarker([x.lat, x.lng], { radius: 6, color: '#fff', weight: 1.5, fillColor: '#475569', fillOpacity: .45, opacity: .7, interactive: true })
+      .bindTooltip(esc(x.txt || ''), { direction: 'top', className: 'fu-tt' }))).addTo(map);
+  };
+  if (opts.otros) setOtros(opts.otros);
+  // 🔎 Buscar una coordenada (GMS o decimal); en un mapa editable, el punto buscado queda como ubicación
+  agregarBuscadorCoord(cont, map, opts.editable ? (la, ln) => { mover(la, ln, true); opts.onMove && opts.onMove(la, ln); } : null);
   const btnG = cont.querySelector('.av-grande'); let marca = null;
   const grande = on => {
     if (on && !cont.classList.contains('grande')) { marca = document.createComment('mapa'); cont.parentNode.insertBefore(marca, cont); document.body.appendChild(cont); }
@@ -1024,7 +1278,7 @@ function montarMapa(cont, lat, lng, opts) {
   btnL.onclick = e => { e.stopPropagation(); grande(false); }; cont.appendChild(btnL);
   cont.querySelectorAll('.av-capas, .av-grande, .av-listo').forEach(el => L.DomEvent.disableClickPropagation(el));
   setTimeout(() => map.invalidateSize(), 80);
-  return { mover, map, setFundos, marcarFundo, refrescar: () => { map.invalidateSize(); if (pin) map.panTo(pin.getLatLng()); } };
+  return { mover, map, setFundos, marcarFundo, setOtros, refrescar: () => { map.invalidateSize(); if (pin) map.panTo(pin.getLatLng()); } };
 }
 // Pone los fundos del área del formulario abierto en su mapa (desde el teléfono si ya se descargaron)
 async function fundosEnMapaForm() {
@@ -1047,6 +1301,7 @@ function pintarMapaTab() {
   bx.innerHTML = Object.keys(MAPA_BASES).map(k => '<button type="button" data-mb="' + k + '"' + (k === modo ? ' class="on"' : '') + '>' + MAPA_BASES[k].txt + '</button>').join('');
   cont.appendChild(bx); L.DomEvent.disableClickPropagation(bx);
   bx.querySelectorAll('[data-mb]').forEach(b => b.onclick = () => { modo = b.dataset.mb; guardarBase(modo); capas = capasBase(map, modo, capas); bx.querySelectorAll('[data-mb]').forEach(x => x.classList.toggle('on', x.dataset.mb === modo)); });
+  agregarBuscadorCoord(cont, map, null);
   const pts = [];
   recursosFiltrados().forEach(r => {
     const st = estadoRecurso(r, f), j = st.j;
@@ -1068,7 +1323,8 @@ function pintarMapaTab() {
 /* ───────── Mi cuenta ───────── */
 function perfilHtml() {
   const c = S.ctx || {};
-  const ini = (c.nombre || c.correo || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+  const u = datosUsuario();
+  const ini = (u.nombre || c.correo || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
   const propios = (c.recursos_propios || []).map(id => recurso(id)).filter(Boolean);
   const pend = S.pendientes.map(it => {
     const j = S.jIdx && [...S.jIdx.values()].find(x => x.id === it.jid), r = j ? recurso(j.recurso_id) : (it.payload && recurso(it.payload.recurso_id));
@@ -1077,8 +1333,9 @@ function perfilHtml() {
       '<div class="muted">Guardado ' + esc(fmtFechaHora(it.creado)) + '</div>' + (it.error ? '<div class="chip-e" style="display:inline-block;margin-top:4px;">' + esc(it.error) + '</div>' : '') +
       '<div style="text-align:right;margin-top:6px;"><button class="btn btn-mini btn-rojo" data-descartar="' + it.id + '">Descartar</button></div></div>';
   }).join('');
-  return '<div class="card perfil-head"><div class="avatar">' + esc(ini) + '</div><div style="min-width:0;"><b>' + esc(c.nombre || 'Sin nombre registrado') + '</b><div class="muted" style="word-break:break-all;">' + esc(c.correo || '') + '</div></div></div>' +
-    '<div class="card"><div class="dato"><span>Perfil</span><b>' + esc(c.perfil || '—') + '</b></div><div class="dato"><span>En la Bitácora</span><b>' + esc(ROL_TXT[c.rol] || '—') + '</b></div>' +
+  return '<div class="card perfil-head"><div class="avatar">' + esc(ini) + '</div><div style="min-width:0;"><b>' + esc(u.nombre || 'Sin nombre registrado') + '</b><div class="muted" style="word-break:break-all;">' + esc(c.correo || '') + '</div></div></div>' +
+    '<div class="card"><div class="dato"><span>Usuario</span><b>' + esc(u.usuario || '—') + '</b></div><div class="dato"><span>Teléfono</span><b>' + (u.tel ? telLinks(u.tel) : '—') + '</b></div>' +
+    '<div class="dato"><span>Perfil</span><b>' + esc(c.perfil || '—') + '</b></div><div class="dato"><span>En la Bitácora</span><b>' + esc(ROL_TXT[c.rol] || '—') + '</b></div>' +
       (propios.length ? '<div class="dato"><span>Recurso a cargo</span><b>' + propios.map(r => esc(r.clave_radial || r.codigo_ref)).join(', ') + '</b></div>' : '') +
       '<div class="dato"><span>Recursos visibles</span><b>' + S.recursos.length + '</b></div>' +
       '<div style="margin-top:8px;">' + ((c.areas || []).map(a => '<span class="pill">' + esc(a.nombre) + '</span>').join('') || '<span class="muted">Sin áreas asignadas</span>') + '</div></div>' +
@@ -1251,14 +1508,14 @@ function pintarFormulario() {
       '<label class="chk"><input type="checkbox" id="ff-cambio"' + (F.cambio_movil ? ' checked' : '') + '> Cambio de móvil (vehículo de reemplazo)</label>' +
       '<div class="muted" style="margin-top:6px;">La patente es opcional mientras se incorpora el dato correcto de cada móvil.</div>');
     html += tgHtml('ubic', '📍', 'Ubicación y fundo', '<div class="geo-row" style="margin-top:6px;"><button type="button" class="btn btn-mini" data-gps="1">📍 Usar mi ubicación</button><span id="ff-gps" class="muted gms"></span></div>' +
-      '<div class="av-mapa" id="ff-mapa"></div><div class="muted" style="margin-top:4px;">Toca el mapa o un fundo (contorno amarillo) para marcar el lugar.</div><div id="fs-fundo"></div>');
+      '<div class="av-mapa" id="ff-mapa"></div><div class="muted" style="margin-top:4px;">Toca el mapa o un fundo (contorno amarillo) para marcar el lugar. 🔎 busca una coordenada.</div><div id="fs-coord"></div><div id="fs-fundo"></div>');
   }
   html += tgHtml('obs', '📝', 'Observación', '<textarea id="ff-obs" rows="2" maxlength="500" placeholder="Opcional" style="margin-top:6px;">' + esc(F.observacion) + '</textarea>');
   html += '<div id="ff-err" class="aviso err" style="display:none;"></div></div>';
   html += '<div class="sh-foot"><button class="btn" data-cerrar="1">Cancelar</button><button class="btn btn-grande" data-guardar="1" style="flex:2;">' + (F.nuevo ? (e.en_servicio ? '✅ Abrir jornada' : '✅ Guardar') : '💾 Guardar corrección') + '</button></div>';
   abrirHoja(html);
   if (e.en_servicio) {
-    pintarDot(); pintarTurno(); pintarFoco(); pintarFundo(); pintarGpsTxt();
+    pintarDot(); pintarTurno(); pintarFoco(); pintarFundo(); pintarGpsTxt(); pintarCoordMan();
     if (F.abiertos.has('ubic')) montarMapaForm();
   }
   resumenForm();
@@ -1266,7 +1523,9 @@ function pintarFormulario() {
 // Mapa del formulario (apertura o actividad) con los fundos del área; se monta al abrir la sección (Leaflet necesita verla)
 function montarMapaForm() {
   if (!F || F.mapa || !$('ff-mapa')) return;
-  F.mapa = montarMapa($('ff-mapa'), F.lat, F.lng, { editable: true, fundoSel: F.cod_fundo, fundos: F.fc || null, onMove: (la, ln, props) => {
+  const otros = F.modo === 'actividad' ? actividadesDe(F.j.id).filter(a => a.id !== F.id && a.lat != null)
+    .map(a => ({ lat: a.lat, lng: a.lng, txt: hhmm(new Date(a.inicio)) + '–' + hhmm(new Date(a.fin)) + ' · ' + (a.actividad || '') })) : null;
+  F.mapa = montarMapa($('ff-mapa'), F.lat, F.lng, { editable: true, fundoSel: F.cod_fundo, fundos: F.fc || null, otros, onMove: (la, ln, props) => {
     F.lat = la; F.lng = ln; F.precision_m = null; F.gpsTxt = 'Punto marcado a mano'; pintarGpsTxt();
     if (props && props.cod_fundo) { F.cod_fundo = String(props.cod_fundo); F.fundo_nombre = props.nombre || ''; F.fundoManual = true; if (F.mapa) F.mapa.marcarFundo(F.cod_fundo); pintarFundo(); resumenForm(); }
     else sugerirFundo();
@@ -1286,9 +1545,36 @@ function pintarGpsTxt() {
   const x = $('ff-gps'); if (!x || !F) return;
   x.textContent = F.lat != null ? (F.gpsTxt ? F.gpsTxt + ' · ' : (F.precision_m ? '± ' + F.precision_m + ' m · ' : '')) + coordTxt(F.lat, F.lng) : (F.gpsTxt || 'Sin ubicación');
 }
+// Ingreso manual de coordenadas en grados-minutos-segundos (Sur / Oeste, Chile)
+function pintarCoordMan() {
+  const c = $('fs-coord'); if (!c || !F) return;
+  if (!F.coordMan) { c.innerHTML = '<button type="button" class="btn btn-mini" data-coord-man="1" style="margin-top:8px;">⌨️ Escribir coordenadas (grados-minutos-segundos)</button>'; return; }
+  const a = F.lat != null ? gmsPartes(F.lat) : { g: '', m: '', s: '' }, b = F.lng != null ? gmsPartes(F.lng) : { g: '', m: '', s: '' };
+  const fila = (id, t, p, h) => '<div class="coord-fila"><span style="width:70px;">' + t + '</span><input id="cm-' + id + 'g" inputmode="numeric" maxlength="3" value="' + p.g + '" aria-label="' + t + ' grados"><span class="h">°</span>' +
+    '<input id="cm-' + id + 'm" inputmode="numeric" maxlength="2" value="' + p.m + '" aria-label="' + t + ' minutos"><span class="h">\'</span>' +
+    '<input id="cm-' + id + 's" inputmode="decimal" maxlength="5" value="' + (p.s === '' ? '' : String(p.s).replace('.', ',')) + '" aria-label="' + t + ' segundos"><span class="h">"</span><b>' + h + '</b></div>';
+  c.innerHTML = '<div class="coord-man"><div class="sec-t" style="margin:0;">⌨️ Coordenadas en grados-minutos-segundos</div>' +
+    fila('la', 'Latitud', a, 'S') + fila('ln', 'Longitud', b, 'O') +
+    '<div id="cm-err" class="aviso err" style="display:none;"></div>' +
+    '<div class="fila" style="margin-top:8px;"><button type="button" class="btn btn-mini" data-coord-no="1">Cancelar</button><button type="button" class="btn btn-mini btn-p" data-coord-ok="1">📍 Usar estas coordenadas</button></div></div>';
+}
+function usarCoordMan() {
+  const n = id => { const v = String(($('cm-' + id) || {}).value || '').trim().replace(',', '.'); return v === '' ? NaN : Number(v); };
+  const err = m => { const x = $('cm-err'); if (x) { x.textContent = m; x.style.display = ''; } };
+  const lg = n('lag'), lm = n('lam'), ls = n('las'), ng = n('lng'), nm = n('lnm'), ns = n('lns');
+  if ([lg, lm, ls, ng, nm, ns].some(isNaN)) return err('Completa grados, minutos y segundos de la latitud y la longitud.');
+  if (lm >= 60 || nm >= 60 || ls >= 60 || ns >= 60 || lm < 0 || nm < 0 || ls < 0 || ns < 0) return err('Minutos y segundos van de 0 a 59.');
+  if (lg < 17 || lg > 56 || ng < 66 || ng > 110) return err('Revisa los grados: en Chile la latitud va de 17° a 56° S y la longitud de 66° a 110° O.');
+  F.lat = -(lg + lm / 60 + ls / 3600); F.lng = -(ng + nm / 60 + ns / 3600); F.precision_m = null; F.gpsTxt = 'Coordenadas escritas';
+  if (!F.fundoManual) F.cod_fundo = '';
+  F.coordMan = false; pintarCoordMan(); pintarGpsTxt();
+  if (F.mapa) F.mapa.mover(F.lat, F.lng, true);
+  sugerirFundo();
+}
 // Resumen de cada sección en su encabezado (✓ listo · Falta · Opcional)
 function resumenForm() {
-  if (!F || F.modo === 'actividad' || !F.abiertos) return;
+  if (!F || !F.abiertos) return;
+  if (F.modo === 'actividad') return resumenAct();
   const pon = (k, txt, est) => {
     const s = $('tgs-' + k), o = $('tgo-' + k); if (!s || !o) return;
     s.textContent = txt; o.className = 'tg-ok ' + est; o.textContent = est === 'si' ? '✓' : est === 'no' ? 'Falta' : 'Opcional';
@@ -1501,80 +1787,110 @@ function abrirActividad(r, j, a, volver) {
     lat: a ? a.lat : null, lng: a ? a.lng : null, precision_m: a ? a.precision_m : null,
     cod_fundo: a ? a.cod_fundo || '' : '', fundo_nombre: a ? a.fundo_nombre || '' : '', fundoManual: !!(a && (a.fundo_nombre || a.cod_fundo)), fq: '',
     observacion: a ? a.observacion || '' : '', creado_dispositivo_en: a ? a.creado_dispositivo_en : null,
-    fotos: a ? (a.fotos || []).slice() : [], fotosNuevas: []
+    fotos: a ? (a.fotos || []).slice() : [], fotosNuevas: [],
+    abiertos: new Set(a ? [] : ['act', 'hora', 'ubic'])
   };
   pintarActividadForm();
   cargarFundosForm();
   if (F.nuevo) usarGps(true);
 }
+// Formulario de actividad con la misma lógica que la apertura: secciones plegables con resumen y estado
 function pintarActividadForm() {
   const r = F.r, j = F.j;
   F.mapa = null;
   let html = cabeceraHoja(r, j.fecha_operativa, F.nuevo ? '➕ Registrar actividad' : '✏️ Corregir actividad') + '<div class="sh-body">';
   html += progHtml(j, true);
-  html += '<div class="sec" id="fs-act"></div>';
-  html += '<div class="sec"><div class="sec-t">🕒 Horario</div>' +
-    '<div class="hora-fija"><span>Inicio <small class="muted">· ' + (F.primera ? 'inicio del turno' : 'término de la actividad anterior') + '</small></span><b>' + esc(hhmm(F.iniD)) + '</b></div>';
+  html += tgHtml('act', '🧩', 'Actividad', '<div id="fs-act"></div>');
+  let hora = '<div class="hora-fija" style="margin-top:6px;"><span>Inicio <small class="muted">· ' + (F.primera ? 'inicio del turno' : 'término de la actividad anterior') + '</small></span><b>' + esc(hhmm(F.iniD)) + '</b></div>';
   if (F.esUltima) {
     const hTurno = avanceDe(j), finTurnoOk = hTurno && hTurno.fin.getTime() <= Date.now() + 15 * 60000 && hTurno.fin > F.iniD;
-    html += '<label for="fa-fin">Término</label><input id="fa-fin" type="time" value="' + esc(F.fin) + '">' +
+    hora += '<label for="fa-fin">Término</label><input id="fa-fin" type="time" value="' + esc(F.fin) + '">' +
       '<div class="rapidos"><button type="button" class="btn btn-mini" data-ahora="1">Término = ahora</button>' +
       (finTurnoOk ? '<button type="button" class="btn btn-mini" data-fin-turno="1">Término = fin del turno (' + esc(hhmm(hTurno.fin)) + ')</button>' : '') + '</div>';
   } else {
-    html += '<div class="hora-fija" style="margin-top:6px;"><span>Término <small class="muted">· solo la última actividad cambia su término</small></span><b>' + esc(F.fin) + '</b></div>';
+    hora += '<div class="hora-fija" style="margin-top:6px;"><span>Término <small class="muted">· solo la última actividad cambia su término</small></span><b>' + esc(F.fin) + '</b></div>';
   }
-  html += '<div id="fa-dur" class="muted" style="margin-top:6px;"></div></div>';
-  html += '<div class="sec" id="fs-cant"></div>';
-  html += '<div class="sec"><div class="sec-t">📍 Lugar</div><div class="geo-row"><button type="button" class="btn btn-mini" data-gps="1">📍 Usar mi ubicación</button><span id="ff-gps" class="muted gms"></span></div><div class="av-mapa" id="ff-mapa"></div><div id="fs-fundo"></div></div>';
-  html += '<div class="sec"><div class="sec-t">📷 Fotos <span class="muted">opcional · hasta 6</span></div><div class="fotos" id="fs-fotos"></div>' +
-    '<input type="file" id="fa-foto" accept="image/*" capture="environment" style="display:none;"></div>';
-  html += '<div class="sec"><label for="ff-obs">Observación</label><textarea id="ff-obs" rows="2" maxlength="500" placeholder="Opcional">' + esc(F.observacion) + '</textarea></div>';
+  hora += '<div id="fa-dur" class="muted" style="margin-top:6px;"></div>';
+  html += tgHtml('hora', '🕒', 'Horario', hora);
+  html += tgHtml('cant', '🔢', 'Cantidad', '<div id="fs-cant"></div>');
+  html += tgHtml('ubic', '📍', 'Lugar y fundo', '<div class="geo-row" style="margin-top:6px;"><button type="button" class="btn btn-mini" data-gps="1">📍 Usar mi ubicación</button><span id="ff-gps" class="muted gms"></span></div>' +
+    '<div class="av-mapa" id="ff-mapa"></div><div class="muted" style="margin-top:4px;">Puntos grises = otras actividades de la jornada. Toca el mapa o un fundo para marcar el lugar; 🔎 busca una coordenada.</div>' +
+    '<div id="fs-coord"></div><div id="fs-fundo"></div>');
+  html += tgHtml('fotos', '📷', 'Fotos', '<div class="muted" style="margin-top:6px;">Opcional · hasta 6</div><div class="fotos" id="fs-fotos"></div><input type="file" id="fa-foto" accept="image/*" capture="environment" style="display:none;">');
+  html += tgHtml('obs', '📝', 'Observación', '<textarea id="ff-obs" rows="2" maxlength="500" placeholder="Opcional" style="margin-top:6px;">' + esc(F.observacion) + '</textarea>');
   html += '<div id="ff-err" class="aviso err" style="display:none;"></div></div>';
   html += '<div class="sh-foot"><button class="btn" data-act-volver="1">Cancelar</button>' + (!F.nuevo && F.esUltima ? '<button class="btn btn-rojo" data-act-eliminar="1">🗑️ Eliminar</button>' : '') +
     '<button class="btn btn-grande" data-guardar="1" style="flex:2;">' + (F.nuevo ? '✅ Guardar actividad' : '💾 Guardar corrección') + '</button></div>';
   abrirHoja(html);
-  pintarSelAct(); pintarCant(); pintarDur(); pintarFotos(); pintarFundo(); pintarGpsTxt();
-  montarMapaForm();
+  pintarSelAct(); pintarCant(); pintarDur(); pintarFotos(); pintarFundo(); pintarGpsTxt(); pintarCoordMan();
+  if (F.abiertos.has('ubic')) montarMapaForm();
+  resumenForm();
 }
-// Elección de la actividad: frecuentes del recurso, búsqueda y lista por grupo (solo las habilitadas para su tipo).
-// Al corregir, solo actividades del MISMO grupo.
+// Resumen de las secciones del formulario de actividad
+function resumenAct() {
+  const pon = (k, txt, est) => {
+    const s = $('tgs-' + k), o = $('tgo-' + k); if (!s || !o) return;
+    s.textContent = txt; o.className = 'tg-ok ' + est; o.textContent = est === 'si' ? '✓' : est === 'no' ? 'Falta' : 'Opcional';
+  };
+  const a = actCat(F.actividad), g = a ? grupoCat(a.grupo_codigo) || {} : null;
+  pon('act', a ? (g.emoji || '') + ' ' + (g.nombre || '') + ' › ' + a.nombre : 'Elige el grupo y la actividad', a ? 'si' : 'no');
+  const h = horasForm();
+  pon('hora', h ? hhmm(h.i) + ' → ' + hhmm(h.f) + ' · ' + durTxt(h.min) : 'Indica el término', h && h.min > 0 ? 'si' : 'no');
+  const tc = $('tg-cant'); if (tc) tc.style.display = a && a.pide_cantidad ? '' : 'none';
+  pon('cant', F.cantidad ? F.cantidad : 'Indica la cantidad', Number(F.cantidad) >= 1 ? 'si' : 'no');
+  pon('ubic', F.cod_fundo ? '🌲 ' + fundoTxt({ nombre: F.fundo_nombre, cod_fundo: F.cod_fundo }) : F.fundo_nombre ? '📍 ' + F.fundo_nombre : F.lat != null ? coordTxt(F.lat, F.lng) : 'Sin ubicación', F.lat != null ? 'si' : 'op');
+  const nf = F.fotos.length + F.fotosNuevas.length;
+  pon('fotos', nf ? nf + ' foto' + (nf > 1 ? 's' : '') : 'Sin fotos', nf ? 'si' : 'op');
+  pon('obs', F.observacion ? F.observacion.slice(0, 60) : 'Sin observación', F.observacion ? 'si' : 'op');
+}
+// Elección de la actividad: primero el GRUPO y luego sus actividades (o búsqueda en todos los grupos). Frecuentes del recurso arriba.
+// Solo las habilitadas para su tipo. Al corregir, solo actividades del MISMO grupo.
 function pintarSelAct() {
   const c = $('fs-act'); if (!c) return;
   const sel = actCat(F.actividad);
   if (sel && !F.buscando) {
     const g = grupoCat(sel.grupo_codigo) || {};
-    c.innerHTML = '<div class="sec-t">🧩 Actividad</div><div class="act-sel"><span style="font-size:22px;">' + esc(g.emoji || '🧩') + '</span><b>' + esc(sel.nombre) + '<small class="muted" style="display:block;font-weight:600;">' + esc(g.nombre || '') + '</small></b><button type="button" class="btn btn-mini" data-act-cambiar="1">Cambiar</button></div>';
-    return;
+    c.innerHTML = '<div class="act-sel" style="margin-top:6px;"><span style="font-size:22px;">' + esc(g.emoji || '🧩') + '</span><b>' + esc(sel.nombre) + '<small class="muted" style="display:block;font-weight:600;">' + esc(g.nombre || '') + '</small></b><button type="button" class="btn btn-mini" data-act-cambiar="1">Cambiar</button></div>';
+    resumenForm(); return;
   }
   let lista = habilitadas(F.r);
   if (F.grupoFijo) { lista = lista.filter(a => a.grupo_codigo === F.grupoFijo); if (sel && !lista.includes(sel)) lista.push(sel); }
-  const q = norm(F.q);
+  const q = norm(F.q), grupoVer = F.grupoFijo || F.grupo;
   const cuenta = new Map();
   S.actividades.concat([...S.aIdx.values()].flat()).forEach(a => { if (a.recurso_id === F.r.id) cuenta.set(a.actividad_codigo, (cuenta.get(a.actividad_codigo) || 0) + 1); });
   const frec = lista.filter(a => cuenta.has(a.codigo)).sort((x, y) => cuenta.get(y.codigo) - cuenta.get(x.codigo)).slice(0, 6);
-  let h = '<div class="sec-t">🧩 ' + (F.grupoFijo ? 'Cambiar por otra actividad del mismo grupo' : '¿Qué actividad hiciste?') + '</div>';
-  if (F.grupoFijo) h += '<div class="muted" style="margin-bottom:6px;">Al corregir, solo puedes elegir actividades de «' + esc((grupoCat(F.grupoFijo) || {}).nombre || F.grupoFijo) + '».</div>';
-  if (!lista.length) { c.innerHTML = h + '<div class="aviso">No hay actividades habilitadas para este tipo de recurso. Avisa al Administrador.</div>'; return; }
-  if (frec.length && !q && !F.grupo && !F.grupoFijo) h += '<div class="muted" style="margin-bottom:4px;">Frecuentes</div><div class="opc" style="margin-bottom:8px;">' + frec.map(a => '<button type="button" data-act-sel="' + esc(a.codigo) + '">' + esc(((grupoCat(a.grupo_codigo) || {}).emoji || '') + ' ' + a.nombre) + '</button>').join('') + '</div>';
-  h += '<input id="fa-q" type="search" placeholder="🔎 Buscar actividad" value="' + esc(F.q) + '" autocomplete="off">';
-  const grupos = S.cat.grupos.filter(g => lista.some(a => a.grupo_codigo === g.codigo));
-  if (!q && !F.grupoFijo) h += '<div class="opc" style="margin-top:8px;">' + grupos.map(g => '<button type="button" data-grupo="' + esc(g.codigo) + '"' + (F.grupo === g.codigo ? ' class="on"' : '') + '>' + esc((g.emoji || '') + ' ' + g.nombre) + '</button>').join('') + '</div>';
-  const vis = q ? lista.filter(a => norm(a.nombre + ' ' + a.codigo).includes(q)) : (F.grupoFijo ? lista : (F.grupo ? lista.filter(a => a.grupo_codigo === F.grupo) : []));
-  if (q || F.grupo || F.grupoFijo) {
+  let h = '';
+  if (F.grupoFijo) h += '<div class="muted" style="margin:6px 0;">Al corregir, solo puedes elegir actividades de «' + esc((grupoCat(F.grupoFijo) || {}).nombre || F.grupoFijo) + '».</div>';
+  if (!lista.length) { c.innerHTML = h + '<div class="aviso">No hay actividades habilitadas para este tipo de recurso. Avisa al Administrador.</div>'; resumenForm(); return; }
+  if (frec.length && !q && !grupoVer) h += '<div class="muted" style="margin:6px 0 4px;">⭐ Frecuentes</div><div class="opc" style="margin-bottom:8px;">' + frec.map(a => '<button type="button" data-act-sel="' + esc(a.codigo) + '">' + esc(((grupoCat(a.grupo_codigo) || {}).emoji || '') + ' ' + a.nombre) + '</button>').join('') + '</div>';
+  h += '<input id="fa-q" type="search" placeholder="🔎 Buscar en ' + (grupoVer ? 'este grupo' : 'todas las actividades') + '" value="' + esc(F.q) + '" autocomplete="off" style="margin-top:6px;">';
+  const orden = (x, y) => ((grupoCat(x.grupo_codigo) || {}).orden || 0) - ((grupoCat(y.grupo_codigo) || {}).orden || 0) || x.nombre.localeCompare(y.nombre, 'es');
+  const botonAct = a => '<button type="button" data-act-sel="' + esc(a.codigo) + '"' + (a.codigo === F.actividad ? ' style="font-weight:800;"' : '') + '>' + esc(a.nombre) + '</button>';
+  if (grupoVer) {
+    const g = grupoCat(grupoVer) || {}, vis = lista.filter(a => a.grupo_codigo === grupoVer && (!q || norm(a.nombre + ' ' + a.codigo).includes(q))).sort(orden);
+    h += '<div class="grupo-cab">' + (F.grupoFijo ? '' : '<button type="button" class="btn btn-mini" data-grupo-volver="1">← Grupos</button>') + '<span style="font-size:20px;">' + esc(g.emoji || '') + '</span>' + esc(g.nombre || '') + ' <span class="muted">(' + vis.length + ')</span></div>';
+    h += '<div class="act-lista">' + (vis.length ? vis.map(botonAct).join('') : '<div class="muted" style="padding:10px 12px;">Ninguna actividad coincide.</div>') + '</div>';
+  } else if (q) {
+    const vis = lista.filter(a => norm(a.nombre + ' ' + a.codigo).includes(q)).sort(orden);
     let gAct = null;
-    h += '<div class="act-lista">' + (vis.length ? vis.sort((x, y) => (grupoCat(x.grupo_codigo) || {}).orden - (grupoCat(y.grupo_codigo) || {}).orden || x.nombre.localeCompare(y.nombre, 'es')).map(a => {
+    h += '<div class="act-lista">' + (vis.length ? vis.map(a => {
       let t = '';
-      if (q && !F.grupoFijo && a.grupo_codigo !== gAct) { gAct = a.grupo_codigo; t = '<div class="g-t">' + esc(((grupoCat(gAct) || {}).emoji || '') + ' ' + ((grupoCat(gAct) || {}).nombre || '')) + '</div>'; }
-      return t + '<button type="button" data-act-sel="' + esc(a.codigo) + '"' + (a.codigo === F.actividad ? ' style="font-weight:800;"' : '') + '>' + esc(a.nombre) + '</button>';
+      if (a.grupo_codigo !== gAct) { gAct = a.grupo_codigo; t = '<div class="g-t">' + esc(((grupoCat(gAct) || {}).emoji || '') + ' ' + ((grupoCat(gAct) || {}).nombre || '')) + '</div>'; }
+      return t + botonAct(a);
     }).join('') : '<div class="muted" style="padding:10px 12px;">Ninguna actividad coincide.</div>') + '</div>';
-  } else h += '<div class="muted" style="margin-top:6px;">Elige un grupo o busca por nombre.</div>';
+  } else {
+    const grupos = S.cat.grupos.filter(g => lista.some(a => a.grupo_codigo === g.codigo));
+    h += '<div class="muted" style="margin-top:8px;">Elige el grupo de la actividad:</div><div class="grupos">' + grupos.map(g => '<button type="button" data-grupo="' + esc(g.codigo) + '"><span>' + esc(g.emoji || '🧩') + '</span><span>' + esc(g.nombre) +
+      '<small>' + lista.filter(a => a.grupo_codigo === g.codigo).length + ' actividades</small></span></button>').join('') + '</div>';
+  }
   c.innerHTML = h;
+  resumenForm();
 }
 function pintarCant() {
   const c = $('fs-cant'); if (!c) return;
   const a = actCat(F.actividad);
-  c.style.display = a && a.pide_cantidad ? '' : 'none';
   c.innerHTML = a && a.pide_cantidad ? '<label for="fa-cant">Cantidad realizada <span class="muted">(casas, charlas, focos, km…)</span></label><input id="fa-cant" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="' + esc(F.cantidad) + '">' : '';
+  resumenForm();
 }
 // Término «HH:MM» → instante: el primero posterior al inicio (un turno nocturno termina al día siguiente)
 function horasForm() {
@@ -1591,6 +1907,7 @@ function pintarDur() {
   const pct = av ? Math.max(0, Math.min(100, Math.round(100 * (Math.max(h.f, av.hasta || h.f) - av.ini) / (av.fin - av.ini)))) : null;
   x.textContent = 'Duración: ' + durTxt(h.min) + (h.f.getDate() !== h.i.getDate() ? ' · termina al día siguiente' : '') + (pct != null ? ' · el turno queda al ' + pct + ' %' : '') +
     (h.f > new Date(F.j.cierre_programado) ? ' · ⚠️ pasa del cierre de la jornada (' + hhmm(new Date(F.j.cierre_programado)) + ')' : '');
+  resumenForm();
 }
 function pintarFotos() {
   const c = $('fs-fotos'); if (!c) return;
@@ -1599,6 +1916,7 @@ function pintarFotos() {
     F.fotosNuevas.map((f, i) => '<div class="foto"><img alt="Foto nueva" src="' + f.url + '"><button type="button" class="quitar" data-foto-quitar="' + i + '" aria-label="Quitar foto">✕</button><span class="f-pend">nueva</span></div>').join('') +
     (tot < 6 ? '<button type="button" class="foto-add" data-foto-add="1" aria-label="Agregar foto">📷</button>' : '');
   cargarMiniaturas(F.fotos);
+  resumenForm();
 }
 // Miniaturas: las pendientes desde el teléfono; las enviadas con URL firmada (1 h) del bucket privado
 async function cargarMiniaturas(fotos) {
@@ -1635,16 +1953,16 @@ function leerCamposAct() {
 async function guardarActividad(btn) {
   leerCamposAct();
   const a = actCat(F.actividad);
-  if (!a) return errorForm('Elige la actividad.');
+  if (!a) return errorForm('Elige la actividad.', 'act');
   const h = horasForm();
-  if (!h) return errorForm('Indica la hora de término.');
-  if (h.min <= 0) return errorForm('La hora de término debe ser posterior al inicio (' + hhmm(h.i) + ').');
-  if (h.min > 24 * 60) return errorForm('Una actividad no puede durar más de 24 horas.');
-  if (h.f > new Date(F.j.cierre_programado)) return errorForm('La actividad no puede terminar después del cierre de la jornada (' + fmtFechaHora(F.j.cierre_programado) + ': fin del turno + ' + gracia() + ' h).');
-  if (h.f.getTime() > Date.now() + 15 * 60000) return errorForm('La hora de término está en el futuro: registra la actividad al terminarla.');
+  if (!h) return errorForm('Indica la hora de término.', 'hora');
+  if (h.min <= 0) return errorForm('La hora de término debe ser posterior al inicio (' + hhmm(h.i) + ').', 'hora');
+  if (h.min > 24 * 60) return errorForm('Una actividad no puede durar más de 24 horas.', 'hora');
+  if (h.f > new Date(F.j.cierre_programado)) return errorForm('La actividad no puede terminar después del cierre de la jornada (' + fmtFechaHora(F.j.cierre_programado) + ': fin del turno + ' + gracia() + ' h).', 'hora');
+  if (h.f.getTime() > Date.now() + 15 * 60000) return errorForm('La hora de término está en el futuro: registra la actividad al terminarla.', 'hora');
   const cruce = actividadesDe(F.j.id).find(x => x.id !== F.id && new Date(x.inicio) < h.f && new Date(x.fin) > h.i);
-  if (cruce) return errorForm('Se cruza con «' + cruce.actividad + '» (' + hhmm(new Date(cruce.inicio)) + ' – ' + hhmm(new Date(cruce.fin)) + '). Ajusta las horas.');
-  if (a.pide_cantidad && !(Number(F.cantidad) >= 1)) return errorForm('Indica la cantidad (1 o más).');
+  if (cruce) return errorForm('Se cruza con «' + cruce.actividad + '» (' + hhmm(new Date(cruce.inicio)) + ' – ' + hhmm(new Date(cruce.fin)) + '). Ajusta las horas.', 'hora');
+  if (a.pide_cantidad && !(Number(F.cantidad) >= 1)) return errorForm('Indica la cantidad (1 o más).', 'cant');
   const payload = {
     id: F.id, jornada_id: F.j.id, recurso_id: F.r.id, fecha_operativa: F.j.fecha_operativa, actividad: a.codigo,
     inicio: h.i.toISOString(), fin: h.f.toISOString(), cantidad: a.pide_cantidad ? Number(F.cantidad) : 1,
@@ -1834,6 +2152,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   cuerpo.addEventListener('click', async e => {
     const t = e.target;
     const dia = t.closest('[data-dia]'); if (dia) { const nf = sumarDias(S.fecha, Number(dia.dataset.dia)); if (nf > hoyISO()) return; S.fecha = nf; await asegurarFecha(sumarDias(nf, S.sec === 'semana' ? -6 : 0)); return pintar(); }
+    const hd = t.closest('[data-hdias]'); if (hd) { S.hist.dias = Number(hd.dataset.hdias); return pintar(); }
     const k = t.closest('[data-kpi]'); if (k) { e.preventDefault(); S.filtros.kpi = S.filtros.kpi === k.dataset.kpi ? '' : k.dataset.kpi; return pintar(); }
     // Mi jornada
     const ap = t.closest('[data-abrir-ap]'); if (ap) { const r = recurso(ap.dataset.abrirAp); if (r) abrirFormulario(r, ap.dataset.f, null); return; }
@@ -1856,6 +2175,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
   cuerpo.addEventListener('change', e => {
+    if (e.target.id === 'h-rec') { S.hist.rid = e.target.value; return pintar(); }
     const m = { 'f-area': 'area', 'f-tipo': 'tipo' }[e.target.id];
     if (m) { S.filtros[m] = e.target.value; pintar(); }
   });
@@ -1882,6 +2202,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (t.closest('[data-act-volver-ficha]')) { const v = S.verAct && S.verAct.volver; cerrarHoja(); if (v) abrirRecurso(v.rid, v.f); return; }
     if (!F) return;
     // Comunes a la apertura y a la actividad: fundo (buscar / elegir / cambiar)
+    const tgC = t.closest('[data-tg]'); if (tgC) { if (F.modo === 'actividad') leerCamposAct(); else leerCamposForm(); resumenForm(); return abrirSeccion(tgC.dataset.tg); }
+    if (t.closest('[data-coord-man]')) { F.coordMan = true; pintarCoordMan(); const x = $('cm-lag'); if (x) x.focus(); return; }
+    if (t.closest('[data-coord-no]')) { F.coordMan = false; return pintarCoordMan(); }
+    if (t.closest('[data-coord-ok]')) return usarCoordMan();
     const fs = t.closest('[data-fu-sel]'); if (fs) { leerCamposForm(); return elegirFundo(fs.dataset.fuSel); }
     if (t.closest('[data-fu-cambiar]')) { leerCamposForm(); F.cod_fundo = ''; F.fundo_nombre = ''; F.fundoManual = true; F.fq = ''; if (F.mapa) F.mapa.marcarFundo(''); pintarFundo(); const q = $('ff-fq'); if (q) q.focus(); return; }
     if (F.modo === 'actividad') {
@@ -1889,7 +2213,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (t.closest('[data-act-eliminar]')) return eliminarActividad();
       if (t.closest('[data-act-cambiar]')) { leerCamposAct(); F.buscando = true; F.grupo = (actCat(F.actividad) || {}).grupo_codigo || ''; return pintarSelAct(); }
       const as = t.closest('[data-act-sel]'); if (as) { leerCamposAct(); F.actividad = as.dataset.actSel; F.buscando = false; F.q = ''; pintarSelAct(); return pintarCant(); }
-      const gr = t.closest('[data-grupo]'); if (gr) { F.grupo = F.grupo === gr.dataset.grupo ? '' : gr.dataset.grupo; return pintarSelAct(); }
+      const gr = t.closest('[data-grupo]'); if (gr) { F.grupo = gr.dataset.grupo; F.q = ''; return pintarSelAct(); }
+      if (t.closest('[data-grupo-volver]')) { F.grupo = ''; F.q = ''; return pintarSelAct(); }
       if (t.closest('[data-ahora]')) { const ci = new Date(F.j.cierre_programado), ah = new Date(); F.fin = hhmm(ah < ci ? ah : ci); if ($('fa-fin')) $('fa-fin').value = F.fin; return pintarDur(); }
       if (t.closest('[data-fin-turno]')) { const av = avanceDe(F.j); if (av) { F.fin = hhmm(av.fin); if ($('fa-fin')) $('fa-fin').value = F.fin; } return pintarDur(); }
       if (t.closest('[data-foto-add]')) { const inp = $('fa-foto'); if (inp) { inp.value = ''; inp.click(); } return; }
@@ -1939,12 +2264,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (['ff-patente', 'ff-km', 'ff-obs', 'ff-lugar'].includes(t.id)) { leerCamposForm(); return resumenForm(); }
     if (F.modo !== 'actividad') return;
     if (t.id === 'fa-fin') { leerCamposAct(); return pintarDur(); }
+    if (t.id === 'fa-cant') { leerCamposAct(); return resumenForm(); }
     if (t.id !== 'fa-q') return;
     clearTimeout(espAct);
     espAct = setTimeout(() => { if (!F) return; F.q = t.value; pintarSelAct(); const q = $('fa-q'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250);
   });
   $('ov').addEventListener('click', e => { if (e.target.id === 'ov' && !F) cerrarHoja(); });
 
+  window.addEventListener('online', pintarRed);
+  window.addEventListener('offline', pintarRed);
   window.addEventListener('online', async () => { toast('🟢 Conexión recuperada: enviando pendientes'); try { await sincronizarPendientes(); } catch (e) {} buscarActualizacion(); if (!$('ov').classList.contains('show')) pintar(); });
   window.addEventListener('offline', () => { toast('🔴 Sin señal: las aperturas se guardarán en el teléfono'); avisoPendienteOffline(); if (!$('ov').classList.contains('show')) pintar(); });
   document.addEventListener('visibilitychange', () => {

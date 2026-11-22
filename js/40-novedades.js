@@ -6,6 +6,17 @@
  * Se pueden volver a ver con «🆕 Novedades» (botón del encabezado de Ayuda, abrirNovedades_(true)). */
 const NOVEDADES = [
   {
+    id: '2026-11-22-correos-automaticos', fecha: '22-11-2026', titulo: 'Correos automáticos',
+    items: [
+      { ico: '✉️', t: 'Correos automáticos: Resumen semanal del PPA', perfiles: ['admin'],
+        d: 'En Administración › <b>✉️ Correos</b> configuras el <b>📋 Resumen semanal del PPA</b> que se envía por correo a cada Jefe de Área (y si quieres a Subgerentes, GRT y delegados): ' +
+           'avance general y a la fecha, medidas vencidas y por vencer y avance por sector. Elige día y hora, revisa la <b>vista previa</b>, envía una <b>prueba</b> y actívalo. El historial muestra cada envío.' },
+      { ico: '📊', t: 'Correo del PPA para los Subgerentes', perfiles: ['admin'],
+        d: 'Nuevo aviso <b>📊 PPA de la subgerencia</b>: cada Subgerente recibe el avance consolidado de las áreas de su subgerencia, el ranking de áreas y las medidas más atrasadas. ' +
+           'Los avisos ahora se ordenan en <b>pestañas por temática</b> (📋 PPA…) y el historial tiene su propia pestaña.' },
+    ],
+  },
+  {
     id: '2026-11-22-bitacora-aperturas', fecha: '22-11-2026', titulo: 'Bitácora: tabla de aperturas',
     items: [
       { ico: '📋', t: 'Planificador CMPC › Bitácora: Aperturas', perfiles: ['admin', 'subgerente', 'grt', 'jefe'],

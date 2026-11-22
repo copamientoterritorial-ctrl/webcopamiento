@@ -2,7 +2,7 @@
 // Los datos NUNCA se guardan aquí: van a Supabase, y sin señal la app los guarda en IndexedDB (cola) hasta poder enviarlos.
 // version.json NO se intercepta: la app lo pide a la red para saber si hay versión nueva (sin señal queda pendiente).
 // Teselas Esri: se guardan las que se van viendo (máx. ~1.500) para tener mapa base sin señal en las zonas ya recorridas.
-const VERSION = 'bitacora-v1.2.0';   // = APP_VERSION de app.html = version.json (subir los 3 juntos)
+const VERSION = 'bitacora-v1.3.0';   // = APP_VERSION de app.html = version.json (subir los 3 juntos)
 const TESELAS = 'bitacora-teselas';
 const MAX_TESELAS = 1500;
 const CDN = ['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js',
