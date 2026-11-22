@@ -112,7 +112,7 @@ async function actualizarDatos_(origen) {
     else if (vista === 'seguimiento') tareas.push(correr(() => cargarSeguimiento_(true)));
     else if (vista === 'agricultores') tareas.push(correr(() => cargarAgricultores_()));
     else if (vista === 'turnosgestor') tareas.push(correr(() => cargarTurnosGestores_()));
-    else if (vista === 'bitacora') tareas.push(correr(() => cargarBitacoraWeb_()));
+    else if (/^bitacora/.test(vista)) tareas.push(correr(() => cargarBitacoraWeb_()));
     else if (vista === 'agradmin') tareas.push(correr(() => abrirAdminAgricultores_(true)));
     else if (/^ppa/.test(vista)) tareas.push(correr(() => abrirPpa_(vista, true)));
     else if (vista === 'planificador') {
@@ -145,7 +145,7 @@ function mostrarVista_(vista, modoMapa) {
   if (vista === 'agradmin' && !puedeAdminAgricultores_()) vista = 'dashboard';
   if (vista === 'agricultores' && !puedeAgricultores_()) vista = 'dashboard';
   if (vista === 'turnosgestor' && !puedeTurnosGestores_()) vista = 'dashboard';
-  if (vista === 'bitacora' && !puedeBitacoraWeb_()) vista = 'dashboard';   // 📋 Bitácora · Aperturas (js/42)
+  if (/^bitacora/.test(vista) && !puedeBitacoraWeb_()) vista = 'dashboard';   // 📋 Bitácora ▾ (js/42)
   if (/^ppa/.test(vista) && !puedePpa_()) vista = 'dashboard';   // 📋 PPA (js/38)
   if (vista === 'admin' && state.perfil.perfil !== 'Administrador') vista = 'dashboard';
   if (vista === 'patrullajes' && !esAdminOJefe_()) vista = 'dashboard';   // 17-10-2026: también Jefe de Área
@@ -219,7 +219,7 @@ function mostrarVista_(vista, modoMapa) {
   const tgP = document.getElementById('turnosgestor-panel');
   if (tgP) tgP.classList.toggle('show', vista === 'turnosgestor');
   const btP = document.getElementById('bitacora-panel');
-  if (btP) btP.classList.toggle('show', vista === 'bitacora');
+  if (btP) btP.classList.toggle('show', /^bitacora/.test(vista));
   const apP = document.getElementById('agradmin-panel');
   if (apP) apP.classList.toggle('show', vista === 'agradmin');
   const ppaP = document.getElementById('ppa-panel');
@@ -258,7 +258,7 @@ function mostrarVista_(vista, modoMapa) {
   else if (vista === 'seguimiento') abrirSeguimiento_();
   else if (vista === 'agricultores') abrirAgricultores_();
   else if (vista === 'turnosgestor') abrirTurnosGestores_();
-  else if (vista === 'bitacora') abrirBitacoraWeb_();
+  else if (/^bitacora/.test(vista)) abrirBitacoraWeb_(vista);
   else if (vista === 'agradmin') abrirAdminAgricultores_();
   else if (/^ppa/.test(vista)) abrirPpa_(vista);
   else setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 60);

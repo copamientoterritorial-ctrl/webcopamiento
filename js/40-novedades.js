@@ -17,11 +17,12 @@ const NOVEDADES = [
     ],
   },
   {
-    id: '2026-11-22-bitacora-aperturas', fecha: '22-11-2026', titulo: 'Bitácora: tabla de aperturas',
+    id: '2026-11-22-bitacora-aperturas', fecha: '22-11-2026', titulo: 'Bitácora (Reportabilidad)',
     items: [
-      { ico: '📋', t: 'Planificador CMPC › Bitácora: Aperturas', perfiles: ['admin', 'subgerente', 'grt', 'jefe'],
-        d: 'Tabla con todas las aperturas de jornada de la App Bitácora de tus áreas: estado, turno, actividad general, <b>avance del turno</b> (actividades registradas), ' +
-           'dotación con jefe y reemplazantes, patente, km, fundo y coordenadas. Toca una fila para ver la dotación. <b>⬇️ Excel</b> con 2 hojas: Aperturas y Personal.' },
+      { ico: '📋', t: 'Menú nuevo 📋 Bitácora', perfiles: ['admin', 'subgerente', 'grt', 'jefe'],
+        d: 'Reportabilidad de la App Bitácora de tus áreas: <b>Aperturas</b> (brigada, avance del turno, dotación y reemplazantes; Excel Aperturas / Personal), ' +
+           '<b>Actividades</b> por clasificación (Prevención, Relacionamiento, Silvicultura, Combate) con fotos, <b>Mapa</b> con la ruta asignada del recurso e ' +
+           '<b>Indicadores</b>: % del turno registrado, horas por clasificación y recursos de turno sin apertura.' },
       { ico: '👥', t: 'Reemplazantes en Personas del recurso', perfiles: ['admin', 'subgerente', 'grt', 'jefe'],
         d: 'Quien entra como reemplazo en una apertura (con su RUT) queda en Gestión de Recursos › 👥 Personas marcado <b>Reemplazante</b>.' },
     ],

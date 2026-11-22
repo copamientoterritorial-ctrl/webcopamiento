@@ -138,9 +138,6 @@ const MENU_MODULOS = [
     nivel: () => (tgEsAdmin_() || state.esDelegadoPrev || (esJefeAreaPerfil_(state.perfil.perfil) && !esSubgerente_() && !state.esGRT)) ? 'editar' : 'ver',
     nota: () => tgEsAdmin_() ? 'Incluye días pasados' : state.esDelegadoPrev ? 'Delegado de prevención: su área' :
       (esJefeAreaPerfil_(state.perfil.perfil) && !esSubgerente_() && !state.esGRT) ? 'Sus áreas · fines de semana y feriados' : 'Solo ve' },
-  // 📋 Bitácora · Aperturas (22-11-2026, SQL 183/188; js/42): solo consulta + Excel; el RLS de bit_jornada limita a sus áreas
-  { id: 'tab-bitacora', grupo: '🌲 Planificador CMPC', nombre: 'Bitácora: Aperturas (App Bitácora)', ver: () => puedeBitacoraWeb_(), nivel: () => 'ver',
-    nota: () => state.perfil && state.perfil.perfil === 'Administrador' ? 'Todas las áreas' : 'Sus áreas' },
   { id: 'tab-planificador', grupo: '🌲 Planificador CMPC', nombre: 'Planificador gráfico', ver: () => puedeVerModulo_('planificador_grafico'), nivel: () => nivelPermiso_('planificador_grafico') },
   { id: 'tab-tablero', grupo: '🌲 Planificador CMPC', nombre: 'Tablero de Recursos', ver: () => puedeVerModulo_('planificador_grafico'), nivel: () => 'ver' },
   { id: 'tab-gestion', grupo: '🌲 Planificador CMPC', nombre: 'Gestión de Recursos', ver: () => puedeGestionRecursos_(), nivel: () => esSSO_() ? 'ver' : 'editar',
@@ -157,6 +154,15 @@ const MENU_MODULOS = [
   { id: 'tab-pparesumen', grupo: '📋 PPA', nombre: 'Resumen del PPA', ver: () => ppaEsAdmin_(), nivel: () => 'ver' },
   { id: 'tab-ppagestion', grupo: '📋 PPA', nombre: 'Tablero de Gestión del PPA', ver: () => ppaEsAdmin_(), nivel: () => 'ver' },
   { id: 'tab-ppametas', grupo: '📋 PPA', nombre: 'Metas por fecha del PPA', ver: () => puedePpa_(), nivel: () => ppaEsAdmin_() ? 'editar' : 'ver', nota: () => ppaEsAdmin_() ? 'Todas las áreas' : 'Sus áreas (consulta)' },
+  // 📋 Bitácora ▾ (Reportabilidad, 22-11-2026, js/42): solo consulta + Excel; el RLS de bit_jornada / bit_registro_actividad limita a sus áreas
+  { id: 'tab-bitacora', grupo: '📋 Bitácora', nombre: 'Aperturas de la App Bitácora (Excel Aperturas / Personal)', ver: () => puedeBitacoraWeb_(), nivel: () => 'ver',
+    nota: () => state.perfil && state.perfil.perfil === 'Administrador' ? 'Todas las áreas' : 'Sus áreas' },
+  { id: 'tab-bitacoraact', grupo: '📋 Bitácora', nombre: 'Actividades de la App Bitácora (con fotos, Excel)', ver: () => puedeBitacoraWeb_(), nivel: () => 'ver',
+    nota: () => state.perfil && state.perfil.perfil === 'Administrador' ? 'Todas las áreas' : 'Sus áreas' },
+  { id: 'tab-bitacoramapa', grupo: '📋 Bitácora', nombre: 'Mapa de actividades y ruta asignada', ver: () => puedeBitacoraWeb_(), nivel: () => 'ver',
+    nota: () => state.perfil && state.perfil.perfil === 'Administrador' ? 'Todas las áreas' : 'Sus áreas' },
+  { id: 'tab-bitacoraind', grupo: '📋 Bitácora', nombre: 'Indicadores de la Bitácora (avance, horas, sin apertura)', ver: () => puedeBitacoraWeb_(), nivel: () => 'ver',
+    nota: () => state.perfil && state.perfil.perfil === 'Administrador' ? 'Todas las áreas' : 'Sus áreas' },
   { id: 'tab-admin', grupo: '⚙️ Administración', nombre: 'Administración del sistema', ver: () => !!(state.perfil && state.perfil.perfil === 'Administrador'), nivel: () => 'editar' },
 ];
 /** ¿Se ve el menú? La Asociación de Agricultores ve SOLO 🌾 Agricultores (y los menús marcados con asoc: true). */
@@ -174,6 +180,7 @@ function aplicarPermisosMenu_() {
   ver('grupo-prevencion', MENU_MODULOS.some(m => m.grupo === '🛡️ Prevención' && menuVisible_(m)));
   ver('grupo-agricultores', MENU_MODULOS.some(m => m.grupo === '🌾 Agricultores' && menuVisible_(m)));
   ver('grupo-ppa', MENU_MODULOS.some(m => m.grupo === '📋 PPA' && menuVisible_(m)));
+  ver('grupo-bitacora', MENU_MODULOS.some(m => m.grupo === '📋 Bitácora' && menuVisible_(m)));
   // Botón 🔥 Crear Periodo Crítico dentro del mapa del Modo Emergencia
   document.body.classList.toggle('puede-crear-periodo', puedeEditarModulo_('periodo_critico') &&
     ['GRD', 'Administrador', 'Jefe de Área Relacionamiento'].includes(state.perfil && state.perfil.perfil));

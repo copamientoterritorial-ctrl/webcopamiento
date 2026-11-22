@@ -699,6 +699,20 @@ body.es-sso #gr-nuevo, body.es-sso #gr-subir, body.es-sso #gr-empresas{display:n
 .bt-det-in{padding:6px 4px 10px;}
 .bt-dot{border-collapse:collapse;margin-top:6px;font-size:12px;}
 .bt-dot th,.bt-dot td{border-bottom:1px solid var(--border);padding:4px 10px;text-align:left;}
+/* 📋 Bitácora ▾ · Actividades, Mapa e Indicadores (js/42) */
+.bt-fotos{display:flex;flex-wrap:wrap;gap:8px;}
+.bt-fotos img{width:120px;height:120px;object-fit:cover;border-radius:10px;border:1px solid var(--border);}
+.bt-rombo{width:12px;height:12px;background:#0F172A;border:2px solid #fff;transform:rotate(45deg);box-shadow:0 1px 4px rgba(0,0,0,.5);}
+.bt-ind{display:flex;flex-direction:column;gap:12px;}
+.bt-ind-caja{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:10px 14px;overflow:auto;}
+.bt-ind-caja h4{margin:2px 0 8px;font-size:14px;}
+.bt-ind-t{width:100%;}
+.bt-ind-t td,.bt-ind-t th{white-space:nowrap;}
+.bt-hbar{display:grid;grid-template-columns:200px 1fr 90px 50px;align-items:center;gap:8px;font-size:12.5px;margin:5px 0;}
+.bt-hbar div{height:12px;background:var(--bg-light);border-radius:999px;overflow:hidden;}
+.bt-hbar i{display:block;height:100%;border-radius:999px;}
+.bt-barra{display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--bg-light);}
+.bt-barra i{display:block;height:100%;}
 .tg-pinceles{display:flex;gap:4px;flex-wrap:wrap;}
 .tg-pinceles button{border:1px solid var(--border);background:var(--white);border-radius:8px;padding:5px 9px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
 .tg-pinceles button i{width:12px;height:12px;border-radius:4px;display:inline-block;}

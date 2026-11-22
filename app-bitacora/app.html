@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0F5132">
 <meta name="color-scheme" content="light only">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,6 +17,9 @@
 <style>
   :root { --pri:#0F5132; --pri2:#15803D; --bg:#F1F5F9; --card:#FFFFFF; --txt:#0F172A; --sub:#64748B; --ok:#16A34A; --warn:#D97706; --err:#DC2626; --azul:#2563EB; --borde:#E2E8F0; color-scheme: light; }
   * { box-sizing: border-box; }
+  /* Sin zoom de página (v1.4.0): doble toque y pellizco desactivados fuera de los mapas; campos a 16px para que el iPhone no amplíe al escribir */
+  html { touch-action: manipulation; -webkit-text-size-adjust:100%; }
+  input, select, textarea { font-size:16px !important; }
   body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--txt); -webkit-text-size-adjust:100%; }
   #v-app { height:100vh; height:100dvh; display:flex; flex-direction:column; }
   header { background: var(--pri); color:#fff; padding: calc(10px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left)); display:flex; align-items:center; gap:8px; flex:0 0 auto; z-index:7; }
@@ -62,7 +65,7 @@
   .kpi.on { outline:2px solid var(--c); }
   .filtros { display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:10px; }
   .filtros input { grid-column: 1 / -1; }
-  .filtros select, .filtros input { padding:8px 10px; font-size:14px; }
+  .filtros select, .filtros input { padding:8px 10px; }
   /* Tarjetas de recursos */
   .grupo-t { font-size:12px; font-weight:800; color: var(--sub); text-transform:uppercase; letter-spacing:.4px; margin:14px 2px 6px; }
   .rec { display:flex; gap:10px; align-items:flex-start; background: var(--card); border:1px solid var(--borde); border-left:5px solid var(--c, var(--borde)); border-radius:12px; padding:10px 12px; margin-bottom:8px; cursor:pointer; }
@@ -266,7 +269,22 @@
   .coord-fila span.h { width:26px; text-align:center; color: var(--sub); }
   .av-buscar { position:absolute; top:56px; right:8px; z-index:1000; width:40px; height:40px; border:0; border-radius:10px; background: rgba(255,255,255,.94); font-size:17px; cursor:pointer; box-shadow: 0 2px 8px rgba(2,6,23,.3); }
   .busca-gms { position:absolute; left:8px; right:56px; top:52px; z-index:1001; display:flex; gap:6px; background: rgba(255,255,255,.97); border-radius:12px; padding:6px; box-shadow: 0 4px 14px rgba(2,6,23,.3); }
-  .busca-gms input { flex:1; min-width:0; padding:8px 9px; font-size:13px; }
+  .busca-gms { flex-wrap:wrap; align-items:center; }
+  .busca-gms .bg-fila { display:flex; align-items:center; gap:3px; width:100%; }
+  .busca-gms .bg-fila b { width:62px; font-size:12px; color: var(--sub); }
+  .busca-gms input { width:48px; min-width:0; padding:7px 4px; text-align:center; }
+  .busca-gms .bg-fila span { font-size:13px; color: var(--sub); }
+  .busca-gms .bg-acc { display:flex; gap:6px; width:100%; justify-content:flex-end; margin-top:4px; }
+  .busca-gms .bg-acc button { padding:8px 14px; }
+  .instalar { display:flex; align-items:center; gap:10px; background: linear-gradient(90deg, #0F5132, #0F766E); color:#fff; border-radius:14px; padding:12px 14px; margin-bottom:12px; box-shadow: 0 8px 18px rgba(15,81,50,.25); }
+  .instalar div { flex:1; font-size:13px; }
+  .instalar b { display:block; font-size:15px; }
+  .instalar button { border:0; border-radius:999px; padding:9px 14px; font:inherit; font-weight:800; background:#fff; color:#0F5132; cursor:pointer; white-space:nowrap; }
+  .fav { border:0; background:none; font-size:18px; cursor:pointer; padding:0 4px; opacity:.35; flex:0 0 auto; }
+  .fav.on { opacity:1; }
+  .act-lista .fila-act { display:flex; align-items:center; border-bottom:1px solid var(--borde); }
+  .act-lista .fila-act:last-child { border-bottom:0; }
+  .act-lista .fila-act button[data-act-sel] { flex:1; border-bottom:0; }
   .busca-gms button { border:0; border-radius:9px; padding:0 12px; font:inherit; font-weight:800; background: var(--azul); color:#fff; cursor:pointer; }
   .busca-gms .bg-x { background: var(--bg); color: var(--sub); }
   .num-pin { background:none; border:0; }
@@ -340,7 +358,7 @@
 const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-bitacora-app', detectSessionInUrl: false } });
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.4.0';
 const DOMINIO_CUENTAS = 'recursos.copamientoterritorial.cl';   // = Edge Function admin-cuentas-recurso y js/41 de la web
 const DIAS_CARGA = 14;   // aperturas que se descargan hacia atrás
 
@@ -350,7 +368,7 @@ const HORAS_ALERTA = 2;      // aviso si pasan 2 h dentro del turno sin registra
 const ALERTA_REPITE_MIN = 30; // el aviso se repite cada 30 min mientras siga sin registrar
 const S = { ctx: null, cat: { estados: [], focos: [], turnos: [], tipos: [], grupos: [], actividades: [], habil: {} }, recursos: [], jornadas: [], desde: '', descarga: null,
   actividades: [], actDesde: '', actJornadas: new Set(), sinActividades: false, aIdx: new Map(), urlFotos: new Map(),
-  pendientes: [], sincronizando: false, sec: '', fecha: '', filtros: { area: '', tipo: '', q: '', kpi: '' }, fundos: {}, fundosGeo: {}, jIdx: new Map(), mapaTab: null };
+  pendientes: [], sincronizando: false, sec: '', fecha: '', filtros: { area: '', tipo: '', q: '', kpi: '' }, fundos: {}, fundosGeo: {}, jIdx: new Map(), mapaTab: null, favs: new Set() };
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const pad = n => String(n).padStart(2, '0');
@@ -509,7 +527,7 @@ async function cargarTodo() {
       sb.from('bit_turno').select('*').order('hora_inicio'),
       sb.from('bit_tipo_recurso').select('*').order('orden')]);
     [e, f, t, ti].forEach(x => { if (x.error) throw x.error; });
-    S.cat = { estados: e.data || [], focos: f.data || [], turnos: t.data || [], tipos: ti.data || [], grupos: S.cat.grupos || [], actividades: S.cat.actividades || [], habil: S.cat.habil || {} };
+    S.cat = { estados: e.data || [], focos: f.data || [], turnos: t.data || [], tipos: ti.data || [], grupos: S.cat.grupos || [], actividades: S.cat.actividades || [], habil: S.cat.habil || {}, clasif: S.cat.clasif || [] };
     cacheSet('cat', S.cat);
     const rr = await sb.rpc('bit_mis_recursos');
     if (rr.error) throw rr.error;
@@ -526,6 +544,7 @@ async function cargarTodo() {
       S.ctx = c; S.cat = Object.assign({}, S.cat, (await cacheGet('cat')) || {}); S.recursos = (await cacheGet('recursos')) || [];
       const j = await cacheGet('jornadas'); if (j) { S.jornadas = j.lista || []; S.desde = j.desde; S.descarga = j.fecha; }
       const a = await cacheGet('actividades'); if (a) { S.actividades = a.lista || []; S.actDesde = a.desde || ''; S.sinActividades = !!a.sin; }
+      const fv = await cacheGet('favs'); if (fv) S.favs = new Set(fv);
       toast(sinSenal ? '📵 Sin señal: datos guardados del ' + fmtFechaHora(S.descarga) : 'No se pudieron actualizar los datos: ' + msgError(e), 4500);
     } else {
       S.errorCarga = /bit_mi_contexto|bit_mis_recursos|v_bit_jornadas|schema cache|does not exist/i.test(msgError(e))
@@ -550,6 +569,10 @@ async function cargarActividades() {
     const habil = {};
     (h.data || []).forEach(x => { (habil[x.tipo_codigo] = habil[x.tipo_codigo] || []).push(x.actividad_codigo); });
     S.cat.grupos = g.data || []; S.cat.actividades = a.data || []; S.cat.habil = habil;
+    // SQL 193: clasificación (Prevención, Relacionamiento…) y ⭐ favoritas del usuario. Sin el 193 se elige por grupo, sin favoritas guardadas.
+    const [k, fv] = await Promise.all([sb.from('bit_clasificacion').select('*').eq('activo', true).order('orden'), sb.from('bit_actividad_favorita').select('actividad_codigo')]);
+    S.cat.clasif = k.error ? [] : (k.data || []);
+    if (!fv.error) { S.favs = new Set((fv.data || []).map(x => x.actividad_codigo)); cacheSet('favs', [...S.favs]); }
     cacheSet('cat', S.cat);
     const desde = sumarDias(hoyISO(), -DIAS_ACT);
     S.actividades = await leerTodo('v_bit_actividades', '*', q => q.gte('fecha_operativa', desde).order('inicio'));
@@ -862,6 +885,24 @@ function datosUsuario() {
   const pila = (nombre && !/^Cuenta /i.test(nombre) ? nombre.split(/\s+/)[0] : '') || '';
   return { nombre, tel, pila: pila ? pila.charAt(0).toUpperCase() + pila.slice(1).toLowerCase() : '', usuario: c.usuario || (c.correo || '').split('@')[0] };
 }
+// 📲 Acceso directo (v1.4.0): el navegador no deja instalar sin un toque del usuario, así que tras ingresar se muestra una franja
+// fija con «Instalar» (Android / Chrome: diálogo del sistema) o los pasos de iPhone, hasta que la app quede instalada.
+const esInstalada = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+const esIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function instalarHtml() {
+  if (esInstalada() || S.instalada) return '';
+  if (S.pInstalar) return '<div class="instalar"><span style="font-size:26px;">📲</span><div><b>Instala la Bitácora</b>Queda como app en tu teléfono, abre más rápido y funciona sin señal.</div><button type="button" data-instalar="1">Instalar</button></div>';
+  if (esIOS()) return '<div class="instalar"><span style="font-size:26px;">📲</span><div><b>Agrega la Bitácora a tu inicio</b>En Safari toca <b style="display:inline;">Compartir ⬆️</b> y luego «Agregar a pantalla de inicio».</div></div>';
+  return '';
+}
+async function instalarApp() {
+  if (!S.pInstalar) return toast(esIOS() ? 'En Safari: Compartir ⬆️ › «Agregar a pantalla de inicio»' : 'Abre el menú del navegador (⋮) y toca «Instalar app» o «Agregar a pantalla principal»', 5000);
+  const p = S.pInstalar; S.pInstalar = null;
+  try { p.prompt(); const r = await p.userChoice; if (r && r.outcome === 'accepted') { S.instalada = true; toast('✅ Bitácora instalada en tu teléfono'); } } catch (e) { /* el navegador lo canceló */ }
+  pintar();
+}
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); S.pInstalar = e; if (S.ctx && !$('ov').classList.contains('show')) pintar(); });
+window.addEventListener('appinstalled', () => { S.instalada = true; S.pInstalar = null; if (S.ctx) pintar(); });
 function holaHtml() {
   const u = datosUsuario(), h = new Date().getHours();
   const saludo = h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
@@ -921,7 +962,7 @@ const ORDEN_ST = { falta: 0, abierta: 1, sin: 2, otro: 3, cerrada: 4 };
 function pintarInicio() {
   const propios = S.recursos.filter(r => r.propio);
   if (!propios.length) { $('m-cuerpo').innerHTML = '<div class="card"><div class="aviso">Tu cuenta no está vinculada a un recurso activo de la Bitácora. Pide al Administrador que la revise.</div></div>'; return; }
-  $('m-cuerpo').innerHTML = holaHtml() + propios.map(inicioRecursoHtml).join('') +
+  $('m-cuerpo').innerHTML = holaHtml() + instalarHtml() + propios.map(inicioRecursoHtml).join('') +
     (S.descarga ? '<p class="muted" style="text-align:center;">Datos de las ' + esc(fmtHora(S.descarga)) + (navigator.onLine ? '' : ' · 📵 sin señal') + '</p>' : '');
 }
 function inicioRecursoHtml(r) {
@@ -975,7 +1016,7 @@ function pintarDia() {
   const vis = S.filtros.kpi ? lista.filter(x => x.st.k === S.filtros.kpi) : lista;
   vis.sort((a, b) => (ORDEN_ST[a.st.k] - ORDEN_ST[b.st.k]) || String(a.r.area).localeCompare(String(b.r.area), 'es') || String(a.r.clave_radial).localeCompare(String(b.r.clave_radial), 'es', { numeric: true }));
   const variasAreas = new Set(vis.map(x => x.r.id_area)).size > 1;
-  let html = holaHtml() + fechaNavHtml();
+  let html = holaHtml() + instalarHtml() + fechaNavHtml();
   if (!S.recursos.length) { $('m-cuerpo').innerHTML = html + '<div class="vacio">No tienes recursos de la Bitácora en tu alcance.</div>'; return; }
   html += '<div class="kpis" style="grid-template-columns:repeat(5,1fr);">' + kp.map(k =>
     '<div class="kpi' + (S.filtros.kpi === k[0] && k[0] ? ' on' : '') + '" data-kpi="' + k[0] + '" style="--c:' + k[3] + '"><b>' + k[2] + '</b><span>' + esc(k[1]) + '</span></div>').join('') + '</div>';
@@ -1189,14 +1230,28 @@ function agregarBuscadorCoord(cont, map, onPunto) {
   b.onclick = e => {
     e.stopPropagation();
     if (caja) return cerrar();
+    // En el mapa chico del formulario no caben las 6 casillas: se agranda primero a pantalla completa
+    const bg = cont.querySelector('.av-grande');
+    if (cont.classList.contains('av-mapa') && !cont.classList.contains('grande') && bg) bg.click();
+    // 6 celdas (v1.4.0): grados, minutos y segundos de la latitud (S) y de la longitud (O); salta sola a la siguiente celda
     caja = document.createElement('div'); caja.className = 'busca-gms';
-    caja.innerHTML = '<input type="text" inputmode="text" placeholder="38°14\'25&quot; S 72°20\'11&quot; O" aria-label="Coordenada"><button type="button" class="bg-ir">Ir</button><button type="button" class="bg-x" aria-label="Cerrar">✕</button>';
+    const celda = (k, lbl, max) => '<input data-bg="' + k + '" inputmode="decimal" maxlength="' + max + '" aria-label="' + lbl + '" placeholder="' + (k.endsWith('g') ? '°' : k.endsWith('m') ? '\'' : '"') + '">';
+    caja.innerHTML = '<div class="bg-fila"><b>Latitud</b>' + celda('lag', 'Latitud grados', 2) + '<span>°</span>' + celda('lam', 'Latitud minutos', 2) + '<span>\'</span>' + celda('las', 'Latitud segundos', 5) + '<span>" S</span></div>' +
+      '<div class="bg-fila"><b>Longitud</b>' + celda('lng', 'Longitud grados', 3) + '<span>°</span>' + celda('lnm', 'Longitud minutos', 2) + '<span>\'</span>' + celda('lns', 'Longitud segundos', 5) + '<span>" O</span></div>' +
+      '<div class="bg-acc"><button type="button" class="bg-x">Cerrar</button><button type="button" class="bg-ir">🔎 Ir</button></div>';
     cont.appendChild(caja);
     L.DomEvent.disableClickPropagation(caja);
-    const inp = caja.querySelector('input'); inp.focus();
+    const celdas = [...caja.querySelectorAll('input')];
+    celdas[0].focus();
+    celdas.forEach((c, i) => c.addEventListener('input', () => {
+      c.value = c.value.replace(/[^0-9.,]/g, '');
+      const lleno = c.dataset.bg.endsWith('s') ? false : c.value.length >= (c.dataset.bg === 'lng' ? 2 : 2);
+      if (lleno && celdas[i + 1]) celdas[i + 1].focus();
+    }));
     const ir = () => {
-      const p = parseCoord(inp.value);
-      if (!p) return toast('No entendí la coordenada. Ej.: 38°14\'25" S 72°20\'11" O', 4500);
+      const v = k => caja.querySelector('[data-bg="' + k + '"]').value.trim();
+      const p = parseCoord(v('lag') + ' ' + (v('lam') || '0') + ' ' + (v('las') || '0') + ' S ' + v('lng') + ' ' + (v('lnm') || '0') + ' ' + (v('lns') || '0') + ' O');
+      if (!v('lag') || !v('lng') || !p) return toast('Completa al menos los grados de la latitud y de la longitud (minutos y segundos de 0 a 59).', 4500);
       map.setView([p.lat, p.lng], Math.max(map.getZoom(), 15));
       if (marca) map.removeLayer(marca);
       marca = L.circleMarker([p.lat, p.lng], { radius: 9, color: '#2563EB', weight: 3, fillColor: '#93C5FD', fillOpacity: .6 }).addTo(map)
@@ -1206,7 +1261,7 @@ function agregarBuscadorCoord(cont, map, onPunto) {
     };
     caja.querySelector('.bg-ir').onclick = ir;
     caja.querySelector('.bg-x').onclick = cerrar;
-    inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') ir(); });
+    celdas.forEach(c => c.addEventListener('keydown', ev => { if (ev.key === 'Enter') ir(); }));
   };
   L.DomEvent.disableClickPropagation(b);
 }
@@ -1328,7 +1383,7 @@ function perfilHtml() {
   const propios = (c.recursos_propios || []).map(id => recurso(id)).filter(Boolean);
   const pend = S.pendientes.map(it => {
     const j = S.jIdx && [...S.jIdx.values()].find(x => x.id === it.jid), r = j ? recurso(j.recurso_id) : (it.payload && recurso(it.payload.recurso_id));
-    const qu = { guardar: '📋 Apertura', cerrar: '🔒 Cierre', reabrir: '🔓 Reapertura', eliminar: '🗑️ Eliminación', actividad: '🧩 Actividad', eliminar_act: '🗑️ Actividad eliminada', foto: '📷 Foto' }[it.tipo] || it.tipo;
+    const qu = { guardar: '📋 Apertura', cerrar: '🔒 Cierre', reabrir: '🔓 Reapertura', eliminar: '🗑️ Eliminación', actividad: '🧩 Actividad', eliminar_act: '🗑️ Actividad eliminada', foto: '📷 Foto', favorito: '⭐ Favorita' }[it.tipo] || it.tipo;
     return '<div class="pend-item"><b>' + qu + '</b> · ' + esc(r ? (r.clave_radial || r.codigo_ref) : '') + ' · ' + esc(fmtFecha((it.payload && it.payload.fecha_operativa) || (j && j.fecha_operativa))) +
       '<div class="muted">Guardado ' + esc(fmtFechaHora(it.creado)) + '</div>' + (it.error ? '<div class="chip-e" style="display:inline-block;margin-top:4px;">' + esc(it.error) + '</div>' : '') +
       '<div style="text-align:right;margin-top:6px;"><button class="btn btn-mini btn-rojo" data-descartar="' + it.id + '">Descartar</button></div></div>';
@@ -1344,6 +1399,7 @@ function perfilHtml() {
       '<button class="btn btn-p" data-sync="1" style="width:100%;margin-top:10px;"' + (navigator.onLine && S.pendientes.length ? '' : ' disabled') + '>🔄 Enviar ahora</button>' +
       '<div class="muted" style="margin-top:6px;">Sin señal las aperturas quedan en el teléfono y se envían solas al recuperar la conexión.</div></div>' +
     '<div class="card"><button class="btn" data-recargar="1" style="width:100%;margin-bottom:8px;">🔄 Actualizar datos</button>' +
+      (esInstalada() ? '' : '<button class="btn btn-p" data-instalar="1" style="width:100%;margin-bottom:8px;">📲 Instalar la Bitácora en el teléfono</button>') +
       (claveGuardada() ? '<button class="btn" data-olvidar="1" style="width:100%;margin-bottom:8px;">🔑 Olvidar la clave guardada en este teléfono</button>' : '') +
       '<button class="btn" data-buscar-version="1" style="width:100%;margin-bottom:8px;">🆕 Buscar actualización</button>' +
       '<button class="btn btn-rojo" data-salir="1" style="width:100%;"><svg class="ico-salir" viewBox="0 0 24 24" aria-hidden="true" style="width:18px;height:18px;"><path d="M12 3v9"/><path d="M6.4 6.6a8 8 0 1 0 11.2 0"/></svg> Cerrar sesión</button></div>' +
@@ -1833,7 +1889,8 @@ function resumenAct() {
     s.textContent = txt; o.className = 'tg-ok ' + est; o.textContent = est === 'si' ? '✓' : est === 'no' ? 'Falta' : 'Opcional';
   };
   const a = actCat(F.actividad), g = a ? grupoCat(a.grupo_codigo) || {} : null;
-  pon('act', a ? (g.emoji || '') + ' ' + (g.nombre || '') + ' › ' + a.nombre : 'Elige el grupo y la actividad', a ? 'si' : 'no');
+  const kk = a ? (S.cat.clasif || []).find(x => x.codigo === g.clasificacion_codigo) : null;
+  pon('act', a ? (g.emoji || '') + ' ' + (kk ? kk.nombre + ' › ' : '') + (g.nombre || '') + ' › ' + a.nombre : 'Elige el tipo, el grupo y la actividad', a ? 'si' : 'no');
   const h = horasForm();
   pon('hora', h ? hhmm(h.i) + ' → ' + hhmm(h.f) + ' · ' + durTxt(h.min) : 'Indica el término', h && h.min > 0 ? 'si' : 'no');
   const tc = $('tg-cant'); if (tc) tc.style.display = a && a.pide_cantidad ? '' : 'none';
@@ -1843,48 +1900,85 @@ function resumenAct() {
   pon('fotos', nf ? nf + ' foto' + (nf > 1 ? 's' : '') : 'Sin fotos', nf ? 'si' : 'op');
   pon('obs', F.observacion ? F.observacion.slice(0, 60) : 'Sin observación', F.observacion ? 'si' : 'op');
 }
-// Elección de la actividad: primero el GRUPO y luego sus actividades (o búsqueda en todos los grupos). Frecuentes del recurso arriba.
-// Solo las habilitadas para su tipo. Al corregir, solo actividades del MISMO grupo.
+// Elección de la actividad (v1.4.0): CLASIFICACIÓN (Prevención, Relacionamiento, Silvicultura, Combate, Otra · SQL 193) → GRUPO → ACTIVIDAD,
+// o búsqueda en todas. Arriba: ⭐ favoritas del usuario (se guardan en la base, SQL 193) y frecuentes del recurso.
+// Solo las habilitadas para su tipo. Al corregir, solo actividades del MISMO grupo. Sin el 193 se parte por el grupo.
+const clasifCat = c => (S.cat.clasif || []).find(x => x.codigo === c);
+const clasifDeGrupo = g => ((grupoCat(g) || {}).clasificacion_codigo) || '';
+function filaActHtml(a, conGrupo) {
+  const g = grupoCat(a.grupo_codigo) || {}, fav = S.favs.has(a.codigo);
+  return '<div class="fila-act"><button type="button" data-act-sel="' + esc(a.codigo) + '"' + (a.codigo === F.actividad ? ' style="font-weight:800;"' : '') + '>' +
+    (conGrupo ? esc((g.emoji || '') + ' ') : '') + esc(a.nombre) + '</button>' +
+    '<button type="button" class="fav' + (fav ? ' on' : '') + '" data-fav="' + esc(a.codigo) + '" aria-label="' + (fav ? 'Quitar de favoritas' : 'Marcar como favorita') + '" title="' + (fav ? 'Quitar de favoritas' : 'Marcar como favorita') + '">⭐</button></div>';
+}
 function pintarSelAct() {
   const c = $('fs-act'); if (!c) return;
   const sel = actCat(F.actividad);
   if (sel && !F.buscando) {
-    const g = grupoCat(sel.grupo_codigo) || {};
-    c.innerHTML = '<div class="act-sel" style="margin-top:6px;"><span style="font-size:22px;">' + esc(g.emoji || '🧩') + '</span><b>' + esc(sel.nombre) + '<small class="muted" style="display:block;font-weight:600;">' + esc(g.nombre || '') + '</small></b><button type="button" class="btn btn-mini" data-act-cambiar="1">Cambiar</button></div>';
+    const g = grupoCat(sel.grupo_codigo) || {}, k = clasifCat(g.clasificacion_codigo), fav = S.favs.has(sel.codigo);
+    c.innerHTML = '<div class="act-sel" style="margin-top:6px;"><span style="font-size:22px;">' + esc(g.emoji || '🧩') + '</span><b>' + esc(sel.nombre) + '<small class="muted" style="display:block;font-weight:600;">' +
+      esc((k ? k.nombre + ' › ' : '') + (g.nombre || '')) + '</small></b><button type="button" class="fav' + (fav ? ' on' : '') + '" data-fav="' + esc(sel.codigo) + '" aria-label="Favorita">⭐</button>' +
+      '<button type="button" class="btn btn-mini" data-act-cambiar="1">Cambiar</button></div>';
     resumenForm(); return;
   }
   let lista = habilitadas(F.r);
   if (F.grupoFijo) { lista = lista.filter(a => a.grupo_codigo === F.grupoFijo); if (sel && !lista.includes(sel)) lista.push(sel); }
-  const q = norm(F.q), grupoVer = F.grupoFijo || F.grupo;
+  const q = norm(F.q), grupoVer = F.grupoFijo || F.grupo, conClasif = (S.cat.clasif || []).length > 0;
   const cuenta = new Map();
   S.actividades.concat([...S.aIdx.values()].flat()).forEach(a => { if (a.recurso_id === F.r.id) cuenta.set(a.actividad_codigo, (cuenta.get(a.actividad_codigo) || 0) + 1); });
-  const frec = lista.filter(a => cuenta.has(a.codigo)).sort((x, y) => cuenta.get(y.codigo) - cuenta.get(x.codigo)).slice(0, 6);
+  const favs = lista.filter(a => S.favs.has(a.codigo)).sort((x, y) => x.nombre.localeCompare(y.nombre, 'es'));
+  const frec = lista.filter(a => cuenta.has(a.codigo) && !S.favs.has(a.codigo)).sort((x, y) => cuenta.get(y.codigo) - cuenta.get(x.codigo)).slice(0, 4);
   let h = '';
   if (F.grupoFijo) h += '<div class="muted" style="margin:6px 0;">Al corregir, solo puedes elegir actividades de «' + esc((grupoCat(F.grupoFijo) || {}).nombre || F.grupoFijo) + '».</div>';
   if (!lista.length) { c.innerHTML = h + '<div class="aviso">No hay actividades habilitadas para este tipo de recurso. Avisa al Administrador.</div>'; resumenForm(); return; }
-  if (frec.length && !q && !grupoVer) h += '<div class="muted" style="margin:6px 0 4px;">⭐ Frecuentes</div><div class="opc" style="margin-bottom:8px;">' + frec.map(a => '<button type="button" data-act-sel="' + esc(a.codigo) + '">' + esc(((grupoCat(a.grupo_codigo) || {}).emoji || '') + ' ' + a.nombre) + '</button>').join('') + '</div>';
+  const arriba = !q && !grupoVer && !F.clasif;
+  if (arriba && favs.length) h += '<div class="muted" style="margin:6px 0 4px;">⭐ Mis favoritas</div><div class="act-lista" style="max-height:none;margin-bottom:8px;">' + favs.map(a => filaActHtml(a, true)).join('') + '</div>';
+  if (arriba && frec.length) h += '<div class="muted" style="margin:6px 0 4px;">🕘 Frecuentes</div><div class="opc" style="margin-bottom:8px;">' + frec.map(a => '<button type="button" data-act-sel="' + esc(a.codigo) + '">' + esc(((grupoCat(a.grupo_codigo) || {}).emoji || '') + ' ' + a.nombre) + '</button>').join('') + '</div>';
   h += '<input id="fa-q" type="search" placeholder="🔎 Buscar en ' + (grupoVer ? 'este grupo' : 'todas las actividades') + '" value="' + esc(F.q) + '" autocomplete="off" style="margin-top:6px;">';
   const orden = (x, y) => ((grupoCat(x.grupo_codigo) || {}).orden || 0) - ((grupoCat(y.grupo_codigo) || {}).orden || 0) || x.nombre.localeCompare(y.nombre, 'es');
-  const botonAct = a => '<button type="button" data-act-sel="' + esc(a.codigo) + '"' + (a.codigo === F.actividad ? ' style="font-weight:800;"' : '') + '>' + esc(a.nombre) + '</button>';
+  const gruposDe = kc => S.cat.grupos.filter(g => lista.some(a => a.grupo_codigo === g.codigo) && (!kc || clasifDeGrupo(g.codigo) === kc));
+  const tarjetasGrupo = gs => '<div class="grupos">' + gs.map(g => '<button type="button" data-grupo="' + esc(g.codigo) + '"><span>' + esc(g.emoji || '🧩') + '</span><span>' + esc(g.nombre) +
+    '<small>' + lista.filter(a => a.grupo_codigo === g.codigo).length + ' actividades</small></span></button>').join('') + '</div>';
   if (grupoVer) {
     const g = grupoCat(grupoVer) || {}, vis = lista.filter(a => a.grupo_codigo === grupoVer && (!q || norm(a.nombre + ' ' + a.codigo).includes(q))).sort(orden);
-    h += '<div class="grupo-cab">' + (F.grupoFijo ? '' : '<button type="button" class="btn btn-mini" data-grupo-volver="1">← Grupos</button>') + '<span style="font-size:20px;">' + esc(g.emoji || '') + '</span>' + esc(g.nombre || '') + ' <span class="muted">(' + vis.length + ')</span></div>';
-    h += '<div class="act-lista">' + (vis.length ? vis.map(botonAct).join('') : '<div class="muted" style="padding:10px 12px;">Ninguna actividad coincide.</div>') + '</div>';
+    const volver = F.grupoFijo ? '' : (conClasif && F.clasif && gruposDe(F.clasif).length > 1 ? '<button type="button" class="btn btn-mini" data-grupo-volver="1">← Grupos</button>'
+      : '<button type="button" class="btn btn-mini" data-clasif-volver="1">← ' + (conClasif ? 'Clasificación' : 'Grupos') + '</button>');
+    h += '<div class="grupo-cab">' + volver + '<span style="font-size:20px;">' + esc(g.emoji || '') + '</span>' + esc(g.nombre || '') + ' <span class="muted">(' + vis.length + ')</span></div>';
+    h += '<div class="act-lista">' + (vis.length ? vis.map(a => filaActHtml(a, false)).join('') : '<div class="muted" style="padding:10px 12px;">Ninguna actividad coincide.</div>') + '</div>';
   } else if (q) {
     const vis = lista.filter(a => norm(a.nombre + ' ' + a.codigo).includes(q)).sort(orden);
     let gAct = null;
     h += '<div class="act-lista">' + (vis.length ? vis.map(a => {
       let t = '';
-      if (a.grupo_codigo !== gAct) { gAct = a.grupo_codigo; t = '<div class="g-t">' + esc(((grupoCat(gAct) || {}).emoji || '') + ' ' + ((grupoCat(gAct) || {}).nombre || '')) + '</div>'; }
-      return t + botonAct(a);
+      if (a.grupo_codigo !== gAct) { gAct = a.grupo_codigo; const k = clasifCat(clasifDeGrupo(gAct)); t = '<div class="g-t">' + esc((k ? k.nombre + ' › ' : '') + ((grupoCat(gAct) || {}).emoji || '') + ' ' + ((grupoCat(gAct) || {}).nombre || '')) + '</div>'; }
+      return t + filaActHtml(a, false);
     }).join('') : '<div class="muted" style="padding:10px 12px;">Ninguna actividad coincide.</div>') + '</div>';
+  } else if (conClasif && F.clasif) {
+    const k = clasifCat(F.clasif) || {};
+    h += '<div class="grupo-cab"><button type="button" class="btn btn-mini" data-clasif-volver="1">← Clasificación</button><span style="font-size:20px;">' + esc(k.emoji || '') + '</span>' + esc(k.nombre || '') + '</div>';
+    h += '<div class="muted" style="margin-top:6px;">Elige el grupo:</div>' + tarjetasGrupo(gruposDe(F.clasif));
+  } else if (conClasif) {
+    const ks = S.cat.clasif.filter(k => gruposDe(k.codigo).length);
+    const sinK = gruposDe('').filter(g => !clasifDeGrupo(g.codigo));
+    h += '<div class="muted" style="margin-top:8px;">¿Qué tipo de actividad fue?</div><div class="grupos">' + ks.map(k => {
+      const n = lista.filter(a => clasifDeGrupo(a.grupo_codigo) === k.codigo).length;
+      return '<button type="button" data-clasif="' + esc(k.codigo) + '" style="border-left:5px solid ' + esc(k.color || '#475569') + ';"><span>' + esc(k.emoji || '🧩') + '</span><span>' + esc(k.nombre) + '<small>' + n + ' actividades</small></span></button>';
+    }).join('') + '</div>' + (sinK.length ? tarjetasGrupo(sinK) : '');
   } else {
-    const grupos = S.cat.grupos.filter(g => lista.some(a => a.grupo_codigo === g.codigo));
-    h += '<div class="muted" style="margin-top:8px;">Elige el grupo de la actividad:</div><div class="grupos">' + grupos.map(g => '<button type="button" data-grupo="' + esc(g.codigo) + '"><span>' + esc(g.emoji || '🧩') + '</span><span>' + esc(g.nombre) +
-      '<small>' + lista.filter(a => a.grupo_codigo === g.codigo).length + ' actividades</small></span></button>').join('') + '</div>';
+    h += '<div class="muted" style="margin-top:8px;">Elige el grupo de la actividad:</div>' + tarjetasGrupo(gruposDe(''));
   }
   c.innerHTML = h;
   resumenForm();
+}
+// ⭐ Marca o quita una favorita: se ve al tiro y se guarda en la base (sin señal queda en la cola)
+async function alternarFavorita(cod) {
+  const on = !S.favs.has(cod);
+  if (on) S.favs.add(cod); else S.favs.delete(cod);
+  cacheSet('favs', [...S.favs]);
+  if (F && F.modo === 'actividad') pintarSelAct();
+  toast(on ? '⭐ Agregada a tus favoritas' : 'Quitada de tus favoritas', 1800);
+  try { await ejecutar('favorito', 'fav-' + cod, { p_actividad: cod, p_on: on }); }
+  catch (e) { toast('No se pudo guardar la favorita: ' + msgError(e), 4000); }
 }
 function pintarCant() {
   const c = $('fs-cant'); if (!c) return;
@@ -2068,6 +2162,7 @@ async function enviar(tipo, payload) {
   else if (tipo === 'reabrir') r = await sb.rpc('bit_reabrir_jornada', payload);
   else if (tipo === 'eliminar') r = await sb.rpc('bit_eliminar_jornada', payload);
   else if (tipo === 'actividad') r = await sb.rpc('bit_guardar_actividad', { p: payload });
+  else if (tipo === 'favorito') r = await sb.rpc('bit_favorito', payload);
   else if (tipo === 'eliminar_act') {
     r = await sb.rpc('bit_eliminar_actividad', { p_id: payload.p_id });
     if (!r.error && r.data && (r.data.fotos || []).length) { try { await sb.storage.from(BUCKET_FOTOS).remove(r.data.fotos); } catch (e) { /* el archivo queda; lo limpia el Administrador */ } }
@@ -2082,6 +2177,7 @@ async function enviar(tipo, payload) {
   return r.data;
 }
 function aplicarRespuesta(tipo, jid, fila) {
+  if (tipo === 'favorito') { if (Array.isArray(fila)) { S.favs = new Set(fila); cacheSet('favs', fila); } return; }
   if (tipo === 'actividad' || tipo === 'foto' || tipo === 'eliminar_act') {
     if (tipo === 'eliminar_act') S.actividades = S.actividades.filter(x => x.id !== jid);
     else if (fila && fila.id) { S.actividades = S.actividades.filter(x => x.id !== fila.id); S.actividades.push(fila); }
@@ -2144,6 +2240,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   try { const m = localStorage.getItem('bit-correo'); if (m) { $('l-mail').value = m; } } catch (e) { /* sin almacenamiento */ }
   if (claveGuardada()) { $('l-clave').value = claveGuardada(); $('l-recordar').checked = true; }
   $('l-entrar').onclick = entrar;
+  // iPhone ignora user-scalable=no: se bloquea el pellizco de la página (los mapas mantienen su propio zoom)
+  document.addEventListener('gesturestart', e => { if (!(e.target.closest && e.target.closest('.leaflet-container'))) e.preventDefault(); }, { passive: false });
   $('l-clave').addEventListener('keydown', e => { if (e.key === 'Enter') entrar(); });
   $('h-actualizar').onclick = async () => { if (!navigator.onLine) return toast('📵 Sin señal: se muestran los datos guardados'); await sincronizarPendientes(); await cargarTodo(); toast('✅ Datos actualizados'); };
   $('h-pend').onclick = () => { S.sec = 'perfil'; pintar(); };
@@ -2152,6 +2250,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   cuerpo.addEventListener('click', async e => {
     const t = e.target;
     const dia = t.closest('[data-dia]'); if (dia) { const nf = sumarDias(S.fecha, Number(dia.dataset.dia)); if (nf > hoyISO()) return; S.fecha = nf; await asegurarFecha(sumarDias(nf, S.sec === 'semana' ? -6 : 0)); return pintar(); }
+    if (t.closest('[data-instalar]')) return instalarApp();
     const hd = t.closest('[data-hdias]'); if (hd) { S.hist.dias = Number(hd.dataset.hdias); return pintar(); }
     const k = t.closest('[data-kpi]'); if (k) { e.preventDefault(); S.filtros.kpi = S.filtros.kpi === k.dataset.kpi ? '' : k.dataset.kpi; return pintar(); }
     // Mi jornada
@@ -2211,8 +2310,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (F.modo === 'actividad') {
       if (t.closest('[data-act-volver]')) { const v = F.volver; F.fotosNuevas.forEach(x => URL.revokeObjectURL(x.url)); cerrarHoja(); if (v) abrirRecurso(v.rid, v.f); return; }
       if (t.closest('[data-act-eliminar]')) return eliminarActividad();
-      if (t.closest('[data-act-cambiar]')) { leerCamposAct(); F.buscando = true; F.grupo = (actCat(F.actividad) || {}).grupo_codigo || ''; return pintarSelAct(); }
+      if (t.closest('[data-act-cambiar]')) { leerCamposAct(); F.buscando = true; F.grupo = (actCat(F.actividad) || {}).grupo_codigo || ''; F.clasif = clasifDeGrupo(F.grupo); return pintarSelAct(); }
       const as = t.closest('[data-act-sel]'); if (as) { leerCamposAct(); F.actividad = as.dataset.actSel; F.buscando = false; F.q = ''; pintarSelAct(); return pintarCant(); }
+      const fv = t.closest('[data-fav]'); if (fv) return alternarFavorita(fv.dataset.fav);
+      const kl = t.closest('[data-clasif]'); if (kl) {
+        F.clasif = kl.dataset.clasif; F.q = ''; F.grupo = '';
+        const gs = [...new Set(habilitadas(F.r).filter(a => clasifDeGrupo(a.grupo_codigo) === F.clasif).map(a => a.grupo_codigo))];
+        if (gs.length === 1) F.grupo = gs[0];   // un solo grupo: directo a sus actividades
+        return pintarSelAct();
+      }
+      if (t.closest('[data-clasif-volver]')) { F.clasif = ''; F.grupo = ''; F.q = ''; return pintarSelAct(); }
       const gr = t.closest('[data-grupo]'); if (gr) { F.grupo = gr.dataset.grupo; F.q = ''; return pintarSelAct(); }
       if (t.closest('[data-grupo-volver]')) { F.grupo = ''; F.q = ''; return pintarSelAct(); }
       if (t.closest('[data-ahora]')) { const ci = new Date(F.j.cierre_programado), ah = new Date(); F.fin = hhmm(ah < ci ? ah : ci); if ($('fa-fin')) $('fa-fin').value = F.fin; return pintarDur(); }
@@ -2260,6 +2367,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   hoja.addEventListener('input', e => {
     const t = e.target;
     if (!F) return;
+    if (/^cm-(la|ln)[gm]$/.test(t.id)) { t.value = t.value.replace(/\D/g, ''); if (t.value.length >= 2) { const sig = { 'cm-lag': 'cm-lam', 'cm-lam': 'cm-las', 'cm-lng': 'cm-lnm', 'cm-lnm': 'cm-lns' }[t.id]; if ($(sig)) $(sig).focus(); } return; }
     if (t.id === 'ff-fq') { clearTimeout(espFu); espFu = setTimeout(() => { if (!F) return; F.fq = t.value; pintarListaFundos(); }, 200); return; }
     if (['ff-patente', 'ff-km', 'ff-obs', 'ff-lugar'].includes(t.id)) { leerCamposForm(); return resumenForm(); }
     if (F.modo !== 'actividad') return;

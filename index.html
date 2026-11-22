@@ -701,8 +701,8 @@
     <div class="gr-cuerpo" id="tg-cuerpo" style="overflow:auto;"><div class="tb-vacio">Cargando…</div></div>
   </div>
 
-  <!-- 📋 Bitácora · Aperturas (Planificador CMPC ▾, 22-11-2026, SQL 183/188; js/42): tabla de las aperturas de la App Bitácora
-       con la información de cada brigada y Excel de 2 hojas (Aperturas / Personal). Admin y Jefe / Subgerente / GRT (sus áreas). -->
+  <!-- 📋 Bitácora ▾ (Reportabilidad, 22-11-2026, js/42): un panel para las 4 vistas (bitacora, bitacoraact, bitacoramapa, bitacoraind).
+       Admin y Jefe / Subgerente / GRT (sus áreas, por RLS). -->
   <div id="bitacora-panel"></div>
 
   <!-- 🌾 Gestión Asociación Malleco (Agricultores ▾, 20-10-2026, SQL 129): agenda de prevención de la Asociación de
@@ -973,12 +973,20 @@
           <button class="vista-tab vista-tab-grupo" title="Planificador CMPC"><span class="vt-ico">🌲</span><span class="vt-txt">Planificador CMPC</span><span class="vt-caret">▾</span></button>
           <div class="vista-submenu">
             <button class="vista-subitem" data-vista="turnos" id="tab-turnos" style="display:none;"><span class="vs-ico">📅</span><span><b>Turnos de Recursos</b><small>Calendario de turnos por área</small></span></button>
-            <button class="vista-subitem" data-vista="turnosgestor" id="tab-turnosgestor" style="display:none;"><span class="vs-ico">👥</span><span><b>Turnos de Gestores</b><small>Turnos de los gestores de relacionamiento por área</small></span></button>
-            <button class="vista-subitem" data-vista="bitacora" id="tab-bitacora" style="display:none;"><span class="vs-ico">📋</span><span><b>Bitácora: Aperturas</b><small>Aperturas de la App Bitácora con su brigada · Excel</small></span></button>
-            <button class="vista-subitem" data-vista="planificador" id="tab-planificador"><span class="vs-ico">🧭</span><span><b>Planificador gráfico de Recursos</b><small>Recursos del área en el mapa</small></span></button>
+            <button class="vista-subitem" data-vista="turnosgestor" id="tab-turnosgestor" style="display:none;"><span class="vs-ico">👥</span><span><b>Turnos de Gestores</b><small>Turnos de los gestores de relacionamiento por área</small></span></button>            <button class="vista-subitem" data-vista="planificador" id="tab-planificador"><span class="vs-ico">🧭</span><span><b>Planificador gráfico de Recursos</b><small>Recursos del área en el mapa</small></span></button>
             <button class="vista-subitem" data-vista="tablero" id="tab-tablero"><span class="vs-ico">📊</span><span><b>Tablero de Recursos</b><small>Resumen, activación por quincena y descarga</small></span></button>
             <button class="vista-subitem" data-vista="gestion" id="tab-gestion" style="display:none;"><span class="vs-ico">🗂️</span><span><b>Gestión de Recursos</b><small>Datos y contacto de cada recurso · carga masiva</small></span></button>
             <button class="vista-subitem" data-vista="descargas" id="tab-descargas" style="display:none;"><span class="vs-ico">🗺️</span><span><b>Descargas geográficas</b><small>Recursos, rutas y entidades en KML y GeoJSON</small></span></button>
+          </div>
+        </div>
+        <!-- 📋 Bitácora ▾ (Reportabilidad, 22-11-2026, js/42): App Bitácora — aperturas, actividades, mapa e indicadores -->
+        <div class="vista-grupo" id="grupo-bitacora" style="display:none;">
+          <button class="vista-tab vista-tab-grupo" title="Bitácora (Reportabilidad)"><span class="vt-ico">📋</span><span class="vt-txt">Bitácora</span><span class="vt-caret">▾</span></button>
+          <div class="vista-submenu">
+            <button class="vista-subitem" data-vista="bitacora" id="tab-bitacora" style="display:none;"><span class="vs-ico">📋</span><span><b>Aperturas</b><small>Aperturas de jornada con su brigada · Excel Aperturas / Personal</small></span></button>
+            <button class="vista-subitem" data-vista="bitacoraact" id="tab-bitacoraact" style="display:none;"><span class="vs-ico">🧩</span><span><b>Actividades</b><small>Actividades por clasificación y grupo, con fotos · Excel</small></span></button>
+            <button class="vista-subitem" data-vista="bitacoramapa" id="tab-bitacoramapa" style="display:none;"><span class="vs-ico">🗺️</span><span><b>Mapa de actividades</b><small>Pinchos por clasificación y ruta asignada del recurso</small></span></button>
+            <button class="vista-subitem" data-vista="bitacoraind" id="tab-bitacoraind" style="display:none;"><span class="vs-ico">📊</span><span><b>Indicadores</b><small>% del turno registrado, horas y recursos sin apertura</small></span></button>
           </div>
         </div>
         <!-- Agricultores ▾ (20-10-2026, SQL 129): Asociación de Agricultores Malleco -->
@@ -2424,7 +2432,7 @@
 <script src="js/39-limpiar-filtros.js"></script>
 <script src="js/40-novedades.js"></script>
 <script src="js/41-usuarios-recursos.js"></script>
-<script src="js/42-bitacora-aperturas.js"></script>
+<script src="js/42-bitacora-reportabilidad.js"></script>
 <script src="js/43-correos.js"></script>
 </body>
 </html>
