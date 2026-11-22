@@ -140,6 +140,7 @@ async function actualizarDatos_(origen) {
 
 function mostrarVista_(vista, modoMapa) {
   if (esAsociacion_() && vista !== 'agradmin') vista = 'agricultores';   // la Asociación: su tablero y 🌾 Administración Agricultores
+  if (typeof esSSO_ === 'function' && esSSO_() && !['planificador', 'tablero', 'gestion'].includes(vista)) vista = 'planificador';   // Perfil SSO (SQL 184)
   if (vista === 'agradmin' && !puedeAdminAgricultores_()) vista = 'dashboard';
   if (vista === 'agricultores' && !puedeAgricultores_()) vista = 'dashboard';
   if (vista === 'turnosgestor' && !puedeTurnosGestores_()) vista = 'dashboard';

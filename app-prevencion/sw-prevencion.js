@@ -1,7 +1,7 @@
 // Service worker de «Prevención Territorial»: abre la app sin señal (la última versión publicada cuando hay red).
 // Los datos y evidencias NUNCA se guardan en caché: van siempre al servidor (Supabase).
 // version.json NO se intercepta: la app lo pide a la red para saber si hay versión nueva (sin señal falla y queda pendiente).
-const VERSION = 'prevencion-v1.7.0';   // = APP_VERSION de app.html = version.json (subir los 3 juntos)
+const VERSION = 'prevencion-v1.8.1';   // = APP_VERSION de app.html = version.json (subir los 3 juntos)
 const CDN = ['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js',
   'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js', 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'];
 const PROPIOS = /\/(app\.html|manifest\.json|icon-192\.png|icon-512\.png|icon-maskable-512\.png|apple-touch-icon\.png)$/;
@@ -25,8 +25,15 @@ self.addEventListener('fetch', e => {
     return;
   }
   if (url.origin === self.location.origin && PROPIOS.test(url.pathname)) {
-    e.respondWith(fetch(req.url, { cache: 'no-store', credentials: 'same-origin' })
-      .then(res => { if (res.ok) { const c = res.clone(); caches.open(VERSION).then(k => k.put(req, c)); } return res; })
-      .catch(() => caches.match(req, { ignoreSearch: true })));
+    // v1.8.1: red primero, pero con señal débil no se espera más de 5 s: se abre la copia guardada (y la red, si llega, la actualiza)
+    const red = fetch(req.url, { cache: 'no-store', credentials: 'same-origin' })
+      .then(res => { if (res.ok) { const c = res.clone(); caches.open(VERSION).then(k => k.put(req, c)); } return res; });
+    e.respondWith(new Promise(resolve => {
+      let listo = false;
+      const usarCache = () => caches.match(req, { ignoreSearch: true }).then(c => { if (c && !listo) { listo = true; resolve(c); } return c; });
+      const t = setTimeout(usarCache, 5000);
+      red.then(res => { clearTimeout(t); if (!listo) { listo = true; resolve(res); } })
+        .catch(() => { clearTimeout(t); usarCache().then(c => { if (!c && !listo) { listo = true; resolve(Response.error()); } }); });
+    }));
   }
 });

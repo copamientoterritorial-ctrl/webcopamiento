@@ -165,6 +165,14 @@
   .av-ctx-panel small { color:#64748B; font-weight:400; }
   .av-mapa.grande .av-ctx-btn { top:calc(58px + env(safe-area-inset-top)); right:calc(10px + env(safe-area-inset-right)); }
   .av-mapa.grande .av-ctx-panel { top:calc(58px + env(safe-area-inset-top)); right:calc(56px + env(safe-area-inset-right)); }
+  .kpis-avance { grid-template-columns: 1fr 1fr; margin-bottom:8px; }
+  .kpi-grande b { font-size:28px; line-height:1.1; margin:2px 0; }
+  .kpi-grande > span:first-child { font-weight:700; color: var(--txt); }
+  .kpi-grande .barra { margin:4px 0; }
+  @media (max-width: 380px) { .kpis-avance { grid-template-columns: 1fr; } }
+  .ayuda-ubic summary { font-weight:700; cursor:pointer; margin-top:8px; }
+  .ayuda-ubic ol { padding-left:20px; margin:8px 0; text-align:left; }
+  .ayuda-ubic li { margin:6px 0; line-height:1.4; }
   .av-etq { background:none; border:0; }
   .av-etq span { display:inline-block; transform:translate(-50%, -50%); white-space:nowrap; font-size:10.5px; font-weight:700; padding:1px 5px; border-radius:6px; pointer-events:none; }
   .av-etq-fundo span { color:#064E3B; background: rgba(236,253,245,.85); border:1px solid rgba(5,150,105,.5); }
@@ -253,7 +261,53 @@
 // Clave pública (anon): por diseño es pública; el acceso real lo controla RLS (SQL 130–164).
 const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-prevencion-app', detectSessionInUrl: false } });
+/* v1.8.1 · SIN SEÑAL: toda consulta a Supabase tiene tiempo máximo (15 s; subidas de archivos 120 s). Con señal débil («conectado» pero
+ * sin respuesta) antes quedaba esperando minutos; ahora falla rápido como «Failed to fetch» → la app usa lo guardado y los avances van a
+ * pendientes (esSinSenal los reconoce). */
+function fetchConTiempo(url, opts) {
+  opts = opts || {};
+  const b = opts.body, largo = b && (b instanceof Blob || b instanceof FormData || b instanceof ArrayBuffer);
+  const ms = opts.tiempo || (largo ? 120000 : 15000), ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+  if (opts.signal) { if (opts.signal.aborted) ctl.abort(); else opts.signal.addEventListener('abort', () => ctl.abort()); }
+  return fetch(url, Object.assign({}, opts, { signal: ctl.signal }))
+    .catch(e => { if (e && e.name === 'AbortError') throw new TypeError('Failed to fetch (sin respuesta en ' + ms / 1000 + ' s)'); throw e; })
+    .finally(() => clearTimeout(t));
+}
+const SESION_KEY = 'sig-prevencion-app';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: SESION_KEY, detectSessionInUrl: false },
+  global: { fetch: fetchConTiempo } });
+/* v1.8.1 · MODO SIN SEÑAL (S.sinSesionRed): se entró con la sesión guardada pero vencida. Mientras dura, TODA llamada a Supabase
+ * responde al instante «sin señal» (sin intentar renovar la sesión, que con reintentos tarda ~25 s por consulta): cada pantalla usa lo
+ * guardado en el teléfono y los avances van a pendientes. Al volver la señal (evento online) se renueva la sesión y se sincroniza. */
+const SIN_RED_RES = { data: null, error: { message: 'Failed to fetch (sin señal)' } };
+function respuestaSinRed() {
+  const p = new Proxy(function () {}, {
+    get(t, k) { if (k === 'then') return (ok, ko) => Promise.resolve(SIN_RED_RES).then(ok, ko); return () => p; },
+    apply() { return p; }
+  });
+  return p;
+}
+(function protegerSinRed() {
+  const enModo = () => typeof S !== 'undefined' && S.sinSesionRed;
+  const from = sb.from.bind(sb), rpc = sb.rpc.bind(sb);
+  sb.from = (...a) => enModo() ? respuestaSinRed() : from(...a);
+  sb.rpc = (...a) => enModo() ? respuestaSinRed() : rpc(...a);
+  const proto = Object.getPrototypeOf(sb);
+  ['storage', 'functions'].forEach(k => {
+    const d = Object.getOwnPropertyDescriptor(proto, k); if (!d || !d.get) return;
+    Object.defineProperty(sb, k, { configurable: true, get() {
+      if (!enModo()) return d.get.call(sb);
+      return k === 'storage' ? { from: () => respuestaSinRed() } : { invoke: async () => SIN_RED_RES };
+    } });
+  });
+  const getSession = sb.auth.getSession.bind(sb.auth), getUser = sb.auth.getUser.bind(sb.auth);
+  sb.auth.getSession = () => enModo() ? Promise.resolve({ data: { session: null }, error: null }) : getSession();
+  sb.auth.getUser = () => enModo() ? Promise.resolve({ data: { user: null }, error: null }) : getUser();
+})();
+// Sesión guardada en el teléfono aunque el token haya vencido (sin señal no se puede renovar, pero el usuario ya ingresó antes)
+function sesionGuardada() {
+  try { const s = JSON.parse(localStorage.getItem(SESION_KEY) || 'null'); return s && (s.user || (s.currentSession && s.currentSession.user)) ? s : null; } catch (e) { return null; }
+}
 const EVID_BUCKET = 'ppa-evidencias', EVID_MAX = 20 * 1024 * 1024;
 const TIPOS_OK = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'];
 
@@ -273,7 +327,7 @@ function toast(m) { const t = document.createElement('div'); t.className = 'toas
  * nueva se FUERZA la actualización: primero se envían los pendientes y luego se recarga (el service worker trae app.html de la red).
  * Si hay un avance a medio registrar, espera a que se cierre el formulario. SIN señal: la actualización queda PENDIENTE
  * (localStorage) y se instala sola al volver la señal. La cola de pendientes y los datos guardados (IndexedDB) no se pierden al actualizar. */
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.8.1';
 const ACT_KEY = 'pta-act-pendiente', ACT_CADA_MS = 15 * 60 * 1000;
 function actLeer() { try { return localStorage.getItem(ACT_KEY) || ''; } catch (e) { return ''; } }
 function actGuardar(v) { try { if (v) localStorage.setItem(ACT_KEY, v); else localStorage.removeItem(ACT_KEY); } catch (e) { /* sin almacenamiento */ } }
@@ -346,7 +400,17 @@ async function mostrarApp() {
   if (S.sec === 'meteo' && !S.meteo.datos) obtenerMeteo(); else pintar();
   if (navigator.onLine) sincronizarPendientes();
 }
-async function salir() { await sb.auth.signOut(); location.reload(); }
+async function salir() {
+  if (S.pendientes && S.pendientes.length && !confirm('Tienes ' + S.pendientes.length + ' pendiente(s) sin enviar. Si cierras sesión quedan guardados en este teléfono y se envían al volver a ingresar. ¿Cerrar sesión?')) return;
+  try { await sb.auth.signOut(); } catch (e) { /* sin señal: igual se borra la sesión local */ }
+  try { localStorage.removeItem(SESION_KEY); } catch (e) {}
+  location.reload();
+}
+// ¿Hay internet de verdad? (navigator.onLine dice «conectado» con señal débil o wifi sin salida)
+async function hayInternet() {
+  try { const r = await fetchConTiempo(SUPABASE_URL + '/auth/v1/health', { headers: { apikey: SUPABASE_KEY }, cache: 'no-store', tiempo: 6000 }); return r.ok; }
+  catch (e) { return false; }
+}
 
 /* ───────── Datos ───────── */
 async function leerTodo(tabla, select, filtro) {
@@ -408,11 +472,12 @@ const nombreMes = mes => new Date(Number(mes.slice(0, 4)), Number(mes.slice(5, 7
 // Indicadores de una medida a la fecha: meta al mes vigente, exigible (quincenas vencidas), meta y avance del mes
 function indicadores(a) {
   const hoy = hoyISO(), mesAct = mesVigente(), id = a.id_ppa;
-  let metaAlMes = 0, exigible = 0, metaMes = 0;
+  let metaAlMes = 0, exigible = 0, metaMes = 0, metaTotal = 0;
   (S.metaMeses && S.metaMeses.get(id) || []).forEach(mes => {
-    if (mes > mesAct) return;
     [['Q1', mes.slice(0, 8) + '15'], ['Q2', mes.slice(0, 8) + String(ultimoDia(mes)).padStart(2, '0')]].forEach(([per, fin]) => {
       const m = metaQ(a, mes, per);
+      metaTotal += m;                       // meta de todo el período (avance general, v1.8.0)
+      if (mes > mesAct) return;
       metaAlMes += m;
       if (fin < hoy) exigible += m;
       if (mes === mesAct) metaMes += m;
@@ -421,7 +486,7 @@ function indicadores(a) {
   const av = avanceTotal(id);
   const avMes = S.avances.filter(x => x.id_ppa === id && String(x.fecha).slice(0, 7) === mesAct.slice(0, 7)).reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
   return {
-    metaAlMes, exigible, metaMes, av, avMes, p: pct(av, metaAlMes),
+    metaAlMes, exigible, metaMes, metaTotal, av, avMes, p: pct(av, metaAlMes),
     vencida: exigible > 0 && av < exigible, falta: Math.max(0, exigible - av),
     delMes: metaMes > 0, mesListo: metaMes > 0 && avMes >= metaMes
   };
@@ -591,15 +656,16 @@ function pintarPpa() {
 // Agrupa las acciones filtradas por Grupo Plan, con el cumplimiento al mes vigente, las medidas vencidas y las del mes (v1.4.0)
 // (el avance de cada medida cuenta hasta su meta al mes: lo adelantado en una medida no tapa lo atrasado de otra)
 function resumenDe(acciones) {
-  const r = { metaAl: 0, av: 0, vencidas: 0, faltaVencida: 0, delMes: 0, mesListas: 0, metaMes: 0, avMes: 0, sinMetaAun: 0 };
+  const r = { metaAl: 0, av: 0, metaTot: 0, avTot: 0, vencidas: 0, faltaVencida: 0, delMes: 0, mesListas: 0, metaMes: 0, avMes: 0, sinMetaAun: 0 };
   acciones.forEach(a => {
     const k = indicadores(a);
     r.metaAl += k.metaAlMes; r.av += Math.min(k.av, k.metaAlMes);
+    r.metaTot += k.metaTotal; r.avTot += Math.min(k.av, k.metaTotal);
     if (k.vencida) { r.vencidas++; r.faltaVencida += k.falta; }
     if (k.delMes) { r.delMes++; r.metaMes += k.metaMes; r.avMes += Math.min(k.avMes, k.metaMes); if (k.mesListo) r.mesListas++; }
     if (!k.metaAlMes) r.sinMetaAun++;
   });
-  r.p = pct(r.av, r.metaAl);
+  r.p = pct(r.av, r.metaAl); r.pGen = pct(r.avTot, r.metaTot);
   return r;
 }
 function gruposDe(lista) {
@@ -657,6 +723,12 @@ function listaRegistro() {
       '</div>';
     }).join('');
 }
+// v1.8.0: tarjeta grande de avance (general del PPA / a la fecha) con barra
+function kpiAvance(t, p, s) {
+  const c = colorPct(p);
+  return '<div class="kpi kpi-grande" style="border-left:5px solid ' + c + ';"><span>' + t + '</span><b style="color:' + c + '">' + (p == null ? '—' : p + ' %') + '</b>' +
+    '<div class="barra"><i style="width:' + Math.min(100, p || 0) + '%;--c:' + c + '"></i></div><span>' + s + '</span></div>';
+}
 // Resumen ejecutivo: KPIs al mes vigente e indicadores por Grupo Plan (toca un grupo para ir a sus medidas)
 function tableroEjecutivo() {
   const lista = filtradas();
@@ -672,7 +744,10 @@ function tableroEjecutivo() {
   }).join('');
   return avisoIndic() + '<h3 style="margin:6px 0 4px;font-size:15px;">Resumen ejecutivo</h3>' +
     '<p class="muted" style="margin:0 0 10px;">Cumplimiento = acciones cargadas ÷ acciones que debían llevarse hasta ' + esc(mes) + ' ' + mesAct.slice(0, 4) + '.</p>' +
-    '<div class="kpis"><div class="kpi"><b style="color:' + colorPct(t.p) + '">' + (t.p == null ? '—' : t.p + ' %') + '</b><span>Cumplimiento al mes</span></div>' +
+    '<div class="kpis kpis-avance">' +
+      kpiAvance('📊 Avance general del PPA', t.pGen, num(t.avTot) + ' de ' + num(t.metaTot) + ' acciones de todo el período') +
+      kpiAvance('📅 Avance a la fecha', t.p, num(t.av) + ' de ' + num(t.metaAl) + ' acciones exigidas hasta ' + esc(mes)) + '</div>' +
+    '<div class="kpis">' +
     '<div class="kpi"><b>' + num(t.av) + ' / ' + num(t.metaAl) + '</b><span>Acciones cargadas / exigidas al mes</span></div>' +
     '<div class="kpi kpi-btn" data-indic="vencidas" style="border-left:4px solid #DC2626;"><b style="color:#DC2626">' + t.vencidas + '</b><span>⏰ Medidas vencidas · faltan ' + num(t.faltaVencida) + ' ›</span></div>' +
     '<div class="kpi kpi-btn" data-indic="mes" style="border-left:4px solid #2563EB;"><b style="color:#2563EB">' + t.delMes + '</b><span>📅 Medidas de ' + esc(mes) + ' · ' + t.mesListas + ' listas ›</span></div></div>' +
@@ -744,38 +819,102 @@ async function mrConsultar(lat, lng) {
   const r = await fetch(url); if (!r.ok) throw new Error('HTTP ' + r.status);
   return r.json();
 }
-function obtenerPosicion() {
+// v1.7.1: una página web NO puede activar sola un permiso que el usuario (o el teléfono) negó: el navegador no vuelve a preguntar.
+// Por eso: 1) si el GPS de alta precisión falla, se reintenta con precisión normal; 2) sin permiso, el pronóstico usa la ÚLTIMA ubicación
+// conocida o un LUGAR ELEGIDO EN EL MAPA (se recuerda en el equipo: localStorage 'prev_meteo_lugar'); 3) se muestran los pasos exactos
+// para activarlo en Android (Chrome o app instalada).
+function posicionGps(alta, espera) {
   return new Promise((ok, mal) => {
     if (!navigator.geolocation) return mal({ code: 'NOGEO' });
     navigator.geolocation.getCurrentPosition(
       p => ok({ lat: p.coords.latitude, lng: p.coords.longitude, precision: p.coords.accuracy }),
-      mal, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+      mal, { enableHighAccuracy: alta, timeout: espera, maximumAge: 120000 });
   });
+}
+async function obtenerPosicion() {
+  try { return await posicionGps(true, 15000); }
+  catch (e) { if (e && (e.code === 2 || e.code === 3)) return posicionGps(false, 20000); throw e; }
+}
+function lugarGuardado() { try { return JSON.parse(localStorage.getItem('prev_meteo_lugar') || 'null'); } catch (e) { return null; } }
+function guardarLugar(l) { try { localStorage.setItem('prev_meteo_lugar', JSON.stringify(l)); } catch (e) {} }
+const esAppInstalada = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+// Pasos para activar la ubicación (Android): el teléfono, Chrome y el sitio deben permitirla
+function ayudaUbicacionHtml() {
+  const host = esc(location.hostname || 'copamientoterritorial.cl');
+  return '<details class="ayuda-ubic"' + (S.meteo && S.meteo.codigo === 1 ? ' open' : '') + '><summary>¿Cómo activo la ubicación en Android?</summary><ol>' +
+    '<li><b>GPS del teléfono encendido:</b> baja la barra superior y activa <b>Ubicación</b>.</li>' +
+    '<li><b>Chrome con permiso:</b> Ajustes del teléfono › Aplicaciones › <b>Chrome</b> › Permisos › Ubicación › <b>Permitir solo mientras se usa la app</b>.</li>' +
+    (esAppInstalada()
+      ? '<li><b>Esta app:</b> mantén presionado su ícono › <b>Información de la app</b> (ⓘ) › Permisos › Ubicación › <b>Permitir</b>. Si no aparece, sigue el paso 4.</li>'
+      : '<li><b>Este sitio:</b> toca el ícono a la izquierda de la dirección (candado o ajustes) › Permisos › <b>Ubicación</b> › Permitir.</li>') +
+    '<li><b>En Chrome:</b> menú ⋮ › Configuración › Configuración de sitios › Ubicación › busca <b>' + host + '</b> (aparece en «Bloqueados») › <b>Permitir</b>.</li>' +
+    '<li>Vuelve aquí y toca <b>🔄 Reintentar</b>. Si sigue igual, cierra la app por completo y ábrela de nuevo.</li>' +
+    '</ol><p class="muted">Por seguridad, ninguna app web puede activar este permiso por su cuenta: solo tú puedes darlo en el teléfono. Mientras tanto puedes elegir el lugar en el mapa.</p></details>';
 }
 async function obtenerMeteo() {
   S.meteo = Object.assign({}, S.meteo, { cargando: true, error: '' });
   pintar();
+  let pos = null, codigo = null, msg = '';
   try {
-    const pos = await obtenerPosicion();
-    const datos = await mrConsultar(pos.lat.toFixed(4), pos.lng.toFixed(4));
-    S.meteo = { cargando: false, error: '', pos, datos, hora: new Date() };
+    pos = await obtenerPosicion();
+    pos.fuente = 'gps';
+    guardarLugar({ lat: pos.lat, lng: pos.lng, fuente: 'gps', fecha: new Date().toISOString() });
   } catch (e) {
-    let msg = 'No se pudo consultar el pronóstico. Revisa la conexión a internet y vuelve a intentar.';
-    if (e && e.code === 1) msg = 'El permiso de ubicación está desactivado. Actívalo para esta app (candado de la barra de dirección o ajustes del teléfono) y vuelve a intentar.';
-    else if (e && e.code === 2) msg = 'El teléfono no logra ubicarte. Activa el GPS del teléfono (alta precisión) y vuelve a intentar.';
-    else if (e && e.code === 3) msg = 'No se obtuvo la ubicación a tiempo. Verifica que el GPS esté activo y vuelve a intentar.';
-    else if (e && e.code === 'NOGEO') msg = 'Este equipo no entrega ubicación. Usa un teléfono con GPS.';
-    S.meteo = { cargando: false, error: msg, pos: null, datos: null, hora: null };
+    codigo = e && e.code;
+    if (codigo === 1) msg = 'El permiso de ubicación está desactivado para esta app.';
+    else if (codigo === 2) msg = 'El teléfono no logra ubicarte: activa la Ubicación (GPS) del teléfono.';
+    else if (codigo === 3) msg = 'No se obtuvo la ubicación a tiempo: verifica que el GPS esté activo.';
+    else if (codigo === 'NOGEO') msg = 'Este equipo no entrega ubicación.';
+    else msg = 'No se pudo obtener la ubicación.';
+    const l = lugarGuardado();   // respaldo: lugar elegido en el mapa o última ubicación GPS
+    if (l && isFinite(l.lat) && isFinite(l.lng)) pos = { lat: l.lat, lng: l.lng, precision: null, fuente: l.fuente === 'gps' ? 'ultima' : 'manual', fecha: l.fecha };
+  }
+  if (!pos) { S.meteo = { cargando: false, error: msg, codigo, pos: null, datos: null, hora: null }; pintar(); return; }
+  try {
+    const datos = await mrConsultar(pos.lat.toFixed(4), pos.lng.toFixed(4));
+    S.meteo = { cargando: false, error: '', aviso: pos.fuente === 'gps' ? '' : msg, codigo, pos, datos, hora: new Date() };
+  } catch (e) {
+    S.meteo = { cargando: false, error: 'No se pudo consultar el pronóstico. Revisa la conexión a internet y vuelve a intentar.', codigo, pos: null, datos: null, hora: null };
   }
   pintar();
+}
+// Elegir el lugar del pronóstico en el mapa (sin GPS)
+function elegirLugarMeteo() {
+  const l = lugarGuardado();
+  $('av-sheet').innerHTML =
+    '<div class="av-top"><div style="min-width:0;flex:1;"><div class="av-grupo">Meteorología</div><h2 class="av-accion">Elegir lugar del pronóstico</h2>' +
+    '<div class="av-meta">Toca el mapa o arrastra el pincho</div></div><button class="av-x" id="av-x" aria-label="Cerrar">✕</button></div>' +
+    '<div class="av-body"><div class="av-mapa" id="ml-mapa" style="height:320px;"></div></div>' +
+    '<div class="av-foot"><button class="btn btn-p av-guardar" id="ml-ok" disabled>✓ Usar este lugar</button></div>';
+  $('av-x').onclick = cerrarAvance;
+  $('ov-avance').classList.add('show'); document.body.style.overflow = 'hidden';
+  let elegido = l ? { lat: l.lat, lng: l.lng } : null;
+  const mp = montarMapa($('ml-mapa'), elegido ? elegido.lat : null, elegido ? elegido.lng : null,
+    { editable: true, onMove: (la, ln) => { elegido = { lat: la, lng: ln }; $('ml-ok').disabled = false; } });
+  if (!elegido && mp.map) mp.map.setView(MAPA_CENTRO_DEF, 8);
+  if (elegido) $('ml-ok').disabled = false;
+  $('ml-ok').onclick = () => {
+    if (!elegido) return;
+    guardarLugar({ lat: elegido.lat, lng: elegido.lng, fuente: 'manual', fecha: new Date().toISOString() });
+    cerrarAvance(); obtenerMeteo();
+  };
 }
 function pintarMeteo() {
   const m = S.meteo;
   if (m.cargando) { $('m-cuerpo').innerHTML = '<div class="card enDes"><div class="ico">📡</div><h3>Obteniendo tu ubicación…</h3><p class="muted">Acepta el permiso de ubicación si el teléfono lo pide.</p></div>'; return; }
   if (!m.datos || !m.pos) {
-    $('m-cuerpo').innerHTML = '<div class="card enDes"><div class="ico">📍</div><h3>No se pudo mostrar el clima</h3><p class="muted">' + esc(m.error || 'Sin datos todavía.') + '</p><button class="btn btn-p" data-meteo="1" style="margin-top:12px;">🔄 Reintentar</button></div>';
+    $('m-cuerpo').innerHTML = '<div class="card enDes"><div class="ico">📍</div><h3>No se pudo mostrar el clima</h3><p class="muted">' + esc(m.error || 'Sin datos todavía.') + '</p>' +
+      '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px;"><button class="btn btn-p" data-meteo="1">🔄 Reintentar</button>' +
+      '<button class="btn" data-meteo-lugar="1">🗺️ Elegir lugar en el mapa</button></div></div>' +
+      (m.codigo != null ? '<div class="card">' + ayudaUbicacionHtml() + '</div>' : '');
     return;
   }
+  const avisoLugar = m.pos.fuente === 'gps' ? '' :
+    '<div class="card" style="border-left:5px solid #D97706;"><b>📍 ' + (m.pos.fuente === 'manual' ? 'Pronóstico del lugar que elegiste en el mapa' : 'Pronóstico de tu última ubicación conocida') +
+      (m.pos.fecha ? ' <span class="muted" style="font-weight:400;">(' + esc(fmtFecha(m.pos.fecha)) + ')</span>' : '') + '</b>' +
+      (m.aviso ? '<div class="muted" style="margin-top:4px;">' + esc(m.aviso) + '</div>' : '') +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"><button class="btn btn-mini" data-meteo-lugar="1">🗺️ Cambiar lugar</button><button class="btn btn-mini" data-meteo="1">📡 Usar mi GPS</button></div>' +
+      (m.codigo != null ? ayudaUbicacionHtml() : '') + '</div>';
   const d = m.datos, c = d.current;
   const hoy = mrDia(d, 0), ahora = mrRiesgo(c.temperature_2m, c.relative_humidity_2m, c.wind_speed_10m);
   const [icoC, txtC] = mrCielo(c.weather_code);
@@ -788,9 +927,9 @@ function pintarMeteo() {
   const altos = dias.slice(1).filter(x => x.riesgo.nivel === 'alto' || x.riesgo.nivel === 'extremo');
   if (altos.length) rec.push('Próximos días de riesgo alto o extremo: ' + altos.map(x => mrDiaCorto(x.dia)).join(', ') + '.');
   if (!rec.length) rec.push('Sin acciones especiales para hoy.');
-  $('m-cuerpo').innerHTML =
+  $('m-cuerpo').innerHTML = avisoLugar +
     '<div class="card mr-hero" style="--rc:' + ahora.color + ';">' +
-      '<div class="mr-top"><div><div class="mr-sub">Ahora en tu ubicación</div><div class="mr-temp">' + Math.round(c.temperature_2m) + ' °C</div>' +
+      '<div class="mr-top"><div><div class="mr-sub">' + (m.pos.fuente === 'gps' ? 'Ahora en tu ubicación' : 'Ahora en el lugar elegido') + '</div><div class="mr-temp">' + Math.round(c.temperature_2m) + ' °C</div>' +
       '<div class="muted">' + icoC + ' ' + txtC + ' · Humedad ' + Math.round(c.relative_humidity_2m) + ' % · Viento ' + Math.round(c.wind_speed_10m) + ' km/h ' + mrDir(c.wind_direction_10m) + '</div></div>' +
       '<span class="mr-sem" style="background:' + ahora.color + ';">' + ahora.etiqueta + '</span></div></div>' +
     '<div class="kpis">' +
@@ -800,7 +939,7 @@ function pintarMeteo() {
       '<div class="kpi"><b>' + (hoy.lluvia ? hoy.lluvia.toFixed(1) + ' mm' : 'Sin lluvia') + '</b><span>Lluvia hoy</span></div>' +
     '</div>' +
     '<div class="card"><div class="av-mapa" id="mr-mapa" style="height:190px;"></div>' +
-      '<div class="muted" style="margin-top:6px;">GPS ±' + Math.round(m.pos.precision) + ' m · actualizado ' + hace + '</div></div>' +
+      '<div class="muted" style="margin-top:6px;">' + (m.pos.fuente === 'gps' ? 'GPS ±' + Math.round(m.pos.precision) + ' m' : m.pos.fuente === 'manual' ? 'Lugar elegido en el mapa' : 'Última ubicación conocida') + ' · actualizado ' + hace + '</div></div>' +
     '<h3 class="mr-h">Recomendaciones de hoy</h3>' +
     '<div class="card">' + rec.map(r => '<div class="mr-rec">• ' + r + '</div>').join('') + '</div>' +
     '<h3 class="mr-h">Próximos 7 días</h3>' +
@@ -1306,6 +1445,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('m-cuerpo').addEventListener('click', e => {
     const t = e.target.closest('[data-v]'); if (t) { S.vista = t.dataset.v; return pintarPpa(); }
     if (e.target.closest('[data-salir]')) return salir();
+    if (e.target.closest('[data-meteo-lugar]')) return elegirLugarMeteo();
     if (e.target.closest('[data-meteo]')) return obtenerMeteo();
     if (e.target.closest('[data-sync]')) return sincronizarPendientes();
     const dsc = e.target.closest('[data-desc]');
@@ -1340,14 +1480,47 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('av-sheet').addEventListener('click', e => { const a = e.target.closest('[data-evid]'); if (a) { e.preventDefault(); verEvidencia(a.dataset.evid); } });
   $('ov-avance').addEventListener('click', e => { if (e.target.id === 'ov-avance') cerrarAvance(); });
   // Al volver la señal: primero se envían los pendientes y luego se instala la versión nueva que haya quedado pendiente
-  window.addEventListener('online', async () => { toast('🟢 Conexión recuperada: enviando pendientes'); try { await sincronizarPendientes(); } catch (e) {} buscarActualizacion(); });
-  window.addEventListener('offline', () => { toast('🔴 Sin señal: los avances se guardarán en pendientes'); avisoPendienteOffline(); pintar(); });
+  window.addEventListener('online', async () => {
+    toast('🟢 Conexión recuperada: enviando pendientes');
+    if (S.sinSesionRed) {   // v1.8.1: entró sin señal con la sesión guardada → se renueva la sesión y se actualizan los datos
+      if (!(await hayInternet())) return;   // «conectado» pero sin internet real: sigue en modo sin señal
+      S.sinSesionRed = false;
+      try { sb.auth.startAutoRefresh(); } catch (e) { /* versión sin el método */ }
+      let ses = null;
+      try { const r = await sb.auth.getSession(); ses = r && r.data && r.data.session; } catch (e) { /* aún sin respuesta */ }
+      if (ses) { try { await sincronizarPendientes(); await cargarDatos(); await cargarPerfil(); } catch (e) {} pintar(); toast('✅ Sesión renovada y datos al día'); }
+      else {   // la sesión ya no es válida (p. ej. cerrada en otro equipo): ingresar de nuevo; los pendientes siguen guardados
+        $('v-app').style.display = 'none'; $('v-login').style.display = '';
+        toast('Vuelve a ingresar para enviar tus pendientes (siguen guardados en el teléfono)');
+      }
+      buscarActualizacion(); return;
+    }
+    try { await sincronizarPendientes(); } catch (e) {} buscarActualizacion();
+  });
+  window.addEventListener('offline', () => {
+    // v1.8.1: al perder la señal con la app abierta se pasa al modo sin señal (respuestas inmediatas desde lo guardado)
+    if ($('v-app').style.display !== 'none' && sesionGuardada()) { S.sinSesionRed = true; try { sb.auth.stopAutoRefresh(); } catch (e) {} }
+    toast('🔴 Sin señal: los avances se guardarán en pendientes'); avisoPendienteOffline(); pintar();
+  });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') buscarActualizacion(); });
   setInterval(buscarActualizacion, ACT_CADA_MS);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw-prevencion.js').catch(() => {});
   buscarActualizacion();   // al abrir (también en la pantalla de ingreso)
-  const { data } = await sb.auth.getSession();
-  if (data && data.session) await mostrarApp(); else $('v-login').style.display = '';
+  // v1.8.1: sin señal y con la sesión vencida, getSession no puede renovarla y devuelve vacío → antes se mostraba el ingreso (que
+  // tampoco funciona sin señal). Ahora, si hay una sesión guardada en el teléfono, se entra con los datos guardados y se sincroniza
+  // al volver la señal (Supabase renueva la sesión solo).
+  // Si el token guardado sigue vigente, getSession responde al instante (sin red); si venció y no hay internet, modo sin señal.
+  const g = sesionGuardada(), vence = g ? Number(g.expires_at || (g.currentSession && g.currentSession.expires_at) || 0) * 1000 : 0;
+  const sinRed = !!g && (!navigator.onLine || (vence <= Date.now() + 60000 && !(await hayInternet())));
+  let ses = null;
+  if (!sinRed) { try { const r = await sb.auth.getSession(); ses = r && r.data && r.data.session; } catch (e) { /* sin señal */ } }
+  if (ses) await mostrarApp();
+  else if (g && (sinRed || !navigator.onLine)) {
+    S.sinSesionRed = true;
+    try { sb.auth.stopAutoRefresh(); } catch (e) { /* versión sin el método */ }
+    await mostrarApp();
+    toast('📵 Sin señal: trabajando con los datos guardados. Los avances quedan en pendientes.');
+  } else $('v-login').style.display = '';
 });
 </script>
 <script>

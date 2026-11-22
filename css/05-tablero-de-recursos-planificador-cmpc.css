@@ -467,6 +467,12 @@ body.tema-oscuro .pl-tag.warn,body.tema-oscuro .pl-aviso.warn{background:#3B2A0A
 .ppa-pestanas button.on{background:#1E3A8A;border-color:#1E3A8A;color:#fff;}
 .ppa-per{margin-left:auto;font-size:11.5px;color:var(--text-tertiary);}
 .ppa-kpis{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));}
+/* 18-11-2026: avance general del PPA y avance a la fecha (dos tarjetas grandes) */
+.ppa-kpis-avance{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-bottom:10px;}
+.ppa-kpi-grande b{font-size:34px;line-height:1.1;}
+.ppa-kpi-grande span{font-weight:700;}
+.ppa-barra-av{height:9px;border-radius:99px;background:rgba(148,163,184,.25);overflow:hidden;margin:6px 0 4px;}
+.ppa-barra-av i{display:block;height:100%;border-radius:99px;}
 .ppa-tabla-wrap{overflow:auto;max-height:calc(100vh - 250px);border:1px solid var(--border);border-radius:10px;background:var(--white);}
 .ppa-tabla td,.ppa-metas td{vertical-align:top;}
 .ppa-tabla td small,.ppa-metas td small,.ppa-grilla td small{display:block;font-size:10.5px;color:var(--text-tertiary);font-weight:500;}

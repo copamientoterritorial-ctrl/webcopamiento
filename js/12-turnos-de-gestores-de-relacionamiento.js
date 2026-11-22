@@ -1,8 +1,11 @@
-/* ==================== 👥 TURNOS DE GESTORES DE RELACIONAMIENTO (Planificador CMPC ▾, 20-10-2026, SQL 134) ====================
- * Cada área de relacionamiento programa día a día a sus gestores (gestores_relacionamiento.area, puede traer varias « / »).
- * Pincel (Turno / Libre / Vacaciones / Licencia / Capacitación / Borrar): clic o arrastre sobre las celdas; doble clic = horario y
- * observación. Se guarda solo (upsert por lotes). Editan Admin y Jefes / Subgerentes del área (puede_gestionar_turnos_gestor_);
- * los GRT ven sus turnos. */
+/* ==================== 👥 TURNOS DE GESTORES DE RELACIONAMIENTO (Planificador CMPC ▾, 20-10-2026, SQL 134 · 21-11-2026, SQL 185) ====================
+ * Cada área de relacionamiento programa a sus gestores (gestores_relacionamiento.area, puede traer varias « / »).
+ * 21-11-2026 (SQL 185):
+ *   · Se ve la TEMPORADA completa (Diciembre → Marzo) y solo los días que se programan: SÁBADOS, DOMINGOS y FERIADOS (tabla feriados).
+ *   · Días anteriores a hoy: bloqueados 🔒 (solo el Administrador los cambia).
+ *   · Programan: Administrador, el JEFE DE ÁREA del área (no Subgerentes ni GRT) y el DELEGADO DE PREVENCIÓN del área
+ *     (Administración › 🦺 Delegados de prevención). A quien no puede editar se le indica a qué delegado informar.
+ *   La base valida lo mismo (gestor_turno_editable_). Pincel: clic o arrastre; doble clic = horario y observación; se guarda solo. */
 const TG_ESTADOS = {
   turno: { t: 'Turno', l: 'T', bg: '#16A34A', fg: '#fff' },
   libre: { t: 'Libre', l: 'L', bg: '#E2E8F0', fg: '#475569' },
@@ -10,24 +13,61 @@ const TG_ESTADOS = {
   licencia: { t: 'Licencia', l: 'LM', bg: '#DC2626', fg: '#fff' },
   capacitacion: { t: 'Capacitación', l: 'C', bg: '#7C3AED', fg: '#fff' },
 };
-state.tg = { mes: null, area: '', pincel: 'turno', turnos: {}, listeners: false, sinSql: false, pendientes: new Map(), timer: null, pintando: false };
-function puedeTurnosGestores_() { return esAdminOJefe_(); }
+const TG_MESES_TEMPORADA = [[0, 11], [1, 0], [1, 1], [1, 2]];   // [año +, mes]: Dic del año T, Ene–Mar del año T+1
+const TG_MES_NOMBRE = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+state.tg = { temporada: null, area: '', pincel: 'turno', turnos: {}, feriados: {}, listeners: false, sinSql: false, pendientes: new Map(), timer: null, pintando: false };
+/** Temporada vigente = año de su Diciembre (Abr–Dic → este año; Ene–Mar → el anterior). */
+function tgTemporadaActual_() { const h = new Date(); return h.getMonth() >= 3 ? h.getFullYear() : h.getFullYear() - 1; }
+function puedeTurnosGestores_() { return esAdminOJefe_() || !!state.esDelegadoPrev; }
 function tgAreasDe_(g) { return String((g && g.area) || '').split(/\s*\/\s*/).map(s => s.trim()).filter(Boolean); }
-function tgPuedeEditar_(g) {
-  if (state.perfil && state.perfil.perfil === 'Administrador') return true;
-  if (!esAdminOJefe_() || state.esGRT) return false;
-  return tgAreasDe_(g).some(a => esMiArea_(a));
+function tgEsAdmin_() { return !!(state.perfil && state.perfil.perfil === 'Administrador'); }
+/** Delegado de prevención de alguna de las áreas del gestor (o null). */
+function tgDelegadoDe_(g) {
+  const claves = tgAreasDe_(g).map(SG_KEY);
+  return (state.tgDelegados || []).find(d => claves.includes(SG_KEY(d.area))) || null;
 }
-function tgMesISO_(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+function tgMisAreasDelegado_() { return (state.tgDelegados || []).filter(d => state.user && d.perfil_id === state.user.id).map(d => d.area); }
+/** ¿Programa este gestor? Administrador · delegado de prevención de su área · Jefe de Área de su área (no Subgerente ni GRT). */
+function tgPuedeEditar_(g) {
+  if (tgEsAdmin_()) return true;
+  const claves = tgAreasDe_(g).map(SG_KEY);
+  if (tgMisAreasDelegado_().some(a => claves.includes(SG_KEY(a)))) return true;
+  if (!(state.perfil && esJefeAreaPerfil_(state.perfil.perfil)) || esSubgerente_() || state.esGRT) return false;
+  return tgAreasDe_(g).some(a => (state.misAreasIds || []).some(m => SG_KEY(m) === SG_KEY(a)));
+}
+/** ¿Esa celda se puede cambiar? (los días pasados solo el Administrador) */
+function tgCeldaEditable_(g, f) { return tgPuedeEditar_(g) && (tgEsAdmin_() || f >= tbHoyISO_()); }
+/** Mensaje para quien toca una celda que no puede cambiar. */
+function tgAvisoNoEditable_(g, f) {
+  if (tgPuedeEditar_(g) && f < tbHoyISO_()) return '🔒 Turno de un día pasado: solo el Administrador puede cambiarlo.';
+  const d = tgDelegadoDe_(g);
+  return d ? '✋ Para modificar este turno, el delegado de prevención ' + (d.nombre || 'del área') + ' (' + aTitulo_(d.area) + ')' +
+      (d.telefono ? ' · ' + d.telefono : '') + ' debe informarlo o cambiarlo.'
+    : '✋ Para modificar este turno, informa al Jefe de Área (el área aún no tiene delegado de prevención asignado).';
+}
+/** Días de la temporada que se programan: sábados, domingos y feriados. */
+function tgDiasTemporada_() {
+  const T = state.tg.temporada, dias = [];
+  TG_MESES_TEMPORADA.forEach(([da, m]) => {
+    const y = T + da, n = new Date(y, m + 1, 0).getDate();
+    for (let d = 1; d <= n; d++) {
+      const dow = new Date(y, m, d).getDay(), f = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      const fer = state.tg.feriados[f];
+      if (dow === 0 || dow === 6 || fer) dias.push({ f, d, dow, m, y, fer: fer || '' });
+    }
+  });
+  return dias;
+}
+function tgRango_() { const T = state.tg.temporada; return [T + '-12-01', (T + 1) + '-03-31']; }
 
 async function abrirTurnosGestores_() {
   const S = state.tg;
-  if (!S.mes) { const h = new Date(); S.mes = new Date(h.getFullYear(), h.getMonth(), 1); }
+  if (S.temporada == null) S.temporada = tgTemporadaActual_();
   if (!S.listeners) {
     S.listeners = true;
-    document.getElementById('tg-prev').addEventListener('click', () => { S.mes = new Date(S.mes.getFullYear(), S.mes.getMonth() - 1, 1); cargarTurnosGestores_(); });
-    document.getElementById('tg-next').addEventListener('click', () => { S.mes = new Date(S.mes.getFullYear(), S.mes.getMonth() + 1, 1); cargarTurnosGestores_(); });
-    document.getElementById('tg-hoy').addEventListener('click', () => { const h = new Date(); S.mes = new Date(h.getFullYear(), h.getMonth(), 1); cargarTurnosGestores_(); });
+    document.getElementById('tg-prev').addEventListener('click', () => { S.temporada--; cargarTurnosGestores_(); });
+    document.getElementById('tg-next').addEventListener('click', () => { S.temporada++; cargarTurnosGestores_(); });
+    document.getElementById('tg-hoy').addEventListener('click', () => { S.temporada = tgTemporadaActual_(); cargarTurnosGestores_(); });
     document.getElementById('tg-area').addEventListener('change', e => { S.area = e.target.value; renderTurnosGestores_(); });
     document.getElementById('tg-excel').addEventListener('click', descargarTurnosGestores_);
     document.getElementById('tg-pinceles').addEventListener('click', e => {
@@ -35,8 +75,10 @@ async function abrirTurnosGestores_() {
       S.pincel = b.dataset.tgPincel; pintarPincelesTg_();
     });
     const cuerpo = document.getElementById('tg-cuerpo');
+    const gestorDe = c => { const [gid] = c.dataset.tg.split('|'); return (state.gest.lista || []).find(x => String(x.id) === gid); };
     cuerpo.addEventListener('mousedown', e => {
-      const c = e.target.closest('[data-tg]'); if (!c || c.classList.contains('ro') || e.button !== 0) return;
+      const c = e.target.closest('[data-tg]'); if (!c || e.button !== 0) return;
+      if (c.classList.contains('ro')) { const g = gestorDe(c); if (g) mostrarToast_(tgAvisoNoEditable_(g, c.dataset.tg.split('|')[1])); return; }
       e.preventDefault(); S.pintando = true; aplicarPincelTg_(c);
     });
     cuerpo.addEventListener('mouseover', e => { if (!S.pintando) return; const c = e.target.closest('[data-tg]'); if (c && !c.classList.contains('ro')) aplicarPincelTg_(c); });
@@ -55,21 +97,35 @@ function pintarPincelesTg_() {
 async function cargarTurnosGestores_() {
   const S = state.tg, est = document.getElementById('tg-estado'), cuerpo = document.getElementById('tg-cuerpo');
   est.textContent = 'Cargando…';
-  document.getElementById('tg-mes').textContent = S.mes.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+  document.getElementById('tg-mes').textContent = 'Temporada Dic ' + S.temporada + ' – Mar ' + (S.temporada + 1);
   await cargarGestoresRutas_(true);
   if (state.gest.sinSql) { cuerpo.innerHTML = '<div class="gr-aviso">⚠️ Falta ejecutar en Supabase el SQL 128 (catálogo de gestores).</div>'; est.textContent = 'Error'; return; }
-  const ini = tgMesISO_(S.mes) + '-01', finD = new Date(S.mes.getFullYear(), S.mes.getMonth() + 1, 0), fin = tgMesISO_(S.mes) + '-' + String(finD.getDate()).padStart(2, '0');
-  const { data, error } = await supabaseClient.from('gestor_turnos').select('*').gte('fecha', ini).lte('fecha', fin);
-  if (error) {
-    S.sinSql = /gestor_turnos/.test(error.message);
-    cuerpo.innerHTML = '<div class="gr-aviso">⚠️ ' + (S.sinSql ? 'Falta ejecutar en Supabase el SQL 134 (sql/pendientes/134_turnos_gestores.sql).' : escapeHtml_(error.message)) + '</div>';
-    est.textContent = 'Error'; return;
+  const [ini, fin] = tgRango_();
+  // Feriados (SQL 185) y delegados de prevención al día
+  S.feriados = {}; S.sinSql185 = false;
+  try {
+    const { data: fe, error: eF } = await supabaseClient.from('feriados').select('fecha, nombre').gte('fecha', ini).lte('fecha', fin);
+    if (eF) S.sinSql185 = true; else (fe || []).forEach(x => { S.feriados[String(x.fecha).slice(0, 10)] = x.nombre; });
+    const { data: dp, error: eD } = await supabaseClient.rpc('delegados_prevencion');
+    if (!eD) state.tgDelegados = dp || [];
+  } catch (e) { S.sinSql185 = true; }
+  // Turnos de la temporada (paginado: muchos gestores × días)
+  const filas = [];
+  for (let d = 0; ; d += 1000) {
+    const { data, error } = await supabaseClient.from('gestor_turnos').select('*').gte('fecha', ini).lte('fecha', fin).order('fecha').range(d, d + 999);
+    if (error) {
+      S.sinSql = /gestor_turnos/.test(error.message);
+      cuerpo.innerHTML = '<div class="gr-aviso">⚠️ ' + (S.sinSql ? 'Falta ejecutar en Supabase el SQL 134 (turnos de gestores).' : escapeHtml_(error.message)) + '</div>';
+      est.textContent = 'Error'; return;
+    }
+    filas.push(...(data || []));
+    if (!data || data.length < 1000) break;
   }
-  S.turnos = {}; (data || []).forEach(t => { S.turnos[t.gestor_id + '|' + t.fecha] = t; });
-  // Áreas: el Administrador ve todas las de los gestores; los demás, las suyas
+  S.turnos = {}; filas.forEach(t => { S.turnos[t.gestor_id + '|' + String(t.fecha).slice(0, 10)] = t; });
+  // Áreas: el Administrador ve todas las de los gestores; los demás, las suyas y las que tienen como delegado
   const areas = new Map();
-  if (state.perfil && state.perfil.perfil === 'Administrador') (state.gest.lista || []).forEach(g => tgAreasDe_(g).forEach(a => { if (!areas.has(SG_KEY(a))) areas.set(SG_KEY(a), a); }));
-  else (state.misAreasIds || []).forEach(a => areas.set(SG_KEY(a), a));
+  if (tgEsAdmin_()) (state.gest.lista || []).forEach(g => tgAreasDe_(g).forEach(a => { if (!areas.has(SG_KEY(a))) areas.set(SG_KEY(a), a); }));
+  else (state.misAreasIds || []).concat(tgMisAreasDelegado_()).forEach(a => { if (!areas.has(SG_KEY(a))) areas.set(SG_KEY(a), a); });
   const sel = document.getElementById('tg-area');
   const opciones = [...areas.entries()].sort((a, b) => a[1].localeCompare(b[1], 'es'));
   sel.innerHTML = (opciones.length > 1 ? '<option value="">Todas mis áreas</option>' : '') + opciones.map(([k, n]) => '<option value="' + escapeHtml_(k) + '">' + escapeHtml_(aTitulo_(n)) + '</option>').join('');
@@ -79,41 +135,54 @@ async function cargarTurnosGestores_() {
 }
 
 function tgGestoresVisibles_() {
-  const S = state.tg, misClaves = new Set((state.misAreasIds || []).map(SG_KEY)), esAdmin = state.perfil && state.perfil.perfil === 'Administrador';
-  return (state.gest.lista || []).filter(g => g.activo !== false && tgAreasDe_(g).some(a => S.area ? SG_KEY(a) === S.area : (esAdmin || misClaves.has(SG_KEY(a)))))
+  const S = state.tg, misClaves = new Set((state.misAreasIds || []).concat(tgMisAreasDelegado_()).map(SG_KEY));
+  return (state.gest.lista || []).filter(g => g.activo !== false && tgAreasDe_(g).some(a => S.area ? SG_KEY(a) === S.area : (tgEsAdmin_() || misClaves.has(SG_KEY(a)))))
     // Jefes de Área primero, luego los GRT / gestores (SQL 157: rol desde los usuarios)
     .sort((a, b) => (a.rol === 'Jefe de Área' ? 0 : 1) - (b.rol === 'Jefe de Área' ? 0 : 1) || String(a.codigo).localeCompare(String(b.codigo)));
 }
-function tgCeldaHtml_(g, f, editable) {
+function tgCeldaHtml_(g, f) {
+  const editable = tgCeldaEditable_(g, f), pasado = f < tbHoyISO_();
   const t = state.tg.turnos[g.id + '|' + f], e = t && TG_ESTADOS[t.estado];
-  const tit = (e ? e.t : 'Sin programar') + (t && t.horario ? ' · ' + t.horario : '') + (t && t.observacion ? ' · ' + t.observacion : '') + (editable ? ' · doble clic: horario / nota' : '');
-  return '<div class="tg-c' + (editable ? '' : ' ro') + '" data-tg="' + g.id + '|' + f + '" title="' + escapeHtml_(tit) + '"' +
-    (e ? ' style="background:' + e.bg + ';color:' + e.fg + ';"' : '') + '>' + (e ? e.l + (t.horario || t.observacion ? '•' : '') : '') + '</div>';
+  const tit = (e ? e.t : 'Sin programar') + (t && t.horario ? ' · ' + t.horario : '') + (t && t.observacion ? ' · ' + t.observacion : '') +
+    (editable ? ' · doble clic: horario / nota' : pasado && tgPuedeEditar_(g) ? ' · 🔒 día pasado (solo el Administrador)' : ' · solo lectura');
+  return '<div class="tg-c' + (editable ? '' : ' ro') + (pasado ? ' pasado' : '') + '" data-tg="' + g.id + '|' + f + '" title="' + escapeHtml_(tit) + '"' +
+    (e ? ' style="background:' + e.bg + ';color:' + e.fg + ';"' : '') + '>' + (e ? e.l + (t.horario || t.observacion ? '•' : '') : (pasado && !editable ? '·' : '')) + '</div>';
 }
 function renderTurnosGestores_() {
   const S = state.tg, cuerpo = document.getElementById('tg-cuerpo');
-  const gestores = tgGestoresVisibles_();
-  const nDias = new Date(S.mes.getFullYear(), S.mes.getMonth() + 1, 0).getDate(), hoy = tbHoyISO_();
-  const dias = []; for (let d = 1; d <= nDias; d++) { const f = tgMesISO_(S.mes) + '-' + String(d).padStart(2, '0'); dias.push({ d, f, dow: new Date(S.mes.getFullYear(), S.mes.getMonth(), d).getDay() }); }
+  const gestores = tgGestoresVisibles_(), dias = tgDiasTemporada_(), hoy = tbHoyISO_();
   if (!gestores.length) {
     cuerpo.innerHTML = '<div class="tb-vacio">No hay gestores de relacionamiento ' + (S.area ? 'en esta área' : 'en tus áreas') + '. Aparecen solos los usuarios GRT y Jefes de Área con su área asignada (Administración › Usuarios; SQL 157).</div>';
     return;
   }
   const algunoEditable = gestores.some(tgPuedeEditar_);
+  // Quién programa en el área elegida (o en las visibles)
+  const areasVis = [...new Set(gestores.flatMap(tgAreasDe_).map(SG_KEY))];
+  const quien = areasVis.map(k => {
+    const d = (state.tgDelegados || []).find(x => SG_KEY(x.area) === k);
+    const nom = (gestores.flatMap(tgAreasDe_).find(a => SG_KEY(a) === k)) || k;
+    return '<span class="tg-del"><b>' + escapeHtml_(aTitulo_(nom)) + '</b>: 🦺 ' + (d ? escapeHtml_(d.nombre || '—') + (d.telefono ? ' · ' + escapeHtml_(d.telefono) : '') : '<i>sin delegado de prevención</i>') + '</span>';
+  }).join('');
+  // Cabecera: meses (colspan) y días
+  const meses = []; dias.forEach(x => { const u = meses[meses.length - 1]; if (u && u.m === x.m) u.n++; else meses.push({ m: x.m, y: x.y, n: 1 }); });
   cuerpo.innerHTML =
-    '<div style="overflow:auto;"><table class="tg-tabla"><thead><tr><th class="tg-nom">Gestor</th>' +
-      dias.map(x => '<th class="' + (x.dow === 0 || x.dow === 6 ? 'finde ' : '') + (x.f === hoy ? 'hoy' : '') + '">' + ['D', 'L', 'M', 'M', 'J', 'V', 'S'][x.dow] + '<br>' + x.d + '</th>').join('') +
-      '<th>Turnos</th></tr></thead><tbody>' +
+    (S.sinSql185 ? '<div class="gr-aviso">⚠️ Falta ejecutar en Supabase el SQL 185 (feriados y delegados de prevención): por ahora se muestran solo los fines de semana.</div>' : '') +
+    '<div class="tg-quien">✏️ Programan el <b>Jefe de Área</b> y el <b>delegado de prevención</b> del área (y el Administrador). ' + quien + '</div>' +
+    '<div style="overflow:auto;"><table class="tg-tabla"><thead>' +
+      '<tr><th class="tg-nom" rowspan="2">Gestor</th>' + meses.map(x => '<th colspan="' + x.n + '" class="tg-mes-cab">' + TG_MES_NOMBRE[x.m] + ' ' + x.y + '</th>').join('') + '<th rowspan="2">Turnos</th></tr><tr>' +
+      dias.map(x => '<th class="' + (x.fer ? 'feriado ' : 'finde ') + (x.f === hoy ? 'hoy ' : '') + (x.f < hoy ? 'pasado' : '') + '"' + (x.fer ? ' title="' + escapeHtml_(x.fer) + '"' : '') + '>' +
+        (x.fer ? '🎉' : ['D', 'L', 'M', 'M', 'J', 'V', 'S'][x.dow]) + '<br>' + x.d + '</th>').join('') + '</tr></thead><tbody>' +
       gestores.map(g => {
         const ed = tgPuedeEditar_(g);
         return '<tr><td class="tg-nom"><b>' + escapeHtml_(g.codigo + ' · ' + g.nombre) + '</b><small>' +
           (g.rol === 'Jefe de Área' ? '⭐ Jefe de Área · ' : g.rol === 'GRT' ? 'GRT · ' : '') + escapeHtml_(tgAreasDe_(g).map(aTitulo_).join(' / ') || 'Sin área') + (g.telefono ? ' · ' + escapeHtml_(g.telefono) : '') + (ed ? '' : ' · 👁️ solo lectura') + '</small></td>' +
-          dias.map(x => '<td class="' + (x.dow === 0 || x.dow === 6 ? 'finde' : '') + '">' + tgCeldaHtml_(g, x.f, ed) + '</td>').join('') +
+          dias.map(x => '<td class="' + (x.fer ? 'feriado' : 'finde') + '">' + tgCeldaHtml_(g, x.f) + '</td>').join('') +
           '<td class="tg-tot" data-tg-tot="' + g.id + '"></td></tr>';
       }).join('') +
       '</tbody><tfoot><tr><td class="tg-nom">Gestores de turno</td>' + dias.map(x => '<td data-tg-cob="' + x.f + '"></td>').join('') + '<td></td></tr></tfoot></table></div>' +
     '<div class="tg-ley">' + Object.keys(TG_ESTADOS).map(k => '<span><i style="background:' + TG_ESTADOS[k].bg + '"></i>' + TG_ESTADOS[k].l + ' = ' + TG_ESTADOS[k].t + '</span>').join('') +
-      '<span>• = con horario o nota</span>' + (algunoEditable ? '<span>✏️ Elige el pincel arriba y haz clic o arrastra sobre los días · doble clic = horario / nota · se guarda solo</span>' : '<span>👁️ Solo lectura</span>') + '</div>';
+      '<span>🎉 = feriado</span><span>🔒 días pasados: solo el Administrador</span><span>• = con horario o nota</span>' +
+      (algunoEditable ? '<span>✏️ Elige el pincel arriba y haz clic o arrastra sobre los días · doble clic = horario / nota · se guarda solo</span>' : '<span>👁️ Solo lectura: para cambiar un turno, informa al delegado de prevención de tu área</span>') + '</div>';
   renderTotalesTg_();
 }
 function renderTotalesTg_() {
@@ -131,7 +200,7 @@ function renderTotalesTg_() {
 function aplicarPincelTg_(celda) {
   const S = state.tg, clave = celda.dataset.tg, [gid, f] = clave.split('|');
   const g = (state.gest.lista || []).find(x => String(x.id) === gid);
-  if (!g || !tgPuedeEditar_(g)) return;
+  if (!g || !tgCeldaEditable_(g, f)) return;
   const actual = S.turnos[clave];
   if (S.pincel === 'borrar') { if (!actual) return; delete S.turnos[clave]; S.pendientes.set(clave, null); }
   else {
@@ -139,12 +208,12 @@ function aplicarPincelTg_(celda) {
     S.turnos[clave] = Object.assign({}, actual || {}, { gestor_id: Number(gid), fecha: f, estado: S.pincel });
     S.pendientes.set(clave, S.turnos[clave]);
   }
-  celda.outerHTML = tgCeldaHtml_(g, f, true);
+  celda.outerHTML = tgCeldaHtml_(g, f);
   clearTimeout(S.timer); S.timer = setTimeout(guardarTurnosGestores_, 700);
 }
 async function editarDetalleTg_(clave) {
   const S = state.tg, [gid, f] = clave.split('|'), g = (state.gest.lista || []).find(x => String(x.id) === gid);
-  if (!g || !tgPuedeEditar_(g)) return;
+  if (!g || !tgCeldaEditable_(g, f)) return;
   const t = S.turnos[clave] || { gestor_id: Number(gid), fecha: f, estado: 'turno' };
   const horario = prompt(g.nombre + ' · ' + new Date(f + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' }) +
     '\n\nHorario (ej. 08:00-17:00; vacío = sin horario):', t.horario || '');
@@ -153,7 +222,7 @@ async function editarDetalleTg_(clave) {
   if (obs === null) return;
   S.turnos[clave] = Object.assign({}, t, { horario: horario.trim() || null, observacion: obs.trim() || null });
   S.pendientes.set(clave, S.turnos[clave]);
-  const c = document.querySelector('[data-tg="' + clave + '"]'); if (c) c.outerHTML = tgCeldaHtml_(g, f, true);
+  const c = document.querySelector('[data-tg="' + clave + '"]'); if (c) c.outerHTML = tgCeldaHtml_(g, f);
   await guardarTurnosGestores_();
 }
 async function guardarTurnosGestores_() {
@@ -167,38 +236,104 @@ async function guardarTurnosGestores_() {
   for (const [gid, f] of borrar) { const { error } = await supabaseClient.from('gestor_turnos').delete().eq('gestor_id', Number(gid)).eq('fecha', f); if (error) errores.push(error.message); }
   if (errores.length) {
     est.textContent = 'Error al guardar';
-    mostrarToast_('⚠️ No se pudieron guardar algunos turnos: ' + errores[0] + (/row-level|policy/i.test(errores[0]) ? ' (solo el Jefe del área del gestor puede programarlo)' : ''));
+    mostrarToast_('⚠️ No se pudieron guardar algunos turnos: ' + errores[0] +
+      (/row-level|policy/i.test(errores[0]) ? ' (programan el Jefe del área y el delegado de prevención, solo fines de semana y feriados desde hoy)' : ''));
     await cargarTurnosGestores_();   // vuelve a lo que realmente quedó guardado
     return;
   }
   est.textContent = '✅ Guardado ' + new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
 }
 async function descargarTurnosGestores_() {
-  const S = state.tg, gestores = tgGestoresVisibles_();
+  const S = state.tg, gestores = tgGestoresVisibles_(), dias = tgDiasTemporada_();
   if (!gestores.length) { mostrarToast_('No hay gestores para descargar.'); return; }
   try {
     const XLSX = await tbCargarSheetJs_();
-    const nDias = new Date(S.mes.getFullYear(), S.mes.getMonth() + 1, 0).getDate();
     const filas = gestores.map(g => {
-      const fila = { 'Código': g.codigo, 'Gestor': g.nombre, 'Área': tgAreasDe_(g).join(' / '), 'Teléfono': g.telefono || '' };
+      const d = tgDelegadoDe_(g);
+      const fila = { 'Código': g.codigo, 'Gestor': g.nombre, 'Rol': g.rol || '', 'Área': tgAreasDe_(g).join(' / '), 'Teléfono': g.telefono || '', 'Delegado de prevención': d ? d.nombre || '' : '' };
       let n = 0;
-      for (let d = 1; d <= nDias; d++) {
-        const f = tgMesISO_(S.mes) + '-' + String(d).padStart(2, '0'), t = S.turnos[g.id + '|' + f];
+      dias.forEach(x => {
+        const t = S.turnos[g.id + '|' + x.f];
         if (t && t.estado === 'turno') n++;
-        fila[String(d)] = t ? (TG_ESTADOS[t.estado] || { l: t.estado }).l + (t.horario ? ' ' + t.horario : '') : '';
-      }
+        fila[x.f.slice(8, 10) + '-' + x.f.slice(5, 7) + (x.fer ? ' 🎉' : '')] = t ? (TG_ESTADOS[t.estado] || { l: t.estado }).l + (t.horario ? ' ' + t.horario : '') : '';
+      });
       fila['Días de turno'] = n;
       return fila;
     });
     const detalle = [];
     gestores.forEach(g => Object.keys(S.turnos).filter(k => k.startsWith(g.id + '|')).sort().forEach(k => { const t = S.turnos[k];
-      detalle.push({ 'Fecha': t.fecha, 'Código': g.codigo, 'Gestor': g.nombre, 'Estado': (TG_ESTADOS[t.estado] || { t: t.estado }).t, 'Horario': t.horario || '', 'Observación': t.observacion || '' }); }));
+      detalle.push({ 'Fecha': t.fecha, 'Feriado': S.feriados[String(t.fecha).slice(0, 10)] || '', 'Código': g.codigo, 'Gestor': g.nombre, 'Estado': (TG_ESTADOS[t.estado] || { t: t.estado }).t, 'Horario': t.horario || '', 'Observación': t.observacion || '' }); }));
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filas), 'Calendario');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filas), 'Temporada');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detalle.length ? detalle : [{ 'Sin turnos': '' }]), 'Detalle');
-    XLSX.writeFile(wb, 'turnos_gestores_' + tgMesISO_(S.mes) + '.xlsx');
+    XLSX.writeFile(wb, 'turnos_gestores_temporada_' + S.temporada + '-' + (S.temporada + 1) + '.xlsx');
   } catch (e) { mostrarToast_('No se pudo generar el Excel: ' + (e.message || e)); }
 }
+
+/* ── ⚙️ Administración › 🦺 Delegados de prevención y feriados (21-11-2026, SQL 185) ──
+ * Un delegado por área (cualquier usuario; primero se ofrecen los del área). Programa 👥 Turnos de Gestores de su área junto al Jefe.
+ * Feriados: los días (además de sábados y domingos) en que se programan turnos de gestores. */
+async function adminSeccionDelegados_(c) {
+  c.innerHTML = adminHead_('🦺 Delegados de prevención', 'Cargando…');
+  let areas = [], delegados = [], perfiles = [], pAreas = [], feriados = [], errSql = '';
+  try {
+    const [a, d, p, pa, f] = await Promise.all([
+      supabaseClient.from('area_homologacion').select('*').order('area'),
+      supabaseClient.rpc('delegados_prevencion'),
+      supabaseClient.from('perfiles').select('id, nombre_completo, perfil').order('nombre_completo'),
+      supabaseClient.from('perfil_areas').select('perfil_id, area'),
+      supabaseClient.from('feriados').select('fecha, nombre').order('fecha'),
+    ]);
+    if (d.error || f.error) errSql = (d.error || f.error).message;
+    areas = (a.data || []).filter(x => x.vigente !== false);
+    delegados = d.data || []; perfiles = p.data || []; pAreas = pa.data || []; feriados = f.data || [];
+  } catch (e) { errSql = e.message || String(e); }
+  if (errSql) { c.innerHTML = adminHead_('🦺 Delegados de prevención', '') + '<div class="gr-aviso">⚠️ ' + escapeHtml_(/delegados_prevencion|feriados|function|relation/i.test(errSql) ? 'Falta ejecutar en Supabase el SQL 185.' : errSql) + '</div>'; return; }
+  const porArea = {}; delegados.forEach(x => { porArea[x.id_area] = x; });
+  const delArea = id => { const k = SG_KEY((areas.find(a => a.id_area === id) || {}).area); return new Set(pAreas.filter(x => SG_KEY(x.area) === k).map(x => x.perfil_id)); };
+  const opcion = (p, sel) => '<option value="' + p.id + '"' + (sel ? ' selected' : '') + '>' + escapeHtml_(p.nombre_completo || '—') + ' · ' + escapeHtml_(p.perfil || '') + '</option>';
+  const filas = areas.map(a => {
+    const act = porArea[a.id_area], suyos = delArea(a.id_area);
+    const del = perfiles.filter(p => suyos.has(p.id)), otros = perfiles.filter(p => !suyos.has(p.id));
+    return '<tr><td><b>' + escapeHtml_(aTitulo_(a.area)) + '</b><small style="display:block;color:var(--text-tertiary);">' + escapeHtml_(aTitulo_(a.subgerencia || '')) + '</small></td>' +
+      '<td>' + (act ? '🦺 <b>' + escapeHtml_(act.nombre || '—') + '</b>' + (act.telefono ? '<small style="display:block;color:var(--text-tertiary);">' + escapeHtml_(act.telefono) + '</small>' : '') : '<span style="color:var(--text-tertiary);">Sin delegado</span>') + '</td>' +
+      '<td><select class="admin-search" data-del-sel="' + a.id_area + '" style="min-width:240px;max-width:340px;"><option value="">— Sin delegado —</option>' +
+        (del.length ? '<optgroup label="Usuarios del área">' + del.map(p => opcion(p, act && act.perfil_id === p.id)).join('') + '</optgroup>' : '') +
+        '<optgroup label="Otros usuarios">' + otros.map(p => opcion(p, act && act.perfil_id === p.id)).join('') + '</optgroup></select></td>' +
+      '<td><button class="btn-primary" data-del-guardar="' + a.id_area + '" style="padding:7px 12px;">Guardar</button></td></tr>';
+  }).join('');
+  const hoy = tbHoyISO_();
+  const listaFer = feriados.map(f => '<tr' + (String(f.fecha) < hoy ? ' style="opacity:.55;"' : '') + '><td>' + escapeHtml_(new Date(String(f.fecha).slice(0, 10) + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })) + '</td>' +
+    '<td>' + escapeHtml_(f.nombre) + '</td><td><button class="popup-btn" data-fer-borrar="' + escapeHtml_(String(f.fecha).slice(0, 10)) + '" title="Quitar el feriado">🗑️</button></td></tr>').join('');
+  c.innerHTML = adminHead_('🦺 Delegados de prevención', 'Un delegado por área de relacionamiento. Junto al Jefe de Área programa 👥 Turnos de Gestores (sábados, domingos y feriados, desde hoy). Los demás usuarios del área ven a quién informar.') +
+    '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Área</th><th>Delegado actual</th><th>Asignar</th><th></th></tr></thead><tbody>' + filas + '</tbody></table></div>' +
+    '<h3 style="margin:20px 0 6px;font-size:15px;">🎉 Feriados (se programan turnos de gestores, además de sábados y domingos)</h3>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;"><input type="date" id="fer-fecha" class="admin-search" style="max-width:170px;">' +
+      '<input id="fer-nombre" class="admin-search" placeholder="Nombre del feriado" style="max-width:260px;"><button class="btn-primary" id="fer-agregar" style="padding:8px 12px;">➕ Agregar feriado</button></div>' +
+    '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Fecha</th><th>Feriado</th><th></th></tr></thead><tbody>' + (listaFer || '<tr><td colspan="3">Sin feriados</td></tr>') + '</tbody></table></div>';
+  c.querySelectorAll('[data-del-guardar]').forEach(b => b.addEventListener('click', async () => {
+    const id = Number(b.dataset.delGuardar), v = c.querySelector('[data-del-sel="' + id + '"]').value || null;
+    b.disabled = true; b.textContent = 'Guardando…';
+    const { error } = await supabaseClient.rpc('asignar_delegado_prevencion', { p_id_area: id, p_perfil: v });
+    if (error) { mostrarToast_('⚠️ No se pudo guardar: ' + error.message); b.disabled = false; b.textContent = 'Guardar'; return; }
+    mostrarToast_(v ? '✅ Delegado de prevención asignado' : 'Delegado quitado');
+    adminSeccionDelegados_(c);
+  }));
+  document.getElementById('fer-agregar').addEventListener('click', async () => {
+    const fecha = document.getElementById('fer-fecha').value, nombre = document.getElementById('fer-nombre').value.trim();
+    if (!fecha || !nombre) { mostrarToast_('Indica la fecha y el nombre del feriado.'); return; }
+    const { error } = await supabaseClient.from('feriados').upsert({ fecha, nombre }, { onConflict: 'fecha' });
+    if (error) { mostrarToast_('⚠️ No se pudo guardar el feriado: ' + error.message); return; }
+    mostrarToast_('✅ Feriado guardado'); adminSeccionDelegados_(c);
+  });
+  c.querySelectorAll('[data-fer-borrar]').forEach(b => b.addEventListener('click', async () => {
+    if (!confirm('¿Quitar el feriado del ' + b.dataset.ferBorrar + '? Los turnos ya guardados ese día se conservan.')) return;
+    const { error } = await supabaseClient.from('feriados').delete().eq('fecha', b.dataset.ferBorrar);
+    if (error) { mostrarToast_('⚠️ No se pudo quitar: ' + error.message); return; }
+    adminSeccionDelegados_(c);
+  }));
+}
+
 
 /* ============ NAVEGACIÓN DE VISTAS: Dashboard | Mapa ============ */
 state.vistaActual = 'dashboard';

@@ -349,6 +349,28 @@ body.modo-dashboard #btn-volver-sg{display:none !important;}   /* solo se ve sob
 .sg-ppa-pct{text-align:right;line-height:1;} .sg-ppa-pct b{display:block;font-size:32px;font-weight:900;color:var(--c);letter-spacing:-0.5px;}
 .sg-ppa-pct span{font-size:10.5px;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
 .sg-ppa-bar{height:10px;border-radius:99px;background:var(--bg-tertiary,#E2E8F0);overflow:hidden;} .sg-ppa-bar em{display:block;height:100%;background:var(--c);border-radius:99px;}
+/* 19-11-2026: avance general + avance a la fecha por área / sector */
+.sg-ppa-av2s{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0 4px;}
+.sg-ppa-av2-top{display:flex;justify-content:space-between;align-items:baseline;gap:6px;font-size:12px;font-weight:700;color:var(--text-secondary);}
+.sg-ppa-av2-top b{font-size:22px;color:var(--c);}
+.sg-ppa-av2 small{display:block;font-size:11px;color:var(--text-tertiary);margin-top:3px;}
+@media (max-width:520px){ .sg-ppa-av2s{grid-template-columns:1fr;} }
+/* Perfil SSO (SQL 184): solo consulta → sin carga de personas ni botones de edición */
+body.es-sso #gr-plantilla-personas, body.es-sso #gr-subir-personas, body.es-sso #gr-guardar, body.es-sso #gr-descartar,
+body.es-sso #gr-nuevo, body.es-sso #gr-subir, body.es-sso #gr-empresas{display:none !important;}
+/* 📈 Reporte del área (PPA): tablas por sector y por plan */
+.ppa-rep-wrap{overflow-x:auto;}
+.ppa-rep-tabla{width:100%;border-collapse:collapse;font-size:12.5px;}
+.ppa-rep-tabla th{text-align:left;font-size:11px;color:var(--text-tertiary);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.ppa-rep-tabla td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.ppa-rep-tabla td small{display:block;color:var(--text-tertiary);font-size:11px;margin-top:2px;}
+.ppa-rep-pct{min-width:120px;}
+.ppa-rep-pct b{color:var(--c);font-size:14px;}
+.ppa-rep-pct i{display:block;height:6px;border-radius:99px;background:var(--bg-tertiary,#E2E8F0);overflow:hidden;margin-top:3px;}
+.ppa-rep-pct em{display:block;height:100%;background:var(--c);border-radius:99px;}
+/* capas del mapa de Acciones registradas (fundos CMPC / límite del área) */
+.sg-ppa-etq-fundo{background:rgba(236,253,245,.88);border:1px solid rgba(5,150,105,.5);color:#064E3B;font-size:10.5px;font-weight:700;padding:1px 5px;border-radius:6px;box-shadow:none;}
+.sg-ppa-etq-fundo::before{display:none;}
 .sg-ppa-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
 .sg-ppa-tile{border-radius:11px;padding:9px 6px 7px;text-align:center;background:color-mix(in srgb,var(--t) 9%,var(--white));border:1px solid color-mix(in srgb,var(--t) 25%,transparent);}
 .sg-ppa-tile b{display:block;font-size:26px;font-weight:900;line-height:1.05;color:var(--t);}
@@ -674,6 +696,15 @@ body.modo-dashboard #btn-volver-sg{display:none !important;}   /* solo se ve sob
 .tg-c.ro{cursor:default;}
 .tg-tabla td.tg-tot{font-weight:800;min-width:56px;}
 .tg-tabla tfoot td{font-weight:800;background:var(--bg-light);}
+/* 21-11-2026 (SQL 185): temporada Dic–Mar, solo fines de semana y feriados, días pasados bloqueados, delegado de prevención */
+.tg-tabla thead tr:nth-child(2) th{top:34px;}
+.tg-tabla th.tg-mes-cab{background:#E0E7FF;color:#3730A3;font-size:11.5px;letter-spacing:.3px;}
+.tg-tabla th.feriado,.tg-tabla td.feriado{background:#FEF3C7;}
+.tg-tabla th.pasado{color:var(--text-tertiary);}
+.tg-c.pasado.ro{background-image:repeating-linear-gradient(135deg,transparent 0 5px,rgba(148,163,184,.18) 5px 7px);color:var(--text-tertiary);}
+.tg-c.ro{cursor:not-allowed;}
+.tg-quien{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12px;color:var(--text-secondary);margin:0 0 8px;}
+.tg-del{background:#FFF7ED;border:1px solid #FED7AA;border-radius:99px;padding:2px 10px;}
 .tg-cob0{color:#DC2626;}
 .tg-ley{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--text-secondary);margin:10px 0 0;}
 .tg-ley span{display:inline-flex;align-items:center;gap:5px;}

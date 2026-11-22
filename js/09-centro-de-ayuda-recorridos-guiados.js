@@ -196,8 +196,10 @@ const AY_GUIAS = [
   },
   {
     k: 'cmpc', ico: '🌲', c: '#0F766E', titulo: 'Planificador CMPC', sub: 'Turnos, planificador gráfico, tablero y gestión',
-    perfiles: ['admin', 'subgerente', 'grt', 'jefe', 'visor'],
+    perfiles: ['admin', 'subgerente', 'grt', 'jefe', 'visor', 'sso'],
     paraTi: {
+      sso: ['Perfil SSO (Gestión en Prevención en Seguridad): <b>solo consulta</b> del Planificador gráfico, el Tablero y la Gestión de Recursos de <b>todas las áreas</b>, ' +
+        'incluidas las <b>👥 personas</b> de cada recurso (curso Call Fire, cargo, contacto). Puedes filtrar y descargar a Excel / PDF; no puedes modificar datos.'],
       admin: ['Todo, incluida la carga masiva por Excel, ➕ Nuevo recurso, 🏢 Empresas y eliminar recursos sin ruta.',
         '<b>🗺️ Descargas geográficas</b>: filtra por subgerencia, área, comuna, sector, tipo, escenario e institución, pulsa «🔍 Aplicar» y descarga cada capa (recursos, rutas asociadas, rutas SIGEI, entidades planificadas, límites de comunas) o todas juntas en <b>KML</b> (Google Earth) o <b>GeoJSON</b> (QGIS / ArcGIS).'],
       jefe: ['Turnos, Planificador gráfico, Tablero y Gestión de Recursos de <b>tus áreas</b>, con los datos de contacto.',
@@ -223,13 +225,13 @@ const AY_GUIAS = [
       ['El ID no se modifica', 'En Gestión de Recursos el ID está bloqueado; es la llave de la carga masiva por Excel.'],
       ['Carga masiva', 'Subir Excel, ➕ Nuevo recurso, 🏢 Empresas y 🗑️ Eliminar: solo el Administrador.'],
       ['Eliminar un recurso', 'Solo si NO tiene ruta asignada (aparece 🔒).'],
-      ['Datos de contacto', 'Solo los ven el Administrador y el Jefe de esa área.'],
+      ['Datos de contacto', 'Solo los ven el Administrador, el Jefe de esa área y el Perfil SSO (consulta).'],
       ['Personas del recurso', 'Se registran de a una en 👥; el contacto de la planilla es el ⭐ titular (no se edita en la tabla). Avance = personas registradas / N° personas.'],
       ['Jefe de Área', 'Ve y edita solo los recursos de sus áreas.'],
     ],
     notas: [
       ['tip', '💡 Consejos', ['En el mapa, los Recursos disponibles muestran solo su <b>clave radial</b> y el punto 🟢 con ruta / 🔴 sin ruta. El detalle (comuna, tipo, empresa) está en su ventana.', 'Los filtros de tipo, sector y empresa admiten <b>varias opciones a la vez</b>.', 'Los tipos siempre aparecen en el mismo orden: Brigada Multipropósito, Disuasiva, Vigía Camioneta, Motorizado, Montado, Infantería, Dron.']],
-      ['rol', '👥 Quién puede', ['Administrador: todo, incluida la carga masiva.', 'Jefe de Área: Turnos, Planificador gráfico, Tablero y Gestión de sus áreas.', 'GRD y Visor: según los permisos de su perfil (consulta), solo en sus áreas.', 'Solo el Administrador ve los recursos de todas las áreas.']],
+      ['rol', '👥 Quién puede', ['Administrador: todo, incluida la carga masiva.', 'Jefe de Área: Turnos, Planificador gráfico, Tablero y Gestión de sus áreas.', 'GRD y Visor: según los permisos de su perfil (consulta), solo en sus áreas.', 'Perfil SSO: consulta de Planificador gráfico, Tablero y Gestión de todas las áreas (con personas).', 'El Administrador ve y edita los recursos de todas las áreas.']],
     ],
     tour: 'cmpc',
   },
@@ -466,6 +468,7 @@ const AY_PERFIL_NOMBRE = { admin: 'Administrador', subgerente: 'Subgerente de Re
 /** Perfil para la ayuda: admin · subgerente · grt · jefe · grd · visor · asoc */
 function ayPerfil_() {
   if (typeof esAsociacion_ === 'function' && esAsociacion_()) return 'asoc';
+  if (typeof esSSO_ === 'function' && esSSO_()) return 'sso';   // Perfil SSO (SQL 184): sus guías declaran 'sso'
   const p = state.perfil && state.perfil.perfil;
   if (p === 'Administrador') return 'admin';
   if (esSubgerente_()) return 'subgerente';

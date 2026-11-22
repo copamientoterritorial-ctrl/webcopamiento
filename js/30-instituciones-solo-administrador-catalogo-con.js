@@ -232,8 +232,10 @@ function actualizarVisibilidadComunasSegunPerfil_() {
   const esJefeArea = perfilVal === 'Jefe de Área Relacionamiento' || perfilVal === PERFIL_GRT;   // GRT: por áreas, como el Jefe
   const esSubg = perfilVal === 'Subgerente de Relacionamiento';   // áreas y comunas automáticas (su subgerencia)
   const esAsoc = perfilVal === PERFIL_ASOC;                        // comunas automáticas (área Victoria)
+  const esSso = perfilVal === PERFIL_SSO;                          // Perfil SSO (SQL 184): todas las áreas, sin comunas
   document.getElementById('u-asoc-nota').style.display = esAsoc ? 'block' : 'none';
-  document.getElementById('u-comunas-wrap').style.display = esAdmin || esSubg || esAsoc ? 'none' : 'block';
+  const nSso = document.getElementById('u-sso-nota'); if (nSso) nSso.style.display = esSso ? 'block' : 'none';
+  document.getElementById('u-comunas-wrap').style.display = esAdmin || esSubg || esAsoc || esSso ? 'none' : 'block';
   document.getElementById('u-areas-wrap').style.display = esJefeArea ? 'block' : 'none';
   document.getElementById('u-subg-wrap').style.display = esSubg ? 'block' : 'none';
   if (esSubg) poblarSubgerenciasUsuario_();
@@ -291,8 +293,10 @@ async function guardarUsuarioDesdeModal_() {
   const esSubg = perfilSel === 'Subgerente de Relacionamiento';
   const esGRT = perfilSel === PERFIL_GRT;   // GRT (SQL 119): Jefe de Área + marca, con sus áreas
   const esAsoc = perfilSel === PERFIL_ASOC; // Asociación de Agricultores (SQL 129): Visor + marca
+  const esSso = perfilSel === PERFIL_SSO;   // Perfil SSO (SQL 184): Visor + marca, sin comunas ni áreas
   const subg = esSubg ? document.getElementById('u-subg').value : '';
-  const perfil = (esSubg || esGRT) ? 'Jefe de Área Relacionamiento' : esAsoc ? 'Visor' : perfilSel;
+  const perfil = (esSubg || esGRT) ? 'Jefe de Área Relacionamiento' : (esAsoc || esSso) ? 'Visor' : perfilSel;
+  if (esSso) { comunaIds.length = 0; areaIds = []; }
   if (esAsoc) {   // comunas del área Victoria (Administración › Comunas por área)
     comunaIds.length = 0; areaIds = [];
     const mapa = await comunasPorAreaUsuario_();
@@ -318,7 +322,7 @@ async function guardarUsuarioDesdeModal_() {
     errEl.classList.add('show'); return;
   }
   if (!editingUsuarioId && !email) { errEl.textContent = 'El correo es obligatorio.'; errEl.classList.add('show'); return; }
-  if (perfil !== 'Administrador' && perfil !== 'Jefe de Área Relacionamiento' && comunaIds.length === 0) { errEl.textContent = 'Selecciona al menos una comuna.'; errEl.classList.add('show'); return; }
+  if (perfil !== 'Administrador' && perfil !== 'Jefe de Área Relacionamiento' && !esSso && comunaIds.length === 0) { errEl.textContent = 'Selecciona al menos una comuna.'; errEl.classList.add('show'); return; }
   if (perfil === 'Jefe de Área Relacionamiento' && areaIds.length === 0) { errEl.textContent = 'Selecciona al menos una zona de relacionamiento.'; errEl.classList.add('show'); return; }
 
   btn.textContent = 'Guardando…'; btn.disabled = true;
@@ -343,7 +347,8 @@ async function guardarUsuarioDesdeModal_() {
   const eraSubg = !!(editingUsuarioId && state.subgPorPerfil && state.subgPorPerfil[editingUsuarioId]);
   const eraGRT = !!(editingUsuarioId && state.grtPorPerfil && state.grtPorPerfil[editingUsuarioId]);
   const eraAsoc = !!(editingUsuarioId && state.asocPorPerfil && state.asocPorPerfil[editingUsuarioId]);
-  if ((esGRT || eraGRT || esAsoc || eraAsoc || telefono) && !idUsuario && email) {
+  const eraSso = !!(editingUsuarioId && state.ssoPorPerfil && state.ssoPorPerfil[editingUsuarioId]);
+  if ((esGRT || eraGRT || esAsoc || eraAsoc || esSso || eraSso || telefono) && !idUsuario && email) {
     const { data: l } = await supabaseClient.functions.invoke('admin-usuarios', { body: { action: 'listar' } });
     const u = l && (l.usuarios || []).find(x => String(x.email).toLowerCase() === email.toLowerCase());
     idUsuario = u ? u.id : null;
@@ -369,6 +374,13 @@ async function guardarUsuarioDesdeModal_() {
       if (eA) alert('⚠️ Usuario guardado, pero NO se pudo ' + (esAsoc ? 'marcar como Asociación de Agricultores' : 'quitar la marca de Asociación') + ': ' + eA.message +
         (/function|does not exist/i.test(eA.message) ? '\n(¿Se ejecutó el SQL 129?)' : ''));
     } else alert('⚠️ Usuario guardado, pero no se encontró su cuenta para marcarla como Asociación de Agricultores: edítalo y vuelve a elegir el perfil.');
+  }
+  if (esSso || eraSso) {   // Perfil SSO (SQL 184)
+    if (idUsuario) {
+      const { error: eX } = await supabaseClient.rpc('asignar_sso', { p_perfil: idUsuario, p_activo: esSso });
+      if (eX) alert('⚠️ Usuario guardado, pero NO se pudo ' + (esSso ? 'marcar como Perfil SSO' : 'quitar la marca SSO') + ': ' + eX.message +
+        (/function|does not exist/i.test(eX.message) ? '\n(¿Se ejecutó el SQL 184?)' : '') + (esSso ? '\nQuedó como Visor: edítalo y vuelve a elegir «Perfil SSO».' : ''));
+    } else alert('⚠️ Usuario guardado, pero no se encontró su cuenta para marcarla como Perfil SSO: edítalo y vuelve a elegir el perfil.');
   }
   if (esSubg || eraSubg) {
     if (!idUsuario && email) {   // el usuario recién creado: se busca por su correo

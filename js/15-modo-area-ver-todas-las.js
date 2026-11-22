@@ -134,15 +134,20 @@ const MENU_MODULOS = [
   { id: 'tab-turnos', grupo: '🌲 Planificador CMPC', nombre: 'Calendario de Turnos', ver: () => puedeVerModulo_('turnos'),
     nivel: () => puedeGestionarTurnos_() && puedeEditarModulo_('turnos') ? 'editar' : 'ver' },
   { id: 'tab-turnosgestor', grupo: '🌲 Planificador CMPC', nombre: 'Turnos de Gestores de relacionamiento', ver: () => puedeTurnosGestores_(),
-    nivel: () => state.esGRT ? 'ver' : 'editar', nota: () => state.perfil && state.perfil.perfil === 'Administrador' ? '' : (state.esGRT ? 'Solo ve' : 'Sus áreas') },
+    // 21-11-2026 (SQL 185): programan Admin, Jefe de Área (no Subgerente ni GRT) y el delegado de prevención del área; solo fines de semana y feriados
+    nivel: () => (tgEsAdmin_() || state.esDelegadoPrev || (esJefeAreaPerfil_(state.perfil.perfil) && !esSubgerente_() && !state.esGRT)) ? 'editar' : 'ver',
+    nota: () => tgEsAdmin_() ? 'Incluye días pasados' : state.esDelegadoPrev ? 'Delegado de prevención: su área' :
+      (esJefeAreaPerfil_(state.perfil.perfil) && !esSubgerente_() && !state.esGRT) ? 'Sus áreas · fines de semana y feriados' : 'Solo ve' },
   { id: 'tab-planificador', grupo: '🌲 Planificador CMPC', nombre: 'Planificador gráfico', ver: () => puedeVerModulo_('planificador_grafico'), nivel: () => nivelPermiso_('planificador_grafico') },
   { id: 'tab-tablero', grupo: '🌲 Planificador CMPC', nombre: 'Tablero de Recursos', ver: () => puedeVerModulo_('planificador_grafico'), nivel: () => 'ver' },
-  { id: 'tab-gestion', grupo: '🌲 Planificador CMPC', nombre: 'Gestión de Recursos', ver: () => puedeGestionRecursos_(), nivel: () => 'editar' },
+  { id: 'tab-gestion', grupo: '🌲 Planificador CMPC', nombre: 'Gestión de Recursos', ver: () => puedeGestionRecursos_(), nivel: () => esSSO_() ? 'ver' : 'editar',
+    nota: () => esSSO_() ? 'Todas las áreas, con personas (consulta)' : '' },
   { id: 'tab-descargas', grupo: '🌲 Planificador CMPC', nombre: 'Descargas geográficas (KML / GeoJSON)', ver: () => puedeDescargasGeo_(), nivel: () => 'ver' },
   { id: 'tab-agricultores', grupo: '🌾 Agricultores', nombre: 'Gestión Asociación Malleco (Tablero de seguimiento)', ver: () => puedeAgricultores_(),
     nivel: () => agrPuedeRegistrar_() ? 'editar' : 'ver', nota: () => esAsociacion_() ? 'Registra; meta solo escuelas' : (esAdminPerfil_() ? '' : 'Área Victoria') },
   // 📋 PPA (06-11-2026, SQL 160; js/38): 1ª etapa solo Administrador, para revisar y validar
   // 16-11-2026: Jefes de Área, Gestores (GRT) y Subgerentes ven, solo consulta y de sus áreas, Detalle, Metas y Avance por sector
+  { id: 'tab-ppareporte', grupo: '📋 PPA', nombre: 'Reporte del área del PPA (avance general y a la fecha)', ver: () => puedePpa_(), nivel: () => 'ver', nota: () => ppaEsAdmin_() ? 'Todas las áreas' : 'Sus áreas' },
   { id: 'tab-ppadetalle', grupo: '📋 PPA', nombre: 'Detalle del PPA', ver: () => puedePpa_(), nivel: () => ppaEsAdmin_() ? 'editar' : 'ver', nota: () => ppaEsAdmin_() ? 'Todas las áreas' : 'Sus áreas' },
   { id: 'tab-ppasector', grupo: '📋 PPA', nombre: 'Avance por sector del PPA', ver: () => puedePpa_(), nivel: () => 'ver', nota: () => ppaEsAdmin_() ? 'Todas las áreas' : 'Sus áreas' },
   { id: 'tab-ppaavance', grupo: '📋 PPA', nombre: 'Tablero de Avance del PPA', ver: () => ppaEsAdmin_(), nivel: () => 'ver' },
@@ -154,6 +159,7 @@ const MENU_MODULOS = [
 /** ¿Se ve el menú? La Asociación de Agricultores ve SOLO 🌾 Agricultores (y los menús marcados con asoc: true). */
 function menuVisible_(m) {
   if (esAsociacion_() && m.grupo !== '🌾 Agricultores' && !m.asoc) return false;
+  if (esSSO_()) return SSO_MENUS.includes(m.id) && !!m.ver();   // Perfil SSO (SQL 184): solo sus 3 menús
   return !!m.ver();
 }
 

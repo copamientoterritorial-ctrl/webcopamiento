@@ -504,7 +504,9 @@ function sgPpaMedida_(a, hoy, mesAct) {
   });
   const vencida = exig > 0 && av < exig;
   const porVencer = !vencida && pendMes > 0 && av < exig + pendMes;
-  return { a, exig, av, lleva: Math.min(av, exig), vencida, porVencer, falta: Math.max(0, exig - av), faltaMes: Math.max(0, exig + pendMes - av) };
+  const metaTot = ppaMetaPeriodo_(id);   // 19-11-2026: meta de todo el período (avance general)
+  return { a, exig, av, lleva: Math.min(av, exig), metaTot, llevaGen: Math.min(av, metaTot), vencida, porVencer,
+    falta: Math.max(0, exig - av), faltaMes: Math.max(0, exig + pendMes - av) };
 }
 function sgPpaDatos_() {
   const P = state.ppa, hoy = ppaHoy_(), mesAct = hoy.slice(0, 7) + '-01';
@@ -525,10 +527,11 @@ function sgPpaDatos_() {
 function sgPpaMesVigente_() { const m = ppaHoy_().slice(0, 7) + '-01'; return ppaMesesPeriodo_().includes(m) ? m : null; }
 /** Totales de un grupo de medidas (área o sector): medidas, vencidas, por vencer, al día, debe llevar, lleva y %. */
 function sgPpaResumir_(med) {
-  const r = { total: med.length, vencidas: 0, porVencer: 0, alDia: 0, sinExig: 0, debe: 0, lleva: 0, falta: 0 };
-  med.forEach(m => { r.debe += m.exig; r.lleva += m.lleva; r.falta += m.falta;
+  const r = { total: med.length, vencidas: 0, porVencer: 0, alDia: 0, sinExig: 0, debe: 0, lleva: 0, falta: 0, metaTot: 0, llevaGen: 0 };
+  med.forEach(m => { r.debe += m.exig; r.lleva += m.lleva; r.falta += m.falta; r.metaTot += m.metaTot || 0; r.llevaGen += m.llevaGen || 0;
     if (m.vencida) r.vencidas++; else if (m.porVencer) r.porVencer++; else if (m.exig > 0) r.alDia++; else r.sinExig++; });
   r.pct = r.debe > 0 ? Math.round(r.lleva * 1000 / r.debe) / 10 : null;
+  r.pctGen = r.metaTot > 0 ? Math.round(r.llevaGen * 1000 / r.metaTot) / 10 : null;   // avance general (todo el período)
   return r;
 }
 /** Grupos (área del Seguimiento o sector del PPA › 🧩 Avance por sector) que abren los modales, por clave (sin «|»). */
@@ -536,6 +539,16 @@ const SG_PPA_GRUPOS = {};
 const SG_PPA_COL = p => p == null ? '#94A3B8' : p >= 100 ? '#16A34A' : p >= 50 ? '#D97706' : '#DC2626';
 const SG_PPA_NUM = v => ppaNum_(v).toLocaleString('es-CL');
 const SG_PPA_PCT = p => p == null ? '—' : String(p).replace('.', ',') + '%';
+/** 19-11-2026: los dos avances de un grupo (área o sector): general (todo el período) y a la fecha (lo exigible), con barra cada uno. */
+function sgPpaDosAvances_(x) {
+  const n = SG_PPA_NUM, fila = (ico, t, p, a, b, s) => '<div class="sg-ppa-av2" style="--c:' + SG_PPA_COL(p) + '">' +
+    '<div class="sg-ppa-av2-top"><span>' + ico + ' ' + t + '</span><b>' + SG_PPA_PCT(p) + '</b></div>' +
+    '<div class="sg-ppa-bar"><em style="width:' + Math.min(100, p || 0) + '%"></em></div>' +
+    '<small>' + n(a) + ' de ' + n(b) + ' ' + s + '</small></div>';
+  return '<div class="sg-ppa-av2s">' +
+    fila('📊', 'Avance general', x.pctGen, x.llevaGen, x.metaTot, 'acciones del período') +
+    fila('📅', 'Avance a la fecha', x.pct, x.lleva, x.debe, 'exigibles hoy') + '</div>';
+}
 async function renderSgPpa_() {
   const S = state.sg, cuerpo = document.getElementById('sg-cuerpo');
   if (!state.ppa.cargado || S.ppaRecargar) {
@@ -553,9 +566,8 @@ async function renderSgPpa_() {
     const col = SG_PPA_COL(x.pct), k = escapeHtml_(x.k), pend = x.vencidas + x.porVencer;
     const nAv = x.med.reduce((s, m) => s + ((state.ppa.avPorId.get(m.a.id_ppa) || []).length), 0);
     return '<div class="sg-ppa-area" style="--c:' + col + '">' +
-      '<div class="sg-ppa-top"><div class="nom"><b>' + escapeHtml_(aTitulo_(x.nombre)) + '</b><small>Lleva <b>' + n(x.lleva) + '</b> de <b>' + n(x.debe) + '</b> acciones a la fecha</small></div>' +
-        '<div class="sg-ppa-pct"><b>' + pctTxt(x.pct) + '</b><span>avance a la fecha</span></div></div>' +
-      '<div class="sg-ppa-bar"><em style="width:' + Math.min(100, x.pct || 0) + '%"></em></div>' +
+      '<div class="sg-ppa-top"><div class="nom"><b>' + escapeHtml_(aTitulo_(x.nombre)) + '</b><small>' + x.total + ' medida(s)</small></div></div>' +
+      sgPpaDosAvances_(x) +   // 19-11-2026: avance general + avance a la fecha del área
       '<div class="sg-ppa-tiles">' +
         tile('📋', x.total, 'Medidas', '#2563EB') +
         tile('⏳', x.porVencer, 'Por vencer', '#D97706', x.porVencer ? 'pend|' + k + '|porvencer' : '') +
@@ -577,7 +589,8 @@ async function renderSgPpa_() {
       '<div style="--c:#2563EB"><b>' + T.total + '</b><span>📋 total medidas (' + R.areas.length + ' áreas)</span></div>' +
       '<div style="--c:#D97706"><b>' + T.porVencer + '</b><span>⏳ por vencer en ' + escapeHtml_(mesTxt) + '</span></div>' +
       '<div style="--c:#DC2626"><b>' + T.vencidas + '</b><span>⏰ vencidas · faltan ' + n(T.falta) + ' acciones</span></div>' +
-      '<div style="--c:' + SG_PPA_COL(T.pct) + '"><b>' + pctTxt(T.pct) + '</b><span>avance a la fecha (lleva ' + n(T.lleva) + ' de ' + n(T.debe) + ')</span></div>' +
+      '<div style="--c:' + SG_PPA_COL(T.pctGen) + '"><b>' + pctTxt(T.pctGen) + '</b><span>📊 avance general (' + n(T.llevaGen) + ' de ' + n(T.metaTot) + ' del período)</span></div>' +
+      '<div style="--c:' + SG_PPA_COL(T.pct) + '"><b>' + pctTxt(T.pct) + '</b><span>📅 avance a la fecha (lleva ' + n(T.lleva) + ' de ' + n(T.debe) + ')</span></div>' +
     '</div>' +
     '<div class="sg-ppa-grid">' + html + '</div>';
   S.ultimoPpa = R;
@@ -712,9 +725,68 @@ async function sgPpaModalAcciones_(k, idPpa, filtro) {
       '<div class="sg-ppa-acc-mapa"><div id="sg-ppa-mapa"></div>' + (lista.some(f => f.lat != null && f.lng != null) ? '' : '<div class="sg-ppa-sinmapa">Ninguna de estas acciones tiene ubicación registrada.</div>') + '</div></div>'
       : '<div class="tb-vacio">' + (base.length ? 'Ninguna acción en este filtro.' : 'Aún no hay acciones registradas' + (idPpa ? ' para esta medida.' : ' en el área.') + ' Se registran desde la App Prevención Territorial.') + '</div>') +
   '</div>';
-  if (lista.length) sgPpaMapaAcciones_(lista);
+  if (lista.length) sgPpaMapaAcciones_(lista, x.area || x.nombre);
 }
-function sgPpaMapaAcciones_(lista) {
+/* 19-11-2026: capas de contexto del mapa de Acciones registradas: 🧭 límite del área (con sus sectores) y 🌲 fundos CMPC
+ * (con nombre al acercarse). Se encienden/apagan en el control de capas del mapa. Fundos: Admin y perfil Jefe (RLS decide). */
+const SG_PPA_ZOOM_ETQ = 13, SG_PPA_MAX_ETQ = 60;
+async function sgPpaFundosArea_(area) {
+  const S = state.sg; S.ppaFundos = S.ppaFundos || {};
+  const k = SG_KEY(area); if (S.ppaFundos[k]) return S.ppaFundos[k];
+  const s = String(area || ''), sin = s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const variantes = [...new Set([s, s.toUpperCase(), sin, sin.toUpperCase()])].filter(Boolean);
+  const { data, error } = await supabaseClient.from('v_fundos_cmpc').select('id, nombre_fundo, sup_ha, sector, geometry').in('area', variantes);
+  if (error) throw error;
+  return (S.ppaFundos[k] = data || []);
+}
+async function sgPpaCapasContexto_(m, area, ctl) {
+  if (!area) return;
+  // Panel propio BAJO las marcas (overlayPane = 400): el lienzo de fundos no tapa ni bloquea los puntos de las acciones
+  if (!m.getPane('sgPpaCtx')) m.createPane('sgPpaCtx').style.zIndex = 350;
+  const rend = L.canvas({ padding: 0.3, pane: 'sgPpaCtx' });
+  // 🧭 Límite del área: sus sectores (capa oficial); si no hay, el contorno por comunas (SQL 140)
+  const limite = L.layerGroup();
+  try {
+    let feats = await featuresAreaRelacionamiento_(area);
+    if (feats.length) feats.forEach(f => L.geoJSON(f.geometry, { renderer: rend, interactive: false,
+      style: { color: '#FDE047', weight: 2.5, opacity: 0.95, fill: false, dashArray: '' } }).addTo(limite));
+    else {
+      const { data } = await supabaseClient.rpc('limite_area_geojson', { p_area: area });
+      const fila = data && data[0];
+      if (fila && fila.geojson) L.geoJSON(typeof fila.geojson === 'string' ? JSON.parse(fila.geojson) : fila.geojson,
+        { renderer: rend, interactive: false, style: { color: '#FDE047', weight: 3, fill: false } }).addTo(limite);
+    }
+  } catch (e) { /* sin capa de áreas */ }
+  if (state.sg.ppaMapa !== m) return;
+  limite.addTo(m); ctl.addOverlay(limite, '🧭 Límite del área');
+  // 🌲 Fundos CMPC (+ etiquetas solo de lo visible desde el zoom 13, con tope)
+  if (!(typeof esAdminOJefe_ === 'function' && esAdminOJefe_())) return;
+  let fundos = [];
+  try { fundos = await sgPpaFundosArea_(area); } catch (e) { return; }
+  if (state.sg.ppaMapa !== m || !fundos.length) return;
+  const capa = L.layerGroup(), etq = L.layerGroup(), centros = [];
+  fundos.forEach(f => {
+    const g = typeof f.geometry === 'string' ? JSON.parse(f.geometry) : f.geometry; if (!g) return;
+    const ly = L.geoJSON(g, { renderer: rend, smoothFactor: 1.5, style: { color: '#059669', weight: 1.2, fillColor: '#34D399', fillOpacity: 0.15 } })
+      .bindPopup('<b>🌲 ' + escapeHtml_(f.nombre_fundo || 'Fundo') + '</b><br>' + escapeHtml_([f.sector ? 'Sector ' + f.sector : '', f.sup_ha ? Number(f.sup_ha).toFixed(1) + ' ha' : ''].filter(Boolean).join(' · ')))
+      .addTo(capa);
+    try { centros.push({ c: ly.getBounds().getCenter(), n: f.nombre_fundo || '', ha: Number(f.sup_ha) || 0 }); } catch (e) {}
+  });
+  centros.sort((a, b) => b.ha - a.ha);
+  const pintarEtq = () => {
+    etq.clearLayers();
+    if (!m.hasLayer(capa) || !m.hasLayer(etq) || m.getZoom() < SG_PPA_ZOOM_ETQ) return;
+    const vis = m.getBounds();
+    centros.filter(x => x.n && vis.contains(x.c)).slice(0, SG_PPA_MAX_ETQ).forEach(x =>
+      L.tooltip({ permanent: true, direction: 'center', className: 'sg-ppa-etq-fundo', interactive: false }).setLatLng(x.c).setContent(escapeHtml_(x.n)).addTo(etq));
+  };
+  capa.addTo(m); etq.addTo(m);
+  ctl.addOverlay(capa, '🌲 Fundos CMPC (' + fundos.length + ')');
+  ctl.addOverlay(etq, '🏷️ Nombres de fundos (al acercar)');
+  m.on('moveend zoomend overlayadd overlayremove', pintarEtq);
+  pintarEtq();
+}
+function sgPpaMapaAcciones_(lista, area) {
   const div = document.getElementById('sg-ppa-mapa'); if (!div || !window.L) return;
   const m = L.map(div, { zoomControl: true, attributionControl: false }).setView([-38.2, -72.4], 7);
   const b = BASEMAPS.find(x => x.id === 'sat_sobrio') || BASEMAPS[0];
@@ -732,6 +804,8 @@ function sgPpaMapaAcciones_(lista) {
   if (pts.length === 1) m.setView(pts[0], 15); else if (pts.length) m.fitBounds(pts, { padding: [30, 30], maxZoom: 15 });
   state.sg.ppaMapa = m; state.sg.ppaMarcas = marcas;
   setTimeout(() => { try { m.invalidateSize(); if (pts.length > 1) m.fitBounds(pts, { padding: [30, 30], maxZoom: 15 }); } catch (e) {} }, 150);
+  const ctl = L.control.layers(null, null, { collapsed: false, position: 'topright' }).addTo(m);
+  sgPpaCapasContexto_(m, area, ctl).catch(() => {});
 }
 function sgPpaEnfocarAvance_(id) {
   const mk = (state.sg.ppaMarcas || {})[id], m = state.sg.ppaMapa; if (!mk || !m) return;

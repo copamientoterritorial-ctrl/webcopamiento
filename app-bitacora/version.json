@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0",
+  "fecha": "2026-11-18",
+  "notas": [
+    "Primera versión de la Bitácora: apertura de jornada de los recursos de prevención (estado del día, dotación, turno, móvil, ubicación y fundo).",
+    "Funciona sin señal: las aperturas quedan en el teléfono y se envían solas al recuperar la conexión."
+  ]
+}

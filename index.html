@@ -293,6 +293,7 @@
         <button class="admin-menu-item" data-seccion="patrulleros">🚓 Patrulleros</button>
         <button class="admin-menu-item" data-seccion="comunas">🗺️ Comunas</button>
         <button class="admin-menu-item" data-seccion="areaComunas">🧩 Comunas por área</button>
+        <button class="admin-menu-item" data-seccion="delegados">🦺 Delegados de prevención</button>
         <div class="admin-menu-group">Control</div>
         <button class="admin-menu-item" data-seccion="actividad">🟢 Actividad / En línea</button>
         <button class="admin-menu-item" data-seccion="sesiones">⏱️ Sesiones de usuarios</button>
@@ -984,6 +985,7 @@
         <div class="vista-grupo" id="grupo-ppa" style="display:none;">
           <button class="vista-tab vista-tab-grupo" title="Plan de Prevención por Área"><span class="vt-ico">📋</span><span class="vt-txt">PPA</span><span class="vt-caret">▾</span></button>
           <div class="vista-submenu">
+            <button class="vista-subitem" data-vista="ppareporte" id="tab-ppareporte" style="display:none;"><span class="vs-ico">📈</span><span><b>Reporte del área</b><small>Avance general y a la fecha · pendientes · acciones con fotos y mapa</small></span></button>
             <button class="vista-subitem" data-vista="ppadetalle" id="tab-ppadetalle" style="display:none;"><span class="vs-ico">📄</span><span><b>Detalle del PPA</b><small>Acciones por área y sector · ficha y avances</small></span></button>
             <button class="vista-subitem" data-vista="ppasector" id="tab-ppasector" style="display:none;"><span class="vs-ico">🧩</span><span><b>Avance por sector</b><small>Medidas, por vencer, vencidas y % a la fecha</small></span></button>
             <button class="vista-subitem" data-vista="ppaavance" id="tab-ppaavance" style="display:none;"><span class="vs-ico">📊</span><span><b>Tablero de Avance</b><small>Meta vs avance por quincena y por mes</small></span></button>
@@ -2332,8 +2334,10 @@
               <option value="Subgerente de Relacionamiento">Subgerente de Relacionamiento</option>
               <option value="GRD">GRD</option>
               <option value="Asociación de Agricultores">Asociación de Agricultores (Malleco)</option>
+              <option value="Perfil SSO (Gestión en Prevención en Seguridad)">Perfil SSO (Gestión en Prevención en Seguridad)</option>
               <option value="Administrador">Administrador</option>
             </select>
+            <small id="u-sso-nota" style="display:none;margin-top:4px;color:var(--text-tertiary);font-size:11px;line-height:1.4;">Solo consulta de 🧭 Planificador gráfico, 📊 Tablero y 🗂️ Gestión de Recursos de todas las áreas, con las personas de cada recurso. No modifica nada. Se guarda como Visor con la marca SSO (no necesita comunas ni áreas).</small>
             <small id="u-asoc-nota" style="display:none;margin-top:4px;color:var(--text-tertiary);font-size:11px;line-height:1.4;">Solo ve el menú 🌾 Agricultores (Gestión Asociación Malleco): registra actividades desde la app de terreno con este mismo correo y clave. Se guarda como Visor con las comunas del área Victoria.</small>
           </div>
           <div class="form-group" id="u-subg-wrap" style="display:none;">

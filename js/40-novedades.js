@@ -6,8 +6,45 @@
  * Se pueden volver a ver con «🆕 Novedades» (botón del encabezado de Ayuda, abrirNovedades_(true)). */
 const NOVEDADES = [
   {
+    id: '2026-11-21-turnos-gestores-temporada', fecha: '21-11-2026', titulo: 'Turnos de Gestores',
+    items: [
+      { ico: '👥', t: 'Turnos de Gestores por temporada', perfiles: ['admin', 'subgerente', 'jefe', 'grt'],
+        d: 'Ahora se ve la <b>temporada completa (diciembre a marzo)</b> con solo los <b>sábados, domingos y feriados</b> 🎉. Los días ya pasados quedan bloqueados 🔒. ' +
+           'Programan el <b>Jefe de Área</b> y el <b>delegado de prevención</b> del área; si necesitas un cambio, el sistema te indica a qué delegado informar.' },
+      { ico: '🦺', t: 'Delegados de prevención', perfiles: ['admin'],
+        d: 'En Administración › <b>🦺 Delegados de prevención</b> asignas el delegado de cada área y mantienes la lista de <b>feriados</b>.' },
+    ],
+  },
+  {
+    id: '2026-11-21-perfil-sso', fecha: '21-11-2026', titulo: 'Perfil SSO',
+    items: [
+      { ico: '🦺', t: 'Bienvenido al Sistema de Copamiento', perfiles: ['sso'],
+        d: 'Tu perfil <b>SSO (Gestión en Prevención en Seguridad)</b> consulta los recursos de <b>todas las áreas</b> en el menú 🌲 Planificador CMPC: ' +
+           '<b>🧭 Planificador gráfico</b> (mapa), <b>📊 Tablero de Recursos</b> y <b>🗂️ Gestión de Recursos</b>, con las 👥 personas de cada recurso. ' +
+           'Puedes filtrar y descargar a Excel o PDF; los datos no se modifican desde tu perfil.' },
+      { ico: '🦺', t: 'Nuevo perfil SSO', perfiles: ['admin'],
+        d: 'En Administración › Usuarios ya puedes crear el <b>Perfil SSO (Gestión en Prevención en Seguridad)</b>: solo consulta de Planificador gráfico, Tablero y ' +
+           'Gestión de Recursos de todas las áreas, con las personas de cada recurso.' },
+    ],
+  },
+  {
+    id: '2026-11-19-ppa-reporte', fecha: '19-11-2026', titulo: 'PPA: reporte del área y app sin señal',
+    items: [
+      { ico: '📈', t: 'PPA › Reporte del área', perfiles: ['admin', 'subgerente', 'jefe', 'grt'],
+        d: 'Nuevo reporte de tus áreas con el <b>avance general</b> (sobre todo el período) y el <b>avance a la fecha</b>, las medidas pendientes y atrasadas, ' +
+           'las acciones registradas con fotos y mapa, y tablas por sector y por plan.' },
+      { ico: '🌲', t: 'Fundos y límite del área en las acciones registradas', perfiles: ['admin', 'subgerente', 'jefe', 'grt'],
+        d: 'El mapa de 📸 Acciones registradas muestra el límite del área con sus sectores y los fundos CMPC con su nombre (al acercarte). Se apagan en el control de capas del mapa.' },
+      { ico: '📵', t: 'App Prevención sin señal', perfiles: ['admin', 'subgerente', 'jefe', 'grt', 'grd'],
+        d: 'La app abre sin señal con tus datos guardados y deja los avances en pendientes; al volver la señal los envía sola.' },
+    ],
+  },
+  {
     id: '2026-11-18-ppa-eliminar', fecha: '18-11-2026', titulo: 'App Prevención Territorial',
     items: [
+      { ico: '📊', t: 'PPA: avance general y avance a la fecha', perfiles: ['admin', 'subgerente', 'jefe', 'grt'],
+        d: 'En los tableros del PPA (web y app) hay dos indicadores nuevos: <b>Avance general del PPA</b> (lo hecho sobre la meta de todo el período) ' +
+           'y <b>Avance a la fecha</b> (lo hecho sobre lo que ya debía estar hecho).' },
       { ico: '🗂️', t: 'Sectores y fundos al registrar actividades', perfiles: ['admin', 'subgerente', 'jefe', 'grt'],
         d: 'En la app, el mapa para ubicar una actividad muestra los <b>sectores</b> y los <b>fundos CMPC</b> del área con sus nombres. ' +
            'Con el botón 🗂️ puedes apagar cada capa o las etiquetas; los nombres aparecen al acercarte.' },

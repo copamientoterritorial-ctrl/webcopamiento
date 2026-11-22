@@ -162,14 +162,14 @@ function plAreasVisibles_() {
   const nombres = {};
   state.pl.recursos.forEach(r => { if (r.id_area != null && !nombres[r.id_area]) nombres[r.id_area] = r.area; });
   let lista = Object.keys(nombres).map(id => ({ id: Number(id), nombre: nombres[id] }));
-  if (!(state.perfil && state.perfil.perfil === 'Administrador')) lista = lista.filter(a => esMiArea_(a.nombre, a.id));
+  if (!(state.perfil && state.perfil.perfil === 'Administrador')) lista = lista.filter(a => esMiArea_(a.nombre, a.id));   // (SSO: esMiArea_ = todas)
   return lista.sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
 }
 
 function poblarAreasPlanificador_() {
   const sel = document.getElementById('pl-area');
   const todas = plAreasVisibles_();
-  if (!todas.length && state.pl.cargado && !(state.perfil && state.perfil.perfil === 'Administrador'))
+  if (!todas.length && state.pl.cargado && !(state.perfil && state.perfil.perfil === 'Administrador') && !esSSO_())
     plEstado_('Tu usuario no tiene áreas asignadas: pide al Administrador que te asigne tu área.', 'error');
   // Subgerencias de las áreas visibles (filtro superior)
   const subgDe = id => { const r = state.pl.recursos.find(x => x.id_area === id && x.subgerencia); return r ? r.subgerencia : ''; };

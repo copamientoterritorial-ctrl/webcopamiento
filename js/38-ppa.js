@@ -14,10 +14,12 @@
 const PPA_SUBS = {
   ppadetalle: { t: '📄 Detalle del PPA' }, ppaavance: { t: '📊 Tablero de Avance' }, pparesumen: { t: '🧾 Resumen del PPA' },
   ppametas: { t: '🎯 Metas por fecha' }, ppagestion: { t: '🧭 Tablero de Gestión' }, ppasector: { t: '🧩 Avance por sector' },
+  ppareporte: { t: '📈 Reporte del área' },
 };
 /* 16-11-2026: el PPA se abre a los Jefes de Área y Gestores (GRT; también el Subgerente, mismo perfil técnico), SOLO CONSULTA y solo sus
  * áreas (el RLS del SQL 160 entrega las acciones de sus perfil_areas). Ven: 📄 Detalle, 🎯 Metas por fecha (lectura) y 🧩 Avance por sector. */
-const PPA_SUBS_JEFE = ['ppadetalle', 'ppametas', 'ppasector'];
+// 19-11-2026: + 📈 Reporte del área (como el Seguimiento › PPA del Subgerente, con avance general y avance a la fecha)
+const PPA_SUBS_JEFE = ['ppareporte', 'ppadetalle', 'ppametas', 'ppasector'];
 function ppaSubVisible_(k) { return ppaEsAdmin_() || PPA_SUBS_JEFE.includes(k); }
 const PPA_MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const PPA_MESES_CORTOS = { ene: 1, feb: 2, mar: 3, abr: 4, may: 5, jun: 6, jul: 7, ago: 8, sep: 9, sept: 9, set: 9, oct: 10, nov: 11, dic: 12 };
@@ -251,7 +253,7 @@ function ppaIniciarListeners_() {
 async function abrirPpa_(sub, forzar) {
   const S = state.ppa;
   if (sub && PPA_SUBS[sub]) S.sub = sub;
-  if (!ppaSubVisible_(S.sub)) S.sub = 'ppasector';   // Jefes / Gestores: Detalle, Metas y Avance por sector
+  if (!ppaSubVisible_(S.sub)) S.sub = 'ppareporte';   // Jefes / Gestores: Reporte del área, Detalle, Metas y Avance por sector
   ppaIniciarListeners_();
   document.getElementById('ppa-titulo').textContent = '📋 PPA · ' + PPA_SUBS[S.sub].t.replace(/^\S+\s/, '');
   document.getElementById('ppa-subir').style.display = ppaEsAdmin_() ? '' : 'none';
@@ -284,7 +286,7 @@ function ppaRenderCuerpo_() {
   const pestanas = '<div class="ppa-pestanas">' + Object.keys(PPA_SUBS).filter(ppaSubVisible_).map(k => '<button data-ppa-sub="' + k + '" class="' + (k === S.sub ? 'on' : '') + '">' + PPA_SUBS[k].t + '</button>').join('') +
     '<span class="ppa-per">' + escapeHtml_(S.periodo.nombre) + ' · ' + ppaFechaTxt_(S.periodo.fecha_inicio) + ' al ' + ppaFechaTxt_(S.periodo.fecha_fin) +
     (ppaQuincenaActual_() ? ' · hoy: <b>' + ppaQuincenaActual_().etq + '</b>' : '') + '</span></div>';
-  const html = { ppadetalle: ppaHtmlDetalle_, ppaavance: ppaHtmlAvance_, pparesumen: ppaHtmlResumen_, ppametas: ppaEsAdmin_() ? ppaHtmlMetas_ : ppaHtmlMetasJefe_, ppagestion: ppaHtmlGestion_, ppasector: ppaHtmlSector_ }[S.sub](lista);
+  const html = { ppadetalle: ppaHtmlDetalle_, ppaavance: ppaHtmlAvance_, pparesumen: ppaHtmlResumen_, ppametas: ppaEsAdmin_() ? ppaHtmlMetas_ : ppaHtmlMetasJefe_, ppagestion: ppaHtmlGestion_, ppasector: ppaHtmlSector_, ppareporte: ppaHtmlReporte_ }[S.sub](lista);
   // Conserva el scroll al re-dibujar (edición de metas y de acciones)
   const wrapAnt = cuerpo.querySelector('.ppa-tabla-wrap'), scroll = [cuerpo.scrollTop, wrapAnt ? wrapAnt.scrollTop : 0, wrapAnt ? wrapAnt.scrollLeft : 0];
   cuerpo.innerHTML = pestanas + '<div class="ppa-vista">' + html + '</div>';
@@ -346,9 +348,8 @@ function ppaHtmlSector_(lista) {
     const nAv = x.med.reduce((s, m) => s + ((state.ppa.avPorId.get(m.a.id_ppa) || []).length), 0), pend = x.vencidas + x.porVencer;
     const planes = [...new Set(x.med.map(m => m.a.grupo || 'Sin grupo'))];
     return '<div class="sg-ppa-area" style="--c:' + SG_PPA_COL(x.pct) + '">' +
-      '<div class="sg-ppa-top"><div class="nom"><b>📍 ' + escapeHtml_(x.nombre) + '</b><small>Lleva <b>' + n(x.lleva) + '</b> de <b>' + n(x.debe) + '</b> acciones a la fecha · ' + planes.length + ' plan(es)</small></div>' +
-        '<div class="sg-ppa-pct"><b>' + pctTxt(x.pct) + '</b><span>avance a la fecha</span></div></div>' +
-      '<div class="sg-ppa-bar"><em style="width:' + Math.min(100, x.pct || 0) + '%"></em></div>' +
+      '<div class="sg-ppa-top"><div class="nom"><b>📍 ' + escapeHtml_(x.nombre) + '</b><small>' + x.total + ' medida(s) · ' + planes.length + ' plan(es)</small></div></div>' +
+      sgPpaDosAvances_(x) +   // 19-11-2026: avance general + avance a la fecha del sector
       '<div class="sg-ppa-tiles">' + tile('📋', x.total, 'Medidas', '#2563EB') +
         tile('⏳', x.porVencer, 'Por vencer', '#D97706', x.porVencer ? 'pend|' + x.k + '|porvencer' : '') +
         tile('⏰', x.vencidas, 'Vencidas', '#DC2626', x.vencidas ? 'pend|' + x.k + '|vencidas' : '') + tile('✅', x.alDia, 'Al día', '#16A34A') + '</div>' +
@@ -359,14 +360,74 @@ function ppaHtmlSector_(lista) {
         (!varias ? '<button class="turnos-btn" data-ppa-fsector="' + escapeHtml_(x.idSector) + '" title="Ver sus medidas en el Detalle">📄 Detalle</button>' : '') +
       '</div></div>';
   }).join('');
-  return '<p class="tb-sub" style="margin:0 0 8px;"><b>% de avance a la fecha</b> = acciones que lleva ÷ acciones que debe llevar (metas de las quincenas ya terminadas). ' +
+  return '<p class="tb-sub" style="margin:0 0 8px;"><b>📊 Avance general</b> = acciones hechas ÷ meta de todo el período. ' +
+      '<b>📅 Avance a la fecha</b> = acciones que lleva ÷ acciones que debe llevar (metas de las quincenas ya terminadas). ' +
       '<b>⏰ Vencida</b>: no alcanzó lo exigido. <b>⏳ Por vencer</b>: al día, con meta pendiente antes de fin de ' + escapeHtml_(mesTxt) + '. Usa los filtros de arriba (sector, plan…).</p>' +
     '<div class="sg-resumen sg-ppa-resumen">' +
       '<div style="--c:#2563EB"><b>' + T.total + '</b><span>📋 medidas (' + lst.length + ' sector(es))</span></div>' +
       '<div style="--c:#D97706"><b>' + T.porVencer + '</b><span>⏳ por vencer en ' + escapeHtml_(mesTxt) + '</span></div>' +
       '<div style="--c:#DC2626"><b>' + T.vencidas + '</b><span>⏰ vencidas · faltan ' + n(T.falta) + ' acciones</span></div>' +
-      '<div style="--c:' + SG_PPA_COL(T.pct) + '"><b>' + pctTxt(T.pct) + '</b><span>avance a la fecha (lleva ' + n(T.lleva) + ' de ' + n(T.debe) + ')</span></div>' +
+      '<div style="--c:' + SG_PPA_COL(T.pctGen) + '"><b>' + pctTxt(T.pctGen) + '</b><span>📊 avance general (' + n(T.llevaGen) + ' de ' + n(T.metaTot) + ' del período)</span></div>' +
+      '<div style="--c:' + SG_PPA_COL(T.pct) + '"><b>' + pctTxt(T.pct) + '</b><span>📅 avance a la fecha (lleva ' + n(T.lleva) + ' de ' + n(T.debe) + ')</span></div>' +
     '</div><div class="sg-ppa-grid">' + tarjetas + '</div>';
+}
+
+/* ── 📈 Reporte del área (19-11-2026) ────────────────────────────────────
+ * Para el Jefe de Área (y Gestores / Subgerentes / Admin): el mismo reporte del 📈 Seguimiento › 📋 PPA del Subgerente, pero de SUS áreas
+ * (y con los filtros del PPA), con los dos KPI: 📊 avance general (hecho ÷ meta de todo el período) y 📅 avance a la fecha (lleva ÷ exigible).
+ * Tarjeta por área con ⚠️ Pendientes y atrasadas · 📸 Acciones registradas (modales de js/07) + tablas por sector y por plan (grupo). */
+function ppaHtmlReporte_(lista) {
+  if (!lista.length) return '<div class="tb-vacio">No hay acciones con estos filtros.</div>';
+  const hoy = ppaHoy_(), mesAct = sgPpaMesVigente_(), n = SG_PPA_NUM, pctTxt = SG_PPA_PCT;
+  const mesTxt = (mesAct ? ppaMesTxt_(mesAct) : 'el mes').toLowerCase();
+  const med = lista.map(a => sgPpaMedida_(a, hoy, mesAct));
+  const agrupar = (pref, clave, nombre) => {
+    const m = new Map();
+    med.forEach(x => { const k = pref + clave(x.a); if (!m.has(k)) m.set(k, { k, nombre: nombre(x.a), area: x.a.area_nombre, med: [] }); m.get(k).med.push(x); });
+    return [...m.values()].map(g => Object.assign(g, sgPpaResumir_(g.med)));
+  };
+  const areas = agrupar('R-', a => a.id_area, a => a.area_nombre || 'Sin área').sort((p, q) => p.nombre.localeCompare(q.nombre, 'es'));
+  areas.forEach(x => { SG_PPA_GRUPOS[x.k] = x; });
+  const varias = areas.length > 1;
+  const T = sgPpaResumir_(med);
+  const tile = (ico, v, t, c, accion) => '<div class="sg-ppa-tile' + (accion ? ' clic' : '') + '" style="--t:' + c + '"' + (accion ? ' data-sg-ppa="' + accion + '" title="Ver el detalle"' : '') + '><b>' + v + '</b><span>' + ico + ' ' + t + '</span></div>';
+  const tarjetas = areas.map(x => {
+    const k = escapeHtml_(x.k), pend = x.vencidas + x.porVencer;
+    const nAv = x.med.reduce((s, m) => s + ((state.ppa.avPorId.get(m.a.id_ppa) || []).length), 0);
+    return '<div class="sg-ppa-area" style="--c:' + SG_PPA_COL(x.pct) + '">' +
+      '<div class="sg-ppa-top"><div class="nom"><b>' + escapeHtml_(aTitulo_(x.nombre)) + '</b><small>' + x.total + ' medida(s)</small></div></div>' +
+      sgPpaDosAvances_(x) +
+      '<div class="sg-ppa-tiles">' + tile('📋', x.total, 'Medidas', '#2563EB') +
+        tile('⏳', x.porVencer, 'Por vencer', '#D97706', x.porVencer ? 'pend|' + k + '|porvencer' : '') +
+        tile('⏰', x.vencidas, 'Vencidas', '#DC2626', x.vencidas ? 'pend|' + k + '|vencidas' : '') + tile('✅', x.alDia, 'Al día', '#16A34A') + '</div>' +
+      (x.sinExig ? '<div class="sg-ppa-nota">⚪ ' + x.sinExig + ' medida(s) aún sin metas vencidas</div>' : '') +
+      '<div class="sg-ppa-botones">' +
+        '<button class="turnos-btn" data-sg-ppa="pend|' + k + '|"' + (pend ? '' : ' disabled') + '>⚠️ Pendientes y atrasadas (' + pend + ')</button>' +
+        '<button class="turnos-btn" data-sg-ppa="acc|' + k + '|">📸 Acciones registradas (' + nAv + ')</button></div></div>';
+  }).join('');
+  // Tablas: por sector y por plan (grupo), ordenadas de menor a mayor avance a la fecha
+  const celda = p => '<td class="ppa-rep-pct" style="--c:' + SG_PPA_COL(p) + '"><b>' + pctTxt(p) + '</b><i><em style="width:' + Math.min(100, p || 0) + '%"></em></i></td>';
+  const tabla = (titulo, grupos) => '<div class="tb-card" style="margin-top:12px;"><h3>' + titulo + '</h3><div class="ppa-rep-wrap"><table class="ppa-rep-tabla"><thead><tr>' +
+      '<th>' + (titulo.includes('sector') ? 'Sector' : 'Plan (grupo)') + '</th><th>Medidas</th><th>⏰ Vencidas</th><th>⏳ Por vencer</th><th>📊 Avance general</th><th>📅 Avance a la fecha</th></tr></thead><tbody>' +
+      grupos.sort((p, q) => (p.pct == null ? 101 : p.pct) - (q.pct == null ? 101 : q.pct) || p.nombre.localeCompare(q.nombre, 'es')).map(g =>
+        '<tr><td><b>' + escapeHtml_(g.nombre) + '</b><small>' + n(g.llevaGen) + ' de ' + n(g.metaTot) + ' del período · lleva ' + n(g.lleva) + ' de ' + n(g.debe) + ' a la fecha</small></td>' +
+        '<td>' + g.total + '</td><td>' + (g.vencidas || '—') + '</td><td>' + (g.porVencer || '—') + '</td>' + celda(g.pctGen) + celda(g.pct) + '</tr>').join('') +
+    '</tbody></table></div></div>';
+  const porSector = agrupar('S-', a => a.id_area + '-' + (a.id_sector ?? 0), a => (varias ? aTitulo_(a.area_nombre || '') + ' · ' : '') + (a.sector || 'Toda el área'));
+  const porPlan = agrupar('P-', a => a.grupo || '', a => a.grupo || 'Sin grupo plan');
+  return '<p class="tb-sub" style="margin:0 0 8px;">Reporte al <b>' + ppaFechaTxt_(hoy) + '</b>' + (varias ? ' · ' + areas.length + ' áreas' : '') + '. ' +
+      '<b>📊 Avance general</b> = acciones hechas ÷ meta de todo el período (cada medida aporta hasta su meta). ' +
+      '<b>📅 Avance a la fecha</b> = acciones que lleva ÷ acciones que debía llevar (quincenas ya terminadas). ' +
+      '<b>⏳ Por vencer</b>: meta pendiente antes de fin de ' + escapeHtml_(mesTxt) + '. Usa los filtros de arriba (área, sector, plan…).</p>' +
+    '<div class="sg-resumen sg-ppa-resumen">' +
+      '<div style="--c:' + SG_PPA_COL(T.pctGen) + '"><b>' + pctTxt(T.pctGen) + '</b><span>📊 avance general (' + n(T.llevaGen) + ' de ' + n(T.metaTot) + ' del período)</span></div>' +
+      '<div style="--c:' + SG_PPA_COL(T.pct) + '"><b>' + pctTxt(T.pct) + '</b><span>📅 avance a la fecha (lleva ' + n(T.lleva) + ' de ' + n(T.debe) + ')</span></div>' +
+      '<div style="--c:#DC2626"><b>' + T.vencidas + '</b><span>⏰ vencidas · faltan ' + n(T.falta) + ' acciones</span></div>' +
+      '<div style="--c:#D97706"><b>' + T.porVencer + '</b><span>⏳ por vencer en ' + escapeHtml_(mesTxt) + '</span></div>' +
+      '<div style="--c:#2563EB"><b>' + T.total + '</b><span>📋 medidas</span></div>' +
+    '</div>' +
+    '<div class="sg-ppa-grid">' + tarjetas + '</div>' +
+    tabla('📍 Avance por sector', porSector) + tabla('🗂️ Avance por plan', porPlan);
 }
 
 /* ── 📄 Detalle ───────────────────────────────────────────────────────── */
@@ -536,15 +597,26 @@ function ppaKpis_(lista) {
   const ids = lista.map(a => a.id_ppa);
   const total = ids.reduce((s, id) => s + ppaMetaPeriodo_(id), 0), exig = ids.reduce((s, id) => s + ppaExigible_(id), 0);
   const av = ids.reduce((s, id) => s + ppaAvanceTotal_(id), 0), p = ppaPct_(av, exig);
+  // 18-11-2026: avance GENERAL del PPA = avance ÷ meta de todo el período; cada acción aporta hasta su meta
+  // (lo adelantado en una acción no tapa lo pendiente de otra)
+  const avGen = ids.reduce((s, id) => s + Math.min(ppaAvanceTotal_(id), ppaMetaPeriodo_(id)), 0), pGen = ppaPct_(avGen, total);
   const est = {}; ids.forEach(id => { const e = ppaEstado_(id); est[e] = (est[e] || 0) + 1; });
-  return { total, exig, av, p, est, n: ids.length };
+  return { total, exig, av, p, avGen, pGen, est, n: ids.length };
+}
+function ppaPeriodoTxt_() {
+  const m = ppaMesesPeriodo_(); return m.length ? ppaMesTxt_(m[0], true) + ' a ' + ppaMesTxt_(m[m.length - 1], true) : 'período';
 }
 function ppaHtmlKpis_(k) {
   const kpi = (c, v, t, s) => '<div class="tb-kpi" style="--c:' + c + '"><b>' + v + '</b><span>' + t + '</span>' + (s ? '<small>' + s + '</small>' : '') + '</div>';
-  return '<div class="tb-kpis ppa-kpis">' +
-    kpi('#2563EB', k.n, 'Acciones', 'con los filtros') + kpi('#7C3AED', ppaNum_(k.total), 'Meta del período', 'oct a mar') +
+  const barra = (c, p) => '<div class="ppa-barra-av"><i style="width:' + Math.min(100, p || 0) + '%;background:' + c + '"></i></div>';
+  const grande = (t, p, s) => { const c = ppaColorPct_(p); return '<div class="tb-kpi ppa-kpi-grande" style="--c:' + c + '"><span>' + t + '</span><b>' + (p == null ? '—' : p + ' %') + '</b>' + barra(c, p) + '<small>' + s + '</small></div>'; };
+  return '<div class="tb-kpis ppa-kpis ppa-kpis-avance">' +
+      grande('📊 Avance general del PPA', k.pGen, ppaNum_(k.avGen) + ' de ' + ppaNum_(k.total) + ' acciones de todo el período (' + ppaPeriodoTxt_() + ')') +
+      grande('📅 Avance a la fecha', k.p, ppaNum_(k.av) + ' de ' + ppaNum_(k.exig) + ' exigibles al ' + ppaFechaTxt_(ppaHoy_()) + ' (quincenas terminadas)') +
+    '</div>' +
+    '<div class="tb-kpis ppa-kpis">' +
+    kpi('#2563EB', k.n, 'Acciones', 'con los filtros') + kpi('#7C3AED', ppaNum_(k.total), 'Meta del período', ppaPeriodoTxt_()) +
     kpi('#0891B2', ppaNum_(k.exig), 'Exigible a la fecha', 'quincenas terminadas') + kpi('#16A34A', ppaNum_(k.av), 'Avance registrado', '') +
-    kpi(ppaColorPct_(k.p), k.p == null ? '—' : k.p + ' %', 'Cumplimiento a la fecha', 'avance / exigible') +
     kpi('#16A34A', k.est.aldia || 0, 'Al día', '') + kpi('#D97706', k.est.atrasada || 0, 'Atrasadas', '≥ 50 % de lo exigible') +
     kpi('#DC2626', k.est.critica || 0, 'Críticas', '< 50 % de lo exigible') + '</div>';
 }

@@ -830,6 +830,7 @@ function cargarSeccionAdmin_(seccion) {
     recursos: adminSeccionRecursos_, tiposRecurso: adminSeccionTiposRecurso_, patrulleros: adminSeccionPatrulleros_, comunas: adminSeccionComunas_, areaComunas: adminSeccionAreaComunas_, auditoria: adminSeccionAuditoria_, auditoriaPerfiles: adminSeccionAuditoriaPerfiles_, modulosPerfil: adminSeccionModulosPerfil_, actividad: adminSeccionActividad_, sesiones: adminSeccionSesiones_,
     appPatrulleros: adminSeccionAppPatrulleros_, appAcciones: adminSeccionAppAcciones_,
     limpieza: adminSeccionLimpieza_,   // js/37 (SQL 154)
+    delegados: adminSeccionDelegados_,   // js/12 (SQL 185): delegados de prevención por área y feriados
   }[seccion];
   if (fn) fn(c);
 }
@@ -927,9 +928,16 @@ async function adminSeccionUsuarios_(c) {
     (as || []).forEach(x => { state.asocPorPerfil[x.perfil_id] = x.asociacion; });
   } catch (e) { /* sin SQL 129 */ }
   state.usuarios.forEach(u => { if (state.asocPorPerfil[u.id] && u.perfil === 'Visor') u.perfil = PERFIL_ASOC; });
+  // Perfil SSO (SQL 184): Visor + marca
+  state.ssoPorPerfil = {};
+  try {
+    const { data: ss } = await supabaseClient.from('perfil_sso').select('perfil_id');
+    (ss || []).forEach(x => { state.ssoPorPerfil[x.perfil_id] = true; });
+  } catch (e) { /* sin SQL 184 */ }
+  state.usuarios.forEach(u => { if (state.ssoPorPerfil[u.id] && u.perfil === 'Visor') u.perfil = PERFIL_SSO; });
   state.admFiltroPerfil = state.admFiltroPerfil || '';
   state.admFiltroArea = state.admFiltroArea || '';
-  const ORDEN = ['Administrador','Subgerente de Relacionamiento','Jefe de Área Relacionamiento',PERFIL_GRT,'GRD','Visor',PERFIL_ASOC];
+  const ORDEN = ['Administrador','Subgerente de Relacionamiento','Jefe de Área Relacionamiento',PERFIL_GRT,'GRD','Visor',PERFIL_SSO,PERFIL_ASOC];
   // Filtro por área de relacionamiento (18-10-2026): el usuario tiene el área asignada (Jefe, Subgerente, GRT)
   // o alguna de sus comunas es de esa área (GRD, Visor), según Administración › Comunas por área.
   const comunasDeArea = await comunasPorAreaUsuario_();
@@ -965,6 +973,7 @@ async function adminSeccionUsuarios_(c) {
       admKpi_('🤝', '#E0E7FF', 'Gestores (GRT)', cont[PERFIL_GRT] || 0, { click: PERFIL_GRT, activo: fP === PERFIL_GRT }) +
       admKpi_('🚒', '#DBEAFE', 'GRD', cont['GRD'] || 0, { click: 'GRD', activo: fP === 'GRD' }) +
       admKpi_('👁️', '#F1F5F9', 'Visores', cont['Visor'] || 0, { click: 'Visor', activo: fP === 'Visor' }) +
+      admKpi_('🦺', '#FFEDD5', 'Perfil SSO', cont[PERFIL_SSO] || 0, { click: PERFIL_SSO, activo: fP === PERFIL_SSO }) +
       admKpi_('🌾', '#ECFCCB', 'Asociación Agricultores', cont[PERFIL_ASOC] || 0, { click: PERFIL_ASOC, activo: fP === PERFIL_ASOC }) +
       admKpi_('✅', '#DCFCE7', 'Activos / Inactivos', act + ' / ' + (state.usuarios.length - act)) +
       '</div>' +
@@ -1065,8 +1074,8 @@ async function eliminarUsuarioInactivo_(u) {
 // permiso que la gobierna (k) y nivel que exige (n), y la regla por perfil:
 //   'si' = puede · 'no' = no puede · texto = puede con esa condición. Las filas con k se ajustan con
 //   🛡️ Permisos por perfil (si el perfil quedó por debajo de n, se muestra «restringido por perfil»).
-const AUD_PERFILES = ['Administrador', 'Subgerente de Relacionamiento', 'Jefe de Área Relacionamiento', PERFIL_GRT, 'GRD', 'Visor', PERFIL_ASOC];
-const AUD_CORTO = { 'Administrador': 'Admin', 'Subgerente de Relacionamiento': 'Subgerente', 'Jefe de Área Relacionamiento': 'Jefe de Área', [PERFIL_GRT]: 'GRT', 'GRD': 'GRD', 'Visor': 'Visor', [PERFIL_ASOC]: 'Asociación' };
+const AUD_PERFILES = ['Administrador', 'Subgerente de Relacionamiento', 'Jefe de Área Relacionamiento', PERFIL_GRT, 'GRD', 'Visor', PERFIL_SSO, PERFIL_ASOC];
+const AUD_CORTO = { 'Administrador': 'Admin', 'Subgerente de Relacionamiento': 'Subgerente', 'Jefe de Área Relacionamiento': 'Jefe de Área', [PERFIL_GRT]: 'GRT', 'GRD': 'GRD', 'Visor': 'Visor', [PERFIL_SSO]: 'SSO', [PERFIL_ASOC]: 'Asociación' };
 // Orden de las columnas en cada fila: Admin, Subgerente, Jefe, GRT, GRD, Visor, Asociación de Agricultores
 const AUD_CAPACIDADES = [
   ['📊 Dashboard', 'Ver el Dashboard y sus indicadores', 'dashboard', 'ver', ['si', 'si', 'si', 'si', 'si', 'si', 'no']],
@@ -1090,7 +1099,7 @@ const AUD_CAPACIDADES = [
   ['🧭 Planificador de Alertas', 'Sumar el área de influencia de un comité (Red de Prevención) al copamiento', 'planificador_mapa', 'editar', ['si', 'si', 'si', 'si', 'Amarilla y Roja', 'no', 'no']],
   ['🚓 Prevención', 'Asignar gestor de relacionamiento a rutas SIGEI (y planilla codificada)', null, null, ['si', 'si', 'si', 'si', 'no', 'no', 'no']],
   ['🚓 Prevención', 'Ver rutas SIGEI por gestor (color, filtro y leyenda)', null, null, ['si', 'si', 'si', 'si', 'no', 'no', 'no']],
-  ['🌲 Planificador CMPC', 'Turnos de Gestores de relacionamiento: programar', null, null, ['si', 'Sus áreas', 'Sus áreas', 'no (solo ve)', 'no', 'no', 'no']],
+  ['🌲 Planificador CMPC', 'Turnos de Gestores: programar (fines de semana y feriados desde hoy; + delegado de prevención del área, SQL 185)', null, null, ['si (también días pasados)', 'no (solo ve)', 'Sus áreas', 'no (solo ve; salvo delegado)', 'no', 'no', 'no']],
   ['🌲 Planificador CMPC', 'Turnos de Gestores de relacionamiento: ver', null, null, ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
   ['🧭 Planificador de Alertas', 'Al crear una ruta (no CMPC): ofrecer agregarla a Amarilla / Roja', 'planificador_mapa', 'editar', ['si', 'si', 'si', 'si', 'Desde Amarilla', 'no', 'no']],
   ['🧭 Planificador de Alertas', 'Descargar PDF del plan', 'planificador_mapa', 'ver', ['si', 'si', 'si', 'si', 'no', 'no', 'no']],
@@ -1142,6 +1151,14 @@ const AUD_CAPACIDADES = [
   ['⚙️ Administración', '🧹 Limpieza de datos: eliminar datos basura (con papelera y restaurar)', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
   ['⚙️ Administración', '«Ver como…» otro perfil', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
 ];
+/* 21-11-2026 (SQL 184): columna del Perfil SSO (va entre Visor y Asociación, igual que en AUD_PERFILES). Solo consulta del Planificador gráfico /
+ * Tablero y de la Gestión de Recursos (con personas) de todas las áreas; nada más. Se inserta aquí para no repetirla en cada fila. */
+const AUD_SSO_SI = {
+  'Planificador gráfico / Tablero de recursos (solo el Admin ve todas las áreas)': 'Todas las áreas (consulta)',
+  'Gestión de Recursos: editar datos y contacto': 'no (consulta de todas las áreas)',
+  'Gestión de Recursos: 👥 personas del recurso y titular (SQL 147)': 'no (consulta de todas las áreas)',
+};
+AUD_CAPACIDADES.forEach(f => { if (f[4].length === 7) f[4].splice(6, 0, AUD_SSO_SI[f[1]] || 'no'); });
 state.audp = { vista: 'matriz', q: '', perfil: '', permPerfil: null, permUsuario: null };
 /** Nivel del perfil en un módulo: mínimo(máximo técnico, ajuste en 🛡️ Permisos por perfil). */
 function audNivelPerfil_(perfil, k) {
@@ -1162,13 +1179,14 @@ function audCelda_(fila, i) {
  *  MISMAS reglas de los menús (MENU_MODULOS) simulando cada perfil con sus permisos guardados (permisos_perfil). ── */
 function conPerfilSimulado_(perfilVisible, permPerfil, fn) {
   const g = { perfil: state.perfil, subgerencia: state.subgerencia, esGRT: state.esGRT, pp: state.permisosPerfilRol, pu: state.permisosUsuario,
-    asoc: state.asociacion, areas: state.misAreasIds, nums: state.misAreaNums };
+    asoc: state.asociacion, sso: state.sso, areas: state.misAreasIds, nums: state.misAreaNums };
   try {
     state.misAreaNums = [];
     state.perfil = Object.assign({}, state.perfil || {}, { perfil: perfilBase_(perfilVisible) });
     state.subgerencia = perfilVisible === 'Subgerente de Relacionamiento' ? 'NORTE' : null;
     state.esGRT = perfilVisible === PERFIL_GRT;
     state.asociacion = perfilVisible === PERFIL_ASOC ? 'MALLECO' : null;
+    state.sso = perfilVisible === PERFIL_SSO;
     // Jefe / Subgerente / GRT simulados con el área de la Asociación: así la matriz muestra quién ve 🌾 Agricultores
     if (esJefeAreaPerfil_(perfilBase_(perfilVisible))) state.misAreasIds = [AGR_AREA_VISIBLE];
     state.permisosPerfilRol = (permPerfil || {})[perfilVisible] || null;
@@ -1176,7 +1194,7 @@ function conPerfilSimulado_(perfilVisible, permPerfil, fn) {
     return fn();
   } finally {
     state.perfil = g.perfil; state.subgerencia = g.subgerencia; state.esGRT = g.esGRT; state.permisosPerfilRol = g.pp; state.permisosUsuario = g.pu;
-    state.asociacion = g.asoc; state.misAreasIds = g.areas; state.misAreaNums = g.nums;
+    state.asociacion = g.asoc; state.sso = g.sso; state.misAreasIds = g.areas; state.misAreaNums = g.nums;
   }
 }
 function matrizModulosPerfil_(permPerfil) {
@@ -1237,9 +1255,12 @@ async function adminSeccionAuditoriaPerfiles_(c) {
         supabaseClient.from('perfil_gestor_territorial').select('perfil_id'),
         supabaseClient.from('perfil_asociacion').select('perfil_id'),
       ]);
+      let sso = new Set();
+      try { const { data: so } = await supabaseClient.from('perfil_sso').select('perfil_id'); sso = new Set((so || []).map(x => x.perfil_id)); } catch (e) { /* sin SQL 184 */ }
       const sg = {}; (ps || []).forEach(x => { sg[x.perfil_id] = x.subgerencia; });
       const gt = new Set((gs || []).map(x => x.perfil_id)), asc = new Set((ao || []).map(x => x.perfil_id));
-      state.usuarios.forEach(u => { if (sg[u.id]) { u.perfil = 'Subgerente de Relacionamiento'; u.subgerencia = sg[u.id]; } else if (gt.has(u.id)) u.perfil = PERFIL_GRT; else if (asc.has(u.id) && u.perfil === 'Visor') u.perfil = PERFIL_ASOC; });
+      state.usuarios.forEach(u => { if (sg[u.id]) { u.perfil = 'Subgerente de Relacionamiento'; u.subgerencia = sg[u.id]; } else if (gt.has(u.id)) u.perfil = PERFIL_GRT;
+        else if (asc.has(u.id) && u.perfil === 'Visor') u.perfil = PERFIL_ASOC; else if (sso.has(u.id) && u.perfil === 'Visor') u.perfil = PERFIL_SSO; });
     } catch (e) { state.usuarios = state.usuarios || []; }
   }
   renderAuditoriaPerfiles_(c);

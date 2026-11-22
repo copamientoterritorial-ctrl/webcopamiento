@@ -502,6 +502,7 @@ function nombrePerfilVisible_(perfil, subgerencia) {
   if (subgerencia) return 'Subgerente de Relacionamiento · ' + aTitulo_(subgerencia);
   if (state.esGRT) return PERFIL_GRT;
   if (state.asociacion) return PERFIL_ASOC + ' (' + aTitulo_(state.asociacion) + ')';
+  if (state.sso) return PERFIL_SSO;
   return perfil === 'Jefe de Área Relacionamiento' ? 'Jefe de Área Relacionamiento' : perfil;
 }
 /* 17-10-2026 (SQL 119): Gestor de Relacionamiento Territorial (GRT). En la BD es un Jefe de Área + fila en
@@ -511,6 +512,11 @@ const PERFIL_GRT = 'Gestor de Relacionamiento Territorial';
 /* 20-10-2026 (SQL 129): «Asociación de Agricultores». En la BD es un Visor + fila en perfil_asociacion: solo ve el menú
  * 🌾 Agricultores (registra actividades, planificación y la meta de escuelas). No es configurable en Permisos por perfil. */
 const PERFIL_ASOC = 'Asociación de Agricultores';
+/* 21-11-2026 (SQL 184): «Perfil SSO» = Gestión en Prevención en Seguridad. En la BD es un Visor + fila en perfil_sso: SOLO CONSULTA de
+ * 🧭 Planificador gráfico, 📊 Tablero y 🗂️ Gestión de Recursos (con las personas de cada recurso), de TODAS las áreas. Menús: SSO_MENUS. */
+const PERFIL_SSO = 'Perfil SSO (Gestión en Prevención en Seguridad)';
+const SSO_MENUS = ['tab-planificador', 'tab-tablero', 'tab-gestion'];
+function esSSO_() { return !!state.sso; }
 /** Clave de un área para COMPARAR (= clave_area_red_vial_ del SQL 71): sin tildes, mayúsculas y sin espacios ni guiones.
  *  'Los Ríos - Los Lagos' y 'LOS RÍOS-LOS LAGOS' → 'LOSRIOSLOSLAGOS'; 'Cañete' → 'CANETE'. Usarla SIEMPRE al comparar áreas. */
 function areaClave_(s) {
@@ -519,6 +525,7 @@ function areaClave_(s) {
 /** ¿El área (nombre o id) es una de las del usuario? El Administrador las ve todas. */
 function esMiArea_(nombre, idArea) {
   if (state.perfil && state.perfil.perfil === 'Administrador') return true;
+  if (state.sso) return true;   // Perfil SSO: consulta de todas las áreas (sin editar)
   if (idArea != null && (state.misAreaNums || []).includes(Number(idArea))) return true;
   const k = areaClave_(nombre);
   return !!k && (state.misAreasIds || []).some(a => areaClave_(a) === k);
@@ -530,10 +537,11 @@ function perfilEfectivo_() {
   const p = state.perfil && state.perfil.perfil;
   if (state.subgerencia) return 'Subgerente de Relacionamiento';
   if (state.esGRT) return PERFIL_GRT;
+  if (state.sso) return PERFIL_SSO;   // sus permisos no los recorta la fila «Visor» de Permisos por perfil
   return p;
 }
 /** Perfil técnico (el guardado en perfiles.perfil) de un perfil visible: Subgerente y GRT son Jefe de Área; la Asociación es Visor. */
-function perfilBase_(p) { return (p === 'Subgerente de Relacionamiento' || p === PERFIL_GRT) ? 'Jefe de Área Relacionamiento' : p === PERFIL_ASOC ? 'Visor' : p; }
+function perfilBase_(p) { return (p === 'Subgerente de Relacionamiento' || p === PERFIL_GRT) ? 'Jefe de Área Relacionamiento' : (p === PERFIL_ASOC || p === PERFIL_SSO) ? 'Visor' : p; }
 // Perfiles que arrancan con capas mínimas (solo Límite Comunal): GRD y Jefe de Área.
 function perfilArranqueMinimo_() {
   return state.perfil && (state.perfil.perfil === 'GRD' || state.perfil.perfil === 'Jefe de Área Relacionamiento');
@@ -616,6 +624,15 @@ async function entrarAlSistemaInterno_() {
     } catch (e) { /* sin el SQL 129 */ }
   }
   if (state.simulacion && state.simulacion.asociacion) state.asociacion = state.simulacion.asociacion;
+  // Perfil SSO (SQL 184): Visor + perfil_sso → solo Planificador gráfico, Tablero y Gestión de Recursos (consulta)
+  state.sso = false;
+  if (state.perfil.perfil === 'Visor' && !state.asociacion && !state.simulacion) {
+    try {
+      const { data: s } = await supabaseClient.from('perfil_sso').select('perfil_id').eq('perfil_id', state.user.id).maybeSingle();
+      state.sso = !!s;
+    } catch (e) { /* sin el SQL 184 */ }
+  }
+  document.body.classList.toggle('es-sso', !!state.sso);
   document.body.classList.toggle('es-asociacion', !!state.asociacion);
   document.body.classList.toggle('es-subgerente', !!state.subgerencia);
   document.getElementById('up-rol').textContent = nombrePerfilVisible_(state.perfil.perfil, state.subgerencia);
@@ -651,6 +668,12 @@ async function entrarAlSistemaInterno_() {
   { const tt = document.getElementById('tab-turnos'); if (tt) tt.style.display = puedeGestionarTurnos_() ? '' : 'none'; }
   // Permisos por usuario (SQL 83): restringen menús, opciones y capas.
   await cargarMisPermisos_();
+  // Delegados de prevención por área (SQL 185): el delegado programa 👥 Turnos de Gestores de su área aunque no sea Jefe
+  state.esDelegadoPrev = false;
+  try {
+    const { data: dp, error: eDp } = await supabaseClient.rpc('delegados_prevencion');
+    if (!eDp) { state.tgDelegados = dp || []; state.esDelegadoPrev = (dp || []).some(d => d.perfil_id === state.user.id); }
+  } catch (e) { /* sin el SQL 185 */ }
   aplicarPermisosMenu_();
   // 🆕 Novedades del sistema (js/40): una vez por usuario, lo nuevo para su perfil
   setTimeout(() => { if (typeof mostrarNovedadesAlIngresar_ === 'function') mostrarNovedadesAlIngresar_(); }, 2500);
@@ -772,7 +795,8 @@ async function entrarAlSistemaInterno_() {
   cargarLimitesMultiComuna_(); // varias comunas: límites de todas, activa resaltada
   // Vista inicial: Dashboard (el mapa queda listo pero oculto hasta ir a su pestaña).
   // El Subgerente de Relacionamiento entra directo a su tablero de 📈 Seguimiento.
-  mostrarVista_(esAsociacion_() ? 'agricultores' : esSubgerente_() ? 'seguimiento' : 'dashboard');
+  // El Perfil SSO entra directo al Planificador gráfico de Recursos (sus únicos menús: Planificador, Tablero y Gestión).
+  mostrarVista_(esAsociacion_() ? 'agricultores' : esSSO_() ? 'planificador' : esSubgerente_() ? 'seguimiento' : 'dashboard');
   iniciarSincronizacionDiaria_();
   renderSimulacionPerfil_();
 }

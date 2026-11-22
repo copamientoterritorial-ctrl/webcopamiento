@@ -490,8 +490,8 @@ async function cargarEmpresasGestion_() {
 }
 
 function puedeGestionRecursos_() {
-  return !!state.perfil && (state.perfil.perfil === 'Administrador' || esJefeAreaPerfil_(state.perfil.perfil)) &&
-    puedeVerModulo_('planificador_grafico');
+  return !!state.perfil && (state.perfil.perfil === 'Administrador' || esJefeAreaPerfil_(state.perfil.perfil) || esSSO_()) &&
+    puedeVerModulo_('planificador_grafico');   // Perfil SSO (SQL 184): solo consulta (grPuedeEditar_ / grEsAdmin_ siguen en falso)
 }
 function grEsAdmin_() { return esAdminOJefe_(); }   // 17-10-2026: Jefe de Área = Administrador (nuevo recurso, Excel, empresas)
 function grPuedeEditar_(r) { return plPuedeEditar_(r); }
@@ -708,7 +708,8 @@ function renderGestion_() {
   const aviso = document.getElementById('gr-aviso');
   aviso.style.display = state.gr.sinSql92 ? '' : 'none';
   if (state.gr.sinSql92) aviso.textContent = '⚠️ Falta ejecutar en Supabase el SQL 92 (sql/pendientes/92_gestion_recursos_contacto.sql): por ahora no se pueden guardar cambios ni ver los datos de contacto.';
-  document.getElementById('gr-estado').textContent = grEsAdmin_() ? 'Administrador · edición directa y carga masiva' : 'Edición directa de tus áreas';
+  document.getElementById('gr-estado').textContent = grEsAdmin_() ? 'Administrador · edición directa y carga masiva'
+    : esSSO_() ? '👁️ Perfil SSO · solo consulta de todas las áreas' : 'Edición directa de tus áreas';
   document.getElementById('gr-guardar').style.display = nCamb ? '' : 'none';
   document.getElementById('gr-guardar').textContent = '💾 Guardar cambios (' + nCamb + ')';
   document.getElementById('gr-descartar').style.display = nCamb ? '' : 'none';

@@ -1,9 +1,9 @@
 {
-  "version": "1.7.0",
-  "fecha": "2026-11-18",
+  "version": "1.8.1",
+  "fecha": "2026-11-19",
   "notas": [
-    "El mapa para registrar una actividad muestra los sectores y los fundos CMPC del área, con sus nombres (botón 🗂️ para apagarlos).",
-    "Puedes eliminar un registro de avance que tú ingresaste (el Administrador, cualquiera).",
-    "Se corrigió el ícono de cerrar sesión en Android."
+    "Funciona sin señal: abre con tu sesión y los datos guardados, registra avances en pendientes y los envía al volver la señal.",
+    "PPA: indicadores «Avance general del PPA» (todo el período) y «Avance a la fecha».",
+    "Meteorología sin permiso de ubicación: usa tu última ubicación o un lugar que elijas en el mapa."
   ]
 }
