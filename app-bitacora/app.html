@@ -88,6 +88,9 @@
   table.sem th:first-child, table.sem td:first-child { text-align:left; position:sticky; left:0; background: var(--card); padding-left:10px; max-width:150px; overflow:hidden; text-overflow:ellipsis; }
   table.sem td.c { cursor:pointer; font-size:16px; }
   table.sem th.hoy { color: var(--pri2); }
+  table.sem td.c .pct { display:block; font-size:10.5px; font-weight:800; line-height:1.1; margin-top:2px; }
+  table.sem td.prom { font-size:12px; font-weight:800; }
+  .pct-ok { color:#15803D; } .pct-med { color:#B45309; } .pct-bajo { color:#B91C1C; }
   .leyenda { display:flex; flex-wrap:wrap; gap:6px 12px; font-size:11.5px; color: var(--sub); margin:8px 2px; }
   /* Mapa */
   .mapa-tab { height:62vh; min-height:320px; border-radius:12px; overflow:hidden; border:1px solid var(--borde); background:#DDE3EA; position:relative; }
@@ -387,7 +390,7 @@
 const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-bitacora-app', detectSessionInUrl: false } });
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.5.1';
 const DOMINIO_CUENTAS = 'recursos.copamientoterritorial.cl';   // = Edge Function admin-cuentas-recurso y js/41 de la web
 const DIAS_CARGA = 14;   // aperturas que se descargan hacia atrás
 
@@ -834,6 +837,16 @@ function avanceDe(j) {
   const desde = hasta || h.ini;   // la próxima actividad empieza aquí
   return { ini: h.ini, fin: h.fin, hasta, desde, pct, completo: !!hasta && hasta >= new Date(h.fin.getTime() - 60000), n: l.length };
 }
+// % del turno registrado con actividades (v1.5.1, vista Semana): con las actividades descargadas se calcula en el teléfono (incluye lo
+// pendiente de envío); para días anteriores usa avance_pct de v_bit_jornadas (SQL 188, mismo cálculo en el servidor).
+function pctJornada(j) {
+  if (!j || !j.en_servicio) return null;
+  const cargadas = j._pend || (S.actDesde && j.fecha_operativa >= S.actDesde) || S.actJornadas.has(j.id) || actividadesDe(j.id).length > 0;
+  if (!cargadas && j.avance_pct != null) return Math.max(0, Math.min(100, Math.round(Number(j.avance_pct))));
+  const a = avanceDe(j);
+  return a ? a.pct : (j.avance_pct != null ? Math.round(Number(j.avance_pct)) : null);
+}
+const clasePct = p => p >= 100 ? 'pct-ok' : p >= 50 ? 'pct-med' : 'pct-bajo';
 function progHtml(j, claro) {
   const a = avanceDe(j); if (!a) return '';
   return '<div class="prog' + (claro ? ' claro' : '') + '"><div class="prog-bar" role="progressbar" aria-valuenow="' + a.pct + '" aria-valuemin="0" aria-valuemax="100"><i' + (a.completo ? ' class="ok"' : '') + ' style="width:' + a.pct + '%"></i></div>' +
@@ -1191,16 +1204,31 @@ function pintarSemana() {
   const fin = S.fecha, dias = Array.from({ length: 7 }, (_, i) => sumarDias(fin, i - 6)), hoy = hoyISO();
   const lista = recursosFiltrados().sort((a, b) => String(a.area).localeCompare(String(b.area), 'es') || String(a.clave_radial).localeCompare(String(b.clave_radial), 'es', { numeric: true }));
   let html = fechaNavHtml() + filtrosHtml();
-  html += '<div class="sem-wrap"><table class="sem"><thead><tr><th>Recurso</th>' + dias.map(d => '<th class="' + (d === hoy ? 'hoy' : '') + '">' + esc(fmtDiaCorto(d)) + '</th>').join('') + '</tr></thead><tbody>';
+  html += '<div class="sem-wrap"><table class="sem"><thead><tr><th>Recurso</th>' + dias.map(d => '<th class="' + (d === hoy ? 'hoy' : '') + '">' + esc(fmtDiaCorto(d)) + '</th>').join('') +
+    '<th title="Promedio del % del turno registrado en las jornadas En servicio de la semana">Prom.</th></tr></thead><tbody>';
+  const pcts = [];
   lista.forEach(r => {
+    const delRec = [];
     html += '<tr><td title="' + esc(r.tipo_nombre) + '">' + (TIPO_EMOJI[r.tipo_codigo] || '') + ' ' + esc(r.clave_radial || r.codigo_ref) + '</td>' + dias.map(d => {
       const st = estadoRecurso(r, d);
       const s = st.k === 'otro' ? (st.j.estado_emoji || '•') : ST[st.k].s;
-      return '<td class="c" data-rec="' + esc(r.id) + '" data-f="' + d + '" title="' + esc(st.k === 'otro' ? st.j.estado : ST[st.k].t) + '">' + s + (st.j && st.j._pend ? '<sup>⏳</sup>' : '') + '</td>';
-    }).join('') + '</tr>';
+      const p = st.j && st.j.en_servicio ? pctJornada(st.j) : null;
+      if (p != null) delRec.push(p);
+      return '<td class="c" data-rec="' + esc(r.id) + '" data-f="' + d + '" title="' + esc((st.k === 'otro' ? st.j.estado : ST[st.k].t) + (p != null ? ' · ' + p + ' % del turno registrado' : '')) + '">' + s +
+        (st.j && st.j._pend ? '<sup>⏳</sup>' : '') + (p != null ? '<span class="pct ' + clasePct(p) + '">' + p + '%</span>' : '') + '</td>';
+    }).join('');
+    const prom = delRec.length ? Math.round(delRec.reduce((a, b) => a + b, 0) / delRec.length) : null;
+    if (prom != null) pcts.push(...delRec);
+    html += '<td class="prom ' + (prom != null ? clasePct(prom) : '') + '">' + (prom != null ? prom + '%' : '—') + '</td></tr>';
   });
   html += '</tbody></table></div>';
-  html += '<div class="leyenda"><span>🟢 Abierta</span><span>✅ Cerrada</span><span>⚠️ Sin apertura estando de turno</span><span>🏠 Día libre</span><span>📞 Disponible</span><span>🩺 Licencia</span><span>🌴 Vacaciones</span><span>· Sin apertura</span><span>⏳ Por enviar</span></div>';
+  if (pcts.length) {
+    const g = Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length), comp = pcts.filter(p => p >= 100).length;
+    html += '<div class="aviso info">🧩 Actividades de la semana: <b class="' + clasePct(g) + '">' + g + ' %</b> del turno registrado en promedio · ' +
+      comp + ' de ' + pcts.length + ' jornadas al 100 %.</div>';
+  }
+  html += '<div class="leyenda"><span>🟢 Abierta</span><span>✅ Cerrada</span><span>⚠️ Sin apertura estando de turno</span><span>🏠 Día libre</span><span>📞 Disponible</span><span>🩺 Licencia</span><span>🌴 Vacaciones</span><span>· Sin apertura</span><span>⏳ Por enviar</span>' +
+    '<span class="pct-ok">% = turno registrado con actividades (100 % completo)</span><span class="pct-med">50–99 %</span><span class="pct-bajo">menos de 50 %</span></div>';
   if (!lista.length) html += '<div class="vacio">Sin recursos.</div>';
   $('m-cuerpo').innerHTML = html;
 }
