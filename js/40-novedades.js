@@ -6,6 +6,28 @@
  * Se pueden volver a ver con «🆕 Novedades» (botón del encabezado de Ayuda, abrirNovedades_(true)). */
 const NOVEDADES = [
   {
+    id: '2026-11-22-supervisor-empresa', fecha: '22-11-2026', titulo: 'Supervisor de empresa y ubicación en vivo',
+    items: [
+      { ico: '👷', t: 'Nuevo perfil: Supervisor de empresa (EESS)', perfiles: ['admin'],
+        d: 'En Administración › <b>👥 Usuarios</b> elige el perfil <b>Supervisor de empresa</b>, su <b>empresa</b> y sus <b>áreas</b>. Ve solo los recursos de su empresa en esas áreas: ' +
+           '<b>📅 Calendario de Turnos</b> y <b>📋 Bitácora</b> (solo consulta), y entra a la App Bitácora con el mismo correo y clave.' },
+      { ico: '👷', t: 'Bienvenido, Supervisor', perfiles: ['sup'],
+        d: 'Revisa en <b>📋 Bitácora</b> las aperturas y actividades de los recursos de tu empresa, y en <b>📅 Turnos</b> su calendario. ' +
+           'En <b>🗺️ Mapa</b> ves dónde están ahora (📡 en vivo) y su recorrido del día. También puedes seguirlos desde la <b>App Bitácora</b> en tu teléfono.' },
+      { ico: '📡', t: 'Bitácora › Mapa: ubicación en vivo y rutas', perfiles: ['admin', 'subgerente', 'grt', 'jefe'],
+        d: 'Con la jornada abierta, la App Bitácora envía la ubicación del recurso cada minuto. En <b>📋 Bitácora › 🗺️ Mapa</b> ves dónde está cada uno, su recorrido del día ' +
+           'y, si quieres, las <b>━ rutas asignadas</b> de todos los recursos filtrados.' },
+    ],
+  },
+  {
+    id: '2026-11-22-correo-meteorologia', fecha: '22-11-2026', titulo: 'Correo de Meteorología',
+    items: [
+      { ico: '🌤️', t: 'Correo diario de Meteorología', perfiles: ['admin'],
+        d: 'En Administración › <b>✉️ Correos › 🌤️ Meteorología</b>: cada GRD recibe de lunes a viernes el <b>resumen ejecutivo</b> del tiempo de su comuna (igual al tablero), ' +
+           'el <b>gráfico por hora</b> de hoy y el <b>pronóstico de la DGAC</b>. Tú recibes la tabla de todas las comunas con GRD y el resumen de la comuna de referencia. Ahora cada aviso elige sus días de la semana.' },
+    ],
+  },
+  {
     id: '2026-11-22-correos-automaticos', fecha: '22-11-2026', titulo: 'Correos automáticos',
     items: [
       { ico: '✉️', t: 'Correos automáticos: Resumen semanal del PPA', perfiles: ['admin'],

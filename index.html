@@ -2351,8 +2351,10 @@
               <option value="GRD">GRD</option>
               <option value="Asociación de Agricultores">Asociación de Agricultores (Malleco)</option>
               <option value="Perfil SSO (Gestión en Prevención en Seguridad)">Perfil SSO (Gestión en Prevención en Seguridad)</option>
+              <option value="Supervisor de empresa (EESS)">Supervisor de empresa (EESS)</option>
               <option value="Administrador">Administrador</option>
             </select>
+            <small id="u-sup-nota" style="display:none;margin-top:4px;color:var(--text-tertiary);font-size:11px;line-height:1.4;">Solo consulta del 📅 Calendario de Turnos y de 📋 Bitácora de los recursos de SU empresa en las áreas que marques. También entra a la App Bitácora con este correo y clave para seguir a sus recursos (aperturas, actividades y ubicación en vivo). Se guarda como Visor con la marca de Supervisor.</small>
             <small id="u-sso-nota" style="display:none;margin-top:4px;color:var(--text-tertiary);font-size:11px;line-height:1.4;">Solo consulta de 🧭 Planificador gráfico, 📊 Tablero y 🗂️ Gestión de Recursos de todas las áreas, con las personas de cada recurso. No modifica nada. Se guarda como Visor con la marca SSO (no necesita comunas ni áreas).</small>
             <small id="u-asoc-nota" style="display:none;margin-top:4px;color:var(--text-tertiary);font-size:11px;line-height:1.4;">Solo ve el menú 🌾 Agricultores (Gestión Asociación Malleco): registra actividades desde la app de terreno con este mismo correo y clave. Se guarda como Visor con las comunas del área Victoria.</small>
           </div>
@@ -2360,6 +2362,10 @@
             <label>Subgerencia</label>
             <select id="u-subg"><option value="">— Selecciona —</option></select>
             <small style="display:block;margin-top:4px;color:var(--text-tertiary);font-size:11px;line-height:1.4;">Administra automáticamente todas las áreas de la subgerencia (y sus comunas), con los permisos de un Jefe de Área. Tiene el tablero 📈 Seguimiento y no ve reportes meteorológicos.</small>
+          </div>
+          <div class="form-group" id="u-sup-wrap" style="display:none;">
+            <label>Empresa que supervisa</label>
+            <select id="u-sup-empresa"><option value="">— Selecciona —</option></select>
           </div>
           <div class="um-resumen" id="u-resumen"></div>
         </div>

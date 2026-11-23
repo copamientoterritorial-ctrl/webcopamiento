@@ -292,6 +292,31 @@
   .hist-dia { font-size:12px; font-weight:800; color: var(--sub); text-transform:uppercase; letter-spacing:.4px; margin:14px 2px 6px; }
   .ruta-info { font-size:12.5px; margin-top:8px; }
   @media (max-width:380px) { .kpi b { font-size:19px; } .seg button { font-size:12.5px; } }
+  /* v1.5.0 (SQL 195): 📡 ubicación en vivo, mapa de la jornada y 📅 calendario de turnos */
+  .pos-chip { display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; background: var(--card); border:1px solid var(--borde); border-radius:12px; padding:9px 12px; margin-bottom:10px; }
+  .pos-chip.ok { border-color:#FDBA74; background:#FFF7ED; color:#9A3412; }
+  .pos-chip.err { border-color:#FCA5A5; background:#FEF2F2; color:#991B1B; }
+  .pos-chip .red-dot { background:#F97316; }
+  .pos-chip .red-dot::before, .pos-chip .red-dot::after { border-color:#F97316; }
+  .pos-chip:not(.ok) .red-dot::before, .pos-chip:not(.ok) .red-dot::after { animation:none; opacity:0; }
+  .vivo-ico { background:none; border:0; }
+  .vivo-ico div { position:relative; width:28px; height:28px; border-radius:50%; background:#F97316; border:2px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; font-size:14px; }
+  .vivo-ico div::after { content:''; position:absolute; inset:-7px; border-radius:50%; border:2px solid #F97316; animation: onda 2.4s ease-out infinite; }
+  .vivo-ico.mio div { background:#2563EB; } .vivo-ico.mio div::after { border-color:#2563EB; }
+  .vivo-ico.viejo div { background:#94A3B8; } .vivo-ico.viejo div::after { display:none; }
+  .mj-vivo { position:absolute; left:8px; bottom:8px; z-index:1000; background: rgba(255,255,255,.95); border-radius:10px; padding:5px 9px; font-size:11.5px; font-weight:700; box-shadow:0 2px 8px rgba(2,6,23,.25); }
+  .cal-nav { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .cal-nav b { font-size:16px; }
+  .cal-nav button { border:1px solid var(--borde); background: var(--card); border-radius:10px; width:42px; height:38px; font-size:16px; cursor:pointer; }
+  .cal { display:grid; grid-template-columns: repeat(7, 1fr); gap:4px; }
+  .cal .dsem { text-align:center; font-size:11px; font-weight:800; color: var(--sub); padding:2px 0; }
+  .cal .dia { position:relative; min-height:48px; border-radius:10px; border:1px solid var(--borde); background: var(--card); padding:4px 5px; font-size:13px; font-weight:800; }
+  .cal .dia small { position:absolute; right:4px; bottom:3px; font-size:13px; }
+  .cal .dia.turno { background:#DCFCE7; border-color:#86EFAC; color:#14532D; }
+  .cal .dia.libre { background:#FEF9C3; border-color:#FDE68A; color:#713F12; }
+  .cal .dia.hoy { box-shadow: 0 0 0 2px var(--azul); }
+  .cal .dia.vacio { border:0; background:none; }
+  .cal .dia.pasado { opacity:.7; }
 </style>
 </head>
 <body>
@@ -353,12 +378,16 @@
  *   del recurso, fundos del área en el mapa (polígonos) y búsqueda «nombre (código)», coordenadas en grados-minutos-segundos,
  *   «Actividad general» (antes Foco planificado). Actividades ENCADENADAS: la 1ª desde el inicio del turno y cada una desde el fin de la
  *   anterior; barra de avance del turno (100 % = fin del turno); se elimina solo la última; aviso tras 2 h sin registrar (app abierta).
+ * v1.5.0 (SQL 195): rol «supervisor» (Supervisor de empresa: sus recursos = su empresa en sus áreas, solo consulta); 📡 la cuenta del recurso
+ *   comparte su ubicación cada ~1 min con la jornada abierta En servicio (POS, `revisarPosicion`, `enviarPosicion` → bit_reportar_posicion);
+ *   🗺️ Mapa con ubicación en vivo, recorrido y actividades del día (`cargarMapaJornada` → bit_mapa_jornada; la cuenta del recurso ve los de
+ *   su MISMA empresa y área) y 📅 calendario de turnos del recurso (`abrirCalendario`, recurso_turnos).
  * Versión: subir el MISMO número en APP_VERSION, en VERSION de sw-bitacora.js y en version.json.
  * ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-bitacora-app', detectSessionInUrl: false } });
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 const DOMINIO_CUENTAS = 'recursos.copamientoterritorial.cl';   // = Edge Function admin-cuentas-recurso y js/41 de la web
 const DIAS_CARGA = 14;   // aperturas que se descargan hacia atrás
 
@@ -643,7 +672,8 @@ function fundoEnPunto(fc, lat, lng) {
 }
 
 /* ───────── Reglas (mismas que el servidor) ───────── */
-const ROL_TXT = { admin: 'Administrador', gestion: 'Gestión de sus áreas', recurso: 'Cuenta de recurso', consulta: 'Solo consulta', sin_acceso: 'Sin acceso' };
+const ROL_TXT = { admin: 'Administrador', gestion: 'Gestión de sus áreas', recurso: 'Cuenta de recurso', supervisor: 'Supervisor de empresa', consulta: 'Solo consulta', sin_acceso: 'Sin acceso' };
+const rolTxt = c => c ? (ROL_TXT[c.rol] || '') + (c.rol === 'supervisor' && c.empresa ? ' · ' + c.empresa : '') : '';
 const TIPO_EMOJI = { BMP: '🚒', BD: '🚓', VC: '🛻', VM: '🏍️', VI: '🚶', VMON: '🐎' };
 const ST = {
   abierta: { c: '#16A34A', t: '🟢 Abierta', s: '🟢' },
@@ -922,8 +952,9 @@ function pintar() {
   if (S.sec === 'hoy' && esCuentaRecurso()) S.sec = 'inicio';
   document.querySelectorAll('#menu button').forEach(b => b.classList.toggle('on', b.dataset.s === S.sec));
   $('h-titulo').textContent = { inicio: '🏠 Mi jornada', hoy: '📋 Aperturas', historial: '🧩 Historial de actividades', semana: '🗓️ Semana', mapa: '🗺️ Mapa del día', perfil: '👤 Mi cuenta' }[S.sec];
-  $('h-sub').textContent = S.ctx ? ROL_TXT[S.ctx.rol] || '' : 'Bitácora';
+  $('h-sub').textContent = S.ctx ? rolTxt(S.ctx) : 'Bitácora';
   pintarRed();
+  setTimeout(revisarPosicion, 0);   // 📡 v1.5.0: con la jornada abierta, la cuenta del recurso comparte su ubicación
   if (S.errorCarga && !S.ctx) { $('m-cuerpo').innerHTML = '<div class="card"><div class="aviso err">' + esc(S.errorCarga) + '</div><button class="btn" data-recargar="1" style="width:100%;">🔄 Reintentar</button></div>' + (S.sec === 'perfil' ? perfilHtml() : ''); return; }
   if (S.ctx && S.ctx.rol === 'sin_acceso' && S.sec !== 'perfil') {
     $('m-cuerpo').innerHTML = '<div class="card"><div class="aviso">Tu cuenta no tiene áreas ni recursos asignados para la Bitácora. Pide al Administrador que te asigne tus áreas en la plataforma o que vincule tu cuenta a un recurso.</div></div>';
@@ -962,7 +993,8 @@ const ORDEN_ST = { falta: 0, abierta: 1, sin: 2, otro: 3, cerrada: 4 };
 function pintarInicio() {
   const propios = S.recursos.filter(r => r.propio);
   if (!propios.length) { $('m-cuerpo').innerHTML = '<div class="card"><div class="aviso">Tu cuenta no está vinculada a un recurso activo de la Bitácora. Pide al Administrador que la revise.</div></div>'; return; }
-  $('m-cuerpo').innerHTML = holaHtml() + instalarHtml() + propios.map(inicioRecursoHtml).join('') +
+  $('m-cuerpo').innerHTML = holaHtml() + instalarHtml() + '<div id="pos-chip"></div>' +
+    propios.map(r => inicioRecursoHtml(r) + '<button class="btn" data-cal="' + esc(r.id) + '" style="width:100%;margin-bottom:12px;">📅 Mi calendario de turnos</button>').join('') +
     (S.descarga ? '<p class="muted" style="text-align:center;">Datos de las ' + esc(fmtHora(S.descarga)) + (navigator.onLine ? '' : ' · 📵 sin señal') + '</p>' : '');
 }
 function inicioRecursoHtml(r) {
@@ -1346,7 +1378,8 @@ async function fundosEnMapaForm() {
 function pintarMapaTab() {
   const f = S.fecha;
   $('m-cuerpo').innerHTML = fechaNavHtml() + filtrosHtml() + '<div class="mapa-tab" id="mt"></div>' +
-    '<div class="leyenda"><span style="color:' + ST.abierta.c + '">● Abierta</span><span style="color:' + ST.cerrada.c + '">● Cerrada</span><span style="color:' + ST.falta.c + '">● Sin apertura (de turno)</span><span style="color:' + ST.otro.c + '">● Libre / otro</span><span style="color:' + ST.sin.c + '">○ Sin apertura</span><span>Punto lleno = ubicación de la apertura · hueco = punto base del recurso</span></div>';
+    '<div class="leyenda"><span style="color:' + ST.abierta.c + '">● Abierta</span><span style="color:' + ST.cerrada.c + '">● Cerrada</span><span style="color:' + ST.falta.c + '">● Sin apertura (de turno)</span><span style="color:' + ST.otro.c + '">● Libre / otro</span><span style="color:' + ST.sin.c + '">○ Sin apertura</span><span>Punto lleno = ubicación de la apertura · hueco = punto base del recurso</span>' +
+    '<span style="color:#EA580C;">📡 En vivo (azul = tu recurso · gris = más de 15 min sin enviar)</span><span>┅ Recorrido del día</span><span>● Actividad (color por tipo)</span></div>';
   const cont = $('mt');
   if (typeof L === 'undefined') { cont.innerHTML = '<div class="vacio">Mapa no disponible sin conexión.</div>'; return; }
   if (S.mapaTab) { try { S.mapaTab.remove(); } catch (e) {} }
@@ -1371,8 +1404,180 @@ function pintarMapaTab() {
       '<div style="margin-top:8px;"><button class="btn btn-mini btn-p" data-rec="' + esc(r.id) + '">Abrir ficha</button></div></div>');
     pts.push(ll);
   });
-  if (pts.length) map.fitBounds(pts, { padding: [30, 30], maxZoom: 13 });
+  map.invalidateSize();
+  if (pts.length) map.fitBounds(pts, { padding: [30, 30], maxZoom: 13, animate: false });
   setTimeout(() => map.invalidateSize(), 80);
+  cargarMapaJornada(map, f, pts);   // 📡 v1.5.0: ubicación en vivo, recorrido y actividades del día
+}
+
+/* ───────── v1.5.0 (SQL 195): 📡 ubicación en vivo, mapa de la jornada y 📅 calendario de turnos ───────── */
+// Cuenta de recurso: con su jornada abierta En servicio la app manda su ubicación cada ~1 min (decisión del usuario: automática).
+// La ven su Supervisor de empresa, su Jefe de Área y los recursos de su MISMA empresa y área (bit_ve_companero_).
+// Una app web solo lee el GPS con la app abierta o recién en segundo plano (no con el teléfono bloqueado mucho rato).
+const POS = { watch: null, timer: null, ultima: null, enviado: 0, enviadoOk: null, estado: '', err: '', rid: null, enviando: false };
+const posCada = () => Math.max(20, Number(S.ctx && S.ctx.posicion_cada_seg) || 60) * 1000;
+function jornadaParaPosicion() {
+  if (!esCuentaRecurso()) return null;
+  for (const r of S.recursos.filter(x => x.propio)) {
+    const { j } = jornadaActual(r);
+    if (j && j.en_servicio && !cerradaDe(j)) return { r, j };
+  }
+  return null;
+}
+function revisarPosicion() {
+  const x = jornadaParaPosicion();
+  if (!x || !('geolocation' in navigator) || POS.estado === 'sin_sql') { if (POS.estado !== 'sin_sql') detenerPosicion(); return pintarPosChip(); }
+  POS.rid = x.r.id;
+  if (POS.watch == null) {
+    POS.estado = POS.estado || 'buscando';
+    POS.watch = navigator.geolocation.watchPosition(p => {
+      POS.ultima = p; POS.err = '';
+      if (POS.estado === 'buscando' || POS.estado === 'error') POS.estado = 'gps';
+      if (Date.now() - POS.enviado >= posCada()) enviarPosicion(); else pintarPosChip();
+    }, e => { POS.err = e && e.code === 1 ? 'permiso' : 'gps'; POS.estado = 'error'; pintarPosChip(); },
+    { enableHighAccuracy: true, maximumAge: 30000, timeout: 60000 });
+  }
+  if (!POS.timer) POS.timer = setInterval(() => { if (Date.now() - POS.enviado >= posCada()) enviarPosicion(); }, 15000);
+  pintarPosChip();
+}
+function detenerPosicion() {
+  if (POS.watch != null) { try { navigator.geolocation.clearWatch(POS.watch); } catch (e) { /* sin GPS */ } }
+  if (POS.timer) clearInterval(POS.timer);
+  Object.assign(POS, { watch: null, timer: null, ultima: null, rid: null, estado: POS.estado === 'sin_sql' ? 'sin_sql' : '', err: '' });
+}
+async function enviarPosicion() {
+  const p = POS.ultima;
+  if (!p || !POS.rid || POS.enviando) return;
+  if (!navigator.onLine) { POS.estado = 'sin_red'; return pintarPosChip(); }
+  if (Date.now() - p.timestamp > 5 * 60000) return;   // punto viejo: se espera uno nuevo del GPS
+  POS.enviando = true;
+  try {
+    const c = p.coords, num = v => v != null && !isNaN(v) ? v : null;
+    const { data, error } = await sb.rpc('bit_reportar_posicion', { p: { recurso_id: POS.rid, lat: c.latitude, lng: c.longitude, precision_m: Math.round(c.accuracy || 0),
+      velocidad: num(c.speed), rumbo: num(c.heading), fecha: new Date(p.timestamp).toISOString() } });
+    POS.enviado = Date.now();
+    if (error) POS.estado = /bit_reportar_posicion|schema cache|does not exist|PGRST202/i.test(msgError(error)) ? 'sin_sql' : (esSinSenal(error) ? 'sin_red' : 'error_red');
+    else if (data && data.ok) { POS.estado = 'ok'; POS.enviadoOk = new Date(); }
+    else POS.estado = data && data.motivo === 'sin_jornada' ? 'espera' : 'error_red';   // la apertura aún no llega al servidor
+  } catch (e) { POS.estado = 'sin_red'; }
+  POS.enviando = false;
+  if (POS.estado === 'sin_sql') detenerPosicion();
+  pintarPosChip();
+}
+function pintarPosChip() {
+  const el = $('pos-chip'); if (!el) return;
+  if (!POS.rid || POS.estado === 'sin_sql') { el.className = ''; el.innerHTML = ''; return; }
+  const t = { ok: '📡 Compartiendo tu ubicación con tu supervisor' + (POS.enviadoOk ? ' · última ' + hhmm(POS.enviadoOk) : ''),
+    gps: '📡 Ubicación lista, enviándola…', buscando: '📡 Buscando tu ubicación (GPS)…',
+    espera: '📡 Tu ubicación se compartirá cuando la apertura llegue al servidor',
+    sin_red: '📵 Sin señal: tu ubicación se vuelve a compartir al recuperar la conexión',
+    error_red: '⚠️ No se pudo enviar tu ubicación; se reintenta sola',
+    error: POS.err === 'permiso' ? '📍 Permite la ubicación del navegador para que tu supervisor vea dónde estás (candado 🔒 › Ubicación › Permitir)' : '⚠️ El GPS no responde; revisa que la ubicación del teléfono esté encendida' }[POS.estado] || '';
+  el.className = 'pos-chip' + (POS.estado === 'ok' ? ' ok' : POS.estado === 'error' || POS.estado === 'error_red' ? ' err' : '');
+  el.innerHTML = '<span class="red-dot" aria-hidden="true"></span><span>' + esc(t) + '</span>';
+}
+
+// Mapa del día: lo de la jornada que la base deja ver (bit_mapa_jornada): última ubicación y recorrido de cada recurso,
+// sus actividades (color por clasificación) y, para la cuenta de recurso, los recursos de su misma empresa y área. Se repite cada 60 s.
+const haceTxt = ts => { const m = Math.round((Date.now() - new Date(ts).getTime()) / 60000); return m < 1 ? 'recién' : m < 60 ? 'hace ' + m + ' min' : 'hace ' + durTxt(m); };
+async function cargarMapaJornada(map, f, base) {
+  if (!navigator.onLine || S.mapaTab !== map) return;
+  const cont = map.getContainer();
+  let capa = null, ajustado = false, cuadro = null;
+  const vuelta = async () => {
+    if (S.mapaTab !== map || S.sec !== 'mapa' || S.fecha !== f) return;
+    let data;
+    try { const r = await sb.rpc('bit_mapa_jornada', { p_fecha: f }); if (r.error) throw r.error; data = r.data; }
+    catch (e) { return; }   // sin el SQL 195 o sin señal: queda el mapa de siempre
+    if (S.mapaTab !== map) return;
+    if (capa) map.removeLayer(capa);
+    capa = L.layerGroup().addTo(map);
+    const lim = [], recs = data.recursos || [], porId = new Map(recs.map(r => [r.id, r]));
+    let vivos = 0;
+    (data.actividades || []).forEach(a => {
+      if (a.lat == null || a.lng == null) return;
+      const r = porId.get(a.recurso_id) || recurso(a.recurso_id) || {};
+      L.circleMarker([a.lat, a.lng], { radius: 6, color: '#fff', weight: 1.5, fillColor: a.color || '#475569', fillOpacity: .8 }).addTo(capa)
+        .bindPopup('<div class="pop"><b>' + esc((a.clasificacion_emoji || a.grupo_emoji || '') + ' ' + (a.actividad || '')) + '</b>' +
+          '<div>' + esc((r.clave || r.clave_radial || r.codigo || r.codigo_ref || '') + ' · ' + hhmm(new Date(a.inicio)) + '–' + hhmm(new Date(a.fin))) + (a.cantidad > 1 ? ' · ×' + a.cantidad : '') + '</div>' +
+          (a.fundo ? '<div>🌲 ' + esc(a.fundo) + '</div>' : '') + (a.observacion ? '<div class="muted">' + esc(a.observacion) + '</div>' : '') + '</div>');
+      lim.push([a.lat, a.lng]);
+    });
+    recs.forEach(r => {
+      const mio = !!r.propio, ras = (r.rastro || []).map(p => [p[0], p[1]]);
+      if (ras.length > 1) L.polyline(ras, { color: mio ? '#2563EB' : '#F97316', weight: 3, opacity: .85, dashArray: '6 6' }).addTo(capa);
+      const u = r.ultima, j = r.jornada || {};
+      const ll = u ? [u.lat, u.lng] : (j.lat != null && j.lng != null ? [j.lat, j.lng] : null);
+      if (!ll) return;
+      const viejo = !u || Date.now() - new Date(u.fecha).getTime() > 15 * 60000;
+      if (!viejo) vivos++;
+      const emo = TIPO_EMOJI[r.tipo_codigo] || '🚩', nom = r.clave || r.codigo || 'Recurso';
+      const pop = '<div class="pop"><b>' + emo + ' ' + esc(nom) + (mio ? ' (tú)' : '') + '</b><div>' + esc([r.empresa, r.area].filter(Boolean).join(' · ')) + '</div>' +
+        '<div>' + esc((j.estado_emoji || '') + ' ' + (j.estado || '') + (j.turno ? ' · 🕒 ' + j.turno : '')) + (j.cierre_en ? ' · ✅ cerrada' : '') + '</div>' +
+        (u ? '<div>📡 ' + esc(haceTxt(u.fecha)) + (u.velocidad != null ? ' · ' + Math.round(u.velocidad * 3.6) + ' km/h' : '') + '</div>' : '<div class="muted">Sin ubicación en vivo: punto de la apertura</div>') +
+        (j.jefe ? '<div>⭐ ' + esc(j.jefe) + (j.jefe_telefono ? ' ' + telLinks(j.jefe_telefono) : '') + '</div>' : '') +
+        '<div>🧩 ' + (data.actividades || []).filter(a => a.recurso_id === r.id).length + ' actividades hoy</div>' +
+        (recurso(r.id) ? '<div style="margin-top:8px;"><button class="btn btn-mini btn-p" data-rec="' + esc(r.id) + '" data-f="' + f + '">Abrir ficha</button></div>' : '') + '</div>';
+      L.marker(ll, { zIndexOffset: 1000, icon: L.divIcon({ className: 'vivo-ico' + (mio ? ' mio' : '') + (viejo ? ' viejo' : ''), html: '<div>' + emo + '</div>', iconSize: [28, 28], iconAnchor: [14, 14] }) })
+        .addTo(capa).bindTooltip(esc(nom + (u ? ' · ' + haceTxt(u.fecha) : '')), { direction: 'top', offset: [0, -14], className: 'fu-tt' }).bindPopup(pop);
+      lim.push(ll);
+    });
+    if (!cuadro) { cuadro = document.createElement('div'); cuadro.className = 'mj-vivo'; cont.appendChild(cuadro); }
+    cuadro.textContent = '📡 ' + vivos + ' en movimiento · ' + recs.length + ' con apertura · ' + (data.actividades || []).length + ' actividades · ' + hhmm(new Date());
+    if (!ajustado && lim.length) { ajustado = true; map.fitBounds(lim.concat(base || []), { padding: [30, 30], maxZoom: 14, animate: false }); }
+    if (f === hoyISO()) setTimeout(vuelta, 60000);
+  };
+  vuelta();
+}
+
+// 📅 Calendario de turnos del recurso (Calendario de Turnos del copamiento, recurso_turnos): mes a mes, ✓ en turno · L libre,
+// con el estado de la apertura de cada día ya descargado. Queda en el teléfono para verlo sin señal.
+async function abrirCalendario(rid, mes) {
+  const r = recurso(rid); if (!r) return;
+  mes = mes || hoyISO().slice(0, 7);
+  const [a, m] = mes.split('-').map(Number), ini = mes + '-01', fin = isoDe(new Date(a, m, 0)), hoy = hoyISO();
+  const mesTxt = new Date(a, m - 1, 15).toLocaleDateString('es-CL', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+  const otro = d => { const x = new Date(a, m - 1 + d, 1); return x.getFullYear() + '-' + pad(x.getMonth() + 1); };
+  const cab = '<div class="sh-top"><div style="flex:1;min-width:0;"><h2>📅 Turnos · ' + esc(r.clave_radial || r.codigo_ref) + '</h2><div class="muted">' +
+    esc([r.tipo_nombre, r.empresa, r.area].filter(Boolean).join(' · ')) + '</div></div><button class="sh-x" data-cerrar="1" aria-label="Cerrar">✕</button></div>';
+  abrirHoja(cab + '<div class="sh-body"><div class="vacio">Cargando el calendario…</div></div>');
+  const k = 'turnos_' + rid + '_' + mes;
+  let dias = null, deCache = false;
+  try {
+    const { data, error } = await sb.from('recurso_turnos').select('fecha, activo').eq('recurso_id', rid).gte('fecha', ini).lte('fecha', fin);
+    if (error) throw error;
+    dias = (data || []).filter(x => x.activo).map(x => String(x.fecha).slice(0, 10));
+    cacheSet(k, dias);
+  } catch (e) { dias = await cacheGet(k); deCache = true; }
+  if (!$('ov').classList.contains('show')) return;
+  const set = new Set(dias || []), t = turnoCat(r.turno_sugerido);
+  const desde = r.fecha_inicio_operacion ? String(r.fecha_inicio_operacion).slice(0, 10) : '';
+  let html = cab + '<div class="sh-body"><div class="cal-nav"><button data-cal="' + esc(rid) + '" data-mes="' + otro(-1) + '" aria-label="Mes anterior">◀</button><b>' + esc(mesTxt) + '</b>' +
+    '<button data-cal="' + esc(rid) + '" data-mes="' + otro(1) + '" aria-label="Mes siguiente">▶</button></div>';
+  if (!dias) html += '<div class="aviso">Sin señal y sin este mes guardado en el teléfono. Ábrelo una vez con señal.</div>';
+  else {
+    html += '<div class="cal">' + ['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(d => '<div class="dsem">' + d + '</div>').join('');
+    const primero = (new Date(a, m - 1, 1).getDay() + 6) % 7;
+    for (let i = 0; i < primero; i++) html += '<div class="dia vacio"></div>';
+    for (let d = 1; d <= Number(fin.slice(8)); d++) {
+      const f = mes + '-' + pad(d), en = set.has(f), j = jornadaDe(rid, f), st = j ? estadoRecurso(r, f) : null;
+      const marca = st ? (st.k === 'otro' ? (j.estado_emoji || '•') : ST[st.k].s) : '';
+      html += '<div class="dia ' + (en ? 'turno' : (desde && f < desde ? '' : 'libre')) + (f === hoy ? ' hoy' : '') + (f < hoy ? ' pasado' : '') + '"' +
+        (j ? ' data-rec="' + esc(rid) + '" data-f="' + f + '"' : '') + ' title="' + esc(fmtFecha(f) + (en ? ' · de turno' : ' · libre') + (st ? ' · ' + (st.k === 'otro' ? j.estado : ST[st.k].t) : '')) + '">' +
+        d + '<br><span style="font-size:11px;font-weight:700;">' + (en ? '✓' : (desde && f < desde ? '' : 'L')) + '</span>' + (marca ? '<small>' + marca + '</small>' : '') + '</div>';
+    }
+    html += '</div>';
+    const n = [...set].filter(f => f.startsWith(mes)).length, prox = [...set].filter(f => f >= hoy).sort().slice(0, 5);
+    html += '<div class="sec"><div class="dato"><span>Días de turno en el mes</span><b>' + n + '</b></div>' +
+      (t ? '<div class="dato"><span>Horario del recurso</span><b>' + esc((t.jornada === 'Nocturna' ? '🌙 ' : '☀️ ') + turnoTxt(t)) + '</b></div>' : (r.horario ? '<div class="dato"><span>Horario</span><b>' + esc(r.horario) + '</b></div>' : '')) +
+      (desde ? '<div class="dato"><span>Inicio de operación</span><b>' + esc(fmtFecha(desde)) + '</b></div>' : '') +
+      (prox.length ? '<div class="dato"><span>Próximos turnos</span><b>' + prox.map(f => esc(fmtDiaCorto(f))).join(' · ') + '</b></div>' : '') + '</div>';
+    html += '<div class="leyenda"><span style="color:#15803D;">✓ De turno</span><span style="color:#A16207;">L Libre</span><span>🟢 Abierta</span><span>✅ Cerrada</span><span>⚠️ Sin apertura</span></div>';
+    if (deCache) html += '<p class="muted">📵 Sin señal: calendario guardado en el teléfono.</p>';
+    html += '<p class="muted">El calendario lo programa tu Jefe de Área en el sistema de Copamiento. Si ves un error, avísale.</p>';
+  }
+  html += '</div><div class="sh-foot"><button class="btn" data-cerrar="1">Cerrar</button></div>';
+  $('sheet').innerHTML = html;
 }
 
 /* ───────── Mi cuenta ───────── */
@@ -1390,7 +1595,7 @@ function perfilHtml() {
   }).join('');
   return '<div class="card perfil-head"><div class="avatar">' + esc(ini) + '</div><div style="min-width:0;"><b>' + esc(u.nombre || 'Sin nombre registrado') + '</b><div class="muted" style="word-break:break-all;">' + esc(c.correo || '') + '</div></div></div>' +
     '<div class="card"><div class="dato"><span>Usuario</span><b>' + esc(u.usuario || '—') + '</b></div><div class="dato"><span>Teléfono</span><b>' + (u.tel ? telLinks(u.tel) : '—') + '</b></div>' +
-    '<div class="dato"><span>Perfil</span><b>' + esc(c.perfil || '—') + '</b></div><div class="dato"><span>En la Bitácora</span><b>' + esc(ROL_TXT[c.rol] || '—') + '</b></div>' +
+    '<div class="dato"><span>Perfil</span><b>' + esc(c.perfil || '—') + '</b></div><div class="dato"><span>En la Bitácora</span><b>' + esc(rolTxt(c) || '—') + '</b></div>' +
       (propios.length ? '<div class="dato"><span>Recurso a cargo</span><b>' + propios.map(r => esc(r.clave_radial || r.codigo_ref)).join(', ') + '</b></div>' : '') +
       '<div class="dato"><span>Recursos visibles</span><b>' + S.recursos.length + '</b></div>' +
       '<div style="margin-top:8px;">' + ((c.areas || []).map(a => '<span class="pill">' + esc(a.nombre) + '</span>').join('') || '<span class="muted">Sin áreas asignadas</span>') + '</div></div>' +
@@ -1429,7 +1634,7 @@ function abrirRecurso(rid, fecha) {
     const plan = st.plan === true ? '📅 Estaba de turno según el calendario' : st.plan === false ? '📅 Libre según el calendario' : '';
     abrirHoja(cabeceraHoja(r, f) + '<div class="sh-body"><div class="vacio">Sin apertura registrada.<br>' + esc(plan) + '</div>' +
       (!r.puede_gestionar && r.propio ? '<div class="aviso">Solo puedes abrir la jornada de hoy' + (Number(S.ctx.dias_atras_recurso) ? ' o de ayer' : '') + '. Para otros días, pídelo a tu Jefe de Área.</div>' : '') +
-      '</div><div class="sh-foot"><button class="btn" data-cerrar="1">Cerrar</button></div>');
+      '</div><div class="sh-foot"><button class="btn" data-cal="' + esc(r.id) + '">📅 Turnos</button><button class="btn" data-cerrar="1">Cerrar</button></div>');
     return;
   }
   const e = estadoCat(j.estado_codigo) || {}, cerrada = cerradaDe(j), puede = puedeEditar(r, j);
@@ -1465,7 +1670,7 @@ function abrirRecurso(rid, fecha) {
   if (r.puede_gestionar && j.cierre_en) html += '<button class="btn" data-reabrir="1">🔓 Reabrir</button>';
   if (S.ctx.rol === 'admin') html += '<button class="btn btn-rojo" data-eliminar="1">🗑️ Eliminar</button>';
   if (!puede && !r.puede_gestionar && r.propio && cerrada) html += '<div class="muted" style="width:100%;">La jornada está cerrada. Para corregirla, pídelo a tu Jefe de Área.</div>';
-  html += '<button class="btn" data-cerrar="1">Cerrar</button></div>';
+  html += '<button class="btn" data-cal="' + esc(r.id) + '">📅 Turnos</button><button class="btn" data-cerrar="1">Cerrar</button></div>';
   abrirHoja(html);
   S.hoja = { r, f, j };
   if (j.lat != null && $('fv-mapa')) montarMapa($('fv-mapa'), j.lat, j.lng, {});
@@ -2251,6 +2456,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const t = e.target;
     const dia = t.closest('[data-dia]'); if (dia) { const nf = sumarDias(S.fecha, Number(dia.dataset.dia)); if (nf > hoyISO()) return; S.fecha = nf; await asegurarFecha(sumarDias(nf, S.sec === 'semana' ? -6 : 0)); return pintar(); }
     if (t.closest('[data-instalar]')) return instalarApp();
+    const cal = t.closest('[data-cal]'); if (cal) return abrirCalendario(cal.dataset.cal, cal.dataset.mes);   // 📅 v1.5.0
     const hd = t.closest('[data-hdias]'); if (hd) { S.hist.dias = Number(hd.dataset.hdias); return pintar(); }
     const k = t.closest('[data-kpi]'); if (k) { e.preventDefault(); S.filtros.kpi = S.filtros.kpi === k.dataset.kpi ? '' : k.dataset.kpi; return pintar(); }
     // Mi jornada
@@ -2286,6 +2492,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   hoja.addEventListener('click', e => {
     const t = e.target;
     if (t.closest('[data-cerrar]')) return cerrarHoja();
+    const cal = t.closest('[data-cal]'); if (cal) return abrirCalendario(cal.dataset.cal, cal.dataset.mes);   // 📅 v1.5.0
+    const cd = t.closest('.cal [data-rec]'); if (cd) { const rid = cd.dataset.rec, f = cd.dataset.f; cerrarHoja(); return abrirRecurso(rid, f); }
     if (t.closest('[data-editar]')) { const { r, f, j } = S.hoja; return abrirFormulario(r, f, j); }
     if (t.closest('[data-cerrarj]')) return abrirCierre();
     if (t.closest('[data-volver]')) { const { r, f } = S.hoja; return abrirRecurso(r.id, f); }
@@ -2386,6 +2594,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
     buscarActualizacion(); if (navigator.onLine) sincronizarPendientes();
+    if (POS.rid && Date.now() - POS.enviado >= posCada()) enviarPosicion();   // 📡 al volver a la app
     revisarAlertas(); if (S.sec === 'inicio' && !$('ov').classList.contains('show')) pintar();
   });
   // Cada minuto: aviso de 2 h sin registrar y avance de «Mi jornada» al día

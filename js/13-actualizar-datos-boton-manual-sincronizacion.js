@@ -142,6 +142,7 @@ async function actualizarDatos_(origen) {
 function mostrarVista_(vista, modoMapa) {
   if (esAsociacion_() && vista !== 'agradmin') vista = 'agricultores';   // la Asociación: su tablero y 🌾 Administración Agricultores
   if (typeof esSSO_ === 'function' && esSSO_() && !['planificador', 'tablero', 'gestion'].includes(vista)) vista = 'planificador';   // Perfil SSO (SQL 184)
+  if (typeof esSupervisor_ === 'function' && esSupervisor_() && vista !== 'turnos' && !/^bitacora/.test(vista)) vista = 'bitacora';   // Supervisor de empresa (SQL 195)
   if (vista === 'agradmin' && !puedeAdminAgricultores_()) vista = 'dashboard';
   if (vista === 'agricultores' && !puedeAgricultores_()) vista = 'dashboard';
   if (vista === 'turnosgestor' && !puedeTurnosGestores_()) vista = 'dashboard';
@@ -150,7 +151,7 @@ function mostrarVista_(vista, modoMapa) {
   if (vista === 'admin' && state.perfil.perfil !== 'Administrador') vista = 'dashboard';
   if (vista === 'patrullajes' && !esAdminOJefe_()) vista = 'dashboard';   // 17-10-2026: también Jefe de Área
   // Turnos y Planificador gráfico: según perfil + permisos por usuario (SQL 83).
-  if (vista === 'turnos' && !(puedeGestionarTurnos_() && puedeVerModulo_('turnos'))) vista = 'dashboard';
+  if (vista === 'turnos' && !((puedeGestionarTurnos_() || esSupervisor_()) && puedeVerModulo_('turnos'))) vista = 'dashboard';
   if ((vista === 'planificador' || vista === 'tablero') && !puedeVerModulo_('planificador_grafico')) vista = 'dashboard';
   if (vista === 'gestion' && !puedeGestionRecursos_()) vista = 'dashboard';
   if (vista === 'prioridad' && !puedeVerModulo_('prioridad')) vista = 'dashboard';

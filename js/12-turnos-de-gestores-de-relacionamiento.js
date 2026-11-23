@@ -620,7 +620,8 @@ async function cargarRecursosTurnos_() {
     return;
   }
   // Orden: tipo de recurso (orden del sistema) y, dentro, clave radial (FRA6.1, FRA6.2 … orden natural)
-  state.turnosRecursos = (recursos || []).slice().sort((a, b) =>
+  // Supervisor de empresa (SQL 195): solo los recursos de su empresa
+  state.turnosRecursos = (recursos || []).filter(r => esRecursoSupervisado_(r.id)).sort((a, b) =>
     compararTipoRecurso_(a.tipo_recurso, b.tipo_recurso) ||
     String(claveRecurso_(a) || '~').localeCompare(String(claveRecurso_(b) || '~'), 'es', { numeric: true }));
   // Ruta del escenario Normal de cada recurso (mismo enlace por id que en Planificar; SQL 79)
@@ -694,7 +695,8 @@ function renderGridTurnos_() {
   renderKpisTurnos_();
 
   if (!state.turnosRecursos.length) {
-    grid.innerHTML = '<div class="turnos-vacio">Esta área no tiene recursos asignados. Asígnalos desde Administración → Recursos por Área.</div>';
+    grid.innerHTML = '<div class="turnos-vacio">' + (esSupervisor_() ? 'Tu empresa (' + escapeHtml_(state.supervisor.empresa) + ') no tiene recursos en esta área.'
+      : 'Esta área no tiene recursos asignados. Asígnalos desde Administración → Recursos por Área.') + '</div>';
     return;
   }
   if (!recs.length) {
@@ -1146,7 +1148,7 @@ async function cargarSeguimientoTurnos_() {
     if (!state.seg.recursos.length) {
       const { data, error } = await recursosDeAreas_(areas, 'id');
       if (error) throw error;
-      state.seg.recursos = data || [];
+      state.seg.recursos = (data || []).filter(r => esRecursoSupervisado_(r.id));   // Supervisor (SQL 195): su empresa
       // Responsables (Jefes de Área) por área; si la BD no lo permite, se omite
       try {
         const { data: pa } = await supabaseClient.from('perfil_areas').select('perfil_id, area');
@@ -1416,6 +1418,7 @@ async function guardarTurnosPendientes_() {
 async function abrirModalInicioTurnos_(rec) {
   const r = recursoTurnoPorId_(rec);
   if (!r) return;
+  if (!puedeEditarModulo_('turnos')) { mostrarToast_('👁️ Fecha de inicio de operación: ' + (inicioRecursoISO_(r) ? formatoFechaCorta_(inicioRecursoISO_(r)) : 'sin fecha') + ' (solo consulta).'); return; }
   turnosInicioEditando_ = r;
   const inst = r.instituciones || {};
   document.getElementById('turnos-inicio-sub').textContent =

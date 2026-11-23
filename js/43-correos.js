@@ -33,6 +33,17 @@ function coFecha_(f) {
 }
 function coChip_(e) { const x = CO_ESTADOS[e] || { t: e, c: '#64748B' }; return '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;color:#fff;background:' + x.c + ';">' + x.t + '</span>'; }
 function coAvisoDestino_(a) { return a.destino || (a.tipo === 'ppa_subgerente' ? 'subgerencia' : 'area'); }
+const CO_DIAS_CORTOS = ['', 'L', 'M', 'X', 'J', 'V', 'S', 'D'];
+const CO_CONSOLIDADO = '__consolidado__';
+/** Días ISO del aviso (SQL 194: dias_semana; antes solo dia_semana). */
+function coDiasAviso_(a) { return Array.isArray(a.dias_semana) && a.dias_semana.length ? a.dias_semana.map(Number) : [Number(a.dia_semana) || 1]; }
+function coDiasTxt_(dias) {
+  const s = [...dias].sort((x, y) => x - y).join(',');
+  if (s === '1,2,3,4,5,6,7') return 'Todos los días';
+  if (s === '1,2,3,4,5') return 'Lunes a viernes';
+  return dias.length === 1 ? CO_DIAS[dias[0]] : dias.map(d => CO_DIAS[d].slice(0, 3)).join(', ');
+}
+function coNombreComuna_(id) { const c = (state.comunas || []).find(x => String(x.id) === String(id)); return c ? c.comuna : String(id || ''); }
 
 async function adminSeccionCorreos_(c) {
   c.innerHTML = adminHead_('✉️ Correos automáticos', 'Cargando…');
@@ -103,26 +114,37 @@ function coRender_(c) {
 
 /** Tarjeta de un aviso: configuración, vista previa / prueba / enviar ahora y destinatarios. */
 function coHtmlAviso_(a) {
-  const S = state.co, D = S.datos, t = a.tipo, porSubg = coAvisoDestino_(a) === 'subgerencia';
-  const sel = S.sel[t] = S.sel[t] || { id_area: D.areas[0] ? String(D.areas[0].id) : '', subgerencia: D.subgs[0] || '' };
+  const S = state.co, D = S.datos, t = a.tipo, porSubg = coAvisoDestino_(a) === 'subgerencia', porComuna = coAvisoDestino_(a) === 'comuna';
+  const op = a.opciones || {};
+  const sel = S.sel[t] = S.sel[t] || { id_area: D.areas[0] ? String(D.areas[0].id) : '', subgerencia: D.subgs[0] || '', comuna: CO_CONSOLIDADO };
   const opt = (v, txt, s) => '<option value="' + escapeHtml_(String(v)) + '"' + (s ? ' selected' : '') + '>' + escapeHtml_(txt) + '</option>';
   const chk = (k, txt, v, tip) => '<label style="display:inline-flex;gap:6px;align-items:center;margin-right:14px;font-size:13px;" title="' + escapeHtml_(tip || '') + '"><input type="checkbox" data-co-f="' + k + '"' + (v ? ' checked' : '') + '> ' + txt + '</label>';
   const ds = D.dest[t] || { filas: [] }, filas = ds.filas;
-  const grupos = porSubg ? D.subgs : D.areas.map(x => x.nombre);
+  const grupos = porComuna ? [] : porSubg ? D.subgs : D.areas.map(x => x.nombre);
   const sinDest = grupos.filter(g => !filas.some(f => areaClave_(f.grupo || '') === areaClave_(g)));
   const extras = D.extras.filter(x => x.tipo === t);
   const nomArea = id => (D.areas.find(x => x.id === id) || {}).nombre || 'Área ' + id;
-  const alcance = x => x.id_area != null ? nomArea(x.id_area) : x.subgerencia ? 'Subgerencia ' + aTitulo_(x.subgerencia) : (porSubg ? 'Todas las subgerencias' : 'Todas las áreas');
-  const proximo = a.activo ? CO_DIAS[a.dia_semana] + ' ' + String(a.hora).padStart(2, '0') + ':00' : 'Inactivo';
-  const selector = porSubg
+  const alcance = x => x.comuna_id ? 'Comuna ' + coNombreComuna_(x.comuna_id) : x.id_area != null ? nomArea(x.id_area) : x.subgerencia ? 'Subgerencia ' + aTitulo_(x.subgerencia)
+    : (porComuna ? 'Consolidado' : porSubg ? 'Todas las subgerencias' : 'Todas las áreas');
+  const dias = coDiasAviso_(a);
+  const proximo = a.activo ? coDiasTxt_(dias) + ' ' + String(a.hora).padStart(2, '0') + ':00' : 'Inactivo';
+  // Comunas con destinatario (GRD o extra) para la vista previa / prueba del correo por comuna
+  const comunasDest = [...new Map(filas.filter(f => f.clave).map(f => [String(f.clave), f.grupo])).entries()].sort((x, y) => String(x[1]).localeCompare(String(y[1]), 'es'));
+  const todasComunas = [...(state.comunas || [])].sort((x, y) => String(x.comuna).localeCompare(String(y.comuna), 'es'));
+  const selector = porComuna
+    ? '<select data-co-sel="comuna" class="admin-search" style="max-width:260px;">' + opt(CO_CONSOLIDADO, '🧾 Consolidado (Administradores)', sel.comuna === CO_CONSOLIDADO) +
+        (comunasDest.length ? '<optgroup label="Comunas con GRD">' + comunasDest.map(([id, n]) => opt(id, n, sel.comuna === id)).join('') + '</optgroup>' : '') +
+        '<optgroup label="Otra comuna">' + todasComunas.filter(c => !comunasDest.some(([id]) => id === String(c.id))).map(c => opt(c.id, c.comuna, sel.comuna === String(c.id))).join('') + '</optgroup></select>'
+    : porSubg
     ? '<select data-co-sel="subgerencia" class="admin-search" style="max-width:200px;">' + D.subgs.map(s => opt(s, 'Subgerencia ' + aTitulo_(s), s === sel.subgerencia)).join('') + '</select>'
     : '<select data-co-sel="id_area" class="admin-search" style="max-width:240px;">' + D.areas.map(x => opt(x.id, x.nombre, String(x.id) === sel.id_area)).join('') + '</select>';
 
   const destTabla = ds.error ? '<div class="gr-aviso">⚠️ ' + escapeHtml_(ds.error.message || String(ds.error)) + '</div>' :
-    '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>' + (porSubg ? 'Subgerencia' : 'Área') + '</th><th>Nombre</th><th>Correo</th><th>Por qué</th><th></th></tr></thead><tbody>' +
-    (filas.map(f => '<tr><td>' + escapeHtml_(aTitulo_(f.grupo || '')) + '</td><td>' + escapeHtml_(f.nombre || '—') + '</td><td>' + escapeHtml_(f.correo) + '</td>' +
+    '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>' + (porComuna ? 'Comuna' : porSubg ? 'Subgerencia' : 'Área') + '</th><th>Nombre</th><th>Correo</th><th>Por qué</th><th></th></tr></thead><tbody>' +
+    (filas.map(f => '<tr><td>' + escapeHtml_(porComuna ? (f.grupo || '') : aTitulo_(f.grupo || '')) + '</td><td>' + escapeHtml_(f.nombre || '—') + '</td><td>' + escapeHtml_(f.correo) + '</td>' +
       '<td><small>' + escapeHtml_(f.origen) + '</small></td>' +
-      '<td><button class="popup-btn" data-co-excluir="' + escapeHtml_(f.correo) + '"' + (porSubg ? ' data-subg="' + escapeHtml_(f.grupo || '') + '"' : ' data-area="' + f.id_area + '"') +
+      '<td><button class="popup-btn" data-co-excluir="' + escapeHtml_(f.correo) + '"' +
+        (porComuna ? ' data-comuna="' + escapeHtml_(f.clave || '') + '"' : porSubg ? ' data-subg="' + escapeHtml_(f.grupo || '') + '"' : ' data-area="' + f.id_area + '"') +
         ' title="No enviarle este aviso">🚫 Excluir</button></td></tr>').join('') ||
       '<tr><td colspan="5">Nadie recibe este aviso todavía.</td></tr>') + '</tbody></table></div>' +
     (sinDest.length ? '<div style="font-size:12px;color:#DC2626;margin-top:6px;">⚠️ Sin destinatarios: ' + sinDest.map(g => escapeHtml_(aTitulo_(g))).join(', ') + '</div>' : '');
@@ -133,9 +155,16 @@ function coHtmlAviso_(a) {
       '<small style="color:var(--text-tertiary);margin-left:auto;">Último envío: ' + (a.ultimo_envio ? escapeHtml_(String(a.ultimo_envio).split('-').reverse().join('-')) : 'nunca') + '</small></div>' +
     '<p style="font-size:12.5px;color:var(--text-tertiary);margin:6px 0 10px;">' + escapeHtml_(a.descripcion || '') + '</p>' +
     '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">' + chk('activo', '<b>Activo</b> (envío automático)', a.activo) +
-      '<label style="font-size:13px;">Día <select data-co-f="dia" class="admin-search" style="max-width:140px;">' + CO_DIAS.slice(1).map((d, i) => opt(i + 1, d, a.dia_semana === i + 1)).join('') + '</select></label>' +
+      '<span style="font-size:13px;display:inline-flex;gap:4px;align-items:center;">Días ' + [1, 2, 3, 4, 5, 6, 7].map(d =>
+        '<label title="' + CO_DIAS[d] + '" style="display:inline-flex;flex-direction:column;align-items:center;font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:6px;cursor:pointer;">' +
+        CO_DIAS_CORTOS[d] + '<input type="checkbox" data-co-dia="' + d + '"' + (dias.includes(d) ? ' checked' : '') + '></label>').join('') + '</span>' +
       '<label style="font-size:13px;">Hora <select data-co-f="hora" class="admin-search" style="max-width:100px;">' + Array.from({ length: 24 }, (_, h) => opt(h, String(h).padStart(2, '0') + ':00', a.hora === h)).join('') + '</select></label></div>' +
-    (porSubg
+    (porComuna
+      ? '<div style="margin-bottom:10px;">Lo reciben: ' + chk('grd', 'GRD (el de su comuna)', op.grd !== false) + chk('admin', 'Administradores (consolidado)', op.admin !== false) + '</div>' +
+        '<div style="margin-bottom:10px;font-size:13px;">Comuna de referencia del consolidado: <select data-co-f="comuna_ref" class="admin-search" style="max-width:240px;">' +
+          opt('', '(la primera comuna con GRD)', !op.comuna_ref) + todasComunas.map(c => opt(c.id, c.comuna, String(op.comuna_ref || '') === String(c.id))).join('') + '</select>' +
+          ' <small style="color:var(--text-tertiary);">El Administrador recibe la tabla de todas las comunas con GRD y el resumen completo de esta comuna.</small></div>'
+      : porSubg
       ? '<div style="margin-bottom:10px;">Lo reciben: ' + chk('subgerentes', 'Subgerentes (de su subgerencia)', a.incluir_subgerentes) + ' <small style="color:var(--text-tertiary);">+ los correos extra de abajo</small></div>'
       : '<div style="margin-bottom:10px;">Lo reciben: ' +
           chk('jefes', 'Jefes de Área', a.incluir_jefes, 'Jefe de Área Relacionamiento con el área en su perfil (no Subgerentes ni GRT)') +
@@ -157,7 +186,10 @@ function coHtmlAviso_(a) {
       '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;">' +
         '<input data-co-x="correo" class="admin-search" type="email" placeholder="correo@empresa.cl" style="max-width:230px;">' +
         '<input data-co-x="nombre" class="admin-search" placeholder="Nombre (opcional)" style="max-width:190px;">' +
-        (porSubg
+        (porComuna
+          ? '<select data-co-x="grupo" class="admin-search" style="max-width:240px;">' + opt('', '🧾 Consolidado (como un Administrador)', true) +
+              todasComunas.map(c => opt(c.id, 'Comuna ' + c.comuna, false)).join('') + '</select>'
+          : porSubg
           ? '<select data-co-x="grupo" class="admin-search" style="max-width:220px;">' + opt('', 'Todas las subgerencias (una por cada una)', true) + D.subgs.map(s => opt(s, 'Subgerencia ' + aTitulo_(s), false)).join('') + '</select>'
           : '<select data-co-x="grupo" class="admin-search" style="max-width:220px;">' + opt('', 'Todas las áreas', true) + D.areas.map(x => opt(x.id, x.nombre, false)).join('') + '</select>') +
         '<select data-co-x="tipo" class="admin-search" style="max-width:150px;">' + opt('0', '➕ Recibe', true) + opt('1', '🚫 Excluir', false) + '</select>' +
@@ -202,10 +234,12 @@ function coEnlazar_(c) {
   if (hEst) hEst.addEventListener('change', e => { S.histEstado = e.target.value; coRender_(c); });
 
   c.querySelectorAll('[data-co-aviso]').forEach(card => {
-    const t = card.dataset.coAviso, a = D.avisos.find(x => x.tipo === t), porSubg = coAvisoDestino_(a) === 'subgerencia';
+    const t = card.dataset.coAviso, a = D.avisos.find(x => x.tipo === t), porSubg = coAvisoDestino_(a) === 'subgerencia', porComuna = coAvisoDestino_(a) === 'comuna';
     const filas = (D.dest[t] || { filas: [] }).filas;
     const f = k => card.querySelector('[data-co-f="' + k + '"]');
-    const selActual = () => Object.assign({ tipo: t }, porSubg ? { subgerencia: S.sel[t].subgerencia } : { id_area: Number(S.sel[t].id_area) });
+    const selActual = () => Object.assign({ tipo: t },
+      porComuna ? (S.sel[t].comuna === CO_CONSOLIDADO ? { consolidado: true } : { comuna_id: S.sel[t].comuna })
+        : porSubg ? { subgerencia: S.sel[t].subgerencia } : { id_area: Number(S.sel[t].id_area) });
     card.querySelector('[data-co-det]').addEventListener('toggle', e => { S.abiertos = S.abiertos || {}; S.abiertos[t] = e.target.open; });
     card.querySelectorAll('[data-co-sel]').forEach(s => s.addEventListener('change', () => {
       S.sel[t][s.dataset.coSel] = s.value; delete S.vistas[t];
@@ -216,9 +250,13 @@ function coEnlazar_(c) {
       if (f('activo').checked && !a.activo && !D.hist.some(h => h.tipo === t && h.es_prueba && h.estado === 'enviado') &&
           !confirm('Aún no se ha enviado una prueba de «' + a.nombre + '» con éxito. ¿Activar igual el envío automático?')) return;
       const val = k => (f(k) ? f(k).checked : null);
+      const diasElegidos = [...card.querySelectorAll('[data-co-dia]')].filter(x => x.checked).map(x => Number(x.dataset.coDia));
+      if (!diasElegidos.length) throw new Error('Elige al menos un día de la semana.');
       const { error } = await supabaseClient.rpc('correo_guardar_aviso', {
-        p_tipo: t, p_activo: f('activo').checked, p_dia: Number(f('dia').value), p_hora: Number(f('hora').value),
+        p_tipo: t, p_activo: f('activo').checked, p_dia: null, p_hora: Number(f('hora').value),
         p_jefes: val('jefes'), p_subgerentes: val('subgerentes'), p_grt: val('grt'), p_delegados: val('delegados'),
+        p_dias: diasElegidos,
+        p_opciones: porComuna ? { grd: val('grd'), admin: val('admin'), comuna_ref: f('comuna_ref').value || null } : null,
       });
       if (error) throw error;
       mostrarToast_('✅ Aviso guardado');
@@ -262,8 +300,8 @@ function coEnlazar_(c) {
       const g = x('grupo');
       const { error } = await supabaseClient.rpc('correo_guardar_destinatario', Object.assign({
         p_tipo: t, p_correo: x('correo'), p_nombre: x('nombre') || null,
-        p_id_area: !porSubg && g ? Number(g) : null, p_excluir: x('tipo') === '1',
-      }, porSubg ? { p_subgerencia: g || null } : {}));
+        p_id_area: !porSubg && !porComuna && g ? Number(g) : null, p_excluir: x('tipo') === '1',
+      }, porComuna ? { p_comuna_id: g || null } : porSubg ? { p_subgerencia: g || null } : {}));
       if (error) throw error;
       S.abiertos = Object.assign(S.abiertos || {}, { [t]: true });
       mostrarToast_('✅ Guardado');
@@ -272,8 +310,8 @@ function coEnlazar_(c) {
     card.querySelectorAll('[data-co-excluir]').forEach(b => b.addEventListener('click', () => ocupado(b, '…', async () => {
       if (!confirm('¿Dejar de enviar «' + a.nombre + '» a ' + b.dataset.coExcluir + '?')) return;
       const { error } = await supabaseClient.rpc('correo_guardar_destinatario', Object.assign({
-        p_tipo: t, p_correo: b.dataset.coExcluir, p_nombre: null, p_id_area: porSubg ? null : Number(b.dataset.area), p_excluir: true,
-      }, porSubg ? { p_subgerencia: b.dataset.subg || null } : {}));
+        p_tipo: t, p_correo: b.dataset.coExcluir, p_nombre: null, p_id_area: porSubg || porComuna ? null : Number(b.dataset.area), p_excluir: true,
+      }, porComuna ? { p_comuna_id: b.dataset.comuna || null } : porSubg ? { p_subgerencia: b.dataset.subg || null } : {}));
       if (error) throw error;
       S.abiertos = Object.assign(S.abiertos || {}, { [t]: true });
       recargar();

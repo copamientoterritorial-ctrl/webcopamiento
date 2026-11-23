@@ -506,6 +506,7 @@ function nombrePerfilVisible_(perfil, subgerencia) {
   if (state.esGRT) return PERFIL_GRT;
   if (state.asociacion) return PERFIL_ASOC + ' (' + aTitulo_(state.asociacion) + ')';
   if (state.sso) return PERFIL_SSO;
+  if (state.supervisor) return PERFIL_SUP + ' · ' + state.supervisor.empresa;
   return perfil === 'Jefe de Área Relacionamiento' ? 'Jefe de Área Relacionamiento' : perfil;
 }
 /* 17-10-2026 (SQL 119): Gestor de Relacionamiento Territorial (GRT). En la BD es un Jefe de Área + fila en
@@ -520,6 +521,14 @@ const PERFIL_ASOC = 'Asociación de Agricultores';
 const PERFIL_SSO = 'Perfil SSO (Gestión en Prevención en Seguridad)';
 const SSO_MENUS = ['tab-planificador', 'tab-tablero', 'tab-gestion'];
 function esSSO_() { return !!state.sso; }
+/* 22-11-2026 (SQL 195): «Supervisor de empresa (EESS)». En la BD es un Visor + fila en perfil_supervisor (empresa) + perfil_areas (sus áreas).
+ * SOLO CONSULTA del 📅 Calendario de Turnos y de 📋 Bitácora, y solo de los recursos de SU empresa en SUS áreas (state.supIds, del RPC
+ * bit_recursos_supervisados; la Bitácora la filtra además el RLS). También entra a la App Bitácora (rol 'supervisor'). Menús: SUP_MENUS. */
+const PERFIL_SUP = 'Supervisor de empresa (EESS)';
+const SUP_MENUS = ['tab-turnos', 'tab-bitacora', 'tab-bitacoraact', 'tab-bitacoramapa', 'tab-bitacoraind'];
+function esSupervisor_() { return !!state.supervisor; }
+/** ¿El recurso (id) es de los del Supervisor? Para el resto de los perfiles, siempre true. */
+function esRecursoSupervisado_(id) { return !state.supervisor || !state.supIds || state.supIds.has(String(id)); }
 /** Clave de un área para COMPARAR (= clave_area_red_vial_ del SQL 71): sin tildes, mayúsculas y sin espacios ni guiones.
  *  'Los Ríos - Los Lagos' y 'LOS RÍOS-LOS LAGOS' → 'LOSRIOSLOSLAGOS'; 'Cañete' → 'CANETE'. Usarla SIEMPRE al comparar áreas. */
 function areaClave_(s) {
@@ -541,10 +550,11 @@ function perfilEfectivo_() {
   if (state.subgerencia) return 'Subgerente de Relacionamiento';
   if (state.esGRT) return PERFIL_GRT;
   if (state.sso) return PERFIL_SSO;   // sus permisos no los recorta la fila «Visor» de Permisos por perfil
+  if (state.supervisor) return PERFIL_SUP;
   return p;
 }
 /** Perfil técnico (el guardado en perfiles.perfil) de un perfil visible: Subgerente y GRT son Jefe de Área; la Asociación es Visor. */
-function perfilBase_(p) { return (p === 'Subgerente de Relacionamiento' || p === PERFIL_GRT) ? 'Jefe de Área Relacionamiento' : (p === PERFIL_ASOC || p === PERFIL_SSO) ? 'Visor' : p; }
+function perfilBase_(p) { return (p === 'Subgerente de Relacionamiento' || p === PERFIL_GRT) ? 'Jefe de Área Relacionamiento' : (p === PERFIL_ASOC || p === PERFIL_SSO || p === PERFIL_SUP) ? 'Visor' : p; }
 // Perfiles que arrancan con capas mínimas (solo Límite Comunal): GRD y Jefe de Área.
 function perfilArranqueMinimo_() {
   return state.perfil && (state.perfil.perfil === 'GRD' || state.perfil.perfil === 'Jefe de Área Relacionamiento');
@@ -636,6 +646,19 @@ async function entrarAlSistemaInterno_() {
     } catch (e) { /* sin el SQL 184 */ }
   }
   if (state.simulacion && state.simulacion.sso) state.sso = true;   // «Ver como… › Modo SSO» (Administrador)
+  // Supervisor de empresa (SQL 195): Visor + perfil_supervisor → solo Turnos y Bitácora de SU empresa en SUS áreas (consulta)
+  state.supervisor = null; state.supIds = null;
+  if (state.perfil.perfil === 'Visor' && !state.asociacion && !state.sso && !state.simulacion) {
+    try {
+      const { data: su } = await supabaseClient.from('perfil_supervisor').select('empresa_id, empresas(nombre)').eq('perfil_id', state.user.id).maybeSingle();
+      if (su) {
+        state.supervisor = { empresa_id: su.empresa_id, empresa: (su.empresas && su.empresas.nombre) || 'Empresa' };
+        const { data: ids } = await supabaseClient.rpc('bit_recursos_supervisados');
+        state.supIds = new Set((ids || []).map(x => String(typeof x === 'object' && x ? Object.values(x)[0] : x)));
+      }
+    } catch (e) { /* sin el SQL 195 */ }
+  }
+  document.body.classList.toggle('es-supervisor', !!state.supervisor);
   document.body.classList.toggle('es-sso', !!state.sso);
   document.body.classList.toggle('es-asociacion', !!state.asociacion);
   document.body.classList.toggle('es-subgerente', !!state.subgerencia);
@@ -669,7 +692,7 @@ async function entrarAlSistemaInterno_() {
   // btn-recursos-area-rapido eliminado del DOM
   document.getElementById('tab-admin').style.display = state.perfil.perfil === 'Administrador' ? '' : 'none';
   document.getElementById('tab-patrullajes').style.display = esAdminOJefe_() ? '' : 'none';
-  { const tt = document.getElementById('tab-turnos'); if (tt) tt.style.display = puedeGestionarTurnos_() ? '' : 'none'; }
+  { const tt = document.getElementById('tab-turnos'); if (tt) tt.style.display = puedeGestionarTurnos_() || esSupervisor_() ? '' : 'none'; }
   // Permisos por usuario (SQL 83): restringen menús, opciones y capas.
   await cargarMisPermisos_();
   // Delegados de prevención por área (SQL 185): el delegado programa 👥 Turnos de Gestores de su área aunque no sea Jefe
@@ -800,7 +823,8 @@ async function entrarAlSistemaInterno_() {
   // Vista inicial: Dashboard (el mapa queda listo pero oculto hasta ir a su pestaña).
   // El Subgerente de Relacionamiento entra directo a su tablero de 📈 Seguimiento.
   // El Perfil SSO entra directo al Planificador gráfico de Recursos (sus únicos menús: Planificador, Tablero y Gestión).
-  mostrarVista_(esAsociacion_() ? 'agricultores' : esSSO_() ? 'planificador' : esSubgerente_() ? 'seguimiento' : 'dashboard');
+  // El Supervisor de empresa (SQL 195) entra a 📋 Bitácora › Aperturas (sus menús: Turnos y Bitácora).
+  mostrarVista_(esAsociacion_() ? 'agricultores' : esSSO_() ? 'planificador' : esSupervisor_() ? 'bitacora' : esSubgerente_() ? 'seguimiento' : 'dashboard');
   iniciarSincronizacionDiaria_();
   renderSimulacionPerfil_();
 }

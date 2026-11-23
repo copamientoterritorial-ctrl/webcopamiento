@@ -4,12 +4,15 @@
  *   bitacoraact   🧩 Actividades  — tabla de actividades (clasificación › grupo › actividad, horas, fundo, GMS, fotos); ⬇️ Excel
  *   bitacoramapa  🗺️ Mapa         — pinchos por clasificación, ubicación de las aperturas y ruta asignada del recurso elegido (SQL 192)
  *   bitacoraind   📊 Indicadores  — % del turno registrado, horas por clasificación, aperturas faltantes (de turno sin apertura), por área y por recurso; ⬇️ Excel
- * Ven: Administrador (todas las áreas) y Jefe de Área / Subgerente / GRT (sus áreas; lo decide el RLS de bit_jornada / bit_registro_actividad).
+ * Ven: Administrador (todas las áreas), Jefe de Área / Subgerente / GRT (sus áreas) y el Supervisor de empresa (SQL 195: su empresa en sus
+ * áreas); lo decide el RLS de bit_jornada / bit_registro_actividad. Mapa: 📡 ubicación en vivo y recorrido del día (bit_mapa_jornada, cada 30 s,
+ * `btVivo_`) y ━ rutas asignadas de todos los recursos filtrados (`btRutasTodas_`).
  * Lee v_bit_jornadas, v_bit_actividades (clasificación del SQL 193; sin él se agrupa por grupo), bit_mis_recursos() (días de turno ±7/14)
  * y bit_ruta_recurso(). Panel único #bitacora-panel (`abrirBitacoraWeb_(vista)`, `cargarBitacoraWeb_`). */
 state.bt = state.bt || { vista: 'bitacora', desde: '', hasta: '', area: '', tipo: '', estado: '', clasif: '', grupo: '', recurso: '', q: '',
   filas: [], acts: [], recursos: [], kls: [], grupos: [], abierta: '', cargado: false, sinClasif: false };
-function puedeBitacoraWeb_() { return esAdminOJefe_(); }
+// 22-11-2026 (SQL 195): también el Supervisor de empresa (solo su empresa en sus áreas: lo decide el RLS con bit_puede_ver_recurso_)
+function puedeBitacoraWeb_() { return esAdminOJefe_() || (typeof esSupervisor_ === 'function' && esSupervisor_()); }
 const BT_VISTAS = [['bitacora', '📋', 'Aperturas'], ['bitacoraact', '🧩', 'Actividades'], ['bitacoramapa', '🗺️', 'Mapa'], ['bitacoraind', '📊', 'Indicadores']];
 
 const BT_TIPOS = { BMP: '🚒 Brigada Multipropósito', BD: '🚓 Brigada Disuasiva', VC: '🛻 Vigía Camioneta', VM: '🏍️ Vigía Motorizado', VI: '🚶 Vigía Infantería', VMON: '🐎 Vigía Montado' };
@@ -269,8 +272,14 @@ function renderBtMapa_(cu) {
     [...porK.values()].map(k => btKpi_(k.n, (k.emoji || '') + ' ' + k.nombre, k.color)).join('');
   const est = document.getElementById('bt-estado-txt');
   if (est) est.textContent = btFecha_(s.desde) + ' → ' + btFecha_(s.hasta) + (s.recurso ? ' · ruta asignada del recurso' : ' · elige un recurso para ver su ruta');
-  cu.innerHTML = '<div id="bt-mapa" style="flex:1;min-height:420px;border-radius:12px;border:1px solid var(--border);"></div>' +
-    '<div class="muted" style="font-size:11.5px;margin:6px 2px;">● Actividad (color por clasificación) · ◆ Apertura · ━ Ruta asignada del recurso elegido (escenario Normal del copamiento).</div>';
+  if (s.verVivo === undefined) { s.verVivo = true; s.verRutas = false; }
+  cu.innerHTML = '<div class="bt-mapa-ops"><label><input type="checkbox" id="bt-vivo"' + (s.verVivo ? ' checked' : '') + '> 📡 Ubicación en vivo de hoy (se actualiza cada 30 s)</label>' +
+      '<label><input type="checkbox" id="bt-rutas"' + (s.verRutas ? ' checked' : '') + '> ━ Rutas asignadas de todos los recursos filtrados</label><span id="bt-vivo-txt" class="muted"></span></div>' +
+    '<div id="bt-mapa" style="flex:1;min-height:420px;border-radius:12px;border:1px solid var(--border);"></div>' +
+    '<div class="muted" style="font-size:11.5px;margin:6px 2px;">● Actividad (color por clasificación) · ◆ Apertura · ━ Ruta asignada (escenario Normal del copamiento) · ' +
+      '<span class="bt-vivo-ley"></span> Recurso en movimiento (última ubicación; gris si lleva más de 15 min sin enviar) · ┅ Recorrido del día.</div>';
+  document.getElementById('bt-vivo').onchange = e => { s.verVivo = e.target.checked; renderBitacoraWeb_(); };
+  document.getElementById('bt-rutas').onchange = e => { s.verRutas = e.target.checked; renderBitacoraWeb_(); };
   if (typeof L === 'undefined') { document.getElementById('bt-mapa').innerHTML = '<div class="tb-vacio">El mapa no está disponible.</div>'; return; }
   if (s.mapa) { try { s.mapa.remove(); } catch (e) {} }
   const map = s.mapa = L.map('bt-mapa', { attributionControl: false }).setView([-37.8, -72.7], 8);
@@ -293,6 +302,8 @@ function renderBtMapa_(cu) {
   });
   const ajustar = () => { if (lim.length) map.fitBounds(lim, { padding: [30, 30], maxZoom: 15, animate: false }); };
   ajustar();
+  if (s.verVivo) btVivo_(map);
+  if (s.verRutas && !s.recurso) btRutasTodas_(map, lim, ajustar);
   if (s.recurso) {
     supabaseClient.rpc('bit_ruta_recurso', { p_recurso: s.recurso }).then(({ data, error }) => {
       if (error || !data || s.mapa !== map) return;
@@ -303,6 +314,62 @@ function renderBtMapa_(cu) {
       try { const b = capa.getBounds(); lim.push(b.getSouthWest(), b.getNorthEast()); ajustar(); } catch (e) {}
     });
   }
+}
+
+// 📡 Ubicación en vivo (SQL 195, bit_mapa_jornada): última posición y recorrido del día de cada recurso que se ve.
+// Se repite cada 30 s mientras el mapa siga abierto (si se cambia de vista o se repinta el mapa, la vuelta anterior se corta sola).
+function btHace_(ts) { const m = Math.round((Date.now() - new Date(ts).getTime()) / 60000); return m < 1 ? 'recién' : m < 60 ? 'hace ' + m + ' min' : 'hace ' + btDur_(m); }
+async function btVivo_(map) {
+  const s = state.bt, txt = document.getElementById('bt-vivo-txt');
+  let capa = null;
+  const vuelta = async () => {
+    if (s.mapa !== map || !s.verVivo || state.vistaActual !== 'bitacoramapa') return;
+    const { data, error } = await supabaseClient.rpc('bit_mapa_jornada', { p_fecha: btDiaISO_(0) });
+    if (s.mapa !== map) return;
+    if (error) { if (txt) txt.textContent = /bit_mapa_jornada|schema cache|does not exist/i.test(error.message) ? '· falta el SQL 195' : '· ' + error.message; return; }
+    if (capa) map.removeLayer(capa);
+    capa = L.layerGroup().addTo(map);
+    const recs = (data.recursos || []).filter(r => btEnArea_(s, r.area) && (!s.tipo || r.tipo_codigo === s.tipo) && (!s.recurso || r.id === s.recurso));
+    let enVivo = 0;
+    recs.forEach(r => {
+      const ras = (r.rastro || []).map(p => [p[0], p[1]]);
+      if (ras.length > 1) L.polyline(ras, { color: '#F97316', weight: 3, opacity: .85, dashArray: '6 6' }).addTo(capa);
+      const u = r.ultima; if (!u) return;
+      const viejo = Date.now() - new Date(u.fecha).getTime() > 15 * 60000;
+      if (!viejo) enVivo++;
+      L.marker([u.lat, u.lng], { zIndexOffset: 1000, icon: L.divIcon({ className: '', iconSize: [26, 26], iconAnchor: [13, 13],
+        html: '<div class="bt-vivo' + (viejo ? ' viejo' : '') + '"><span>' + (BT_TIPOS[r.tipo_codigo] || '📍').split(' ')[0] + '</span></div>' }) }).addTo(capa)
+        .bindTooltip(escapeHtml_((r.clave || r.codigo || '') + ' · ' + btHace_(u.fecha)), { direction: 'top', offset: [0, -12] })
+        .bindPopup('<b>📡 ' + escapeHtml_(r.clave || r.codigo || '') + '</b><br>' + escapeHtml_([btTipoTxt_(r.tipo_codigo), r.empresa, r.area].filter(Boolean).join(' · ')) +
+          '<br>Última ubicación: ' + btHora_(u.fecha) + ' (' + btHace_(u.fecha) + ')' + (u.velocidad != null ? ' · ' + Math.round(u.velocidad * 3.6) + ' km/h' : '') +
+          (r.jornada ? '<br>' + escapeHtml_((r.jornada.estado_emoji || '') + ' ' + (r.jornada.estado || '') + (r.jornada.turno ? ' · ' + r.jornada.turno : '')) : '') +
+          (r.jornada && r.jornada.jefe ? '<br>⭐ ' + escapeHtml_(r.jornada.jefe) + (r.jornada.jefe_telefono ? ' · 📞 ' + escapeHtml_(r.jornada.jefe_telefono) : '') : '') +
+          '<br>' + escapeHtml_(coordGms_(u.lat, u.lng)));
+    });
+    if (txt) txt.textContent = '· ' + enVivo + ' en movimiento · ' + recs.filter(r => r.ultima).length + ' con ubicación hoy · ' + new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    setTimeout(vuelta, 30000);
+  };
+  vuelta();
+}
+// ━ Rutas asignadas de los recursos filtrados (sin elegir uno): de a 6 consultas a la vez, como máximo 60 recursos
+async function btRutasTodas_(map, lim, ajustar) {
+  const s = state.bt, txt = document.getElementById('bt-vivo-txt');
+  const ids = [...new Set(btFiltradas_().map(j => j.recurso_id))];
+  const lista = (ids.length ? ids : s.recursos.filter(r => btEnArea_(s, r.area) && (!s.tipo || r.tipo_codigo === s.tipo)).map(r => r.id)).slice(0, 60);
+  let n = 0;
+  for (let i = 0; i < lista.length; i += 6) {
+    const res = await Promise.all(lista.slice(i, i + 6).map(id => supabaseClient.rpc('bit_ruta_recurso', { p_recurso: id }).then(r => ({ id, r }), () => ({ id, r: {} }))));
+    if (s.mapa !== map) return;
+    res.forEach(({ id, r }) => {
+      const d = r && r.data, rf = d && d.rutas && d.rutas.features;
+      if (!rf || !rf.length) return;
+      n++;
+      const rec = s.recursos.find(x => x.id === id) || {};
+      L.geoJSON(d.rutas, { style: { color: '#1D4ED8', weight: 4, opacity: .7 } }).addTo(map)
+        .bindTooltip('━ ' + escapeHtml_(rec.clave_radial || rec.codigo_ref || 'Recurso') + ((d.fundos || []).length ? ' · fundos: ' + escapeHtml_(d.fundos.map(f => (f.nombre || '') + ' (' + (f.cod_fundo || '') + ')').join(', ')) : ''), { sticky: true });
+    });
+  }
+  if (s.mapa === map && txt && !s.verVivo) txt.textContent = '· ' + n + ' rutas asignadas' + (lista.length >= 60 ? ' (primeros 60 recursos)' : '');
 }
 
 // ── 📊 Indicadores ──────────────────────────────────────────────────────────────────────────────────────

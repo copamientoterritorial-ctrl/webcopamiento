@@ -703,6 +703,19 @@ body.es-sso #gr-nuevo, body.es-sso #gr-subir, body.es-sso #gr-empresas{display:n
 .bt-fotos{display:flex;flex-wrap:wrap;gap:8px;}
 .bt-fotos img{width:120px;height:120px;object-fit:cover;border-radius:10px;border:1px solid var(--border);}
 .bt-rombo{width:12px;height:12px;background:#0F172A;border:2px solid #fff;transform:rotate(45deg);box-shadow:0 1px 4px rgba(0,0,0,.5);}
+/* 📡 Ubicación en vivo (SQL 195) */
+.bt-mapa-ops{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;font-size:12.5px;margin:0 2px 8px;}
+.bt-mapa-ops label{display:flex;gap:6px;align-items:center;cursor:pointer;font-weight:600;}
+.bt-vivo{position:relative;width:26px;height:26px;border-radius:50%;background:#F97316;border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:13px;}
+.bt-vivo::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:2px solid #F97316;animation:btOnda 2s ease-out infinite;}
+.bt-vivo.viejo{background:#94A3B8;}
+.bt-vivo.viejo::after{display:none;}
+.bt-vivo-ley{display:inline-block;width:10px;height:10px;border-radius:50%;background:#F97316;vertical-align:middle;}
+@keyframes btOnda{0%{opacity:.8;transform:scale(.7);}100%{opacity:0;transform:scale(1.5);}}
+/* Supervisor de empresa (SQL 195): el Calendario de Turnos es solo consulta */
+body.es-supervisor #turnos-repetir-semana,
+body.es-supervisor .turnos-fila-acc [data-turno-accion^="fila"]{display:none !important;}
+body.es-supervisor .turno-celda,body.es-supervisor .turnos-dia-th{cursor:default;}
 .bt-ind{display:flex;flex-direction:column;gap:12px;}
 .bt-ind-caja{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:10px 14px;overflow:auto;}
 .bt-ind-caja h4{margin:2px 0 8px;font-size:14px;}

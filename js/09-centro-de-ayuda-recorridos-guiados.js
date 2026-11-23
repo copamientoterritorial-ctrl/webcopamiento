@@ -196,8 +196,9 @@ const AY_GUIAS = [
   },
   {
     k: 'cmpc', ico: '🌲', c: '#0F766E', titulo: 'Planificador CMPC', sub: 'Turnos, planificador gráfico, tablero y gestión',
-    perfiles: ['admin', 'subgerente', 'grt', 'jefe', 'visor', 'sso'],
+    perfiles: ['admin', 'subgerente', 'grt', 'jefe', 'visor', 'sso', 'sup'],
     paraTi: {
+      sup: ['Supervisor de empresa: solo el <b>📅 Calendario de Turnos</b>, en consulta, con los recursos de <b>tu empresa</b> en tus áreas (semana o mes, ✓ en turno · L libre). No puedes modificar turnos.'],
       sso: ['Perfil SSO (Gestión en Prevención en Seguridad): <b>solo consulta</b> del Planificador gráfico, el Tablero y la Gestión de Recursos de <b>todas las áreas</b>, ' +
         'incluidas las <b>👥 personas</b> de cada recurso (curso Call Fire, cargo, contacto). Puedes filtrar y descargar a Excel / PDF; no puedes modificar datos.'],
       admin: ['Todo, incluida la carga masiva por Excel, ➕ Nuevo recurso, 🏢 Empresas y eliminar recursos sin ruta.',
@@ -321,6 +322,28 @@ const AY_GUIAS = [
     ],
     notas: [['tip', '💡 Consejo', ['El % de copamiento del área usa la misma regla que el de cada comuna (zona de incendios del trienio, ameba tocada ≥ 30 % cuenta completa).']]],
     tour: 'area',
+  },
+  {
+    k: 'bitacora', ico: '📋', c: '#0F766E', titulo: 'Bitácora (Reportabilidad)', sub: 'Aperturas, actividades, mapa en vivo e indicadores de la App Bitácora',
+    perfiles: ['admin', 'subgerente', 'grt', 'jefe', 'sup'],
+    intro: 'Lo que registran los recursos en la <b>App Bitácora</b> (/app-bitacora/app.html): la <b>apertura</b> de cada jornada con su brigada, las <b>actividades</b> con fotos y ubicación, ' +
+      'y, mientras la jornada está En servicio, la <b>📡 ubicación en vivo</b> del recurso. Todo en solo consulta, con descarga a Excel.',
+    paraTi: {
+      admin: ['Ves todas las áreas y empresas. Los Supervisores de empresa se crean en Administración › 👥 Usuarios (perfil «Supervisor de empresa», con su empresa y sus áreas).'],
+      jefe: ['Ves los recursos de tus áreas, de todas las empresas.'],
+      subgerente: ['Ves los recursos de las áreas de tu subgerencia.'],
+      grt: ['Ves los recursos de tus áreas.'],
+      sup: ['Supervisor de empresa: ves <b>solo los recursos de tu empresa</b> en tus áreas, aquí y en el <b>📅 Calendario de Turnos</b> (solo consulta).',
+        'En la <b>App Bitácora</b> entras con este mismo correo y clave para seguir a tus recursos desde el teléfono: aperturas del día, actividades y el mapa con su ubicación en vivo.'],
+    },
+    flujo: [['📋 Bitácora ▾', 'menú superior'], ['Aperturas', 'brigada del día'], ['Actividades', 'con fotos'], ['🗺️ Mapa', 'en vivo y rutas'], ['📊 Indicadores', '⬇️ Excel']],
+    pasos: [
+      ['Elige el período y los filtros', 'Fechas, área, tipo de recurso, estado y búsqueda. Sirven para las 4 vistas.', ['<span class="m">Desde · Hasta</span>', '<span class="m">Área</span>', '<span class="m">🔎</span>']],
+      ['Revisa las aperturas', 'Cada fila es la jornada de un recurso; clic para ver su dotación y actividades. ⬇️ Excel con 2 hojas (Aperturas / Personal).', ['<span class="m az">📋 Aperturas</span>']],
+      ['Sigue a los recursos en el mapa', 'Pinchos de actividades por clasificación, ◆ aperturas, <b>📡 ubicación en vivo</b> (se actualiza cada 30 s; gris si lleva más de 15 min sin enviar), ┅ recorrido del día y ━ rutas asignadas.', ['<span class="m v">📡 en vivo</span>', '<span class="m">━ rutas</span>']],
+      ['Mide el cumplimiento', '% del turno registrado, horas por clasificación y días de turno sin apertura.', ['<span class="m">📊 Indicadores</span>']],
+    ],
+    notas: [['tip', '💡 Ubicación en vivo', ['La envía el teléfono del recurso solo con la jornada abierta En servicio y la app abierta (o recién en segundo plano): una app web no puede enviar la ubicación con el teléfono bloqueado mucho rato.']]],
   },
   {
     k: 'implementacion', ico: '🪜', c: '#B45309', titulo: 'Implementación por comuna', sub: '7 etapas en las comunas de implementación',
@@ -464,11 +487,12 @@ function abrirAyuda_(guia) {
 /* 23-10-2026 · Centro de ayuda POR PERFIL: cada guía declara qué perfiles la ven (`perfiles`) y puede traer una nota
  * «🎯 Para tu perfil» (`paraTi`, por clave de perfil). Respeta «Ver el sistema como…» (lee el perfil simulado). */
 const AY_PERFIL_NOMBRE = { admin: 'Administrador', subgerente: 'Subgerente de Relacionamiento', grt: 'Gestor de Relacionamiento Territorial (GRT)',
-  jefe: 'Jefe de Área', grd: 'GRD (municipio)', visor: 'Visor', asoc: 'Asociación de Agricultores' };
+  jefe: 'Jefe de Área', grd: 'GRD (municipio)', visor: 'Visor', asoc: 'Asociación de Agricultores', sso: 'Perfil SSO', sup: 'Supervisor de empresa (EESS)' };
 /** Perfil para la ayuda: admin · subgerente · grt · jefe · grd · visor · asoc */
 function ayPerfil_() {
   if (typeof esAsociacion_ === 'function' && esAsociacion_()) return 'asoc';
   if (typeof esSSO_ === 'function' && esSSO_()) return 'sso';   // Perfil SSO (SQL 184): sus guías declaran 'sso'
+  if (typeof esSupervisor_ === 'function' && esSupervisor_()) return 'sup';   // Supervisor de empresa (SQL 195): sus guías declaran 'sup'
   const p = state.perfil && state.perfil.perfil;
   if (p === 'Administrador') return 'admin';
   if (esSubgerente_()) return 'subgerente';

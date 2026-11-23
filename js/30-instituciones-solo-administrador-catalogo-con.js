@@ -185,8 +185,11 @@ function actualizarConteoUsuario_() {
   const perfil = document.getElementById('u-perfil').value;
   const verComunas = perfil !== 'Administrador', verZonas = perfil === 'Jefe de Área Relacionamiento' || perfil === PERFIL_GRT;
   const nombres = marcadas.map(i => i.closest('label').textContent.trim());
+  const empSup = perfil === PERFIL_SUP ? (document.getElementById('u-sup-empresa').selectedOptions[0] || {}).textContent : '';
   res.innerHTML = perfil === 'Administrador' ? '🔑 El Administrador ve todas las comunas y áreas.' :
     perfil === PERFIL_SSO ? '🦺 El Perfil SSO ve todas las áreas (solo consulta): no necesita comunas.' :
+    perfil === PERFIL_SUP ? '👷 <b>Empresa:</b> ' + (document.getElementById('u-sup-empresa').value ? escapeHtml_(empSup) : '<span style="color:#DC2626;">ninguna</span>') +
+      '<br><b>Áreas:</b> ' + (zonas.length ? escapeHtml_(zonas.join(', ')) : '<span style="color:#DC2626;">ninguna</span>') + '<br>Ve solo los recursos de su empresa en esas áreas (consulta).' :
     (verZonas ? '<b>Zonas:</b> ' + (zonas.length ? escapeHtml_(zonas.join(', ')) : '<span style="color:#DC2626;">ninguna</span>') + '<br>' : '') +
     (verComunas ? '<b>Comunas (' + nombres.length + '):</b> ' + (nombres.length ? escapeHtml_(nombres.slice(0, 12).join(', ')) + (nombres.length > 12 ? '…' : '') : '<span style="color:' + (verZonas ? 'inherit' : '#DC2626') + ';">ninguna</span>') : '');
 }
@@ -236,11 +239,31 @@ function actualizarVisibilidadComunasSegunPerfil_() {
   const esSso = perfilVal === PERFIL_SSO;                          // Perfil SSO (SQL 184): todas las áreas, sin comunas
   document.getElementById('u-asoc-nota').style.display = esAsoc ? 'block' : 'none';
   const nSso = document.getElementById('u-sso-nota'); if (nSso) nSso.style.display = esSso ? 'block' : 'none';
-  document.getElementById('u-comunas-wrap').style.display = esAdmin || esSubg || esAsoc || esSso ? 'none' : 'block';
-  document.getElementById('u-areas-wrap').style.display = esJefeArea ? 'block' : 'none';
+  const esSup = perfilVal === PERFIL_SUP;                          // Supervisor de empresa (SQL 195): empresa + áreas, sin comunas a mano
+  document.getElementById('u-sup-nota').style.display = esSup ? 'block' : 'none';
+  document.getElementById('u-sup-wrap').style.display = esSup ? 'block' : 'none';
+  if (esSup) poblarEmpresasSupervisor_();
+  document.getElementById('u-comunas-wrap').style.display = esAdmin || esSubg || esAsoc || esSso || esSup ? 'none' : 'block';
+  document.getElementById('u-areas-wrap').style.display = esJefeArea || esSup ? 'block' : 'none';
   document.getElementById('u-subg-wrap').style.display = esSubg ? 'block' : 'none';
   if (esSubg) poblarSubgerenciasUsuario_();
   actualizarConteoUsuario_();   // el resumen (comunas / zonas) depende del perfil elegido
+}
+/** Empresas del catálogo (SQL 100) para el Supervisor de empresa (SQL 195), con cuántos recursos tiene cada una. */
+async function poblarEmpresasSupervisor_() {
+  const sel = document.getElementById('u-sup-empresa'), actual = sel.dataset.valor || sel.value;
+  if (!state.empresasSup) {
+    const [{ data: em }, { data: rr }] = await Promise.all([
+      supabaseClient.from('empresas').select('id, nombre, activo').order('nombre'),
+      supabaseClient.from('referencia_recursos').select('empresa').not('empresa', 'is', null)]);
+    const n = {}; (rr || []).forEach(r => { const k = String(r.empresa).trim().toUpperCase(); n[k] = (n[k] || 0) + 1; });
+    state.empresasSup = (em || []).filter(e => e.activo !== false).map(e => ({ id: e.id, nombre: e.nombre, n: n[String(e.nombre).trim().toUpperCase()] || 0 }));
+  }
+  sel.innerHTML = '<option value="">— Selecciona —</option>' + state.empresasSup.map(e =>
+    '<option value="' + escapeHtml_(e.id) + '">' + escapeHtml_(e.nombre) + ' (' + e.n + ' recursos)</option>').join('');
+  sel.value = actual && state.empresasSup.some(e => e.id === actual) ? actual : '';
+  sel.onchange = () => actualizarConteoUsuario_();
+  actualizarConteoUsuario_();
 }
 /** Subgerencias que existen (según los recursos) y sus áreas, para el formulario de usuario. */
 async function poblarSubgerenciasUsuario_() {
@@ -273,6 +296,7 @@ function abrirModalUsuario_(usuario) {
   }
   document.getElementById('u-perfil').value = usuario ? usuario.perfil : 'Visor';
   document.getElementById('u-subg').dataset.valor = (usuario && usuario.subgerencia) || '';
+  document.getElementById('u-sup-empresa').dataset.valor = (usuario && state.supPorPerfil && state.supPorPerfil[usuario.id]) || '';
   poblarComunasChecklist_(usuario ? usuario.comuna_ids : []);
   poblarAreasChecklist_(usuario ? (usuario.area_ids || []) : []);
   actualizarVisibilidadComunasSegunPerfil_();
@@ -296,9 +320,20 @@ async function guardarUsuarioDesdeModal_() {
   const esGRT = perfilSel === PERFIL_GRT;   // GRT (SQL 119): Jefe de Área + marca, con sus áreas
   const esAsoc = perfilSel === PERFIL_ASOC; // Asociación de Agricultores (SQL 129): Visor + marca
   const esSso = perfilSel === PERFIL_SSO;   // Perfil SSO (SQL 184): Visor + marca, sin comunas ni áreas
+  const esSup = perfilSel === PERFIL_SUP;   // Supervisor de empresa (SQL 195): Visor + empresa + áreas
+  const empSup = esSup ? document.getElementById('u-sup-empresa').value : '';
   const subg = esSubg ? document.getElementById('u-subg').value : '';
-  const perfil = (esSubg || esGRT) ? 'Jefe de Área Relacionamiento' : (esAsoc || esSso) ? 'Visor' : perfilSel;
+  const perfil = (esSubg || esGRT) ? 'Jefe de Área Relacionamiento' : (esAsoc || esSso || esSup) ? 'Visor' : perfilSel;
   if (esSso) { comunaIds.length = 0; areaIds = []; }
+  if (esSup) {
+    if (!empSup) { errEl.textContent = 'Elige la empresa que supervisa.'; errEl.classList.add('show'); return; }
+    if (!areaIds.length) { errEl.textContent = 'Marca al menos un área de relacionamiento del Supervisor.'; errEl.classList.add('show'); return; }
+    // Comunas = las de sus áreas (la Edge Function exige comunas a todo Visor); sin ninguna, una de relleno
+    comunaIds.length = 0;
+    const mapa = await comunasPorAreaUsuario_();
+    areaIds.forEach(a => (mapa[SG_KEY(a)] || []).forEach(id => { if (!comunaIds.includes(id)) comunaIds.push(id); }));
+    if (!comunaIds.length && (state.comunas || []).length) comunaIds.push(state.comunas[0].id);
+  }
   if (esAsoc) {   // comunas del área Victoria (Administración › Comunas por área)
     comunaIds.length = 0; areaIds = [];
     const mapa = await comunasPorAreaUsuario_();
@@ -353,7 +388,8 @@ async function guardarUsuarioDesdeModal_() {
   const eraGRT = !!(editingUsuarioId && state.grtPorPerfil && state.grtPorPerfil[editingUsuarioId]);
   const eraAsoc = !!(editingUsuarioId && state.asocPorPerfil && state.asocPorPerfil[editingUsuarioId]);
   const eraSso = !!(editingUsuarioId && state.ssoPorPerfil && state.ssoPorPerfil[editingUsuarioId]);
-  if ((esGRT || eraGRT || esAsoc || eraAsoc || esSso || eraSso || telefono) && !idUsuario && email) {
+  const eraSup = !!(editingUsuarioId && state.supPorPerfil && state.supPorPerfil[editingUsuarioId]);
+  if ((esGRT || eraGRT || esAsoc || eraAsoc || esSso || eraSso || esSup || eraSup || telefono) && !idUsuario && email) {
     const { data: l } = await supabaseClient.functions.invoke('admin-usuarios', { body: { action: 'listar' } });
     const u = l && (l.usuarios || []).find(x => String(x.email).toLowerCase() === email.toLowerCase());
     idUsuario = u ? u.id : null;
@@ -386,6 +422,14 @@ async function guardarUsuarioDesdeModal_() {
       if (eX) alert('⚠️ Usuario guardado, pero NO se pudo ' + (esSso ? 'marcar como Perfil SSO' : 'quitar la marca SSO') + ': ' + eX.message +
         (/function|does not exist/i.test(eX.message) ? '\n(¿Se ejecutó el SQL 184?)' : '') + (esSso ? '\nQuedó como Visor: edítalo y vuelve a elegir «Perfil SSO».' : ''));
     } else alert('⚠️ Usuario guardado, pero no se encontró su cuenta para marcarla como Perfil SSO: edítalo y vuelve a elegir el perfil.');
+  }
+  if (esSup || eraSup) {   // Supervisor de empresa (SQL 195): marca + empresa + sus áreas (perfil_areas)
+    if (idUsuario) {
+      const { error: eU } = await supabaseClient.rpc('asignar_supervisor', { p_perfil: idUsuario, p_empresa: esSup ? empSup : null, p_areas: esSup ? areaIds : null });
+      if (eU) alert('⚠️ Usuario guardado, pero NO se pudo ' + (esSup ? 'marcar como Supervisor de empresa' : 'quitar la marca de Supervisor') + ': ' + eU.message +
+        (/function|does not exist/i.test(eU.message) ? '\n(¿Se ejecutó el SQL 195?)' : '') + (esSup ? '\nQuedó como Visor: edítalo y vuelve a elegir «Supervisor de empresa».' : ''));
+      else if (state.supPorPerfil) { if (esSup) state.supPorPerfil[idUsuario] = empSup; else delete state.supPorPerfil[idUsuario]; }
+    } else alert('⚠️ Usuario guardado, pero no se encontró su cuenta para marcarla como Supervisor de empresa: edítalo y vuelve a elegir el perfil.');
   }
   if (esSubg || eraSubg) {
     if (!idUsuario && email) {   // el usuario recién creado: se busca por su correo

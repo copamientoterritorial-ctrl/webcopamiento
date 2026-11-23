@@ -75,6 +75,7 @@ const CAPAS_OCULTAS_PERFIL = { 'GRD': ['capasZona', 'patrullaje'] };
 function capasOcultasPerfil_(perfil) { return CAPAS_OCULTAS_PERFIL[perfil] || []; }
 /** Nivel efectivo = mínimo(máximo técnico del perfil, permiso del PERFIL (SQL 119), restricción del USUARIO (SQL 83)). */
 function nivelPermiso_(k) {
+  if (state.supervisor) return k === 'turnos' ? 'ver' : 'no';   // Supervisor de empresa (SQL 195): solo consulta de Turnos (y Bitácora, por su menú)
   let nivel = nivelMaximoPerfil_(state.perfil && state.perfil.perfil, k);
   [state.permisosPerfilRol, state.permisosUsuario].forEach(p => {
     const v = p && p.modulos && p.modulos[k];
@@ -132,7 +133,7 @@ const MENU_MODULOS = [
   { id: 'tab-agradmin', grupo: '🛡️ Prevención', nombre: 'Administración Agricultores (predios)', ver: () => puedeAdminAgricultores_(),
     nivel: () => agpEsAdmin_() ? 'editar' : 'ver', nota: () => agpEsAdmin_() ? 'Sube y elimina capas' : 'Solo consulta', asoc: true },
   { id: 'tab-turnos', grupo: '🌲 Planificador CMPC', nombre: 'Calendario de Turnos', ver: () => puedeVerModulo_('turnos'),
-    nivel: () => puedeGestionarTurnos_() && puedeEditarModulo_('turnos') ? 'editar' : 'ver' },
+    nivel: () => puedeGestionarTurnos_() && puedeEditarModulo_('turnos') ? 'editar' : 'ver', nota: () => esSupervisor_() ? 'Recursos de su empresa en sus áreas' : '' },
   { id: 'tab-turnosgestor', grupo: '🌲 Planificador CMPC', nombre: 'Turnos de Gestores de relacionamiento', ver: () => puedeTurnosGestores_(),
     // 21-11-2026 (SQL 185): programan Admin, Jefe de Área (no Subgerente ni GRT) y el delegado de prevención del área; solo fines de semana y feriados
     nivel: () => (tgEsAdmin_() || state.esDelegadoPrev || (esJefeAreaPerfil_(state.perfil.perfil) && !esSubgerente_() && !state.esGRT)) ? 'editar' : 'ver',
@@ -156,19 +157,20 @@ const MENU_MODULOS = [
   { id: 'tab-ppametas', grupo: '📋 PPA', nombre: 'Metas por fecha del PPA', ver: () => puedePpa_(), nivel: () => ppaEsAdmin_() ? 'editar' : 'ver', nota: () => ppaEsAdmin_() ? 'Todas las áreas' : 'Sus áreas (consulta)' },
   // 📋 Bitácora ▾ (Reportabilidad, 22-11-2026, js/42): solo consulta + Excel; el RLS de bit_jornada / bit_registro_actividad limita a sus áreas
   { id: 'tab-bitacora', grupo: '📋 Bitácora', nombre: 'Aperturas de la App Bitácora (Excel Aperturas / Personal)', ver: () => puedeBitacoraWeb_(), nivel: () => 'ver',
-    nota: () => state.perfil && state.perfil.perfil === 'Administrador' ? 'Todas las áreas' : 'Sus áreas' },
+    nota: () => state.perfil && state.perfil.perfil === 'Administrador' ? 'Todas las áreas' : esSupervisor_() ? 'Su empresa en sus áreas' : 'Sus áreas' },
   { id: 'tab-bitacoraact', grupo: '📋 Bitácora', nombre: 'Actividades de la App Bitácora (con fotos, Excel)', ver: () => puedeBitacoraWeb_(), nivel: () => 'ver',
-    nota: () => state.perfil && state.perfil.perfil === 'Administrador' ? 'Todas las áreas' : 'Sus áreas' },
+    nota: () => state.perfil && state.perfil.perfil === 'Administrador' ? 'Todas las áreas' : esSupervisor_() ? 'Su empresa en sus áreas' : 'Sus áreas' },
   { id: 'tab-bitacoramapa', grupo: '📋 Bitácora', nombre: 'Mapa de actividades y ruta asignada', ver: () => puedeBitacoraWeb_(), nivel: () => 'ver',
-    nota: () => state.perfil && state.perfil.perfil === 'Administrador' ? 'Todas las áreas' : 'Sus áreas' },
+    nota: () => state.perfil && state.perfil.perfil === 'Administrador' ? 'Todas las áreas' : esSupervisor_() ? 'Su empresa en sus áreas' : 'Sus áreas' },
   { id: 'tab-bitacoraind', grupo: '📋 Bitácora', nombre: 'Indicadores de la Bitácora (avance, horas, sin apertura)', ver: () => puedeBitacoraWeb_(), nivel: () => 'ver',
-    nota: () => state.perfil && state.perfil.perfil === 'Administrador' ? 'Todas las áreas' : 'Sus áreas' },
+    nota: () => state.perfil && state.perfil.perfil === 'Administrador' ? 'Todas las áreas' : esSupervisor_() ? 'Su empresa en sus áreas' : 'Sus áreas' },
   { id: 'tab-admin', grupo: '⚙️ Administración', nombre: 'Administración del sistema', ver: () => !!(state.perfil && state.perfil.perfil === 'Administrador'), nivel: () => 'editar' },
 ];
 /** ¿Se ve el menú? La Asociación de Agricultores ve SOLO 🌾 Agricultores (y los menús marcados con asoc: true). */
 function menuVisible_(m) {
   if (esAsociacion_() && m.grupo !== '🌾 Agricultores' && !m.asoc) return false;
   if (esSSO_()) return SSO_MENUS.includes(m.id) && !!m.ver();   // Perfil SSO (SQL 184): solo sus 3 menús
+  if (esSupervisor_()) return SUP_MENUS.includes(m.id) && !!m.ver();   // Supervisor de empresa (SQL 195): Turnos y Bitácora
   return !!m.ver();
 }
 

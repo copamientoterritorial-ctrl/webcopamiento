@@ -1,10 +1,10 @@
 {
-  "version": "1.4.0",
+  "version": "1.5.0",
   "fecha": "2026-11-22",
   "notas": [
-    "Actividades por tipo: primero Prevención, Relacionamiento, Silvicultura, Combate u Otra; luego el grupo y la actividad.",
-    "⭐ Marca tus actividades favoritas: quedan guardadas y aparecen primero.",
-    "Buscador de coordenadas con 6 casillas (grados, minutos y segundos) y sin zoom accidental de la pantalla.",
-    "Botón para instalar la Bitácora como app en tu teléfono."
+    "📡 Con la jornada abierta, la app comparte tu ubicación con tu supervisor (cada minuto, con la app abierta).",
+    "🗺️ Mapa del día con la ubicación en vivo, el recorrido y las actividades de los recursos de tu empresa.",
+    "📅 Calendario de turnos del recurso: mes a mes, en turno o libre.",
+    "👷 Nuevo acceso para el Supervisor de empresa (solo consulta de sus recursos)."
   ]
 }
