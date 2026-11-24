@@ -6,6 +6,14 @@
  * Se pueden volver a ver con «🆕 Novedades» (botón del encabezado de Ayuda, abrirNovedades_(true)). */
 const NOVEDADES = [
   {
+    id: '2026-11-23-uso-del-sistema', fecha: '23-11-2026', titulo: 'Seguimiento: uso del sistema',
+    items: [
+      { ico: '🖥️', t: 'Monitor de uso del sistema por área', perfiles: ['admin', 'subgerente'],
+        d: 'En <b>📈 Seguimiento › 🖥️ Uso del sistema</b> ves, por Área de Relacionamiento, el <b>% de usuarios que ingresan</b> (Jefes de Área, GRT y GRD), ' +
+           'sus sesiones, tiempo de uso y cambios guardados, en los últimos 7 o 30 días. Clic en un área: cada usuario con 🟢 ingresó · 🟡 no ingresó · 🔴 nunca ingresó.' },
+    ],
+  },
+  {
     id: '2026-11-23-ppa-meses-con-metas', fecha: '23-11-2026', titulo: 'PPA: solo los meses con metas',
     items: [
       { ico: '📅', t: 'Metas por fecha: sin meses vacíos', perfiles: ['admin', 'subgerente', 'grt', 'jefe'],

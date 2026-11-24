@@ -1155,6 +1155,7 @@ const AUD_CAPACIDADES = [
   ['🚓 Prevención', 'Bosques recreativos: administración, acceso e inversión', null, null, ['si', 'Sus áreas', 'Sus áreas', 'Sus áreas', 'no', 'no', 'no']],
   ['🚓 Prevención', 'Bosques recreativos: crear o eliminar bosques', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
   ['📈 Seguimiento', 'Tablero de Seguimiento (comunas, recursos, turnos, personas por área)', null, null, ['Ambas subgerencias', 'Su subgerencia', 'no', 'no', 'no', 'no', 'no']],
+  ['📈 Seguimiento', '🖥️ Uso del sistema por área: % de usuarios que ingresan, sesiones, tiempo y cambios (SQL 197)', null, null, ['Ambas subgerencias', 'Su subgerencia', 'no', 'no', 'no', 'no', 'no']],
   ['🌾 Agricultores', 'Tablero Gestión Asociación Malleco (ver)', null, null, ['si', 'Si tiene el área Victoria', 'Área Victoria', 'Área Victoria', 'no', 'no', 'si']],
   ['🌾 Agricultores', 'Registrar actividades, agricultores y planificación (web y app de terreno)', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'si']],
   ['🌾 Agricultores', 'Modificar o eliminar registros y planificaciones (SQL 154)', null, null, ['Todos', 'no', 'no', 'no', 'no', 'no', 'Solo los que creó']],

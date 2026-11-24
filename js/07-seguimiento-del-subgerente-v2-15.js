@@ -78,7 +78,7 @@ async function abrirSeguimiento_() {
       const c = e.target.closest('[data-sg-f]'); if (!c) return;
       const [k, v] = c.dataset.sgF.split('|');
       if (k === 'pRecargar') { state.sg.personas = null; renderSeguimiento_(); return; }
-      state.sg[k] = state.sg[k] === v && k !== 'area' && k !== 'rArea' && k !== 'tPer' && k !== 'ppaArea' ? '' : v;
+      state.sg[k] = state.sg[k] === v && k !== 'area' && k !== 'rArea' && k !== 'tPer' && k !== 'ppaArea' && k !== 'uDias' ? '' : v;
       renderSeguimiento_();
     });
     cuerpo.addEventListener('input', e => { if (e.target.id === 'sg-q') { clearTimeout(state.sg.tq); state.sg.tq = setTimeout(() => { state.sg.q = e.target.value; renderSeguimiento_(true); }, 200); } });
@@ -292,6 +292,7 @@ function renderSeguimiento_(soloLista) {
   else if (state.sg.vista === 'turnos') renderSgTurnos_();
   else if (state.sg.vista === 'personas') renderSgPersonas_();
   else if (state.sg.vista === 'ppa') renderSgPpa_();
+  else if (state.sg.vista === 'uso') renderSgUso_();
   else renderSgComunas_(soloLista);
 }
 
@@ -486,6 +487,91 @@ async function renderSgPersonas_() {
     '</div>' +
     '<div class="sg-tu-lista">' + html + '</div>';
   S.ultimoPersonas = areas;
+}
+
+/* ── 🖥️ Uso del sistema (23-11-2026, SQL 197): actividad de los usuarios por Área de Relacionamiento ──
+ * Usuarios que cuentan: Jefes de Área, GRT y GRD activos del área (RPC uso_sistema_usuarios; GRD por sus comunas).
+ * % de usabilidad = usuarios que ingresaron en el período ÷ usuarios del área. Semáforo por usuario: 🟢 ingresó en el período ·
+ * 🟡 ingresó antes, no en el período · 🔴 nunca ingresó. Período: últimos 7 / 30 días (state.sg.uDias); filtro por rol (state.sg.uRol). */
+const SG_USO_ROLES = ['Jefe de Área', 'GRT', 'GRD'];
+async function cargarSgUso_(forzar) {
+  const S = state.sg, dias = Number(S.uDias) || 7;
+  S.uso = S.uso || {};
+  if (S.uso[dias] && !forzar) return S.uso[dias];
+  const desde = new Date(Date.now() - dias * SG_DIA);
+  const { data, error } = await supabaseClient.rpc('uso_sistema_usuarios', { p_desde: desde.toISOString() });
+  if (error) throw new Error(/uso_sistema_usuarios|schema cache|does not exist|PGRST202/i.test(error.message) ? 'Falta ejecutar el SQL 197 (uso del sistema por área).' : error.message);
+  return (S.uso[dias] = data || []);
+}
+function sgUsoHace_(ts) {
+  if (!ts) return 'nunca';
+  const d = Math.floor((Date.now() - new Date(ts).getTime()) / SG_DIA);
+  return d <= 0 ? 'hoy' : d === 1 ? 'ayer' : 'hace ' + d + ' días';
+}
+function sgUsoEstado_(u) { return u.sesiones > 0 ? 'activo' : u.ultimo_acceso ? 'inactivo' : 'nunca'; }
+const SG_USO_EST = { activo: { e: '🟢', t: 'Ingresó en el período', c: '#16A34A' }, inactivo: { e: '🟡', t: 'No ingresó en el período', c: '#D97706' }, nunca: { e: '🔴', t: 'Nunca ingresó', c: '#DC2626' } };
+async function renderSgUso_() {
+  const S = state.sg, D = S.datos, cuerpo = document.getElementById('sg-cuerpo');
+  if (!S.uDias) S.uDias = '7';
+  const dias = Number(S.uDias) || 7;
+  let lista;
+  try {
+    if (!(S.uso && S.uso[dias])) cuerpo.innerHTML = '<div class="tb-vacio">Leyendo el uso del sistema…</div>';
+    lista = await cargarSgUso_(S.uRecargar); S.uRecargar = false;
+  } catch (e) { cuerpo.innerHTML = '<div class="tb-vacio">No se pudo leer el uso del sistema: ' + escapeHtml_(e.message || String(e)) + '</div>'; return; }
+  if (S.vista !== 'uso') return;
+  const rolOk = u => !S.uRol || u.rol === S.uRol;
+  const usuarios = lista.filter(rolOk);
+  // Áreas de la subgerencia (las del Seguimiento); cada usuario cuenta en cada una de sus áreas
+  const areas = Object.values(D.areas).map(a => {
+    const us = usuarios.filter(u => (u.areas || []).some(x => SG_KEY(x) === a.k));
+    const act = us.filter(u => u.sesiones > 0);
+    return { a, us, act: act.length, pct: us.length ? Math.round(act.length * 100 / us.length) : null,
+      min: us.reduce((s, u) => s + Number(u.minutos || 0), 0), cambios: us.reduce((s, u) => s + (u.cambios || 0), 0),
+      sesiones: us.reduce((s, u) => s + (u.sesiones || 0), 0) };
+  }).sort((p, q) => (p.pct == null ? 101 : p.pct) - (q.pct == null ? 101 : q.pct) || p.a.nombre.localeCompare(q.a.nombre, 'es'));
+  // Totales: cada usuario una sola vez (aunque tenga varias áreas)
+  const enSubg = usuarios.filter(u => (u.areas || []).some(x => D.areas[SG_KEY(x)]));
+  const actT = enSubg.filter(u => u.sesiones > 0).length, nunca = enSubg.filter(u => !u.ultimo_acceso).length;
+  const pctT = enSubg.length ? Math.round(actT * 100 / enSubg.length) : 0;
+  const horas = m => { m = Math.round(Number(m) || 0); return m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min'; };
+  const colP = p => p == null ? '#94A3B8' : p >= 70 ? '#16A34A' : p >= 40 ? '#D97706' : '#DC2626';
+  const chip = (k, v, t) => '<button class="sg-chip' + (String(S[k] || '') === String(v) ? ' on' : '') + '" data-sg-f="' + k + '|' + escapeHtml_(String(v)) + '">' + escapeHtml_(t) + '</button>';
+  const html = areas.map(x => {
+    const abierta = S.uArea === x.a.k, col = colP(x.pct);
+    const det = abierta ? '<div class="sg-tu-det">' + (x.us.slice().sort((p, q) => (q.sesiones - p.sesiones) || String(p.nombre).localeCompare(q.nombre, 'es')).map(u => {
+      const e = SG_USO_EST[sgUsoEstado_(u)];
+      return '<div><b>' + e.e + ' ' + escapeHtml_(u.nombre || 'Usuario') + '</b><span>' + escapeHtml_(u.rol) + '</span>' +
+        '<em>Último ingreso: ' + escapeHtml_(sgUsoHace_(u.ultimo_acceso)) + '</em>' +
+        '<small>' + u.dias_activos + ' día(s) con uso · ' + horas(u.minutos) + ' · ' + (u.cambios || 0) + ' cambio(s) guardado(s)</small></div>';
+    }).join('') || '<div><b>Sin usuarios</b></div>') + '</div>' : '';
+    return '<div class="sg-tu-area" style="--c:' + col + '">' +
+      '<div class="cab" data-sg-f="uArea|' + escapeHtml_(x.a.k) + '" title="Ver los usuarios del área">' +
+        '<div class="nom"><b>' + escapeHtml_(aTitulo_(x.a.nombre)) + '</b><small>' + (x.a.jefes.length ? 'Jefe de Área: ' + escapeHtml_(x.a.jefes.join(', ')) : 'Sin Jefe de Área asignado') + '</small></div>' +
+        '<div class="barra"><i><em style="width:' + (x.pct || 0) + '%"></em></i><span>' + x.act + ' de ' + x.us.length + ' usuarios ingresaron · ' + x.sesiones + ' sesiones · ' +
+          horas(x.min) + ' de uso · ' + x.cambios + ' cambios</span></div>' +
+        '<div class="pct">' + (x.pct == null ? '—' : x.pct + '%') + '</div>' +
+        '<div>' + (x.pct == null ? '<span class="sg-estado sin">Sin usuarios</span>' : x.pct >= 70 ? '<span class="sg-estado ok">✅ Buen uso</span>' :
+          x.pct >= 40 ? '<span class="sg-estado">🟠 Uso medio</span>' : '<span class="sg-estado sin">⚠️ Bajo uso</span>') + '</div>' +
+        '<div class="flecha">' + (abierta ? '▲' : '▼') + '</div>' +
+      '</div>' + det + '</div>';
+  }).join('') || '<div class="tb-vacio">La subgerencia no tiene áreas.</div>';
+  cuerpo.innerHTML =
+    '<div class="sg-chips"><span class="tit">Período</span>' + chip('uDias', 7, 'Últimos 7 días') + chip('uDias', 30, 'Últimos 30 días') +
+      '<span class="tit" style="margin-left:12px;">Usuarios</span>' + chip('uRol', '', 'Todos') + SG_USO_ROLES.map(r => chip('uRol', r, r === 'Jefe de Área' ? 'Jefes de Área' : r)).join('') +
+      '<button class="sg-chip" data-sg-f="uRecargar|1" style="margin-left:auto;">🔄 Volver a leer</button></div>' +
+    '<div class="sg-chips"><span style="font-size:11.5px;color:var(--text-tertiary);">% de uso = usuarios que ingresaron al sistema en el período ÷ usuarios del área (Jefes de Área, GRT y GRD de sus comunas). ' +
+      'Tiempo = uso real (con clics o teclas). Clic en un área para ver a cada usuario: 🟢 ingresó · 🟡 no ingresó en el período · 🔴 nunca ingresó.</span></div>' +
+    '<div class="sg-resumen">' +
+      '<div style="--c:' + colP(pctT) + '"><b>' + pctT + '%</b><span>de uso del sistema (' + actT + ' de ' + enSubg.length + ' usuarios)</span></div>' +
+      '<div style="--c:#16A34A"><b>' + areas.filter(x => x.pct != null && x.pct >= 70).length + ' / ' + areas.length + '</b><span>áreas con buen uso (70 % o más)</span></div>' +
+      '<div style="--c:#2563EB"><b>' + enSubg.reduce((s, u) => s + (u.sesiones || 0), 0) + '</b><span>sesiones en el período</span></div>' +
+      '<div style="--c:#7C3AED"><b>' + horas(enSubg.reduce((s, u) => s + Number(u.minutos || 0), 0)) + '</b><span>de uso real</span></div>' +
+      '<div style="--c:#0F766E"><b>' + enSubg.reduce((s, u) => s + (u.cambios || 0), 0) + '</b><span>cambios guardados</span></div>' +
+      '<div style="--c:#DC2626"><b>' + nunca + '</b><span>🔴 usuarios que nunca ingresaron</span></div>' +
+    '</div>' +
+    '<div class="sg-tu-lista">' + html + '</div>';
+  S.ultimoUso = { dias, areas, usuarios: enSubg };
 }
 
 /* ── 📋 Vista PPA (16-11-2026): KPI del Plan de Prevención por Área ──
@@ -1154,6 +1240,19 @@ async function descargarSeguimiento_() {
         'Estado': m.vencida ? 'Vencida' : 'Por vencer', 'Debe llevar a la fecha': ppaNum_(m.exig), 'Lleva': ppaNum_(m.av),
         'Faltan': ppaNum_(m.vencida ? m.falta : m.faltaMes),
       })))), 'PPA medidas');
+    }
+    // 🖥️ Uso del sistema (si ya se abrió la vista; SQL 197)
+    const UU = state.sg.ultimoUso;
+    if (UU) {
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(UU.areas.map(x => ({
+        'Área': aTitulo_(x.a.nombre), 'Período (días)': UU.dias, 'Usuarios': x.us.length, 'Ingresaron': x.act, '% de uso': x.pct,
+        'Sesiones': x.sesiones, 'Minutos de uso': Math.round(x.min), 'Cambios guardados': x.cambios,
+      }))), 'Uso por área');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(UU.usuarios.map(u => ({
+        'Usuario': u.nombre, 'Rol': u.rol, 'Áreas': (u.areas || []).map(aTitulo_).join(' / '), 'Estado': SG_USO_EST[sgUsoEstado_(u)].t,
+        'Sesiones': u.sesiones, 'Días con uso': u.dias_activos, 'Minutos de uso': Math.round(Number(u.minutos || 0)), 'Cambios guardados': u.cambios,
+        'Último ingreso': u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleString('es-CL') : 'Nunca',
+      }))), 'Uso por usuario');
     }
     XLSX.writeFile(wb, 'seguimiento_subgerencia_' + tbHoyISO_() + '.xlsx');
     mostrarToast_('✅ Seguimiento descargado.');
