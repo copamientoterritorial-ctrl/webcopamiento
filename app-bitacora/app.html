@@ -390,7 +390,7 @@
 const SUPABASE_URL = 'https://api.copamientoterritorial.cl';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-bitacora-app', detectSessionInUrl: false } });
-const APP_VERSION = '1.5.4';
+const APP_VERSION = '1.5.5';
 const DOMINIO_CUENTAS = 'recursos.copamientoterritorial.cl';   // = Edge Function admin-cuentas-recurso y js/41 de la web
 const DIAS_CARGA = 14;   // aperturas que se descargan hacia atrás
 
@@ -2105,6 +2105,10 @@ function pintarActividadForm() {
   let hora = '<div class="hora-fija" style="margin-top:6px;"><span>Inicio <small class="muted">· ' + (F.primera ? 'inicio del turno' : 'término de la actividad anterior') + '</small></span><b>' + esc(hhmm(F.iniD)) + '</b></div>';
   if (F.esUltima) {
     const hTurno = avanceDe(j), finTurnoOk = hTurno && hTurno.fin.getTime() <= Date.now() + 15 * 60000 && hTurno.fin > F.iniD;
+    // v1.5.5: advertencia anticipada si la jornada ya pasó su hora de término (lo que se registre después es tiempo extra)
+    if (hTurno && Date.now() > hTurno.fin.getTime() + 60000) hora = '<div class="aviso" style="border-color:#F59E0B;background:#FFFBEB;color:#78350F;margin-top:6px;">⏱️ La jornada terminó a las <b>' +
+      esc(hhmm(hTurno.fin)) + '</b>: lo que pase de esa hora es <b>tiempo extra</b> (máximo ' + gracia() + ' h, hasta las ' + esc(hhmm(new Date(hTurno.fin.getTime() + gracia() * 3600e3))) +
+      '). Indica la hora real en que terminaste.</div>' + hora;
     hora += '<label for="fa-fin">Término</label><input id="fa-fin" type="time" value="' + esc(F.fin) + '">' +
       '<div class="rapidos"><button type="button" class="btn btn-mini" data-ahora="1">Término = ahora</button>' +
       (finTurnoOk ? '<button type="button" class="btn btn-mini" data-fin-turno="1">Término = fin del turno (' + esc(hhmm(hTurno.fin)) + ')</button>' : '') + '</div>';
@@ -2245,7 +2249,8 @@ function pintarDur() {
   if (!h) { x.textContent = ''; return; }
   const pct = av ? Math.max(0, Math.min(100, Math.round(100 * (Math.max(h.f, av.hasta || h.f) - av.ini) / (av.fin - av.ini)))) : null;
   x.textContent = 'Duración: ' + durTxt(h.min) + (h.f.getDate() !== h.i.getDate() ? ' · termina al día siguiente' : '') + (pct != null ? ' · el turno queda al ' + pct + ' %' : '') +
-    (h.f > new Date(F.j.cierre_programado) ? ' · ⚠️ pasa del cierre de la jornada (' + hhmm(new Date(F.j.cierre_programado)) + ')' : '');
+    (av && h.f.getTime() > av.fin.getTime() + 60000 ? ' · ⏱️ ' + durTxt(Math.round((h.f - Math.max(av.fin, h.i)) / 60000)) + ' de tiempo extra (después de las ' + hhmm(av.fin) + ')' : '') +
+    (h.f > new Date(F.j.cierre_programado) ? ' · ⚠️ pasa del máximo de tiempo extra (' + hhmm(new Date(F.j.cierre_programado)) + ')' : '');
   resumenForm();
 }
 function pintarFotos() {
@@ -2283,16 +2288,28 @@ async function comprimirFoto(file) {
     return { blob, ancho: w, alto: h, bytes: blob.size };
   } finally { URL.revokeObjectURL(url); }
 }
-// ⏱️ Tiempo extra (v1.5.3): aviso con dos opciones · «Ingresar tal cual» o «Cerrar a las HH:MM» (término de la apertura = fin del turno)
+// ⏱️ Tiempo extra (v1.5.3 · v1.5.5): advertencia al pasar de la hora de término de la apertura (fin del turno). Opciones:
+// «Cerrar a las HH:MM» (término) · «Terminé a las [hora]» (elige hasta cuándo trabajó: entre el término y el máximo) · «Ingresar tal cual».
+// Máximo de tiempo extra = horas de gracia del cierre (4 h): la actividad no puede pasar del término + 4 h ni de la hora actual.
+function limiteExtra(finTurno) {
+  const cierre = new Date(F.j.cierre_programado), ahora = new Date(Math.floor(Date.now() / 60000) * 60000);
+  return new Date(Math.min(cierre.getTime(), ahora.getTime(), finTurno.getTime() + gracia() * 3600e3));
+}
 function preguntarTiempoExtra(h, finTurno) {
   const extra = Math.round((h.f - finTurno) / 60000), todoExtra = h.i.getTime() >= finTurno.getTime();
   const c = $('ff-extra'); if (!c) return;
+  const lim = limiteExtra(finTurno), desde = todoExtra ? new Date(h.i.getTime() + 60000) : finTurno;
   c.innerHTML = '<div class="aviso" style="border-color:#F59E0B;background:#FFFBEB;color:#78350F;">' +
-    '<b>⏱️ Estás registrando tiempo extra</b><br>' +
-    (todoExtra ? 'Esta actividad es completamente fuera del turno: empieza a las ' + esc(hhmm(h.i)) + ' y la apertura terminó a las ' + esc(hhmm(finTurno)) + '.'
-      : 'La apertura termina a las <b>' + esc(hhmm(finTurno)) + '</b> y esta actividad llega hasta las <b>' + esc(hhmm(h.f)) + '</b>: ' + esc(durTxt(extra)) + ' fuera del turno.') +
+    '<b>⏱️ Advertencia: estás ingresando una actividad fuera de la hora de término</b><br>' +
+    (todoExtra ? 'La apertura terminó a las <b>' + esc(hhmm(finTurno)) + '</b> y esta actividad empieza a las ' + esc(hhmm(h.i)) + ': es completa tiempo extra.'
+      : 'La apertura termina a las <b>' + esc(hhmm(finTurno)) + '</b> y esta actividad llega hasta las <b>' + esc(hhmm(h.f)) + '</b>: ' + esc(durTxt(extra)) + ' de tiempo extra.') +
+    '<div class="muted" style="margin-top:4px;">El tiempo extra es de máximo ' + gracia() + ' h (hasta las ' + esc(hhmm(new Date(finTurno.getTime() + gracia() * 3600e3))) + ').</div>' +
+    '<div style="margin-top:10px;"><label for="fa-extra-fin" style="margin:0;">¿Hasta qué hora trabajaste?</label>' +
+      '<div class="fila-btn" style="margin-top:4px;align-items:center;"><input id="fa-extra-fin" type="time" value="' + esc(hhmm(h.f > lim ? lim : h.f)) + '" min="' + esc(hhmm(desde)) + '" max="' + esc(hhmm(lim)) + '" style="flex:1;">' +
+      '<button type="button" class="btn btn-p" data-extra="hora">✅ Usar esta hora</button></div>' +
+      '<div class="muted" style="margin-top:2px;">Entre las ' + esc(hhmm(desde)) + ' y las ' + esc(hhmm(lim)) + '.</div></div>' +
     '<div class="fila-btn" style="margin-top:10px;">' +
-      (todoExtra ? '' : '<button type="button" class="btn btn-p" data-extra="cerrar">Cerrar a las ' + esc(hhmm(finTurno)) + '</button>') +
+      (todoExtra ? '' : '<button type="button" class="btn" data-extra="cerrar">Cerrar a las ' + esc(hhmm(finTurno)) + ' (sin tiempo extra)</button>') +
       '<button type="button" class="btn" data-extra="tal">Ingresar tal cual (' + esc(durTxt(extra)) + ' extra)</button></div></div>';
   c.scrollIntoView({ behavior: 'smooth', block: 'center' });
   try { if (navigator.vibrate) navigator.vibrate(120); } catch (e) { /* sin vibración */ }
@@ -2302,6 +2319,17 @@ function decidirTiempoExtra(op) {
   leerCamposAct();
   const av = avanceDe(F.j);
   if (op === 'cerrar' && av) { F.fin = hhmm(av.fin); if ($('fa-fin')) $('fa-fin').value = F.fin; pintarDur(); }
+  if (op === 'hora' && av) {   // hora real de término dentro del tiempo extra permitido
+    const v = ($('fa-extra-fin') || {}).value || '';
+    if (!/^\d{2}:\d{2}$/.test(v)) return toast('Elige la hora en que terminaste.', 3500);
+    const antes = F.fin; F.fin = v;
+    const h = horasForm(), lim = limiteExtra(av.fin);
+    if (!h || h.min <= 0) { F.fin = antes; return toast('La hora debe ser posterior al inicio de la actividad (' + hhmm(F.iniD) + ').', 4000); }
+    if (h.f > lim) { F.fin = antes; return toast('El tiempo extra es de máximo ' + gracia() + ' h y no puede pasar de la hora actual: elige hasta las ' + hhmm(lim) + '.', 4500); }
+    if ($('fa-fin')) $('fa-fin').value = F.fin;
+    pintarDur();
+    if (h.f.getTime() <= av.fin.getTime() + 60000) { F.extraOk = ''; $('ff-extra').innerHTML = ''; const b0 = document.querySelector('#sheet [data-guardar]'); if (b0) guardarActividad(b0); return; }
+  }
   F.extraOk = F.fin;   // este término ya fue confirmado
   $('ff-extra').innerHTML = '';
   const b = document.querySelector('#sheet [data-guardar]');
@@ -2321,7 +2349,7 @@ async function guardarActividad(btn) {
   if (!h) return errorForm('Indica la hora de término.', 'hora');
   if (h.min <= 0) return errorForm('La hora de término debe ser posterior al inicio (' + hhmm(h.i) + ').', 'hora');
   if (h.min > 24 * 60) return errorForm('Una actividad no puede durar más de 24 horas.', 'hora');
-  if (h.f > new Date(F.j.cierre_programado)) return errorForm('La actividad no puede terminar después del cierre de la jornada (' + fmtFechaHora(F.j.cierre_programado) + ': fin del turno + ' + gracia() + ' h).', 'hora');
+  if (h.f > new Date(F.j.cierre_programado)) return errorForm('El tiempo extra es de máximo ' + gracia() + ' h: la actividad debe terminar a más tardar a las ' + hhmm(new Date(F.j.cierre_programado)) + ' (' + fmtFechaHora(F.j.cierre_programado) + ').', 'hora');
   if (h.f.getTime() > Date.now() + 15 * 60000) return errorForm('La hora de término está en el futuro: registra la actividad al terminarla.', 'hora');
   const cruce = actividadesDe(F.j.id).find(x => x.id !== F.id && new Date(x.inicio) < h.f && new Date(x.fin) > h.i);
   if (cruce) return errorForm('Se cruza con «' + cruce.actividad + '» (' + hhmm(new Date(cruce.inicio)) + ' – ' + hhmm(new Date(cruce.fin)) + '). Ajusta las horas.', 'hora');

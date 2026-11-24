@@ -58,10 +58,17 @@
   nav.tabs { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; margin-bottom:10px; }
   nav.tabs button { flex:0 0 auto; border:1px solid var(--borde); background: var(--card); color: var(--txt); border-radius:999px; padding:7px 12px; font:inherit; font-weight:700; font-size:13px; cursor:pointer; }
   nav.tabs button.on { background: var(--azul); color:#fff; border-color: var(--azul); }
-  .menu { flex:0 0 auto; display:grid; grid-template-columns: repeat(5,1fr); background: var(--card); border-top:1px solid var(--borde); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); z-index:6; }
+  .menu { flex:0 0 auto; display:grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--card); border-top:1px solid var(--borde); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); z-index:6; }
   .menu button { border:0; background:none; color: var(--sub); font:inherit; font-size:11px; font-weight:700; padding:6px 2px; cursor:pointer; }
   .menu button.on { color: var(--azul2); }
   .menu .ico { font-size:20px; display:block; }
+  /* v1.9.0 · 📡 Bitácora (reportabilidad) */
+  .bt-rombo { width:12px; height:12px; background:#0F172A; border:2px solid #fff; transform:rotate(45deg); box-shadow:0 1px 4px rgba(0,0,0,.5); }
+  .bt-vivo { position:relative; width:30px; height:30px; border-radius:50%; background:#F97316; border:2px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; font-size:15px; }
+  .bt-vivo::after { content:''; position:absolute; inset:-7px; border-radius:50%; border:2px solid #F97316; animation: btOnda 2.2s ease-out infinite; }
+  .bt-vivo.viejo { background:#94A3B8; } .bt-vivo.viejo::after { display:none; }
+  @keyframes btOnda { 0% { transform:scale(.7); opacity:.8; } 100% { transform:scale(1.5); opacity:0; } }
+  @media (max-width:380px) { .menu button { font-size:10px; } .menu .ico { font-size:18px; } }
   .overlay { position:fixed; inset:0; background: rgba(15,23,42,.6); display:none; align-items:flex-end; justify-content:center; z-index:20; }
   .overlay.show { display:flex; }
   .sheet { background: var(--card); width:100%; max-width:760px; max-height:92vh; overflow:auto; border-radius:18px 18px 0 0; padding:16px 16px calc(16px + env(safe-area-inset-bottom)); }
@@ -246,6 +253,7 @@
     <button data-s="recursos"><span class="ico">🚒</span>Recursos</button>
     <button data-s="meteo"><span class="ico">🌦️</span>Meteorología</button>
     <button data-s="copamiento"><span class="ico">🗺️</span>Copamiento</button>
+    <button data-s="bitacora" id="menu-bitacora" style="display:none;"><span class="ico">📡</span>Bitácora</button>
     <button data-s="perfil"><span class="ico">👤</span>Mi perfil</button>
   </nav>
 </div>
@@ -327,7 +335,7 @@ function toast(m) { const t = document.createElement('div'); t.className = 'toas
  * nueva se FUERZA la actualización: primero se envían los pendientes y luego se recarga (el service worker trae app.html de la red).
  * Si hay un avance a medio registrar, espera a que se cierre el formulario. SIN señal: la actualización queda PENDIENTE
  * (localStorage) y se instala sola al volver la señal. La cola de pendientes y los datos guardados (IndexedDB) no se pierden al actualizar. */
-const APP_VERSION = '1.8.3';
+const APP_VERSION = '1.9.0';
 const ACT_KEY = 'pta-act-pendiente', ACT_CADA_MS = 15 * 60 * 1000;
 function actLeer() { try { return localStorage.getItem(ACT_KEY) || ''; } catch (e) { return ''; } }
 function actGuardar(v) { try { if (v) localStorage.setItem(ACT_KEY, v); else localStorage.removeItem(ACT_KEY); } catch (e) { /* sin almacenamiento */ } }
@@ -397,6 +405,8 @@ async function mostrarApp() {
   $('v-login').style.display = 'none'; $('v-app').style.display = '';
   await cargarDatos();
   await cargarPerfil();
+  // 📡 Bitácora (v1.9.0): el menú solo para el Administrador y el perfil Jefe de Área (Jefes, Subgerentes, GRT)
+  rcAlcance().then(() => { const mb = $('menu-bitacora'); if (mb) mb.style.display = btPuede() ? '' : 'none'; }).catch(() => {});
   if (S.sec === 'meteo' && !S.meteo.datos) obtenerMeteo(); else pintar();
   if (navigator.onLine) sincronizarPendientes();
 }
@@ -619,13 +629,15 @@ function filtradas() {
 function pintar() {
   const mg = document.querySelector('#mr-mapa.grande'); if (mg) mg.remove();   // mapa ampliado de Meteorología que se va a redibujar
   document.querySelectorAll('#menu button').forEach(b => b.classList.toggle('on', b.dataset.s === S.sec));
-  const t = { ppa: ['📋 PPA', 'Plan de Prevención por Área'], recursos: ['🚒 Recursos', 'Recursos de tu área · solo consulta'], meteo: ['🌦️ Meteorología', 'Tu ubicación · pronóstico 7 días'], copamiento: ['🗺️ Copamiento', 'Plan de copamiento por comuna'], perfil: ['👤 Mi perfil', 'Tu cuenta y tus áreas'] }[S.sec];
+  const t = { ppa: ['📋 PPA', 'Plan de Prevención por Área'], recursos: ['🚒 Recursos', 'Recursos de tu área · solo consulta'], meteo: ['🌦️ Meteorología', 'Tu ubicación · pronóstico 7 días'], copamiento: ['🗺️ Copamiento', 'Plan de copamiento por comuna'], perfil: ['👤 Mi perfil', 'Tu cuenta y tus áreas'],
+    bitacora: ['📡 Bitácora', 'Control de los recursos de tu área'] }[S.sec];
   $('h-titulo').textContent = t[0]; $('h-sub').textContent = t[1];
   if (S.sec === 'ppa') return pintarPpa();
   if (S.sec === 'perfil') return pintarPerfil();
   if (S.sec === 'meteo') return pintarMeteo();
   if (S.sec === 'recursos') return pintarRecursos();        // v1.1.0 (bloque «RECURSOS Y COPAMIENTO» al final)
   if (S.sec === 'copamiento') return pintarCopamiento();
+  if (S.sec === 'bitacora') return pintarBitacora();          // v1.9.0 (bloque «BITÁCORA (REPORTABILIDAD)» al final)
   $('m-cuerpo').innerHTML = '<div class="card enDes"><div class="ico">🚧</div><h3>En desarrollo</h3><p class="muted">Este ítem se incorporará en una próxima etapa de Prevención Territorial.</p></div>';
 }
 function pintarPpa() {
@@ -959,6 +971,7 @@ async function actualizarDatos() {
     RC.datos = null; RC.cop = null; RC.alcance = null;   // Recursos y Copamiento se vuelven a leer
     RC.cacheCapas = { limites: {}, fundos: {}, areaRel: null };   // y las capas de área, sectores y fundos
     RC.iconos = null;                                             // y los íconos del catálogo
+    BT.recursos = null; BT.estados = null; BT.dia = {}; BT.acts = {}; BT.vivo = {}; BT.error = '';   // 📡 Bitácora
     if (S.sec === 'recursos') await rcCargarRecursos(); else if (S.sec === 'copamiento') await rcCargarCopamiento();
     pintar(); toast('Datos actualizados');
   }
@@ -2159,6 +2172,297 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target.closest('[data-rc-cerrar]')) return cerrarAvance();
     const b = e.target.closest('[data-rc-esc]'); if (b) return rcAbrirComuna(b.dataset.rcSlug, b.dataset.rcNom, b.dataset.rcEsc);
   });
+});
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+ * v1.9.0 · 📡 BITÁCORA (REPORTABILIDAD) — para el Área de Relacionamiento y los gestores (Administrador y perfil Jefe de Área:
+ * Jefes, Subgerentes y GRT). Controla los recursos de la App Bitácora de SUS áreas (lo decide el RLS: bit_puede_ver_recurso_ /
+ * bit_ve_companero_, SQL 183 / 195):
+ *   📋 Aperturas ... del día elegido: abiertas, cerradas, ⚠️ faltan (de turno según el calendario y sin apertura), libres / otro estado
+ *                    y sin turno; dotación, jefe, actividades y % del turno registrado (bit_mis_recursos + v_bit_jornadas).
+ *   🗺️ Mapa ....... actividades con su ubicación del día y de los días anteriores (1 / 3 / 7 días; v_bit_actividades) y el punto de
+ *                    cada apertura; hoy, además, la ubicación en vivo y el recorrido (bit_mapa_jornada).
+ *   📡 En vivo .... última ubicación de cada recurso con la jornada abierta (cada 60 s), ordenada por la más reciente.
+ * Todo queda en el teléfono (cache) para verlo sin señal.
+ * ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+const BT = { vista: 'aperturas', fecha: '', area: '', tipo: '', filtro: '', dias: 1, recursos: null, estados: null, dia: {}, acts: {}, vivo: {}, mapa: null, timer: null };
+const BT_EMOJI = { BMP: '🚒', BD: '🚓', VC: '🛻', VM: '🏍️', VI: '🚶', VMON: '🐎' };
+const BT_ST = {
+  falta:   { t: '⚠️ Falta apertura', c: '#DC2626', o: 0 },
+  abierta: { t: '🟢 Abierta', c: '#16A34A', o: 1 },
+  cerrada: { t: '✅ Cerrada', c: '#2563EB', o: 2 },
+  libre:   { t: '🏠 Libre / otro', c: '#7C3AED', o: 3 },
+  sin:     { t: '· Sin turno', c: '#94A3B8', o: 4 },
+};
+function btPuede() { const a = RC.alcance || {}; return !!a.admin || /jefe de [aá]rea/i.test(a.perfil || ''); }
+function btSumarDias(iso, n) { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+const btHm = ts => { const d = new Date(ts); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+function btHace(ts) { const m = Math.round((Date.now() - new Date(ts).getTime()) / 60000); return m < 1 ? 'recién' : m < 60 ? 'hace ' + m + ' min' : m < 1440 ? 'hace ' + Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : 'hace ' + Math.floor(m / 1440) + ' día(s)'; }
+function btTel(t) { const d = String(t || '').replace(/\D/g, ''); if (d.length < 8) return esc(t || ''); const w = d.length === 9 ? '56' + d : d; return esc(t) + ' <a href="tel:+' + w + '">📞</a> <a href="https://wa.me/' + w + '" target="_blank" rel="noopener">💬</a>'; }
+function btQuitarMapa() { if (BT.mapa) { try { BT.mapa.remove(); } catch (e) {} BT.mapa = null; } }
+function btParar() { if (BT.timer) { clearTimeout(BT.timer); BT.timer = null; } }
+
+// ── Datos
+async function btCargarBase() {
+  if (BT.recursos && BT.estados) return;
+  try {
+    const [r, e] = await Promise.all([sb.rpc('bit_mis_recursos'), sb.from('bit_estado_dia').select('codigo, nombre, emoji, en_servicio')]);
+    if (r.error) throw r.error;
+    BT.recursos = r.data || []; BT.estados = e.error ? [] : (e.data || []);
+    cacheSet('bt_base', { recursos: BT.recursos, estados: BT.estados, fecha: new Date().toISOString() });
+  } catch (er) {
+    const c = await cacheGet('bt_base');
+    if (c) { BT.recursos = c.recursos || []; BT.estados = c.estados || []; toast('📵 Sin señal: recursos guardados del ' + fmtFecha(c.fecha)); }
+    else { BT.recursos = []; BT.estados = []; BT.error = /bit_mis_recursos|schema cache|does not exist/i.test(er.message || '') ? 'La base aún no tiene la Bitácora.' : (er.message || String(er)); }
+  }
+}
+async function btCargarDia(f, forzar) {
+  if (BT.dia[f] && !forzar) return BT.dia[f];
+  try {
+    const l = await leerTodo('v_bit_jornadas', '*', q => q.eq('fecha_operativa', f));
+    BT.dia[f] = { lista: l, fecha: new Date().toISOString() }; cacheSet('bt_dia_' + f, BT.dia[f]);
+  } catch (e) { BT.dia[f] = (await cacheGet('bt_dia_' + f)) || { lista: [], error: e.message || String(e) }; }
+  return BT.dia[f];
+}
+async function btCargarActs(desde, hasta, forzar) {
+  const k = desde + '|' + hasta;
+  if (BT.acts[k] && !forzar) return BT.acts[k];
+  try {
+    const l = await leerTodo('v_bit_actividades', 'id, recurso_id, jornada_id, fecha_operativa, actividad, grupo, grupo_emoji, clasificacion, clasificacion_emoji, clasificacion_color, inicio, fin, cantidad, lat, lng, fundo_nombre, observacion',
+      q => q.gte('fecha_operativa', desde).lte('fecha_operativa', hasta).order('inicio'));
+    BT.acts[k] = l; cacheSet('bt_acts_' + k, l);
+  } catch (e) { BT.acts[k] = (await cacheGet('bt_acts_' + k)) || []; }
+  return BT.acts[k];
+}
+async function btCargarVivo(f, forzar) {
+  if (BT.vivo[f] && !forzar && Date.now() - BT.vivo[f].en < 50000) return BT.vivo[f];
+  try {
+    const { data, error } = await sb.rpc('bit_mapa_jornada', { p_fecha: f });
+    if (error) throw error;
+    BT.vivo[f] = { recursos: data.recursos || [], en: Date.now() }; cacheSet('bt_vivo_' + f, BT.vivo[f]);
+  } catch (e) { BT.vivo[f] = (await cacheGet('bt_vivo_' + f)) || { recursos: [], en: 0, sin: true }; }
+  return BT.vivo[f];
+}
+// Estado de cada recurso en la fecha (mismas reglas que la App Bitácora)
+function btEstado(r, j, f) {
+  const plan = j && j.plan_de_turno != null ? !!j.plan_de_turno : (r.dias_de_turno || []).some(d => String(d).slice(0, 10) === f);
+  if (!j) return plan ? 'falta' : 'sin';
+  if (!j.en_servicio) return 'libre';
+  return (j.cierre_en || (j.cierre_programado && Date.now() > new Date(j.cierre_programado).getTime())) ? 'cerrada' : 'abierta';
+}
+function btRecursosFiltrados() {
+  return (BT.recursos || []).filter(r => (!BT.area || String(r.id_area) === BT.area) && (!BT.tipo || r.tipo_codigo === BT.tipo));
+}
+
+// ── Pintado general
+async function pintarBitacora() {
+  btQuitarMapa(); btParar();
+  if (!BT.fecha) BT.fecha = hoyISO();
+  if (!RC.alcance) await rcAlcance();
+  if (!btPuede()) { $('m-cuerpo').innerHTML = '<div class="card enDes"><div class="ico">📡</div><h3>Solo para el Área de Relacionamiento</h3><p class="muted">Este módulo lo ven el Administrador y los Jefes de Área, Subgerentes y GRT.</p></div>'; return; }
+  if (!BT.recursos) { $('m-cuerpo').innerHTML = '<div class="vacio">Cargando los recursos de la Bitácora…</div>'; await btCargarBase(); if (S.sec !== 'bitacora') return; }
+  const f = BT.fecha, hoy = hoyISO();
+  const areas = [...new Map((BT.recursos || []).filter(r => r.id_area != null).map(r => [String(r.id_area), r.area])).entries()].sort((x, y) => String(x[1]).localeCompare(String(y[1]), 'es'));
+  if (BT.area && !areas.some(([id]) => id === BT.area)) BT.area = '';
+  const tipos = [...new Map((BT.recursos || []).map(r => [r.tipo_codigo, r.tipo_nombre])).entries()];
+  const sel = (id, todos, ops, val) => '<select id="' + id + '"><option value="">' + todos + '</option>' + ops.map(([v, t]) => '<option value="' + esc(v) + '"' + (v === val ? ' selected' : '') + '>' + esc(rcTit(t)) + '</option>').join('') + '</select>';
+  const tabs = '<nav class="tabs">' + [['aperturas', '📋 Aperturas'], ['mapa', '🗺️ Mapa'], ['vivo', '📡 En vivo']]
+    .map(([k, t]) => '<button data-btv="' + k + '" class="' + (BT.vista === k ? 'on' : '') + '">' + t + '</button>').join('') + '</nav>';
+  const nav = BT.vista === 'vivo' ? '' : '<div class="fila" style="align-items:center;margin-bottom:8px;"><button class="btn" data-bt-dia="-1" style="flex:0 0 auto;">◀</button>' +
+    '<div style="text-align:center;font-weight:800;">' + esc(new Date(f + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })) +
+      '<div class="muted">' + (f === hoy ? 'Hoy' : f === btSumarDias(hoy, -1) ? 'Ayer' : fmtFecha(f)) + '</div></div>' +
+    '<button class="btn" data-bt-dia="1" style="flex:0 0 auto;"' + (f >= hoy ? ' disabled' : '') + '>▶</button></div>';
+  const filtros = '<div class="fila" style="margin-bottom:8px;">' + (areas.length > 1 ? sel('bt-area', 'Todas mis áreas', areas, BT.area) : '') + sel('bt-tipo', 'Todos los tipos', tipos, BT.tipo) + '</div>';
+  $('m-cuerpo').innerHTML = tabs + (BT.error ? '<div class="aviso err">' + esc(BT.error) + '</div>' : '') + nav + filtros + '<div id="bt-cuerpo"><div class="vacio">Cargando…</div></div>';
+  if (BT.vista === 'mapa') return btPintarMapa();
+  if (BT.vista === 'vivo') return btPintarVivo();
+  return btPintarAperturas();
+}
+
+// ── 📋 Aperturas del día
+async function btPintarAperturas() {
+  const f = BT.fecha, d = await btCargarDia(f), hoy = hoyISO();
+  const vivo = f === hoy ? await btCargarVivo(f) : null;
+  if (S.sec !== 'bitacora' || BT.vista !== 'aperturas' || BT.fecha !== f) return;
+  const porRec = new Map((d.lista || []).map(j => [j.recurso_id, j]));
+  const ultPos = new Map(((vivo && vivo.recursos) || []).filter(x => x.ultima).map(x => [x.id, x.ultima]));
+  const filas = btRecursosFiltrados().map(r => { const j = porRec.get(r.id) || null; return { r, j, k: btEstado(r, j, f), pos: ultPos.get(r.id) }; });
+  const n = k => filas.filter(x => x.k === k).length;
+  const conServ = filas.filter(x => x.k === 'abierta' || x.k === 'cerrada'), deTurno = filas.filter(x => x.k !== 'sin' && x.k !== 'libre').length;
+  const cumpl = deTurno ? Math.round(conServ.length * 100 / deTurno) : null;
+  const kp = (k, t, v, c) => '<div class="kpi kpi-btn" data-bt-filtro="' + k + '" style="border-left:4px solid ' + c + ';' + (BT.filtro === k && k ? 'background:color-mix(in srgb,' + c + ' 12%, var(--card));' : '') + '"><b style="color:' + c + ';">' + v + '</b><span>' + t + '</span></div>';
+  let html = '<div class="kpis" style="grid-template-columns:repeat(3,1fr);margin-bottom:8px;">' +
+    kp('', 'Recursos', filas.length, '#0F172A') + kp('abierta', 'Abiertas', n('abierta'), BT_ST.abierta.c) + kp('cerrada', 'Cerradas', n('cerrada'), BT_ST.cerrada.c) +
+    kp('falta', 'Faltan (de turno)', n('falta'), BT_ST.falta.c) + kp('libre', 'Libres / otro', n('libre'), BT_ST.libre.c) + kp('sin', 'Sin turno', n('sin'), BT_ST.sin.c) + '</div>';
+  if (cumpl != null) html += '<div class="card" style="border-left:5px solid ' + (cumpl >= 90 ? '#16A34A' : cumpl >= 60 ? '#D97706' : '#DC2626') + ';"><b>' + cumpl + ' %</b> de los recursos de turno hicieron su apertura (' + conServ.length + ' de ' + deTurno + ')' +
+    '<div class="barra" style="--c:' + (cumpl >= 90 ? '#16A34A' : cumpl >= 60 ? '#D97706' : '#DC2626') + ';"><i style="width:' + cumpl + '%"></i></div></div>';
+  if (d.error) html += '<div class="aviso">📵 ' + esc(d.error) + '</div>';
+  if (BT.filtro) html += '<div class="aviso">Mostrando solo: <b>' + BT_ST[BT.filtro].t + '</b> · <a href="#" data-bt-filtro="">ver todos</a></div>';
+  const vis = filas.filter(x => !BT.filtro || x.k === BT.filtro)
+    .sort((a, b) => BT_ST[a.k].o - BT_ST[b.k].o || String(a.r.area).localeCompare(String(b.r.area), 'es') || String(a.r.clave_radial).localeCompare(String(b.r.clave_radial), 'es', { numeric: true }));
+  html += vis.map(({ r, j, k, pos }) => {
+    const st = BT_ST[k], est = k === 'libre' ? (j.estado_emoji || '🏠') + ' ' + (j.estado || 'Otro') : st.t;
+    let det = '';
+    if (j && j.en_servicio) det = '🕒 ' + esc(j.turno || '—') + ' · 👥 ' + (j.dotacion_n || 0) + (j.jefe_nombre ? ' · ⭐ ' + esc(j.jefe_nombre) : '') +
+      ' · 🧩 ' + (j.actividades_n || 0) + ' act. · ' + (j.avance_pct != null ? j.avance_pct + ' % del turno' : '—') + (j.fundo_nombre ? '<br>🌲 ' + esc(j.fundo_nombre) : '');
+    else if (j && j.observacion) det = esc(j.observacion);
+    else if (k === 'falta') det = 'De turno según el calendario y sin apertura' + (f === hoyISO() ? ' hoy' : '');
+    if (pos) det += (det ? '<br>' : '') + '📡 Última ubicación ' + esc(btHace(pos.fecha));
+    return '<div class="card acc" data-bt-rec="' + esc(r.id) + '" style="--c:' + st.c + ';cursor:pointer;"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">' +
+      '<div style="min-width:0;"><b>' + (BT_EMOJI[r.tipo_codigo] || '🚩') + ' ' + esc(r.clave_radial || r.codigo_ref) + '</b><div class="muted">' + esc([rcTit(r.tipo_nombre || ''), r.empresa, rcTit(r.comuna || '')].filter(Boolean).join(' · ')) + '</div></div>' +
+      '<span class="chip" style="--c:' + st.c + ';flex:0 0 auto;">' + esc(est) + '</span></div>' + (det ? '<div class="muted" style="margin-top:6px;">' + det + '</div>' : '') +
+      (j && j.en_servicio && j.avance_pct != null ? '<div class="barra" style="--c:' + (j.avance_pct >= 100 ? '#16A34A' : '#2563EB') + ';"><i style="width:' + Math.min(100, j.avance_pct) + '%"></i></div>' : '') + '</div>';
+  }).join('') || '<div class="vacio">Sin recursos con este filtro.</div>';
+  html += '<p class="muted" style="text-align:center;">Datos de las ' + esc(btHm(d.fecha || Date.now())) + ' · toca un recurso para ver sus actividades</p>';
+  $('bt-cuerpo').innerHTML = html;
+}
+async function btAbrirRecurso(id) {
+  const r = (BT.recursos || []).find(x => x.id === id); if (!r) return;
+  const f = BT.fecha, d = await btCargarDia(f), j = (d.lista || []).find(x => x.recurso_id === id) || null, k = btEstado(r, j, f);
+  const acts = (await btCargarActs(f, f)).filter(a => a.recurso_id === id);
+  const v = f === hoyISO() ? (((await btCargarVivo(f)).recursos || []).find(x => x.id === id) || null) : null;
+  const dato = (t, val) => val ? '<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--borde);font-size:13px;"><span class="muted">' + t + '</span><b style="text-align:right;">' + val + '</b></div>' : '';
+  let html = '<div class="av-top"><div style="font-size:34px;">' + (BT_EMOJI[r.tipo_codigo] || '🚩') + '</div><div style="min-width:0;flex:1;"><div class="av-grupo">' + esc(rcTit(r.tipo_nombre || '')) + '</div>' +
+    '<h2 class="av-accion">' + esc(r.clave_radial || r.codigo_ref) + '</h2><div class="av-meta">' + esc([rcTit(r.area || ''), r.empresa].filter(Boolean).join(' · ')) + ' · ' + esc(fmtFecha(f)) + '</div></div>' +
+    '<button class="av-x" data-bt-cerrar="1" aria-label="Cerrar">✕</button></div><div class="av-body">';
+  html += '<div class="card" style="border-left:5px solid ' + BT_ST[k].c + ';"><b>' + esc(k === 'libre' && j ? (j.estado_emoji || '') + ' ' + (j.estado || '') : BT_ST[k].t) + '</b>' +
+    (j && j.en_servicio && j.avance_pct != null ? '<div class="barra"><i style="width:' + Math.min(100, j.avance_pct) + '%"></i></div><div class="muted">' + j.avance_pct + ' % del turno registrado</div>' : '') + '</div>';
+  if (j) html += dato('Turno', esc(j.turno || '—')) + dato('Actividad general', esc(j.foco || '')) + dato('Jefe', j.jefe_nombre ? esc(j.jefe_nombre) + (j.jefe_telefono ? ' · ' + btTel(j.jefe_telefono) : '') : '') +
+    dato('Dotación', (j.dotacion_n || 0) + ' persona(s)') + dato('Móvil', esc(j.patente || '')) + dato('Fundo', esc(j.fundo_nombre || '')) +
+    dato('Apertura', esc(j.creado_dispositivo_en || j.creado_en ? btHm(j.creado_dispositivo_en || j.creado_en) : '')) +
+    dato('Cierre', j.cierre_en ? '🔒 ' + esc(btHm(j.cierre_en)) : j.cierre_programado ? 'Se cierra ' + esc(btHm(j.cierre_programado)) : '');
+  if (v && v.ultima) html += dato('📡 Última ubicación', esc(btHace(v.ultima.fecha)) + ' (' + esc(btHm(v.ultima.fecha)) + ')');
+  html += '<div class="av-mapa" id="bt-ficha-mapa" style="height:220px;margin:10px 0;"></div>';
+  html += '<b style="font-size:13px;">🧩 Actividades (' + acts.length + ')</b>' + (acts.map(a => '<div class="hist"><b>' + esc(btHm(a.inicio)) + '–' + esc(btHm(a.fin)) + '</b> · ' + esc((a.clasificacion_emoji || a.grupo_emoji || '') + ' ' + (a.actividad || '')) +
+    (a.cantidad > 1 ? ' ×' + a.cantidad : '') + (a.fundo_nombre ? '<div class="muted">🌲 ' + esc(a.fundo_nombre) + '</div>' : '') + (a.observacion ? '<div class="muted">' + esc(a.observacion) + '</div>' : '') + '</div>').join('') ||
+    '<div class="muted" style="padding:6px 0;">Sin actividades registradas.</div>');
+  html += '</div>';
+  $('av-sheet').innerHTML = html;
+  $('ov-avance').classList.add('show'); document.body.style.overflow = 'hidden';
+  const m = montarMapa($('bt-ficha-mapa'), null, null, {});
+  if (!m.map) return;
+  const lim = [];
+  acts.filter(a => a.lat != null).forEach((a, i) => { L.circleMarker([a.lat, a.lng], { radius: 8, color: '#fff', weight: 2, fillColor: a.clasificacion_color || '#2563EB', fillOpacity: .95 }).addTo(m.map).bindTooltip((i + 1) + '. ' + esc(a.actividad || '') + ' ' + btHm(a.inicio)); lim.push([a.lat, a.lng]); });
+  if (j && j.lat != null) { L.marker([j.lat, j.lng], { icon: L.divIcon({ className: '', html: '<div class="bt-rombo"></div>', iconSize: [14, 14], iconAnchor: [7, 7] }) }).addTo(m.map).bindTooltip('◆ Apertura'); lim.push([j.lat, j.lng]); }
+  if (v && (v.rastro || []).length > 1) L.polyline(v.rastro.map(p => [p[0], p[1]]), { color: '#F97316', weight: 3, dashArray: '6 6' }).addTo(m.map);
+  if (v && v.ultima) { L.marker([v.ultima.lat, v.ultima.lng], { icon: btIconoVivo(r.tipo_codigo, v.ultima.fecha) }).addTo(m.map).bindTooltip('📡 ' + btHace(v.ultima.fecha)); lim.push([v.ultima.lat, v.ultima.lng]); }
+  setTimeout(() => { m.map.invalidateSize(); if (lim.length) m.map.fitBounds(lim, { padding: [24, 24], maxZoom: 15, animate: false }); }, 120);
+}
+function btIconoVivo(tipo, fecha) {
+  const viejo = !fecha || Date.now() - new Date(fecha).getTime() > 15 * 60000;
+  return L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 15], html: '<div class="bt-vivo' + (viejo ? ' viejo' : '') + '">' + (BT_EMOJI[tipo] || '📍') + '</div>' });
+}
+
+// ── 🗺️ Mapa de actividades (día y días anteriores) + ubicación en vivo hoy
+async function btPintarMapa() {
+  const f = BT.fecha, desde = btSumarDias(f, -(BT.dias - 1)), hoy = hoyISO();
+  const c = $('bt-cuerpo');
+  c.innerHTML = '<div class="fila" style="margin-bottom:8px;">' + [[1, 'Solo el día'], [3, '3 días'], [7, '7 días']].map(([n, t]) =>
+      '<button class="btn btn-mini' + (BT.dias === n ? ' btn-p' : '') + '" data-bt-dias="' + n + '">' + t + '</button>').join('') + '</div>' +
+    '<div class="av-mapa" id="bt-mapa" style="height:58vh;"></div><div id="bt-ley" class="card" style="margin-top:10px;"><span class="muted">Cargando…</span></div>';
+  const [acts, dia] = await Promise.all([btCargarActs(desde, f), btCargarDia(f)]);
+  const vivo = f === hoy ? await btCargarVivo(f) : null;
+  if (S.sec !== 'bitacora' || BT.vista !== 'mapa' || BT.fecha !== f) return;
+  const ids = new Set(btRecursosFiltrados().map(r => r.id)), rec = id => (BT.recursos || []).find(r => r.id === id) || {};
+  const m = montarMapa($('bt-mapa'), null, null, {}); if (!m.map) return;
+  BT.mapa = m.map;
+  const lim = [], porK = new Map();
+  acts.filter(a => ids.has(a.recurso_id) && a.lat != null).forEach(a => {
+    const col = a.clasificacion_color || '#2563EB', k = a.clasificacion || a.grupo || 'Otra';
+    porK.set(k, { n: ((porK.get(k) || {}).n || 0) + 1, c: col, e: a.clasificacion_emoji || a.grupo_emoji || '' });
+    L.circleMarker([a.lat, a.lng], { radius: a.fecha_operativa === f ? 7 : 5, color: '#fff', weight: 1.5, fillColor: col, fillOpacity: a.fecha_operativa === f ? .95 : .55 }).addTo(m.map)
+      .bindPopup('<b>' + esc((a.clasificacion_emoji || '') + ' ' + (a.actividad || '')) + '</b><br>' + esc((rec(a.recurso_id).clave_radial || '') + ' · ' + fmtFecha(a.fecha_operativa) + ' ' + btHm(a.inicio) + '–' + btHm(a.fin)) +
+        (a.fundo_nombre ? '<br>🌲 ' + esc(a.fundo_nombre) : '') + '<br><a href="#" data-bt-rec="' + esc(a.recurso_id) + '">Ver recurso</a>');
+    lim.push([a.lat, a.lng]);
+  });
+  (dia.lista || []).filter(j => ids.has(j.recurso_id) && j.lat != null).forEach(j => {
+    L.marker([j.lat, j.lng], { icon: L.divIcon({ className: '', html: '<div class="bt-rombo"></div>', iconSize: [14, 14], iconAnchor: [7, 7] }) }).addTo(m.map)
+      .bindTooltip('◆ Apertura ' + esc(rec(j.recurso_id).clave_radial || '')); lim.push([j.lat, j.lng]);
+  });
+  let nVivo = 0;
+  const capaVivo = L.layerGroup().addTo(m.map);
+  const dibujarVivo = v => {
+    capaVivo.clearLayers(); nVivo = 0;
+    ((v && v.recursos) || []).filter(x => ids.has(x.id)).forEach(x => {
+      if ((x.rastro || []).length > 1) L.polyline(x.rastro.map(p => [p[0], p[1]]), { color: '#F97316', weight: 3, opacity: .85, dashArray: '6 6' }).addTo(capaVivo);
+      if (!x.ultima) return;
+      if (Date.now() - new Date(x.ultima.fecha).getTime() <= 15 * 60000) nVivo++;
+      L.marker([x.ultima.lat, x.ultima.lng], { zIndexOffset: 1000, icon: btIconoVivo(x.tipo_codigo, x.ultima.fecha) }).addTo(capaVivo)
+        .bindPopup('<b>📡 ' + esc(x.clave || x.codigo || '') + '</b><br>' + esc(btHace(x.ultima.fecha)) + (x.ultima.velocidad != null ? ' · ' + Math.round(x.ultima.velocidad * 3.6) + ' km/h' : '') +
+          (x.jornada && x.jornada.jefe ? '<br>⭐ ' + esc(x.jornada.jefe) : '') + '<br><a href="#" data-bt-rec="' + esc(x.id) + '">Ver recurso</a>');
+      lim.push([x.ultima.lat, x.ultima.lng]);
+    });
+  };
+  dibujarVivo(vivo);
+  setTimeout(() => { m.map.invalidateSize(); if (lim.length) m.map.fitBounds(lim, { padding: [30, 30], maxZoom: 14, animate: false }); }, 120);
+  const ley = () => { const cap = $('bt-mapa') && $('bt-mapa').querySelector('.av-cap'); if (cap) cap.textContent = '🧩 ' + [...porK.values()].reduce((s, o) => s + o.n, 0) + ' actividades' + (vivo ? ' · 📡 ' + nVivo + ' en movimiento' : '');
+    $('bt-ley').innerHTML = '<b style="font-size:13px;">Actividades ' + (BT.dias > 1 ? 'del ' + fmtFecha(desde) + ' al ' + fmtFecha(f) : 'del día') + '</b>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">' + ([...porK.entries()].map(([k, o]) => '<span class="chip" style="--c:' + o.c + '">● ' + esc(o.e + ' ' + k) + ' (' + o.n + ')</span>').join('') || '<span class="muted">Sin actividades con ubicación.</span>') + '</div>' +
+    '<div class="muted" style="margin-top:6px;">● actividad (más tenue = días anteriores) · ◆ apertura del día' + (vivo ? ' · <span style="color:#EA580C;font-weight:700;">📡 ' + nVivo + ' en movimiento</span> (gris = más de 15 min sin enviar) · ┅ recorrido de hoy' : '') + '</div>'; };
+  ley();
+  if (vivo) {   // hoy: la ubicación en vivo se refresca cada 60 s mientras el mapa siga abierto
+    const vuelta = async () => { if (S.sec !== 'bitacora' || BT.vista !== 'mapa' || BT.mapa !== m.map) return; dibujarVivo(await btCargarVivo(f, true)); ley(); BT.timer = setTimeout(vuelta, 60000); };
+    BT.timer = setTimeout(vuelta, 60000);
+  }
+}
+
+// ── 📡 En vivo: última ubicación de cada recurso con la jornada abierta
+async function btPintarVivo() {
+  const f = hoyISO(), c = $('bt-cuerpo');
+  c.innerHTML = '<div class="av-mapa" id="bt-mapa" style="height:46vh;"></div><div id="bt-vivo-lista" style="margin-top:10px;"><div class="vacio">Leyendo ubicaciones…</div></div>';
+  const m = montarMapa($('bt-mapa'), null, null, {}); if (!m.map) return;
+  BT.mapa = m.map;
+  const capa = L.layerGroup().addTo(m.map);
+  let ajustado = false;
+  const dibujar = async forzar => {
+    const v = await btCargarVivo(f, forzar);
+    if (S.sec !== 'bitacora' || BT.vista !== 'vivo' || BT.mapa !== m.map) return;
+    const ids = new Set(btRecursosFiltrados().map(r => r.id));
+    const lista = (v.recursos || []).filter(x => ids.has(x.id)).sort((a, b) => (b.ultima ? new Date(b.ultima.fecha).getTime() : 0) - (a.ultima ? new Date(a.ultima.fecha).getTime() : 0));
+    capa.clearLayers();
+    const lim = [];
+    lista.forEach(x => {
+      if ((x.rastro || []).length > 1) L.polyline(x.rastro.map(p => [p[0], p[1]]), { color: '#F97316', weight: 2.5, opacity: .7, dashArray: '5 6' }).addTo(capa);
+      if (!x.ultima) return;
+      L.marker([x.ultima.lat, x.ultima.lng], { icon: btIconoVivo(x.tipo_codigo, x.ultima.fecha) }).addTo(capa)
+        .bindTooltip(esc((x.clave || x.codigo || '') + ' · ' + btHace(x.ultima.fecha)), { direction: 'top', offset: [0, -14] });
+      lim.push([x.ultima.lat, x.ultima.lng]);
+    });
+    if (!ajustado && lim.length) { ajustado = true; m.map.invalidateSize(); m.map.fitBounds(lim, { padding: [30, 30], maxZoom: 14, animate: false }); }
+    const enMov = lista.filter(x => x.ultima && Date.now() - new Date(x.ultima.fecha).getTime() <= 15 * 60000).length;
+    const cap = $('bt-mapa') && $('bt-mapa').querySelector('.av-cap'); if (cap) cap.textContent = '📡 ' + enMov + ' en movimiento · ' + lim.length + ' con ubicación';
+    $('bt-vivo-lista').innerHTML = '<div class="kpis" style="grid-template-columns:repeat(3,1fr);margin-bottom:8px;">' +
+        '<div class="kpi" style="border-left:4px solid #EA580C;"><b style="color:#EA580C;">' + enMov + '</b><span>En movimiento (≤ 15 min)</span></div>' +
+        '<div class="kpi" style="border-left:4px solid #94A3B8;"><b>' + lista.filter(x => x.ultima).length + '</b><span>Con ubicación hoy</span></div>' +
+        '<div class="kpi" style="border-left:4px solid #DC2626;"><b style="color:#DC2626;">' + lista.filter(x => !x.ultima && x.jornada && x.jornada.en_servicio && !x.jornada.cierre_en).length + '</b><span>Abiertas sin ubicación</span></div></div>' +
+      (lista.map(x => {
+        const u = x.ultima, viejo = !u || Date.now() - new Date(u.fecha).getTime() > 15 * 60000, col = !u ? '#DC2626' : viejo ? '#94A3B8' : '#EA580C';
+        return '<div class="card acc" data-bt-rec="' + esc(x.id) + '" style="--c:' + col + ';cursor:pointer;"><div style="display:flex;justify-content:space-between;gap:8px;">' +
+          '<b>' + (BT_EMOJI[x.tipo_codigo] || '🚩') + ' ' + esc(x.clave || x.codigo || '') + '</b><span class="chip" style="--c:' + col + '">' + (u ? '📡 ' + esc(btHace(u.fecha)) : 'Sin ubicación') + '</span></div>' +
+          '<div class="muted">' + esc([x.empresa, rcTit(x.area || ''), x.jornada && x.jornada.turno ? '🕒 ' + x.jornada.turno : ''].filter(Boolean).join(' · ')) +
+          (u && u.velocidad != null ? ' · ' + Math.round(u.velocidad * 3.6) + ' km/h' : '') + (x.jornada && x.jornada.jefe ? '<br>⭐ ' + esc(x.jornada.jefe) + (x.jornada.jefe_telefono ? ' · ' + btTel(x.jornada.jefe_telefono) : '') : '') + '</div></div>';
+      }).join('') || '<div class="vacio">Ningún recurso con apertura hoy' + (v.sin ? ' (sin señal o falta el SQL 195)' : '') + '.</div>') +
+      '<p class="muted" style="text-align:center;">Se actualiza cada minuto · ' + esc(btHm(v.en || Date.now())) + '</p>';
+    BT.timer = setTimeout(() => dibujar(true), 60000);
+  };
+  dibujar(false);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('m-cuerpo').addEventListener('click', e => {
+    if (S.sec !== 'bitacora') return;
+    const v = e.target.closest('[data-btv]'); if (v) { BT.vista = v.dataset.btv; return pintarBitacora(); }
+    const d = e.target.closest('[data-bt-dia]'); if (d) { const nf = btSumarDias(BT.fecha, Number(d.dataset.btDia)); if (nf > hoyISO()) return; BT.fecha = nf; return pintarBitacora(); }
+    const fi = e.target.closest('[data-bt-filtro]'); if (fi) { e.preventDefault(); BT.filtro = BT.filtro === fi.dataset.btFiltro ? '' : fi.dataset.btFiltro; return btPintarAperturas(); }
+    const ds = e.target.closest('[data-bt-dias]'); if (ds) { BT.dias = Number(ds.dataset.btDias); btQuitarMapa(); btParar(); return btPintarMapa(); }
+    const rr = e.target.closest('[data-bt-rec]'); if (rr) { e.preventDefault(); return btAbrirRecurso(rr.dataset.btRec); }
+  });
+  $('m-cuerpo').addEventListener('change', e => {
+    if (S.sec !== 'bitacora') return;
+    if (e.target.id === 'bt-area') { BT.area = e.target.value; return pintarBitacora(); }
+    if (e.target.id === 'bt-tipo') { BT.tipo = e.target.value; return pintarBitacora(); }
+  });
+  $('av-sheet').addEventListener('click', e => { if (e.target.closest('[data-bt-cerrar]')) return cerrarAvance(); });
 });
 </script>
 </body>
