@@ -371,8 +371,8 @@ textarea.campo:focus{border-color:var(--cobalt);}
 // Los reportes, turnos y puntos GPS se guardan primero en el teléfono (IndexedDB) y se envían cuando hay
 // señal: nada se pierde si se corta la conexión.
 // ════════════════════════════════════════════════════════════════
-const APP_VERSION = '2.5.1';
-const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
+const APP_VERSION = '2.5.2';
+const SUPABASE_URL = 'https://api.copamientoterritorial.cl';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 

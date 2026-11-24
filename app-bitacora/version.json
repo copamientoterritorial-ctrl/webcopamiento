@@ -1,7 +1,8 @@
 {
-  "version": "1.5.1",
-  "fecha": "2026-11-22",
+  "version": "1.5.2",
+  "fecha": "2026-11-23",
   "notas": [
+    "🔌 Nueva dirección del servidor (api.copamientoterritorial.cl): la app vuelve a conectarse desde los equipos y redes de la empresa.",
     "🗓️ Semana: cada jornada muestra el % del turno registrado con actividades, con el promedio por recurso y de la semana.",
     "📡 Con la jornada abierta, la app comparte tu ubicación con tu supervisor (cada minuto, con la app abierta).",
     "🗺️ Mapa del día con la ubicación en vivo, el recorrido y las actividades de los recursos de tu empresa.",

@@ -1,7 +1,8 @@
 {
-  "version": "1.8.2",
-  "fecha": "2026-11-22",
+  "version": "1.8.3",
+  "fecha": "2026-11-23",
   "notas": [
+    "Nueva dirección del servidor (api.copamientoterritorial.cl): la app vuelve a conectarse desde los equipos y redes de la empresa.",
     "La ubicación es obligatoria al registrar o modificar una acción del PPA: usa tu ubicación (GPS) o toca el mapa en el lugar.",
     "Funciona sin señal: abre con tu sesión y los datos guardados, registra avances en pendientes y los envía al volver la señal.",
     "PPA: indicadores «Avance general del PPA» (todo el período) y «Avance a la fecha»."

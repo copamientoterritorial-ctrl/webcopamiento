@@ -1,7 +1,8 @@
 {
-  "version": "1.5.1",
-  "fecha": "2026-11-06",
+  "version": "1.5.2",
+  "fecha": "2026-11-23",
   "notas": [
+    "Nueva dirección del servidor (api.copamientoterritorial.cl): la app vuelve a conectarse desde los equipos y redes de la empresa",
     "Mapa más simple: se quitaron los fundos CMPC",
     "Edita o elimina tus registros y tus actividades planificadas; sube fotos desde la galería",
     "Mapa satelital, buscador de lugares y capas de rutas MOP, predios e incendios por temporada"

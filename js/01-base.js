@@ -12,7 +12,7 @@
 window.__DEBUG__ = false;
 
 // BUILD: etiquetas-v3-20260915
-  const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
+  const SUPABASE_URL = 'https://api.copamientoterritorial.cl';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 
 // Adaptador de almacenamiento: respeta el checkbox "Recordar sesión".

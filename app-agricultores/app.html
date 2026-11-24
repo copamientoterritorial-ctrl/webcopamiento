@@ -237,8 +237,8 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px s
 //   fotos desde la cámara o la galería, mapa Satélite, capas Red Vial MOP · Predios de agricultores ·
 //   Incendios por temporada (apagados por defecto) y buscador de lugares (datos del teléfono + Esri en línea).
 // ════════════════════════════════════════════════════════════════
-const APP_VERSION = '1.5.1';   // ⚠️ al publicar cambios: subir aquí, en sw-agricultores.js (VERSION) y en version.json
-const SUPABASE_URL = 'https://dgcnshdmmnjvucdkzpqb.supabase.co';
+const APP_VERSION = '1.5.2';   // ⚠️ al publicar cambios: subir aquí, en sw-agricultores.js (VERSION) y en version.json
+const SUPABASE_URL = 'https://api.copamientoterritorial.cl';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 // Sesión propia de la app (no se cierra al salir del sistema web en el mismo navegador)
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-agr-app', detectSessionInUrl: false } });
