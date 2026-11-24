@@ -6,6 +6,14 @@
  * Se pueden volver a ver con «🆕 Novedades» (botón del encabezado de Ayuda, abrirNovedades_(true)). */
 const NOVEDADES = [
   {
+    id: '2026-11-23-ppa-meses-con-metas', fecha: '23-11-2026', titulo: 'PPA: solo los meses con metas',
+    items: [
+      { ico: '📅', t: 'Metas por fecha: sin meses vacíos', perfiles: ['admin', 'subgerente', 'grt', 'jefe'],
+        d: 'En <b>📋 PPA › 🎯 Metas por fecha</b> la grilla muestra solo los meses que tienen metas (los vacíos del comienzo y del final quedan ocultos). ' +
+           'Con <b>📅 Ver todos los meses</b> vuelven a aparecer.' },
+    ],
+  },
+  {
     id: '2026-11-22-supervisor-empresa', fecha: '22-11-2026', titulo: 'Supervisor de empresa y ubicación en vivo',
     items: [
       { ico: '👷', t: 'Nuevo perfil: Supervisor de empresa (EESS)', perfiles: ['admin'],

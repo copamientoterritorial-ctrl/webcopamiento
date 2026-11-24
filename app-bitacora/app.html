@@ -329,9 +329,9 @@
   <div class="lg-card">
     <img class="lg-logo" src="icon-192.png" alt="Bitácora">
     <h1 class="lg-titulo">Bitácora</h1>
-    <p class="lg-sub">Ingresa con el usuario del recurso (p. ej. amedina) o con tu correo y clave del sistema de Copamiento Territorial</p>
+    <p class="lg-sub">Ingresa con el usuario del recurso (p. ej. AMEDINA, en mayúsculas o minúsculas) o con tu correo y clave del sistema de Copamiento Territorial</p>
     <label for="l-mail">Usuario o correo</label>
-    <input id="l-mail" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="amedina o nombre@empresa.cl">
+    <input id="l-mail" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="AMEDINA o nombre@empresa.cl">
     <label for="l-clave">Clave</label>
     <input id="l-clave" type="password" autocomplete="current-password" placeholder="Tu clave">
     <label class="chk"><input type="checkbox" id="l-recordar"> Recordar usuario y clave en este teléfono</label>
@@ -390,7 +390,7 @@
 const SUPABASE_URL = 'https://api.copamientoterritorial.cl';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-bitacora-app', detectSessionInUrl: false } });
-const APP_VERSION = '1.5.2';
+const APP_VERSION = '1.5.4';
 const DOMINIO_CUENTAS = 'recursos.copamientoterritorial.cl';   // = Edge Function admin-cuentas-recurso y js/41 de la web
 const DIAS_CARGA = 14;   // aperturas que se descargan hacia atrás
 
@@ -508,7 +508,7 @@ async function entrar() {
   const { error } = await sb.auth.signInWithPassword({ email: mail, password: clave });
   $('l-entrar').disabled = false;
   if (error) { $('l-err').textContent = 'No se pudo ingresar: ' + error.message; $('l-err').style.display = ''; return; }
-  recordarCredenciales(escrito, clave, $('l-recordar').checked);
+  recordarCredenciales(escrito.includes('@') ? escrito : escrito.toUpperCase(), clave, $('l-recordar').checked);
   await mostrarApp();
 }
 // Usuario: siempre se recuerda. Clave: solo si se marcó «Recordar» (queda en este teléfono; «Mi cuenta › Olvidar clave» la borra).
@@ -926,7 +926,7 @@ function datosUsuario() {
     if (t && !tel) tel = t.telefono || '';
   }
   const pila = (nombre && !/^Cuenta /i.test(nombre) ? nombre.split(/\s+/)[0] : '') || '';
-  return { nombre, tel, pila: pila ? pila.charAt(0).toUpperCase() + pila.slice(1).toLowerCase() : '', usuario: c.usuario || (c.correo || '').split('@')[0] };
+  return { nombre, tel, pila: pila ? pila.charAt(0).toUpperCase() + pila.slice(1).toLowerCase() : '', usuario: c.usuario ? String(c.usuario).toUpperCase() : (c.correo || '').split('@')[0] };   // v1.5.4: usuario de recurso en MAYÚSCULAS (caninir → CANINIR)
 }
 // 📲 Acceso directo (v1.4.0): el navegador no deja instalar sin un toque del usuario, así que tras ingresar se muestra una franja
 // fija con «Instalar» (Android / Chrome: diálogo del sistema) o los pasos de iPhone, hasta que la app quede instalada.
@@ -1492,9 +1492,11 @@ async function enviarPosicion() {
   if (POS.estado === 'sin_sql') detenerPosicion();
   pintarPosChip();
 }
+// v1.5.3 (decisión del usuario): la ubicación se comparte en segundo plano, SIN aviso en pantalla. POS_VISIBLE = true vuelve a mostrar la franja.
+const POS_VISIBLE = false;
 function pintarPosChip() {
   const el = $('pos-chip'); if (!el) return;
-  if (!POS.rid || POS.estado === 'sin_sql') { el.className = ''; el.innerHTML = ''; return; }
+  if (!POS_VISIBLE || !POS.rid || POS.estado === 'sin_sql') { el.className = ''; el.innerHTML = ''; return; }
   const t = { ok: '📡 Compartiendo tu ubicación con tu supervisor' + (POS.enviadoOk ? ' · última ' + hhmm(POS.enviadoOk) : ''),
     gps: '📡 Ubicación lista, enviándola…', buscando: '📡 Buscando tu ubicación (GPS)…',
     espera: '📡 Tu ubicación se compartirá cuando la apertura llegue al servidor',
@@ -1742,6 +1744,14 @@ function dotacionBase(r, j, ref) {
 }
 // Turno propuesto: el horario del recurso; si no tiene, el de su última apertura
 function turnoPropuesto(r, ref) { return (r.turno_sugerido && turnoCat(r.turno_sugerido)) ? r.turno_sugerido : (ref && ref.turno_codigo) || ''; }
+// v1.5.3: «Actividad general» obligatoria. De noviembre a marzo (temporada de incendios) parte en «Prevención Activa».
+const MESES_PREVENCION_ACTIVA = [11, 12, 1, 2, 3];
+function focoPorDefecto(fecha) {
+  const mes = Number(String(fecha || hoyISO()).slice(5, 7));
+  if (!MESES_PREVENCION_ACTIVA.includes(mes)) return '';
+  const f = S.cat.focos.find(x => /prevenci[oó]n\s+activa/i.test(x.nombre || ''));
+  return f ? f.codigo : '';
+}
 function abrirFormulario(r, fecha, j, repetir) {
   const ref = repetir || (!j ? ultimaApertura(r.id, fecha) : null);
   const plan = planDe(r, fecha, j);
@@ -1751,7 +1761,7 @@ function abrirFormulario(r, fecha, j, repetir) {
   F = {
     r, nuevo: !j, id: j ? j.id : uuid(), recurso_id: r.id, fecha_operativa: fecha,
     estado: j ? j.estado_codigo : (repetir ? repetir.estado_codigo : (plan === false ? 'DIA_LIBRE' : 'EN_SERVICIO')),
-    turno: turno || '', propuesto: prop, jt: (turnoCat(turno || prop) || {}).jornada || 'Diurna', foco: base ? base.foco_codigo : '',
+    turno: turno || '', propuesto: prop, jt: (turnoCat(turno || prop) || {}).jornada || 'Diurna', foco: (base && base.foco_codigo) || focoPorDefecto(fecha),
     patente: base ? (base.patente || '') : (ref ? ref.patente || '' : ''), cambio_movil: j ? !!j.cambio_movil : false,
     km_inicio: j ? (j.km_inicio != null ? String(j.km_inicio) : '') : (ref && ref.km_fin != null ? String(ref.km_fin) : ''),
     cod_fundo: base ? base.cod_fundo || '' : '', fundo_nombre: base ? base.fundo_nombre || '' : '', fundoManual: !!(base && base.fundo_nombre), fq: '',
@@ -1874,7 +1884,7 @@ function resumenForm() {
   const t = turnoCat(F.turno);
   pon('turno', t ? turnoTxt(t) + ' · ' + t.jornada + (F.turno === F.propuesto ? ' · ⭐ propuesto' : '') : 'Elige el turno', t ? 'si' : 'no');
   const fo = focoCat(F.foco);
-  pon('foco', fo ? (fo.emoji || '') + ' ' + fo.nombre : 'Sin indicar', fo ? 'si' : 'op');
+  pon('foco', fo ? (fo.emoji || '') + ' ' + fo.nombre : 'Elige la actividad general', fo ? 'si' : 'no');
   pon('movil', (F.patente ? '🚙 ' + F.patente : 'Patente opcional') + (F.r.pide_km && F.km_inicio ? ' · km ' + F.km_inicio : '') + (F.cambio_movil ? ' · cambio de móvil' : ''), F.patente ? 'si' : 'op');
   pon('ubic', F.cod_fundo ? '🌲 ' + fundoTxt({ nombre: F.fundo_nombre, cod_fundo: F.cod_fundo }) : F.fundo_nombre ? '📍 ' + F.fundo_nombre : F.lat != null ? coordTxt(F.lat, F.lng) : 'Sin ubicación', F.lat != null ? 'si' : 'op');
   pon('obs', F.observacion ? F.observacion.slice(0, 60) : 'Sin observación', F.observacion ? 'si' : 'op');
@@ -1933,7 +1943,8 @@ function pintarTurno() {
 function pintarFoco() {
   const c = $('fs-foco'); if (!c) return;
   c.innerHTML = '<div class="opc" style="margin-top:6px;">' + S.cat.focos.map(x => '<button type="button" data-foco="' + esc(x.codigo) + '"' + (x.codigo === F.foco ? ' class="on"' : '') + '>' + esc((x.emoji || '') + ' ' + x.nombre) + '</button>').join('') + '</div>' +
-    '<div class="muted" style="margin-top:6px;">La actividad general planificada para la jornada. Toca de nuevo para quitarla.</div>';
+    '<div class="muted" style="margin-top:6px;">Obligatoria: la actividad general planificada para la jornada' +
+      (MESES_PREVENCION_ACTIVA.includes(Number(String(F.fecha_operativa).slice(5, 7))) ? ' (de noviembre a marzo parte en «Prevención Activa»)' : '') + '.</div>';
   resumenForm();
 }
 const distKm = (a, b, c, d) => { const R = 6371, r = x => x * Math.PI / 180, dl = r(c - a), dg = r(d - b); const h = Math.sin(dl / 2) ** 2 + Math.cos(r(a)) * Math.cos(r(c)) * Math.sin(dg / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
@@ -2031,6 +2042,7 @@ async function guardarFormulario(btn) {
     if (!dot.length) return errorForm('Marca al menos una persona presente.', 'dot');
     if (F.r.pide_jefe && !dot.some(p => p.es_jefe)) return errorForm('Marca con ⭐ quién es el jefe de la brigada.', 'dot');
     if (!F.turno) return errorForm('Elige el turno.', 'turno');
+    if (!F.foco) return errorForm('Elige la actividad general de la jornada.', 'foco');
   }
   const payload = {
     id: F.id, recurso_id: F.recurso_id, fecha_operativa: F.fecha_operativa, estado: F.estado,
@@ -2107,7 +2119,7 @@ function pintarActividadForm() {
     '<div id="fs-coord"></div><div id="fs-fundo"></div>');
   html += tgHtml('fotos', '📷', 'Fotos', '<div class="muted" style="margin-top:6px;">Opcional · hasta 6</div><div class="fotos" id="fs-fotos"></div><input type="file" id="fa-foto" accept="image/*" capture="environment" style="display:none;">');
   html += tgHtml('obs', '📝', 'Observación', '<textarea id="ff-obs" rows="2" maxlength="500" placeholder="Opcional" style="margin-top:6px;">' + esc(F.observacion) + '</textarea>');
-  html += '<div id="ff-err" class="aviso err" style="display:none;"></div></div>';
+  html += '<div id="ff-extra"></div><div id="ff-err" class="aviso err" style="display:none;"></div></div>';
   html += '<div class="sh-foot"><button class="btn" data-act-volver="1">Cancelar</button>' + (!F.nuevo && F.esUltima ? '<button class="btn btn-rojo" data-act-eliminar="1">🗑️ Eliminar</button>' : '') +
     '<button class="btn btn-grande" data-guardar="1" style="flex:2;">' + (F.nuevo ? '✅ Guardar actividad' : '💾 Guardar corrección') + '</button></div>';
   abrirHoja(html);
@@ -2271,6 +2283,30 @@ async function comprimirFoto(file) {
     return { blob, ancho: w, alto: h, bytes: blob.size };
   } finally { URL.revokeObjectURL(url); }
 }
+// ⏱️ Tiempo extra (v1.5.3): aviso con dos opciones · «Ingresar tal cual» o «Cerrar a las HH:MM» (término de la apertura = fin del turno)
+function preguntarTiempoExtra(h, finTurno) {
+  const extra = Math.round((h.f - finTurno) / 60000), todoExtra = h.i.getTime() >= finTurno.getTime();
+  const c = $('ff-extra'); if (!c) return;
+  c.innerHTML = '<div class="aviso" style="border-color:#F59E0B;background:#FFFBEB;color:#78350F;">' +
+    '<b>⏱️ Estás registrando tiempo extra</b><br>' +
+    (todoExtra ? 'Esta actividad es completamente fuera del turno: empieza a las ' + esc(hhmm(h.i)) + ' y la apertura terminó a las ' + esc(hhmm(finTurno)) + '.'
+      : 'La apertura termina a las <b>' + esc(hhmm(finTurno)) + '</b> y esta actividad llega hasta las <b>' + esc(hhmm(h.f)) + '</b>: ' + esc(durTxt(extra)) + ' fuera del turno.') +
+    '<div class="fila-btn" style="margin-top:10px;">' +
+      (todoExtra ? '' : '<button type="button" class="btn btn-p" data-extra="cerrar">Cerrar a las ' + esc(hhmm(finTurno)) + '</button>') +
+      '<button type="button" class="btn" data-extra="tal">Ingresar tal cual (' + esc(durTxt(extra)) + ' extra)</button></div></div>';
+  c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  try { if (navigator.vibrate) navigator.vibrate(120); } catch (e) { /* sin vibración */ }
+}
+function decidirTiempoExtra(op) {
+  if (!F || F.modo !== 'actividad') return;
+  leerCamposAct();
+  const av = avanceDe(F.j);
+  if (op === 'cerrar' && av) { F.fin = hhmm(av.fin); if ($('fa-fin')) $('fa-fin').value = F.fin; pintarDur(); }
+  F.extraOk = F.fin;   // este término ya fue confirmado
+  $('ff-extra').innerHTML = '';
+  const b = document.querySelector('#sheet [data-guardar]');
+  if (b) guardarActividad(b);
+}
 function leerCamposAct() {
   if (!F || F.modo !== 'actividad') return;
   if ($('fa-fin')) F.fin = $('fa-fin').value;
@@ -2290,6 +2326,11 @@ async function guardarActividad(btn) {
   const cruce = actividadesDe(F.j.id).find(x => x.id !== F.id && new Date(x.inicio) < h.f && new Date(x.fin) > h.i);
   if (cruce) return errorForm('Se cruza con «' + cruce.actividad + '» (' + hhmm(new Date(cruce.inicio)) + ' – ' + hhmm(new Date(cruce.fin)) + '). Ajusta las horas.', 'hora');
   if (a.pide_cantidad && !(Number(F.cantidad) >= 1)) return errorForm('Indica la cantidad (1 o más).', 'cant');
+  // v1.5.3: tiempo extra = la actividad termina después del término de la apertura (fin del turno). Se pregunta si va tal cual o se cierra
+  // a la hora de término; la decisión vale para ese término (si se cambia la hora, se vuelve a preguntar).
+  const avT = avanceDe(F.j);
+  if (avT && h.f.getTime() > avT.fin.getTime() + 60000 && F.extraOk !== F.fin) return preguntarTiempoExtra(h, avT.fin);
+  $('ff-extra').innerHTML = '';
   const payload = {
     id: F.id, jornada_id: F.j.id, recurso_id: F.r.id, fecha_operativa: F.j.fecha_operativa, actividad: a.codigo,
     inicio: h.i.toISOString(), fin: h.f.toISOString(), cantidad: a.pide_cantidad ? Number(F.cantidad) : 1,
@@ -2549,6 +2590,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (t.closest('[data-act-cambiar]')) { leerCamposAct(); F.buscando = true; F.grupo = (actCat(F.actividad) || {}).grupo_codigo || ''; F.clasif = clasifDeGrupo(F.grupo); return pintarSelAct(); }
       const as = t.closest('[data-act-sel]'); if (as) { leerCamposAct(); F.actividad = as.dataset.actSel; F.buscando = false; F.q = ''; pintarSelAct(); return pintarCant(); }
       const fv = t.closest('[data-fav]'); if (fv) return alternarFavorita(fv.dataset.fav);
+      const ex = t.closest('[data-extra]'); if (ex) return decidirTiempoExtra(ex.dataset.extra);   // ⏱️ v1.5.3
       const kl = t.closest('[data-clasif]'); if (kl) {
         F.clasif = kl.dataset.clasif; F.q = ''; F.grupo = '';
         const gs = [...new Set(habilitadas(F.r).filter(a => clasifDeGrupo(a.grupo_codigo) === F.clasif).map(a => a.grupo_codigo))];
@@ -2575,7 +2617,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (t.closest('[data-repetir]')) { leerCamposForm(); const ref = F.ref; return abrirFormulario(F.r, F.fecha_operativa, null, ref); }
     const jt = t.closest('[data-jt]'); if (jt) { if (F.tieneAct) return; F.jt = jt.dataset.jt; return pintarTurno(); }
     const tu = t.closest('[data-turno]'); if (tu) { if (F.tieneAct) return toast('Esta apertura ya tiene actividades: el turno no se puede cambiar.', 4000); F.turno = tu.dataset.turno; F.jt = (turnoCat(F.turno) || {}).jornada || F.jt; return pintarTurno(); }
-    const fo = t.closest('[data-foco]'); if (fo) { F.foco = F.foco === fo.dataset.foco ? '' : fo.dataset.foco; return pintarFoco(); }
+    const fo = t.closest('[data-foco]'); if (fo) { F.foco = fo.dataset.foco; return pintarFoco(); }   // obligatoria: no se puede quitar
     const je = t.closest('[data-jefe]');
     if (je) { const i = Number(je.dataset.jefe), on = !F.dot[i].es_jefe; F.dot.forEach(p => { p.es_jefe = false; }); F.dot[i].es_jefe = on; if (on) F.dot[i].presente = true; return pintarDot(); }
     const qu = t.closest('[data-quitar]'); if (qu) { F.dot.splice(Number(qu.dataset.quitar), 1); return pintarDot(); }

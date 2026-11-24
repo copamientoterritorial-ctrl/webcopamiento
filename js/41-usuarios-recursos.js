@@ -25,6 +25,8 @@ function urUsuarioDeNombre_(nombre) {
   const ape = t.length >= 4 ? t[t.length - 2] : t[1];
   return (t[0][0] + ape).slice(0, 40);
 }
+/** Usuario para MOSTRAR (23-11-2026): en mayúsculas (caninir → CANINIR). Se guarda y se ingresa en minúsculas: la app acepta cualquiera. */
+const urU_ = u => String(u || '').toUpperCase();
 function urUsuarioSugerido_(r) {
   const l = urLider_(r);
   return l ? urUsuarioDeNombre_(l.nombre) : '';
@@ -64,7 +66,7 @@ function urFiltradas_() {
     (!q || normalizarBusqueda_([r.clave_radial, r.codigo_ref, r.usuario, r.empresa, r.comuna].join(' ')).includes(q)));
 }
 function urTextoCredencial_(c) {
-  return '🔑 App Bitácora · ' + (c.recurso || '') + '\nIngresa en: ' + UR_APP_URL + '\nUsuario: ' + c.usuario + '\nClave: ' + c.clave +
+  return '🔑 App Bitácora · ' + (c.recurso || '') + '\nIngresa en: ' + UR_APP_URL + '\nUsuario: ' + urU_(c.usuario) + '\nClave: ' + c.clave +
     '\n(Escribe solo el usuario, sin @. Guarda la clave: no se puede volver a ver.)';
 }
 
@@ -116,7 +118,7 @@ function urRender_(c) {
       '<td>' + (() => { const l = urLider_(r); return l ? escapeHtml_(l.nombre) + '<small style="display:block;color:var(--text-tertiary);">' + (l.titular ? '⭐ Titular' : escapeHtml_(l.cargo || '')) + '</small>'
         : '<span style="color:#DC2626;font-size:12px;" title="Regístralo en Gestión de Recursos › 👥 Personas (⭐ titular)">Sin titular</span>'; })() + '</td>' +
       '<td>' + escapeHtml_(aTitulo_(r.area || '—')) + '<small style="display:block;color:var(--text-tertiary);">' + escapeHtml_(aTitulo_(r.comuna || '')) + '</small></td>' +
-      '<td>' + (r.usuario ? '<code>' + escapeHtml_(r.usuario) + '</code>' : (r.correo ? escapeHtml_(r.correo) : '—')) + '</td>' +
+      '<td>' + (r.usuario ? '<code>' + escapeHtml_(urU_(r.usuario)) + '</code>' : (r.correo ? escapeHtml_(r.correo) : '—')) + '</td>' +
       '<td><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;color:#fff;background:' + est.c + ';">' + est.t + '</span></td>' +
       '<td>' + (r.ultimo_ingreso ? escapeHtml_(urFecha_(r.ultimo_ingreso)) : (r.usuario_id ? '<span style="color:var(--text-tertiary);">Nunca</span>' : '')) + '</td>' +
       '<td style="text-align:center;">' + (r.usuario_id ? Number(r.n_jornadas || 0) : '') + '</td>' +
@@ -157,7 +159,7 @@ function urRender_(c) {
   c.querySelectorAll('[data-ur-clave]').forEach(b => b.addEventListener('click', () => urModalClave_(c, filas.find(r => r.usuario_id === b.dataset.urClave))));
   c.querySelectorAll('[data-ur-estado]').forEach(b => b.addEventListener('click', async () => {
     const r = filas.find(x => x.usuario_id === b.dataset.urEstado), activo = b.dataset.activo === '1';
-    if (!activo && !confirm('¿Desactivar la cuenta «' + r.usuario + '»? El recurso no podrá ingresar a la App Bitácora hasta que la actives.')) return;
+    if (!activo && !confirm('¿Desactivar la cuenta «' + urU_(r.usuario) + '»? El recurso no podrá ingresar a la App Bitácora hasta que la actives.')) return;
     b.disabled = true;
     try { await urInvocar_({ action: 'estado', usuario_id: r.usuario_id, activo }); mostrarToast_(activo ? '✅ Cuenta activada' : 'Cuenta desactivada'); adminSeccionUsuariosRecursos_(c); }
     catch (e) { b.disabled = false; mostrarToast_('⚠️ ' + e.message); }
@@ -165,7 +167,7 @@ function urRender_(c) {
   c.querySelectorAll('[data-ur-borrar]').forEach(b => b.addEventListener('click', async () => {
     const r = filas.find(x => x.usuario_id === b.dataset.urBorrar);
     const aviso = Number(r.n_jornadas) > 0 ? '\n\nRegistró ' + r.n_jornadas + ' apertura(s): se conservan, pero se recomienda DESACTIVAR en vez de eliminar.' : '';
-    if (!confirm('¿Eliminar la cuenta «' + r.usuario + '» de ' + (r.clave_radial || r.codigo_ref) + '? No se puede deshacer.' + aviso)) return;
+    if (!confirm('¿Eliminar la cuenta «' + urU_(r.usuario) + '» de ' + (r.clave_radial || r.codigo_ref) + '? No se puede deshacer.' + aviso)) return;
     b.disabled = true;
     try { await urInvocar_({ action: 'eliminar', usuario_id: r.usuario_id }); mostrarToast_('Cuenta eliminada'); adminSeccionUsuariosRecursos_(c); }
     catch (e) { b.disabled = false; mostrarToast_('⚠️ ' + e.message); }
@@ -190,8 +192,8 @@ function urModalCrear_(c, r) {
     '<p class="coords">' + escapeHtml_([r.tipo_nombre, aTitulo_(r.area || ''), r.empresa].filter(Boolean).join(' · ')) + '</p>' +
     (() => { const l = urLider_(r); return l ? '<p class="coords">👤 Líder: <b>' + escapeHtml_(l.nombre) + '</b> (' + (l.titular ? '⭐ titular' : escapeHtml_(l.cargo || '')) + ')</p>'
       : '<div class="gr-aviso">⚠️ Sin titular ni Jefe de Brigada en 👥 Personas: escribe el usuario a mano (inicial del nombre + apellido del líder).</div>'; })() +
-    '<div class="form-group"><label>Usuario</label><input id="ur-u" value="' + escapeHtml_(urUsuarioSugerido_(r)) + '" autocomplete="off" placeholder="amedina">' +
-      '<small style="color:var(--text-tertiary);">Inicial del primer nombre + primer apellido del líder. Si ya existe, se agrega un número (amedina2).</small></div>' +
+    '<div class="form-group"><label>Usuario</label><input id="ur-u" value="' + escapeHtml_(urU_(urUsuarioSugerido_(r))) + '" autocomplete="off" placeholder="AMEDINA" style="text-transform:uppercase;">' +
+      '<small style="color:var(--text-tertiary);">Inicial del primer nombre + primer apellido del líder. Si ya existe, se agrega un número (AMEDINA2). Se muestra en mayúsculas; el recurso puede escribirlo en mayúsculas o minúsculas.</small></div>' +
     '<div class="form-group"><label>Clave</label><input id="ur-k" type="text" autocomplete="new-password" value="' + escapeHtml_(urClaveDefecto_(r)) + '">' +
       '<small style="color:var(--text-tertiary);">Por defecto ' + escapeHtml_(urClaveDefecto_(r)) + '. Mínimo 6 caracteres.</small></div>' +
     '<div class="gr-aviso" id="ur-err" style="display:none;"></div>' +
@@ -217,7 +219,7 @@ function urModalCrear_(c, r) {
 function urModalClave_(c, r) {
   const ov = urOverlay_();
   ov.innerHTML = '<div class="modal-card" style="max-width:420px;">' +
-    '<h3>🔑 Clave nueva · ' + escapeHtml_(r.usuario) + '</h3>' +
+    '<h3>🔑 Clave nueva · ' + escapeHtml_(urU_(r.usuario)) + '</h3>' +
     '<p class="coords">' + escapeHtml_(r.clave_radial || r.codigo_ref || '') + ' · la clave anterior deja de servir.</p>' +
     '<div class="form-group"><label>Clave nueva</label><input id="ur-k" type="text" autocomplete="new-password" value="' + escapeHtml_(urClaveDefecto_(r)) + '" placeholder="Vacía = se genera una al azar">' +
       '<small style="color:var(--text-tertiary);">Por defecto ' + escapeHtml_(urClaveDefecto_(r)) + '; bórrala para generar una al azar.</small></div>' +
@@ -262,7 +264,7 @@ async function urCrearLote_(c, lista) {
 /** Ventana con las credenciales recién creadas (copiar / WhatsApp / Excel). */
 function urMostrarCredenciales_(cuentas, titulo, errores) {
   const ov = urOverlay_();
-  const filas = cuentas.map((k, i) => '<tr><td><b>' + escapeHtml_(k.recurso || '') + '</b></td><td><code>' + escapeHtml_(k.usuario) + '</code></td><td><code>' + escapeHtml_(k.clave) + '</code></td>' +
+  const filas = cuentas.map((k, i) => '<tr><td><b>' + escapeHtml_(k.recurso || '') + '</b></td><td><code>' + escapeHtml_(urU_(k.usuario)) + '</code></td><td><code>' + escapeHtml_(k.clave) + '</code></td>' +
     '<td style="white-space:nowrap;"><button class="popup-btn" data-ur-copiar="' + i + '" title="Copiar el mensaje">📋</button> ' +
     '<a class="popup-btn" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent(urTextoCredencial_(k)) + '" title="Enviar por WhatsApp">💬</a></td></tr>').join('');
   ov.innerHTML = '<div class="modal-card" style="max-width:620px;">' +
@@ -288,7 +290,7 @@ function urExcelCredenciales_(cuentas) {
     const ws = XLSX.utils.json_to_sheet(cuentas.map(k => {
       const r = state.ur.filas.find(f => f.recurso_id === k.recurso_id) || {};
       return { 'Recurso': k.recurso || r.clave_radial || '', 'Código': r.codigo_ref || '', 'Tipo': r.tipo_nombre || '', 'Área': aTitulo_(r.area || ''),
-        'Empresa': r.empresa || '', 'Usuario': k.usuario, 'Clave': k.clave, 'Ingreso': UR_APP_URL };
+        'Empresa': r.empresa || '', 'Usuario': urU_(k.usuario), 'Clave': k.clave, 'Ingreso': UR_APP_URL };
     }));
     ws['!cols'] = [16, 14, 22, 20, 22, 16, 12, 50].map(wch => ({ wch }));
     XLSX.utils.book_append_sheet(wb, ws, 'Cuentas');
@@ -301,7 +303,7 @@ function urExcel_(lista) {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(lista.map(r => ({ 'Recurso': r.clave_radial || '', 'Código': r.codigo_ref || '', 'Tipo': r.tipo_nombre || '',
       'Área': aTitulo_(r.area || ''), 'Subgerencia': aTitulo_(r.subgerencia || ''), 'Comuna': aTitulo_(r.comuna || ''), 'Empresa': r.empresa || '',
-      'Usuario': r.usuario || r.correo || '', 'Estado': UR_ESTADOS[urEstado_(r)].t, 'Último ingreso': urFecha_(r.ultimo_ingreso),
+      'Usuario': r.usuario ? urU_(r.usuario) : (r.correo || ''), 'Estado': UR_ESTADOS[urEstado_(r)].t, 'Último ingreso': urFecha_(r.ultimo_ingreso),
       'Clave cambiada': urFecha_(r.clave_cambiada_en), 'Aperturas': r.usuario_id ? Number(r.n_jornadas || 0) : '' })));
     XLSX.utils.book_append_sheet(wb, ws, 'Usuarios Recursos');
     XLSX.writeFile(wb, 'usuarios_recursos_' + tbHoyISO_() + '.xlsx');

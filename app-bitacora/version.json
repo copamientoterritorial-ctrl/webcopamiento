@@ -1,11 +1,12 @@
 {
-  "version": "1.5.2",
+  "version": "1.5.4",
   "fecha": "2026-11-23",
   "notas": [
+    "🔤 Tu usuario se muestra en mayúsculas (por ejemplo CANINIR); puedes escribirlo en mayúsculas o minúsculas al ingresar.",
+    "🎯 La Actividad general ahora es obligatoria; de noviembre a marzo parte en «Prevención Activa».",
+    "⏱️ Si una actividad pasa del término de la apertura, la app te avisa: la ingresas tal cual o la cierras a la hora de término.",
     "🔌 Nueva dirección del servidor (api.copamientoterritorial.cl): la app vuelve a conectarse desde los equipos y redes de la empresa.",
     "🗓️ Semana: cada jornada muestra el % del turno registrado con actividades, con el promedio por recurso y de la semana.",
-    "📡 Con la jornada abierta, la app comparte tu ubicación con tu supervisor (cada minuto, con la app abierta).",
-    "🗺️ Mapa del día con la ubicación en vivo, el recorrido y las actividades de los recursos de tu empresa.",
     "📅 Calendario de turnos del recurso: mes a mes, en turno o libre."
   ]
 }

@@ -122,6 +122,22 @@ function ppaIndexar_() {
 
 /* ── Metas efectivas y cumplimiento ────────────────────────────────────── */
 function ppaMetaRaw_(id, mes, per) { const v = state.ppa.metaMap.get(id + '|' + mes + '|' + per); return v == null ? null : v; }
+/** 🎯 Metas por fecha (23-11-2026): meses a mostrar = del primer al último mes con alguna meta (> 0) en las acciones filtradas (incluye lo pendiente
+ *  de guardar). Los meses vacíos del comienzo y del final se ocultan; «📅 Ver todos los meses» (state.ppa.mTodosMeses) los vuelve a mostrar. */
+function ppaMesesVisibles_(lista) {
+  const S = state.ppa, meses = ppaMesesPeriodo_();
+  if (S.mTodosMeses) return meses;
+  const tiene = (id, m, p) => { const k = id + '|' + m + '|' + p, v = S.cambios && S.cambios.has(k) ? S.cambios.get(k) : ppaMetaRaw_(id, m, p); return v != null && Number(v) > 0; };
+  const con = meses.filter(m => lista.some(a => ['Q1', 'Q2', 'M'].some(p => tiene(a.id_ppa, m, p))));
+  if (!con.length) return meses;
+  return meses.slice(meses.indexOf(con[0]), meses.indexOf(con[con.length - 1]) + 1);
+}
+function ppaBotonMeses_(visibles) {
+  const tot = ppaMesesPeriodo_().length, ocultos = tot - visibles.length;
+  if (!ocultos && !state.ppa.mTodosMeses) return '';
+  return '<button class="turnos-btn" data-ppa-meses="1" title="Los meses sin ninguna meta al comienzo y al final del período se ocultan">' +
+    (state.ppa.mTodosMeses ? '📅 Solo meses con metas' : '📅 Ver todos los meses (' + ocultos + ' sin metas ocultos)') + '</button>';
+}
 function ppaAvanceSlot_(id, mes, per) { return state.ppa.avMap.get(id + '|' + mes + '|' + per) || 0; }
 /** Celdas de meta que valen según la FRECUENCIA de la acción (07-11-2026):
  *  Quincenal / Semanal → Q1 y Q2 · Mensual → Mes (vence en la Q2) · sin frecuencia → ninguna (bloqueada hasta definirla). */
@@ -295,17 +311,20 @@ function ppaRenderCuerpo_() {
   if (S.sub === 'ppaavance') ppaGraficoAvance_(lista);
   if (S.sub === 'ppagestion') ppaGraficosGestion_(lista);
   if (S.sub === 'ppametas' && ppaEsAdmin_()) ppaIniciarMetas_(lista);
+  cuerpo.querySelectorAll('[data-ppa-meses]').forEach(b => b.onclick = () => { S.mTodosMeses = !S.mTodosMeses; ppaRenderCuerpo_(); });   // 📅 meses sin metas
 }
 
 /* ── 🎯 Metas (consulta para Jefes y Gestores, 16-11-2026) ───────────────
  * Por acción y quincena: la meta que vale según la frecuencia (ppaMetaQ_: la mensual vence en la Q2) y lo que se lleva en esa quincena.
  * En rojo, quincena ya terminada con avance menor que la meta; resaltada, la quincena en curso. */
 function ppaHtmlMetasJefe_(lista) {
-  const S = state.ppa, qs = ppaQuincenas_(), h = ppaHoy_(), qAct = ppaQuincenaActual_(), MAX = 200;
-  const ver = lista.slice(0, MAX), meses = ppaMesesPeriodo_();
+  const S = state.ppa, h = ppaHoy_(), qAct = ppaQuincenaActual_(), MAX = 200;
+  const ver = lista.slice(0, MAX), meses = ppaMesesVisibles_(lista);   // 23-11-2026: solo los meses con metas
+  const qs = ppaQuincenas_().filter(q => meses.includes(q.mes));
   if (!lista.length) return '<div class="tb-vacio">No hay acciones con estos filtros.</div>';
   return '<div class="tb-card"><h3>🎯 Detalle con sus metas</h3><p class="tb-sub">Meta de cada quincena según la frecuencia de la acción (la meta mensual vence en la Q2) y, ' +
       'debajo, lo que lleva. <b style="color:#DC2626;">En rojo</b>: quincena terminada sin cumplir. <b style="color:#2563EB;">En azul</b>: la quincena en curso. Clic en una acción: su ficha.</p>' +
+    (ppaBotonMeses_(meses) ? '<div class="ppa-mchips">' + ppaBotonMeses_(meses) + '</div>' : '') +
     (lista.length > MAX ? '<div class="gr-aviso" style="margin:8px 0;">Se muestran ' + MAX + ' de ' + lista.length + ' acciones: filtra por sector o plan para ver el resto.</div>' : '') +
     '<div class="ppa-tabla-wrap" style="max-height:calc(100vh - 360px);"><table class="tb-tabla ppa-metas ppa-metas-jefe"><thead><tr><th rowspan="2">Acción</th><th rowspan="2">Plan (grupo)</th><th rowspan="2">Frec.</th>' +
       meses.map(m => '<th colspan="2">' + ppaMesTxt_(m, true) + '</th>').join('') +
@@ -696,27 +715,29 @@ const PPA_DISTRIB = {
   sinmeta: { t: 'Sin Meta gral.', c: '#7C3AED' }, ok: { t: 'Cuadra con la Meta gral.', c: '#16A34A' },
 };
 function ppaHtmlMetas_(lista) {
-  const S = state.ppa, meses = ppaMesesPeriodo_(), ed = ppaEsAdmin_(), MAX = 150;
+  const S = state.ppa, todos = ppaMesesPeriodo_(), ed = ppaEsAdmin_(), MAX = 150;
+  const meses = ppaMesesVisibles_(S.mFiltro ? lista.filter(a => ppaEstadoDistrib_(a) === S.mFiltro) : lista);   // grilla: solo meses con metas
   const slots = meses.flatMap(m => ['Q1', 'Q2', 'M'].map(p => ({ mes: m, per: p })));
+  const slotsTodos = todos.flatMap(m => ['Q1', 'Q2', 'M'].map(p => ({ mes: m, per: p })));   // «Aplicar» puede usar cualquier mes
   const cuenta = {}; lista.forEach(a => { const e = ppaEstadoDistrib_(a); cuenta[e] = (cuenta[e] || 0) + 1; });
   const filtradas = S.mFiltro ? lista.filter(a => ppaEstadoDistrib_(a) === S.mFiltro) : lista, ver = filtradas.slice(0, MAX);
   // Metas guardadas en celdas que la frecuencia no usa (vienen del Excel): se pueden limpiar
   let bloqueadasConValor = 0;
   lista.forEach(a => { const perm = ppaSlotsPermitidos_(a); if (!perm.length) return;
-    meses.forEach(m => ['Q1', 'Q2', 'M'].forEach(p => { if (!perm.includes(p) && ppaMetaRaw_(a.id_ppa, m, p) != null && !S.cambios.has(a.id_ppa + '|' + m + '|' + p)) bloqueadasConValor++; })); });
+    todos.forEach(m => ['Q1', 'Q2', 'M'].forEach(p => { if (!perm.includes(p) && ppaMetaRaw_(a.id_ppa, m, p) != null && !S.cambios.has(a.id_ppa + '|' + m + '|' + p)) bloqueadasConValor++; })); });
   const chip = k => '<button class="ppa-mchip' + (S.mFiltro === k ? ' on' : '') + '" data-ppa-mfiltro="' + k + '" style="--c:' + PPA_DISTRIB[k].c + '"><b>' + (cuenta[k] || 0) + '</b> ' + PPA_DISTRIB[k].t + '</button>';
   return '<div class="tb-card"><h3>🎯 Metas por fecha</h3><p class="tb-sub">Total = <b>Meta gral.</b> del Excel. La distribución por fecha es independiente: ' +
       'arma el plan en las celdas que permite la <b>frecuencia</b> (Quincenal / Semanal → Q1 y Q2 · Mensual → Mes; el resto queda bloqueado). ' +
       '«Distribuido» se pone en <b style="color:#DC2626;">rojo</b> si no cuadra con la Meta gral.</p>' +
     '<div class="ppa-mchips">' + ['difiere', 'sinfrec', 'sinmeta', 'ok'].map(chip).join('') +
-      (S.mFiltro ? '<button class="ppa-mchip" data-ppa-mfiltro="">✕ Ver todas</button>' : '') + '</div>' +
+      (S.mFiltro ? '<button class="ppa-mchip" data-ppa-mfiltro="">✕ Ver todas</button>' : '') + ppaBotonMeses_(meses) + '</div>' +
     (cuenta.sinfrec ? '<div class="gr-aviso" style="margin:8px 0;">⚠️ <b>' + cuenta.sinfrec + ' acción(es) sin frecuencia</b>: sus metas quedan bloqueadas hasta definir la frecuencia en <b>📄 Detalle › ✏️ Editar datos</b>.</div>' : '') +
     (ed ? '<div class="ppa-masivo">' +
       '<button class="turnos-btn" id="ppa-m-plantilla" title="Excel con las acciones filtradas y sus metas, para completarlo y volver a subirlo">⬇️ Plantilla de metas</button>' +
       '<button class="turnos-btn" id="ppa-m-subir" title="Sube la plantilla completada: las metas quedan pendientes para revisar y guardar">⬆️ Subir metas</button>' +
       '<input type="file" id="ppa-m-archivo" accept=".xlsx,.xls" style="display:none;">' +
       '<span class="ppa-sep"></span>Aplicar a las filtradas: <select id="ppa-m-slot" class="admin-search">' +
-      slots.map(s => '<option value="' + s.mes + '|' + s.per + '">' + ppaMesTxt_(s.mes, true) + ' · ' + (s.per === 'M' ? 'Mensual' : s.per) + '</option>').join('') + '</select>' +
+      slotsTodos.map(s => '<option value="' + s.mes + '|' + s.per + '">' + ppaMesTxt_(s.mes, true) + ' · ' + (s.per === 'M' ? 'Mensual' : s.per) + '</option>').join('') + '</select>' +
       '<input id="ppa-m-valor" type="number" min="0" step="1" class="admin-search" placeholder="meta (vacío = quitar)" style="width:140px;">' +
       '<button class="turnos-btn" id="ppa-m-aplicar">Aplicar</button>' +
       (bloqueadasConValor ? '<button class="turnos-btn" id="ppa-m-limpiar" title="Quita las metas guardadas en celdas que la frecuencia no usa (no cuentan en el plan)">🧹 Quitar ' + bloqueadasConValor + ' meta(s) en celdas bloqueadas</button>' : '') +
