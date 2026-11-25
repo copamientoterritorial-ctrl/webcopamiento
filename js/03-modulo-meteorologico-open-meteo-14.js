@@ -1168,7 +1168,7 @@ const AUD_CAPACIDADES = [
   ['⚙️ Administración', 'Instituciones, catálogo, comunas por área', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
   ['⚙️ Administración', 'Sesiones, actividad y auditoría', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
   ['⚙️ Administración', '🧹 Limpieza de datos: eliminar datos basura (con papelera y restaurar)', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
-  ['⚙️ Administración', '«Ver como…» otro perfil', null, null, ['si', 'no', 'no', 'no', 'no', 'no', 'no']],
+  ['⚙️ Administración', '«Ver como…» otro perfil', null, null, ['si', 'Solo Modo GRD (sus comunas)', 'Solo Modo GRD (sus comunas)', 'Solo Modo GRD (sus comunas)', 'no', 'no', 'no']],
 ];
 /* 21-11-2026 (SQL 184): columna del Perfil SSO (va entre Visor y Asociación, igual que en AUD_PERFILES). Solo consulta del Planificador gráfico /
  * Tablero y de la Gestión de Recursos (con personas) de todas las áreas; nada más. Se inserta aquí para no repetirla en cada fila. */

@@ -6,6 +6,16 @@
  * Se pueden volver a ver con «🆕 Novedades» (botón del encabezado de Ayuda, abrirNovedades_(true)). */
 const NOVEDADES = [
   {
+    id: '2026-11-25-modo-grd-jefe', fecha: '25-11-2026', titulo: 'Modo GRD y PPA de los Gestores',
+    items: [
+      { ico: '🏛️', t: 'Ver el sistema como GRD', perfiles: ['jefe', 'subgerente', 'grt'],
+        d: 'En tu menú de usuario › <b>Ver el sistema como… › 🏛️ Modo GRD</b> eliges una comuna de tus áreas y ves lo mismo que su GRD (menús, capas y botones). ' +
+           'Para volver, «Salir» en la etiqueta de la barra superior. Lo que guardes queda con tus permisos de siempre.' },
+      { ico: '📋', t: 'PPA para todos los Gestores', perfiles: ['grt', 'jefe'],
+        d: 'Si no veías el PPA de tu área o la App Prevención no te dejaba registrar avances, ya quedó corregido. Si sigue sin verse, pide al Administrador que revise tu área asignada.' },
+    ],
+  },
+  {
     id: '2026-11-23-uso-del-sistema', fecha: '23-11-2026', titulo: 'Seguimiento: uso del sistema',
     items: [
       { ico: '🖥️', t: 'Monitor de uso del sistema por área', perfiles: ['admin', 'subgerente'],

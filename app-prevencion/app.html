@@ -335,7 +335,7 @@ function toast(m) { const t = document.createElement('div'); t.className = 'toas
  * nueva se FUERZA la actualización: primero se envían los pendientes y luego se recarga (el service worker trae app.html de la red).
  * Si hay un avance a medio registrar, espera a que se cierre el formulario. SIN señal: la actualización queda PENDIENTE
  * (localStorage) y se instala sola al volver la señal. La cola de pendientes y los datos guardados (IndexedDB) no se pierden al actualizar. */
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '1.9.1';
 const ACT_KEY = 'pta-act-pendiente', ACT_CADA_MS = 15 * 60 * 1000;
 function actLeer() { try { return localStorage.getItem(ACT_KEY) || ''; } catch (e) { return ''; } }
 function actGuardar(v) { try { if (v) localStorage.setItem(ACT_KEY, v); else localStorage.removeItem(ACT_KEY); } catch (e) { /* sin almacenamiento */ } }
@@ -443,7 +443,7 @@ async function cargarDatos() {
     S.metas = await leerTodo('ppa_metas', 'id_ppa, mes, periodo, meta');
     S.ultimaDescarga = new Date();
     cacheSet('ppa', { ppa: S.ppa, avances: S.avances, metas: S.metas, fecha: new Date().toISOString() });
-    if (!S.defaultAplicado) await aplicarFiltroPorDefecto();
+    await aplicarFiltroPorDefecto();   // v1.9.1: las áreas del perfil se releen en CADA carga (antes solo la 1ª: un cambio de área no se veía hasta cerrar la app)
   } catch (e) {
     const c = await cacheGet('ppa');
     if (c && c.ppa) { S.ppa = c.ppa; S.avances = c.avances || []; S.metas = c.metas || []; toast('📵 Sin señal: datos guardados del ' + fmtFecha(c.fecha)); }
@@ -578,6 +578,7 @@ function pintarPerfil() {
 }
 // Jefes, GRT y GRD ven por defecto su área (si tienen una sola). El Administrador ve todo.
 async function aplicarFiltroPorDefecto() {
+  const primera = !S.defaultAplicado;   // el filtro de área por defecto solo se pone la primera vez (no pisar lo que eligió el usuario)
   S.defaultAplicado = true;
   try {
     const { data: u } = await sb.auth.getUser();
@@ -586,27 +587,30 @@ async function aplicarFiltroPorDefecto() {
     if (!p) return;
     S.esAdmin = /administrador/i.test(p.perfil || '');
     if (S.esAdmin) { S.puedeElegirArea = true; S.misAreasPpa = null; cacheSet('ppa_alcance', { esAdmin: true, ids: [] }); return; }
-    const { data: pa } = await sb.from('perfil_areas').select('id_area').eq('perfil_id', uid);
+    const { data: pa } = await sb.from('perfil_areas').select('id_area, area').eq('perfil_id', uid);
     const ids = [...new Set((pa || []).map(r => r.id_area).filter(v => v != null).map(String))];
-    S.misAreasPpa = ids;   // v1.5.1: el PPA se filtra SIEMPRE por estas áreas (aplicarAreasPerfil)
-    cacheSet('ppa_alcance', { esAdmin: false, ids });
-    S.puedeElegirArea = ids.length > 1;
-    if (ids.length === 1) { S.areaDefault = ids[0]; S.filtros.area = ids[0]; }
+    // v1.9.1: también por NOMBRE (usuarios con el área guardada sin id: GRT que no veían su PPA; SQL 198)
+    const claves = [...new Set((pa || []).map(r => claveArea(r.area)).filter(Boolean))];
+    S.misAreasPpa = ids; S.misAreasClaves = claves;   // v1.5.1: el PPA se filtra SIEMPRE por estas áreas (aplicarAreasPerfil)
+    cacheSet('ppa_alcance', { esAdmin: false, ids, claves });
+    S.puedeElegirArea = Math.max(ids.length, claves.length) > 1;
+    if (ids.length === 1) { S.areaDefault = ids[0]; if (primera) S.filtros.area = ids[0]; }
   } catch (e) { await alcanceDesdeCache(); }
 }
 // Sin señal: el alcance (Admin / áreas del perfil) guardado la última vez
 async function alcanceDesdeCache() {
   const c = await cacheGet('ppa_alcance').catch(() => null); if (!c) return;
-  S.esAdmin = !!c.esAdmin; S.misAreasPpa = c.esAdmin ? null : (c.ids || []);
+  S.esAdmin = !!c.esAdmin; S.misAreasPpa = c.esAdmin ? null : (c.ids || []); S.misAreasClaves = c.claves || [];
   S.puedeElegirArea = S.esAdmin || (c.ids || []).length > 1;
   if (!S.esAdmin && (c.ids || []).length === 1 && !S.filtros.area) { S.areaDefault = c.ids[0]; S.filtros.area = c.ids[0]; }
 }
 /* v1.5.1: Jefe de Área / Gestor / Subgerente / GRD ven el PPA SOLO de las áreas de su perfil (perfil_areas), además del RLS del servidor.
  * El Administrador ve todas. Se aplica a las acciones, sus avances y sus metas (también con los datos guardados sin señal). */
+function claveArea(s) { return String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Z0-9]/g, ''); }
 function aplicarAreasPerfil() {
   if (S.esAdmin || !Array.isArray(S.misAreasPpa)) return;
-  const ids = new Set(S.misAreasPpa);
-  S.ppa = S.ppa.filter(a => ids.has(String(a.id_area)));
+  const ids = new Set(S.misAreasPpa), claves = new Set(S.misAreasClaves || []);
+  S.ppa = S.ppa.filter(a => ids.has(String(a.id_area)) || (claves.size && claves.has(claveArea(a.area_nombre || a.area))));
   const v = new Set(S.ppa.map(a => a.id_ppa));
   S.avances = (S.avances || []).filter(x => v.has(x.id_ppa));
   S.metas = (S.metas || []).filter(m => v.has(m.id_ppa));
@@ -643,7 +647,7 @@ function pintar() {
 function pintarPpa() {
   if (!S.esAdmin && Array.isArray(S.misAreasPpa) && !S.ppa.length) {   // v1.5.1: sin acciones del PPA en sus áreas
     $('m-cuerpo').innerHTML = '<div class="card enDes"><div class="ico">📋</div><h3>Sin acciones del PPA</h3><p class="muted">' +
-      (S.misAreasPpa.length ? 'Tus áreas aún no tienen acciones del Plan de Prevención.' : 'Tu perfil no tiene áreas asignadas. Pide al Administrador que te asigne tu área.') + '</p></div>';
+      (S.misAreasPpa.length || (S.misAreasClaves || []).length ? 'Tus áreas aún no tienen acciones del Plan de Prevención (o no tienes acceso a ellas: pide al Administrador que revise tu área).' : 'Tu perfil no tiene áreas asignadas. Pide al Administrador que te asigne tu área.') + '</p></div>';
     return;
   }
   const tabs = '<nav class="tabs"><button data-v="tablero" class="' + (S.vista === 'tablero' ? 'on' : '') + '">📊 Tablero</button><button data-v="registro" class="' + (S.vista === 'registro' ? 'on' : '') + '">📝 Registro de Acciones</button></nav>';

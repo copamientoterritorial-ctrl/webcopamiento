@@ -699,7 +699,7 @@ async function entrarAlSistemaInterno_() {
   state.esDelegadoPrev = false;
   try {
     const { data: dp, error: eDp } = await supabaseClient.rpc('delegados_prevencion');
-    if (!eDp) { state.tgDelegados = dp || []; state.esDelegadoPrev = (dp || []).some(d => d.perfil_id === state.user.id); }
+    if (!eDp) { state.tgDelegados = dp || []; state.esDelegadoPrev = !state.simulacion && (dp || []).some(d => d.perfil_id === state.user.id); }
   } catch (e) { /* sin el SQL 185 */ }
   aplicarPermisosMenu_();
   // 🆕 Novedades del sistema (js/40): una vez por usuario, lo nuevo para su perfil

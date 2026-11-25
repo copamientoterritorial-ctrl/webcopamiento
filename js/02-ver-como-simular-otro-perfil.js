@@ -15,16 +15,24 @@ const SIM_PERFILES = ['GRD', 'Visor', 'Jefe de Área Relacionamiento'];
 function leerSimulacion_() {
   try { return JSON.parse(sessionStorage.getItem(SIM_CLAVE) || 'null'); } catch (e) { return null; }
 }
+/* 25-11-2026: el perfil Jefe de Área (también Subgerente y GRT, que técnicamente son Jefe de Área) puede usar SOLO
+ * «🏛️ Modo GRD» y solo con una comuna de SUS áreas (se valida en cargarAsignacionSimulada_). La sesión sigue siendo la suya:
+ * la base de datos le aplica sus permisos de Jefe de Área. */
+function simEsJefeReal_() { return !!state.perfilReal && state.perfilReal !== 'Administrador' && esJefeAreaPerfil_(state.perfilReal); }
+function simPuede_() { return state.perfilReal === 'Administrador' || simEsJefeReal_(); }
+function simNombreReal_() { return state.perfilReal === 'Administrador' ? 'Administrador' : 'tu perfil'; }
 
 function aplicarSimulacionPerfil_(perfilReal) {
   state.perfilReal = perfilReal.perfil;
   state.simulacion = null;
   const sim = leerSimulacion_();
-  if (perfilReal.perfil !== 'Administrador') {           // solo un Administrador puede simular
+  // Administrador: todos los modos. Jefe de Área: solo el Modo GRD (sim.jefe).
+  const permitido = sim && (perfilReal.perfil === 'Administrador' || (simEsJefeReal_() && sim.perfil === 'GRD' && sim.jefe));
+  if (!permitido) {
     if (sim) try { sessionStorage.removeItem(SIM_CLAVE); } catch (e) {}
     return;
   }
-  if (!sim || !SIM_PERFILES.includes(sim.perfil)) return;
+  if (!SIM_PERFILES.includes(sim.perfil)) return;
   state.simulacion = sim;
   state.perfil = Object.assign({}, perfilReal, { perfil: sim.perfil, comuna_id: sim.comunaId || perfilReal.comuna_id });
 }
@@ -56,7 +64,34 @@ async function cargarAsignacionSimulada_() {
   } else {
     state.misComunaIds = s.comunaId ? [s.comunaId] : [];
     state.misAreasIds = [];
+    if (s.jefe && simEsJefeReal_()) {
+      // Modo GRD de un Jefe de Área: la comuna debe ser una de las suyas (perfil_comunas o comunas de sus áreas)
+      const ok = (await simComunasJefe_()).includes(s.comunaId);
+      if (!ok) {
+        try { sessionStorage.removeItem(SIM_CLAVE); } catch (e) {}
+        mostrarToast_('⚠️ Esa comuna no es de tus áreas. Vuelves a tu perfil.');
+        setTimeout(() => location.reload(), 1500);
+      }
+    }
   }
+}
+/** Comunas (id de state.comunas) del Jefe de Área real: perfil_comunas + las comunas de sus áreas (SQL 94 / 113). */
+async function simComunasJefe_() {
+  const uid = state.user && state.user.id; if (!uid) return [];
+  const [{ data: pc }, { data: pa }] = await Promise.all([
+    supabaseClient.from('perfil_comunas').select('comuna_id').eq('perfil_id', uid),
+    supabaseClient.from('perfil_areas').select('area').eq('perfil_id', uid),
+  ]);
+  const ids = new Set((pc || []).map(r => r.comuna_id));
+  const claves = new Set((pa || []).map(r => plNorm_(r.area).replace(/[^A-Z0-9]/g, '')));
+  if (claves.size) {
+    try {
+      const { data: ac } = await supabaseClient.from('v_area_comunas_admin').select('area_norm, id_comuna');
+      const nums = new Set((ac || []).filter(x => claves.has(String(x.area_norm || '').toUpperCase())).map(x => Number(x.id_comuna)));
+      (state.comunas || []).forEach(c => { if (nums.has(Number(c.id_comuna))) ids.add(c.id); });
+    } catch (e) { /* solo perfil_comunas */ }
+  }
+  return [...ids];
 }
 
 function entrarSimulacion_(sim) {
@@ -72,9 +107,19 @@ function salirSimulacion_() {
 /** Menú del usuario (opciones "Ver como…") + franja visible mientras se simula. */
 function renderSimulacionPerfil_() {
   const bloque = document.getElementById('up-simulacion');
-  if (bloque) bloque.style.display = state.perfilReal === 'Administrador' ? '' : 'none';
+  if (bloque) {
+    bloque.style.display = simPuede_() ? '' : 'none';
+    // Jefe de Área: solo «🏛️ Modo GRD» (y volver)
+    const soloJefe = simEsJefeReal_();
+    bloque.querySelectorAll('button[id^="btn-sim-"]').forEach(b => {
+      if (b.id === 'btn-sim-salir') return;
+      b.style.display = soloJefe && b.id !== 'btn-sim-comuna' ? 'none' : '';
+    });
+    const bc = document.getElementById('btn-sim-comuna');
+    if (bc) bc.textContent = soloJefe ? '🏛️ Modo GRD (una comuna de tus áreas)' : '🏛️ Modo GRD / Visor';
+  }
   const salir = document.getElementById('btn-sim-salir');
-  if (salir) salir.style.display = state.simulacion ? '' : 'none';
+  if (salir) { salir.style.display = state.simulacion ? '' : 'none'; salir.textContent = '↩️ Volver a ' + (state.perfilReal === 'Administrador' ? 'Administrador' : 'mi perfil'); }
 
   let franja = document.getElementById('franja-simulacion');
   if (!state.simulacion) { if (franja) franja.remove(); return; }
@@ -92,17 +137,22 @@ function renderSimulacionPerfil_() {
     if (der && ref) der.insertBefore(franja, ref); else document.body.appendChild(franja);
   }
   franja.title = 'Viendo como ' + nombrePerfil + ' · ' + (donde || '—') +
-    '. La sesión sigue siendo de Administrador: se prueban las restricciones de la interfaz; la base de datos te sigue permitiendo todo lo de Administrador.';
+    '. La sesión sigue siendo de ' + simNombreReal_() + ': se prueban las restricciones de la interfaz; la base de datos te sigue permitiendo lo de ' + simNombreReal_() + '.';
   franja.innerHTML = '<span class="fs-ico">👁️</span><span class="fs-txt"><b>' + escapeHtml_(nombrePerfil) + '</b> · ' + escapeHtml_(donde || '—') + '</span>' +
-    '<button type="button" id="fs-salir" title="Volver a Administrador">Salir</button>';
+    '<button type="button" id="fs-salir" title="Volver a ' + simNombreReal_() + '">Salir</button>';
   franja.querySelector('#fs-salir').addEventListener('click', salirSimulacion_);
   const rol = document.getElementById('up-rol');
   if (rol) rol.textContent = nombrePerfil + ' (simulado)';
 }
 
 /** Ventana para elegir el modo: 'jefe' (área) o 'comuna' (GRD / Visor + comuna). */
-function abrirModalSimulacion_(tipo) {
+async function abrirModalSimulacion_(tipo) {
   document.getElementById('user-panel').classList.remove('show');
+  const jefe = simEsJefeReal_();
+  if (jefe && tipo !== 'comuna') return;                     // el Jefe de Área solo tiene el Modo GRD
+  const permitidas = jefe ? new Set(await simComunasJefe_()) : null;
+  const comunasLista = (state.comunas || []).filter(c => !permitidas || permitidas.has(c.id));
+  if (jefe && !comunasLista.length) { mostrarToast_('⚠️ No tienes comunas asignadas en tus áreas.'); return; }
   let ov = document.getElementById('sim-overlay');
   if (!ov) {
     ov = document.createElement('div');
@@ -115,7 +165,7 @@ function abrirModalSimulacion_(tipo) {
   const esJefe = tipo === 'jefe';
   const opcComunas = () => {
     const porRegion = {};
-    (state.comunas || []).forEach(c => { (porRegion[c.region] = porRegion[c.region] || []).push(c); });
+    comunasLista.forEach(c => { (porRegion[c.region] = porRegion[c.region] || []).push(c); });
     return Object.keys(porRegion).sort().map(reg => '<optgroup label="' + escapeHtml_(reg) + '">' +
       porRegion[reg].sort((a, b) => a.comuna.localeCompare(b.comuna, 'es'))
         .map(c => '<option value="' + escapeHtml_(c.id) + '"' + (c.id === state.activeComunaId ? ' selected' : '') + '>' + escapeHtml_(c.comuna) + '</option>').join('') +
@@ -123,12 +173,15 @@ function abrirModalSimulacion_(tipo) {
   };
   ov.innerHTML =
     '<div class="modal-card" style="max-width:420px;">' +
-      '<h3>' + (esJefe ? '🧭 Modo Jefe de Área' : '🏛️ Modo GRD / Visor') + '</h3>' +
-      '<p class="coords">Verás el sistema con las restricciones de ese perfil. La página se recargará; para volver usa "Salir" en la franja naranja.</p>' +
+      '<h3>' + (esJefe ? '🧭 Modo Jefe de Área' : jefe ? '🏛️ Modo GRD' : '🏛️ Modo GRD / Visor') + '</h3>' +
+      '<p class="coords">' + (jefe
+        ? 'Verás el sistema como lo ve el <b>GRD</b> de la comuna elegida (menús, capas y botones de ese perfil). Tu sesión sigue siendo la tuya: lo que guardes queda con tus permisos de Jefe de Área. '
+        : 'Verás el sistema con las restricciones de ese perfil. ') + 'La página se recargará; para volver usa «Salir» en la etiqueta de la barra superior.</p>' +
       (esJefe
         ? '<div class="form-group"><label>Área a revisar</label><select id="sim-area">' +
             (state.areasCatalogo || []).map(a => '<option value="' + escapeHtml_(a) + '">' + escapeHtml_(a) + '</option>').join('') + '</select></div>'
-        : '<div class="form-group"><label>Perfil</label><select id="sim-perfil"><option value="GRD">GRD (edita su comuna)</option><option value="Visor">Visor (solo consulta)</option></select></div>' +
+        : '<div class="form-group"><label>Perfil</label><select id="sim-perfil"><option value="GRD">GRD (edita su comuna)</option>' +
+            (jefe ? '' : '<option value="Visor">Visor (solo consulta)</option>') + '</select></div>' +
           '<div class="form-group"><label>Comuna a monitorear</label><select id="sim-comuna">' + opcComunas() + '</select></div>') +
       '<div class="modal-actions" style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">' +
         '<button class="btn-secondary" id="sim-cancelar">Cancelar</button>' +
@@ -144,7 +197,7 @@ function abrirModalSimulacion_(tipo) {
     } else {
       const comunaId = ov.querySelector('#sim-comuna').value;
       if (!comunaId) return;
-      entrarSimulacion_({ perfil: ov.querySelector('#sim-perfil').value, comunaId });
+      entrarSimulacion_(jefe ? { perfil: 'GRD', comunaId, jefe: true } : { perfil: ov.querySelector('#sim-perfil').value, comunaId });
     }
   });
   ov.classList.add('show');
