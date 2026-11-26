@@ -1,7 +1,8 @@
 {
-  "version": "1.9.2",
+  "version": "1.9.3",
   "fecha": "2026-11-25",
   "notas": [
+    "🗺️ Mapas: un dedo mueve la pantalla y dos dedos el mapa; ⛶ ampliar a pantalla completa y 🔎 buscar coordenadas en 6 casillas.",
     "📡 Bitácora: la ubicación en vivo de los recursos se actualiza cada 20 s.",
     "📋 PPA: los Gestores (GRT) y Jefes de Área vuelven a ver el PPA de su área y a registrar avances aunque su área esté guardada solo por nombre.",
     "📡 Nuevo menú Bitácora (Jefes, Subgerentes, GRT y Administrador): aperturas del día, quiénes faltan o están libres, mapa de actividades y ubicación en vivo de los recursos.",

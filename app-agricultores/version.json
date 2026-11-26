@@ -1,7 +1,8 @@
 {
-  "version": "1.5.2",
+  "version": "1.5.3",
   "fecha": "2026-11-23",
   "notas": [
+    "🗺️ Mapas: un dedo mueve la pantalla y dos dedos el mapa; ⛶ ampliar a pantalla completa y 🔎 buscar coordenadas en 6 casillas.",
     "Nueva dirección del servidor (api.copamientoterritorial.cl): la app vuelve a conectarse desde los equipos y redes de la empresa",
     "Mapa más simple: se quitaron los fundos CMPC",
     "Edita o elimina tus registros y tus actividades planificadas; sube fotos desde la galería",

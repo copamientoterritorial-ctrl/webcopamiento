@@ -265,6 +265,132 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- MAPA-COMUN-PWA:INICIO · v1 (26-11-2026) · NO EDITAR AQUÍ: se edita herramientas\mapa_comun_pwa.html y se copia con herramientas\aplicar_mapa_comun.ps1 -->
+<style>
+  /* Reglas comunes de los mapas de las apps PWA (Bitácora, Prevención, Patrullaje, Agricultores):
+     ⛶ pantalla completa sobre el encabezado y bajo la franja del teléfono; 🔎 coordenadas en 6 casillas; aviso «dos dedos». */
+  .mc-full { position:fixed !important; left:0 !important; right:0 !important; bottom:0 !important; top:env(safe-area-inset-top, 0px) !important;
+    width:auto !important; height:auto !important; min-height:0 !important; z-index:4000 !important; border-radius:0 !important; margin:0 !important; border:0 !important; }
+  .av-mapa.grande, .mapa-tab.grande { top:env(safe-area-inset-top, 0px) !important; z-index:4000 !important; }
+  .av-mapa .leaflet-top.leaflet-right { top:100px; }   /* bajo los botones propios de la app (⛶ y 🗂️) */
+  .mc-btn { width:40px; height:40px; border:0; border-radius:10px; background:rgba(255,255,255,.95); color:#0F172A; font-size:18px; cursor:pointer;
+    box-shadow:0 2px 8px rgba(2,6,23,.3); display:flex; align-items:center; justify-content:center; margin:0 0 6px; padding:0; }
+  .mc-aviso { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:1200; background:rgba(15,23,42,.82); color:#fff;
+    font:600 14px system-ui, sans-serif; padding:10px 16px; border-radius:999px; pointer-events:none; opacity:0; transition:opacity .25s; white-space:nowrap; }
+  .mc-aviso.on { opacity:1; }
+  .mc-gms { position:absolute; left:8px; right:8px; top:8px; z-index:1300; background:rgba(255,255,255,.98); border-radius:12px; padding:8px 10px;
+    box-shadow:0 4px 14px rgba(2,6,23,.3); font:13px system-ui, sans-serif; color:#0F172A; }
+  .mc-gms .f { display:flex; align-items:center; gap:3px; margin-bottom:6px; }
+  .mc-gms .f b { width:66px; font-size:12px; color:#475569; }
+  .mc-gms .f span { color:#475569; font-weight:700; }
+  .mc-gms input { width:46px; min-width:0; padding:7px 3px; text-align:center; font-size:16px; border:1px solid #CBD5E1; border-radius:8px; background:#fff; color:#0F172A; }
+  .mc-gms .a { display:flex; gap:6px; justify-content:flex-end; }
+  .mc-gms .a button { border:0; border-radius:9px; padding:9px 14px; font:700 13px system-ui, sans-serif; cursor:pointer; }
+  .mc-gms .a .ir { background:#2563EB; color:#fff; }
+  .mc-gms .a .x { background:#E2E8F0; color:#334155; }
+</style>
+<script>
+/* Para TODOS los mapas de la app (L.Map.addInitHook):
+ *  · Con el dedo: en un mapa dentro de una página que se desplaza, UN dedo mueve la página y DOS dedos mueven / acercan el mapa
+ *    (aviso «Usa dos dedos para mover el mapa»). En pantalla completa o en un mapa que ocupa la pantalla, un dedo mueve el mapa.
+ *  · Zoom abajo a la derecha (arriba quedan los botones de la app y no se tapan).
+ *  · ⛶ Ampliar (pantalla completa) si la app no trae uno; 🔎 buscar una coordenada con 6 casillas (grados, minutos y segundos
+ *    de la latitud S y la longitud O) si la app no trae uno. */
+(function () {
+  if (typeof L === 'undefined' || window.__mapaComunPwa) return;
+  window.__mapaComunPwa = 1;
+  const tactil = ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0;
+  // Mapa «grande» = pantalla completa o el mapa principal de la app (#mapa de Patrullaje / Agricultores): ahí un dedo mueve el mapa
+  const grande = c => !!(c.id === 'mapa' || c.closest('.mc-full, .grande') || c.offsetHeight >= window.innerHeight * 0.7);
+  function boton(txt, titulo, fn) {
+    const b = L.DomUtil.create('button', 'mc-btn'); b.type = 'button'; b.textContent = txt; b.title = titulo; b.setAttribute('aria-label', titulo);
+    L.DomEvent.disableClickPropagation(b); L.DomEvent.on(b, 'click', e => { L.DomEvent.stop(e); fn(b); });
+    return b;
+  }
+  function gms(v, pos, neg) {
+    const h = v < 0 ? neg : pos; v = Math.abs(v);
+    let g = Math.floor(v), m = Math.floor((v - g) * 60), s = Math.round(((v - g) * 60 - m) * 600) / 10;
+    if (s >= 60) { s = 0; m++; } if (m >= 60) { m = 0; g++; }
+    return g + '°' + String(m).padStart(2, '0') + "'" + s.toFixed(1).replace('.', ',') + '" ' + h;
+  }
+  function buscador(map, cont) {
+    let caja = null, marca = null;
+    return boton('🔎', 'Buscar una coordenada', () => {
+      if (caja) { caja.remove(); caja = null; return; }
+      caja = L.DomUtil.create('div', 'mc-gms', cont);
+      const c = (k, t, n) => '<input data-c="' + k + '" inputmode="decimal" maxlength="' + n + '" aria-label="' + t + '" placeholder="' + (k.endsWith('g') ? '°' : k.endsWith('m') ? "'" : '"') + '">';
+      caja.innerHTML = '<div class="f"><b>Latitud</b>' + c('ag', 'Latitud grados', 2) + '<span>°</span>' + c('am', 'Latitud minutos', 2) + "<span>'</span>" + c('as', 'Latitud segundos', 5) + '<span>" S</span></div>' +
+        '<div class="f"><b>Longitud</b>' + c('og', 'Longitud grados', 3) + '<span>°</span>' + c('om', 'Longitud minutos', 2) + "<span>'</span>" + c('os', 'Longitud segundos', 5) + '<span>" O</span></div>' +
+        '<div class="a"><button type="button" class="x">Cerrar</button><button type="button" class="ir">🔎 Ir</button></div>';
+      L.DomEvent.disableClickPropagation(caja); L.DomEvent.disableScrollPropagation(caja);
+      const cs = [...caja.querySelectorAll('input')];
+      cs[0].focus();
+      cs.forEach((x, i) => x.addEventListener('input', () => {
+        x.value = x.value.replace(/[^0-9.,]/g, '');
+        if (!x.dataset.c.endsWith('s') && x.value.length >= 2 && cs[i + 1]) cs[i + 1].focus();
+      }));
+      const num = k => { const t = caja.querySelector('[data-c="' + k + '"]').value.trim().replace(',', '.'); return t === '' ? null : Number(t); };
+      const ir = () => {
+        const g1 = num('ag'), m1 = num('am') || 0, s1 = num('as') || 0, g2 = num('og'), m2 = num('om') || 0, s2 = num('os') || 0;
+        if (g1 == null || g2 == null || [m1, s1, m2, s2].some(v => isNaN(v) || v < 0 || v >= 60) || isNaN(g1) || isNaN(g2) || g1 > 90 || g2 > 180) {
+          alert('Completa al menos los grados de la latitud y de la longitud (minutos y segundos de 0 a 59).'); return;
+        }
+        const la = -(g1 + m1 / 60 + s1 / 3600), ln = -(g2 + m2 / 60 + s2 / 3600);
+        map.setView([la, ln], Math.max(map.getZoom(), 15));
+        if (marca) map.removeLayer(marca);
+        marca = L.circleMarker([la, ln], { radius: 9, color: '#2563EB', weight: 3, fillColor: '#93C5FD', fillOpacity: .6 }).addTo(map)
+          .bindTooltip(gms(la, 'N', 'S') + ' · ' + gms(ln, 'E', 'O'), { permanent: true, direction: 'top' });
+        caja.remove(); caja = null;
+      };
+      caja.querySelector('.ir').onclick = ir;
+      caja.querySelector('.x').onclick = () => { caja.remove(); caja = null; };
+      cs.forEach(x => x.addEventListener('keydown', e => { if (e.key === 'Enter') ir(); }));
+    });
+  }
+  L.Map.addInitHook(function () {
+    const map = this, cont = map.getContainer();
+    if (map.zoomControl) map.zoomControl.setPosition('bottomright');
+    // Con el dedo: un dedo = página, dos dedos = mapa (salvo pantalla completa / mapa de pantalla completa)
+    if (tactil && map.dragging) {
+      const ajustar = () => { if (grande(cont)) map.dragging.enable(); else map.dragging.disable(); };
+      setTimeout(ajustar, 0);
+      cont.addEventListener('touchstart', ajustar, { capture: true, passive: true });
+      cont.addEventListener('mousedown', () => map.dragging.enable(), { capture: true, passive: true });
+      let aviso = null, t = null;
+      cont.addEventListener('touchmove', e => {
+        if (e.touches.length !== 1 || map.dragging.enabled()) return;
+        if (!aviso) { aviso = L.DomUtil.create('div', 'mc-aviso', cont); aviso.textContent = '✌️ Usa dos dedos para mover el mapa'; }
+        aviso.classList.add('on'); clearTimeout(t); t = setTimeout(() => aviso && aviso.classList.remove('on'), 1300);
+      }, { passive: true });
+    }
+    // ⛶ Ampliar y 🔎 coordenadas: solo si la app no trae los suyos (se revisa cuando la app ya puso sus botones)
+    setTimeout(() => {
+      if (!map._loaded && !map.getContainer().isConnected) return;
+      const zona = cont.parentElement || cont;
+      const tieneAmp = zona.querySelector('.av-grande, [data-mt="grande"], .mc-amp') || grande(cont);
+      const tieneBus = zona.querySelector('.av-buscar, .mc-bus');
+      if (tieneAmp && tieneBus) return;
+      const ctl = L.control({ position: grande(cont) ? 'bottomright' : 'topright' });
+      ctl.onAdd = () => {
+        const d = L.DomUtil.create('div', 'leaflet-bar mc-ctl'); d.style.border = '0'; d.style.boxShadow = 'none'; d.style.background = 'none';
+        if (!tieneAmp) {
+          const b = boton('⛶', 'Ampliar mapa', bb => {
+            const on = !cont.classList.contains('mc-full');
+            cont.classList.toggle('mc-full', on); bb.textContent = on ? '✕' : '⛶'; bb.title = on ? 'Cerrar pantalla completa' : 'Ampliar mapa';
+            if (tactil) { if (on) map.dragging.enable(); else map.dragging.disable(); }
+            setTimeout(() => map.invalidateSize(), 80);
+          });
+          b.classList.add('mc-amp'); d.appendChild(b);
+        }
+        if (!tieneBus) { const b = buscador(map, cont); b.classList.add('mc-bus'); d.appendChild(b); }
+        return d;
+      };
+      ctl.addTo(map);
+    }, 60);
+  });
+})();
+</script>
+<!-- MAPA-COMUN-PWA:FIN -->
 <script>
 // Clave pública (anon): por diseño es pública; el acceso real lo controla RLS (SQL 130–164).
 const SUPABASE_URL = 'https://api.copamientoterritorial.cl';
@@ -335,7 +461,7 @@ function toast(m) { const t = document.createElement('div'); t.className = 'toas
  * nueva se FUERZA la actualización: primero se envían los pendientes y luego se recarga (el service worker trae app.html de la red).
  * Si hay un avance a medio registrar, espera a que se cierre el formulario. SIN señal: la actualización queda PENDIENTE
  * (localStorage) y se instala sola al volver la señal. La cola de pendientes y los datos guardados (IndexedDB) no se pierden al actualizar. */
-const APP_VERSION = '1.9.2';
+const APP_VERSION = '1.9.3';
 const ACT_KEY = 'pta-act-pendiente', ACT_CADA_MS = 15 * 60 * 1000;
 function actLeer() { try { return localStorage.getItem(ACT_KEY) || ''; } catch (e) { return ''; } }
 function actGuardar(v) { try { if (v) localStorage.setItem(ACT_KEY, v); else localStorage.removeItem(ACT_KEY); } catch (e) { /* sin almacenamiento */ } }

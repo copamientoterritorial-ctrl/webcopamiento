@@ -57,6 +57,10 @@
   .menu .menu-home .ico { width:56px; height:56px; margin:-26px auto 2px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:26px;
     background: linear-gradient(145deg, #0F766E, #0F5132); color:#fff; border:4px solid var(--card); box-shadow: 0 6px 16px rgba(15,81,50,.35); }
   .menu .menu-home.on .ico { background: linear-gradient(145deg, #16A34A, #0F766E); }
+  /* v1.6.1: contador de versión nueva («1») */
+  .menu button { position:relative; }
+  .badge-n { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#DC2626; color:#fff; font-size:11px; font-weight:800; line-height:1; vertical-align:middle; }
+  .menu .badge-n { position:absolute; top:2px; right:calc(50% - 22px); }
   /* Fecha */
   .fecha-nav { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
   .fecha-nav button { flex:0 0 auto; width:44px; height:40px; border-radius:10px; border:1px solid var(--borde); background: var(--card); font-size:16px; font-weight:800; cursor:pointer; }
@@ -370,10 +374,10 @@
   <main id="m-cuerpo"><div class="vacio">Cargando…</div></main>
   <nav class="menu" id="menu">
     <button data-s="historial"><span class="ico">🧩</span>Actividades</button>
-    <button data-s="semana"><span class="ico">🗓️</span>Semana</button>
+    <button data-s="semana"><span class="ico">🗓️</span>Calendario</button>
     <button data-s="hoy" class="on menu-home" id="menu-1" aria-label="Inicio"><span class="ico">🏠</span><span id="menu-1-txt">Inicio</span></button>
-    <button data-s="mapa"><span class="ico">🗺️</span>Mapa</button>
-    <button data-s="perfil"><span class="ico">👤</span>Mi cuenta</button>
+    <button data-s="mapa"><span class="ico">📡</span>En vivo</button>
+    <button data-s="perfil" id="menu-perfil"><span class="ico">👤</span>Mi cuenta</button>
   </nav>
 </div>
 
@@ -382,6 +386,132 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- MAPA-COMUN-PWA:INICIO · v1 (26-11-2026) · NO EDITAR AQUÍ: se edita herramientas\mapa_comun_pwa.html y se copia con herramientas\aplicar_mapa_comun.ps1 -->
+<style>
+  /* Reglas comunes de los mapas de las apps PWA (Bitácora, Prevención, Patrullaje, Agricultores):
+     ⛶ pantalla completa sobre el encabezado y bajo la franja del teléfono; 🔎 coordenadas en 6 casillas; aviso «dos dedos». */
+  .mc-full { position:fixed !important; left:0 !important; right:0 !important; bottom:0 !important; top:env(safe-area-inset-top, 0px) !important;
+    width:auto !important; height:auto !important; min-height:0 !important; z-index:4000 !important; border-radius:0 !important; margin:0 !important; border:0 !important; }
+  .av-mapa.grande, .mapa-tab.grande { top:env(safe-area-inset-top, 0px) !important; z-index:4000 !important; }
+  .av-mapa .leaflet-top.leaflet-right { top:100px; }   /* bajo los botones propios de la app (⛶ y 🗂️) */
+  .mc-btn { width:40px; height:40px; border:0; border-radius:10px; background:rgba(255,255,255,.95); color:#0F172A; font-size:18px; cursor:pointer;
+    box-shadow:0 2px 8px rgba(2,6,23,.3); display:flex; align-items:center; justify-content:center; margin:0 0 6px; padding:0; }
+  .mc-aviso { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:1200; background:rgba(15,23,42,.82); color:#fff;
+    font:600 14px system-ui, sans-serif; padding:10px 16px; border-radius:999px; pointer-events:none; opacity:0; transition:opacity .25s; white-space:nowrap; }
+  .mc-aviso.on { opacity:1; }
+  .mc-gms { position:absolute; left:8px; right:8px; top:8px; z-index:1300; background:rgba(255,255,255,.98); border-radius:12px; padding:8px 10px;
+    box-shadow:0 4px 14px rgba(2,6,23,.3); font:13px system-ui, sans-serif; color:#0F172A; }
+  .mc-gms .f { display:flex; align-items:center; gap:3px; margin-bottom:6px; }
+  .mc-gms .f b { width:66px; font-size:12px; color:#475569; }
+  .mc-gms .f span { color:#475569; font-weight:700; }
+  .mc-gms input { width:46px; min-width:0; padding:7px 3px; text-align:center; font-size:16px; border:1px solid #CBD5E1; border-radius:8px; background:#fff; color:#0F172A; }
+  .mc-gms .a { display:flex; gap:6px; justify-content:flex-end; }
+  .mc-gms .a button { border:0; border-radius:9px; padding:9px 14px; font:700 13px system-ui, sans-serif; cursor:pointer; }
+  .mc-gms .a .ir { background:#2563EB; color:#fff; }
+  .mc-gms .a .x { background:#E2E8F0; color:#334155; }
+</style>
+<script>
+/* Para TODOS los mapas de la app (L.Map.addInitHook):
+ *  · Con el dedo: en un mapa dentro de una página que se desplaza, UN dedo mueve la página y DOS dedos mueven / acercan el mapa
+ *    (aviso «Usa dos dedos para mover el mapa»). En pantalla completa o en un mapa que ocupa la pantalla, un dedo mueve el mapa.
+ *  · Zoom abajo a la derecha (arriba quedan los botones de la app y no se tapan).
+ *  · ⛶ Ampliar (pantalla completa) si la app no trae uno; 🔎 buscar una coordenada con 6 casillas (grados, minutos y segundos
+ *    de la latitud S y la longitud O) si la app no trae uno. */
+(function () {
+  if (typeof L === 'undefined' || window.__mapaComunPwa) return;
+  window.__mapaComunPwa = 1;
+  const tactil = ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0;
+  // Mapa «grande» = pantalla completa o el mapa principal de la app (#mapa de Patrullaje / Agricultores): ahí un dedo mueve el mapa
+  const grande = c => !!(c.id === 'mapa' || c.closest('.mc-full, .grande') || c.offsetHeight >= window.innerHeight * 0.7);
+  function boton(txt, titulo, fn) {
+    const b = L.DomUtil.create('button', 'mc-btn'); b.type = 'button'; b.textContent = txt; b.title = titulo; b.setAttribute('aria-label', titulo);
+    L.DomEvent.disableClickPropagation(b); L.DomEvent.on(b, 'click', e => { L.DomEvent.stop(e); fn(b); });
+    return b;
+  }
+  function gms(v, pos, neg) {
+    const h = v < 0 ? neg : pos; v = Math.abs(v);
+    let g = Math.floor(v), m = Math.floor((v - g) * 60), s = Math.round(((v - g) * 60 - m) * 600) / 10;
+    if (s >= 60) { s = 0; m++; } if (m >= 60) { m = 0; g++; }
+    return g + '°' + String(m).padStart(2, '0') + "'" + s.toFixed(1).replace('.', ',') + '" ' + h;
+  }
+  function buscador(map, cont) {
+    let caja = null, marca = null;
+    return boton('🔎', 'Buscar una coordenada', () => {
+      if (caja) { caja.remove(); caja = null; return; }
+      caja = L.DomUtil.create('div', 'mc-gms', cont);
+      const c = (k, t, n) => '<input data-c="' + k + '" inputmode="decimal" maxlength="' + n + '" aria-label="' + t + '" placeholder="' + (k.endsWith('g') ? '°' : k.endsWith('m') ? "'" : '"') + '">';
+      caja.innerHTML = '<div class="f"><b>Latitud</b>' + c('ag', 'Latitud grados', 2) + '<span>°</span>' + c('am', 'Latitud minutos', 2) + "<span>'</span>" + c('as', 'Latitud segundos', 5) + '<span>" S</span></div>' +
+        '<div class="f"><b>Longitud</b>' + c('og', 'Longitud grados', 3) + '<span>°</span>' + c('om', 'Longitud minutos', 2) + "<span>'</span>" + c('os', 'Longitud segundos', 5) + '<span>" O</span></div>' +
+        '<div class="a"><button type="button" class="x">Cerrar</button><button type="button" class="ir">🔎 Ir</button></div>';
+      L.DomEvent.disableClickPropagation(caja); L.DomEvent.disableScrollPropagation(caja);
+      const cs = [...caja.querySelectorAll('input')];
+      cs[0].focus();
+      cs.forEach((x, i) => x.addEventListener('input', () => {
+        x.value = x.value.replace(/[^0-9.,]/g, '');
+        if (!x.dataset.c.endsWith('s') && x.value.length >= 2 && cs[i + 1]) cs[i + 1].focus();
+      }));
+      const num = k => { const t = caja.querySelector('[data-c="' + k + '"]').value.trim().replace(',', '.'); return t === '' ? null : Number(t); };
+      const ir = () => {
+        const g1 = num('ag'), m1 = num('am') || 0, s1 = num('as') || 0, g2 = num('og'), m2 = num('om') || 0, s2 = num('os') || 0;
+        if (g1 == null || g2 == null || [m1, s1, m2, s2].some(v => isNaN(v) || v < 0 || v >= 60) || isNaN(g1) || isNaN(g2) || g1 > 90 || g2 > 180) {
+          alert('Completa al menos los grados de la latitud y de la longitud (minutos y segundos de 0 a 59).'); return;
+        }
+        const la = -(g1 + m1 / 60 + s1 / 3600), ln = -(g2 + m2 / 60 + s2 / 3600);
+        map.setView([la, ln], Math.max(map.getZoom(), 15));
+        if (marca) map.removeLayer(marca);
+        marca = L.circleMarker([la, ln], { radius: 9, color: '#2563EB', weight: 3, fillColor: '#93C5FD', fillOpacity: .6 }).addTo(map)
+          .bindTooltip(gms(la, 'N', 'S') + ' · ' + gms(ln, 'E', 'O'), { permanent: true, direction: 'top' });
+        caja.remove(); caja = null;
+      };
+      caja.querySelector('.ir').onclick = ir;
+      caja.querySelector('.x').onclick = () => { caja.remove(); caja = null; };
+      cs.forEach(x => x.addEventListener('keydown', e => { if (e.key === 'Enter') ir(); }));
+    });
+  }
+  L.Map.addInitHook(function () {
+    const map = this, cont = map.getContainer();
+    if (map.zoomControl) map.zoomControl.setPosition('bottomright');
+    // Con el dedo: un dedo = página, dos dedos = mapa (salvo pantalla completa / mapa de pantalla completa)
+    if (tactil && map.dragging) {
+      const ajustar = () => { if (grande(cont)) map.dragging.enable(); else map.dragging.disable(); };
+      setTimeout(ajustar, 0);
+      cont.addEventListener('touchstart', ajustar, { capture: true, passive: true });
+      cont.addEventListener('mousedown', () => map.dragging.enable(), { capture: true, passive: true });
+      let aviso = null, t = null;
+      cont.addEventListener('touchmove', e => {
+        if (e.touches.length !== 1 || map.dragging.enabled()) return;
+        if (!aviso) { aviso = L.DomUtil.create('div', 'mc-aviso', cont); aviso.textContent = '✌️ Usa dos dedos para mover el mapa'; }
+        aviso.classList.add('on'); clearTimeout(t); t = setTimeout(() => aviso && aviso.classList.remove('on'), 1300);
+      }, { passive: true });
+    }
+    // ⛶ Ampliar y 🔎 coordenadas: solo si la app no trae los suyos (se revisa cuando la app ya puso sus botones)
+    setTimeout(() => {
+      if (!map._loaded && !map.getContainer().isConnected) return;
+      const zona = cont.parentElement || cont;
+      const tieneAmp = zona.querySelector('.av-grande, [data-mt="grande"], .mc-amp') || grande(cont);
+      const tieneBus = zona.querySelector('.av-buscar, .mc-bus');
+      if (tieneAmp && tieneBus) return;
+      const ctl = L.control({ position: grande(cont) ? 'bottomright' : 'topright' });
+      ctl.onAdd = () => {
+        const d = L.DomUtil.create('div', 'leaflet-bar mc-ctl'); d.style.border = '0'; d.style.boxShadow = 'none'; d.style.background = 'none';
+        if (!tieneAmp) {
+          const b = boton('⛶', 'Ampliar mapa', bb => {
+            const on = !cont.classList.contains('mc-full');
+            cont.classList.toggle('mc-full', on); bb.textContent = on ? '✕' : '⛶'; bb.title = on ? 'Cerrar pantalla completa' : 'Ampliar mapa';
+            if (tactil) { if (on) map.dragging.enable(); else map.dragging.disable(); }
+            setTimeout(() => map.invalidateSize(), 80);
+          });
+          b.classList.add('mc-amp'); d.appendChild(b);
+        }
+        if (!tieneBus) { const b = buscador(map, cont); b.classList.add('mc-bus'); d.appendChild(b); }
+        return d;
+      };
+      ctl.addTo(map);
+    }, 60);
+  });
+})();
+</script>
+<!-- MAPA-COMUN-PWA:FIN -->
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════
  * APP BITÁCORA · ETAPA 1: APERTURAS DE JORNADA (SQL 183, tablas bit_*) · ETAPA 2: ACTIVIDADES + FOTOS (SQL 187)
@@ -406,7 +536,7 @@
 const SUPABASE_URL = 'https://api.copamientoterritorial.cl';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-bitacora-app', detectSessionInUrl: false } });
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.6.1';
 const DOMINIO_CUENTAS = 'recursos.copamientoterritorial.cl';   // = Edge Function admin-cuentas-recurso y js/41 de la web
 const DIAS_CARGA = 14;   // aperturas que se descargan hacia atrás
 
@@ -480,6 +610,14 @@ function avisoPendienteOffline() {
   const p = actLeer() || S.versionNueva || '';
   if (p && cmpVersion(p, APP_VERSION) > 0) franjaVersion('🆕 Versión ' + esc(p) + ' pendiente · se instalará al tener señal');
 }
+// v1.6.1: «(1)» en «Mi cuenta» y en «🆕 Actualizar Apps» cuando hay una versión nueva publicada
+const hayVersionNueva = () => { const v = S.versionNueva || actLeer(); return !!v && cmpVersion(v, APP_VERSION) > 0; };
+function pintarAvisoVersion() {
+  const b = $('menu-perfil'); if (!b) return;
+  let s = b.querySelector('.badge-n');
+  if (hayVersionNueva()) { if (!s) { s = document.createElement('span'); s.className = 'badge-n'; s.textContent = '1'; b.appendChild(s); } }
+  else if (s) s.remove();
+}
 async function buscarActualizacion() {
   if (!navigator.onLine) { avisoPendienteOffline(); return; }
   if (S.buscandoVersion) return;
@@ -491,6 +629,7 @@ async function buscarActualizacion() {
     if (!v || cmpVersion(v, APP_VERSION) <= 0) { actGuardar(''); franjaVersion(''); return; }
     S.versionNueva = v; S.notasVersion = Array.isArray(j.notas) ? j.notas : [];
     actGuardar(v);
+    pintarAvisoVersion();
     await aplicarActualizacion(v, false);
   } catch (e) { avisoPendienteOffline(); }
   finally { S.buscandoVersion = false; }
@@ -995,7 +1134,8 @@ function pintar() {
   if (S.sec === 'inicio' && !esCuentaRecurso()) S.sec = 'hoy';
   if (S.sec === 'hoy' && esCuentaRecurso()) S.sec = 'inicio';
   document.querySelectorAll('#menu button').forEach(b => b.classList.toggle('on', b.dataset.s === S.sec));
-  $('h-titulo').textContent = { inicio: '🏠 Inicio', hoy: esSupervisor() ? '🏠 Inicio · Jornadas' : '🏠 Inicio · Aperturas', historial: '🧩 Actividades', semana: '🗓️ Semana', mapa: '🗺️ Mapa del día', perfil: '👤 Mi cuenta' }[S.sec];
+  $('h-titulo').textContent = { inicio: '🏠 Inicio', hoy: esSupervisor() ? '🏠 Inicio · Jornadas' : '🏠 Inicio · Aperturas', historial: '🧩 Actividades', semana: '🗓️ Calendario', mapa: '📡 En vivo', perfil: '👤 Mi cuenta' }[S.sec];
+  pintarAvisoVersion();
   $('h-sub').textContent = S.ctx ? rolTxt(S.ctx) : 'Bitácora';
   pintarRed();
   setTimeout(revisarPosicion, 0);   // 📡 v1.5.0: con la jornada abierta, la cuenta del recurso comparte su ubicación
@@ -1088,11 +1228,13 @@ function pintarDia() {
   const f = S.fecha, lista = recursosFiltrados().map(r => ({ r, st: estadoRecurso(r, f) }));
   const n = k => lista.filter(x => x.st.k === k).length;
   const sup = esSupervisor();
-  const kp = [['', 'Recursos', lista.length, '#0F172A'], ['abierta', sup ? 'Jornadas iniciadas' : 'Abiertas', n('abierta'), ST.abierta.c], ['falta', 'Sin apertura (de turno)', n('falta'), ST.falta.c],
+  const kp = [['', 'Recursos', lista.length, '#0F172A'], ['abierta', sup ? 'Jornadas iniciadas' : 'Abiertas', n('abierta'), ST.abierta.c], ['falta', 'Sin apertura', n('falta'), ST.falta.c],
     ['otro', 'Libre / otro', n('otro'), ST.otro.c], ['cerrada', sup ? 'Jornadas finalizadas' : 'Cerradas', n('cerrada'), ST.cerrada.c]];
   const vis = S.filtros.kpi ? lista.filter(x => x.st.k === S.filtros.kpi) : lista;
-  // v1.6.0: agrupados por Área de Relacionamiento y, dentro, por la prioridad del tipo de recurso (orden de la lista desplegable)
-  vis.sort((a, b) => String(a.r.area).localeCompare(String(b.r.area), 'es') || (ordenTipo(a.r.tipo_codigo) - ordenTipo(b.r.tipo_codigo)) ||
+  // v1.6.0 / v1.6.1: Área › recursos ACTIVOS (jornada iniciada o finalizada) primero y luego los sin activar › prioridad del tipo
+  // (orden de la lista desplegable) › clave
+  const activo = x => (x.st.k === 'abierta' || x.st.k === 'cerrada') ? 0 : 1;
+  vis.sort((a, b) => String(a.r.area).localeCompare(String(b.r.area), 'es') || (activo(a) - activo(b)) || (ordenTipo(a.r.tipo_codigo) - ordenTipo(b.r.tipo_codigo)) ||
     (ORDEN_ST[a.st.k] - ORDEN_ST[b.st.k]) || String(a.r.clave_radial).localeCompare(String(b.r.clave_radial), 'es', { numeric: true }));
   const variasAreas = new Set(vis.map(x => x.r.id_area)).size > 1;
   let html = holaHtml() + instalarHtml() + fechaNavHtml();
@@ -1819,10 +1961,10 @@ function perfilHtml() {
       (pend || '<div class="muted">Todo está enviado ✅</div>') +
       '<button class="btn btn-p" data-sync="1" style="width:100%;margin-top:10px;"' + (navigator.onLine && S.pendientes.length ? '' : ' disabled') + '>🔄 Enviar ahora</button>' +
       '<div class="muted" style="margin-top:6px;">Sin señal las aperturas quedan en el teléfono y se envían solas al recuperar la conexión.</div></div>' +
-    '<div class="card"><button class="btn" data-recargar="1" style="width:100%;margin-bottom:8px;">🔄 Actualizar datos</button>' +
+    '<div class="card"><button class="btn" data-recargar="1" style="width:100%;margin-bottom:8px;">🔄 Sincronizar sistema</button>' +
       (esInstalada() ? '' : '<button class="btn btn-p" data-instalar="1" style="width:100%;margin-bottom:8px;">📲 Instalar la Bitácora en el teléfono</button>') +
       (claveGuardada() ? '<button class="btn" data-olvidar="1" style="width:100%;margin-bottom:8px;">🔑 Olvidar la clave guardada en este teléfono</button>' : '') +
-      '<button class="btn" data-buscar-version="1" style="width:100%;margin-bottom:8px;">🆕 Buscar actualización</button>' +
+      '<button class="btn" data-buscar-version="1" style="width:100%;margin-bottom:8px;">🆕 Actualizar Apps' + (hayVersionNueva() ? ' <span class="badge-n">1</span>' : '') + '</button>' +
       '<button class="btn btn-rojo" data-salir="1" style="width:100%;"><svg class="ico-salir" viewBox="0 0 24 24" aria-hidden="true" style="width:18px;height:18px;"><path d="M12 3v9"/><path d="M6.4 6.6a8 8 0 1 0 11.2 0"/></svg> Cerrar sesión</button></div>' +
     '<p class="muted" style="text-align:center;">Bitácora · v' + APP_VERSION + (S.descarga ? ' · datos del ' + esc(fmtFechaHora(S.descarga)) : '') + '</p>';
 }
