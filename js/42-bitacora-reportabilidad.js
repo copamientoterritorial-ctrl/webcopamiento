@@ -5,7 +5,7 @@
  *   bitacoramapa  🗺️ Mapa         — pinchos por clasificación, ubicación de las aperturas y ruta asignada del recurso elegido (SQL 192)
  *   bitacoraind   📊 Indicadores  — % del turno registrado, horas por clasificación, aperturas faltantes (de turno sin apertura), por área y por recurso; ⬇️ Excel
  * Ven: Administrador (todas las áreas), Jefe de Área / Subgerente / GRT (sus áreas) y el Supervisor de empresa (SQL 195: su empresa en sus
- * áreas); lo decide el RLS de bit_jornada / bit_registro_actividad. Mapa: 📡 ubicación en vivo y recorrido del día (bit_mapa_jornada, cada 30 s,
+ * áreas); lo decide el RLS de bit_jornada / bit_registro_actividad. Mapa: 📡 ubicación en vivo y recorrido del día (bit_mapa_jornada, cada 20 s,
  * `btVivo_`) y ━ rutas asignadas de todos los recursos filtrados (`btRutasTodas_`).
  * Lee v_bit_jornadas, v_bit_actividades (clasificación del SQL 193; sin él se agrupa por grupo), bit_mis_recursos() (días de turno ±7/14)
  * y bit_ruta_recurso(). Panel único #bitacora-panel (`abrirBitacoraWeb_(vista)`, `cargarBitacoraWeb_`). */
@@ -273,7 +273,7 @@ function renderBtMapa_(cu) {
   const est = document.getElementById('bt-estado-txt');
   if (est) est.textContent = btFecha_(s.desde) + ' → ' + btFecha_(s.hasta) + (s.recurso ? ' · ruta asignada del recurso' : ' · elige un recurso para ver su ruta');
   if (s.verVivo === undefined) { s.verVivo = true; s.verRutas = false; }
-  cu.innerHTML = '<div class="bt-mapa-ops"><label><input type="checkbox" id="bt-vivo"' + (s.verVivo ? ' checked' : '') + '> 📡 Ubicación en vivo de hoy (se actualiza cada 30 s)</label>' +
+  cu.innerHTML = '<div class="bt-mapa-ops"><label><input type="checkbox" id="bt-vivo"' + (s.verVivo ? ' checked' : '') + '> 📡 Ubicación en vivo de hoy (se actualiza cada 20 s)</label>' +
       '<label><input type="checkbox" id="bt-rutas"' + (s.verRutas ? ' checked' : '') + '> ━ Rutas asignadas de todos los recursos filtrados</label><span id="bt-vivo-txt" class="muted"></span></div>' +
     '<div id="bt-mapa" style="flex:1;min-height:420px;border-radius:12px;border:1px solid var(--border);"></div>' +
     '<div class="muted" style="font-size:11.5px;margin:6px 2px;">● Actividad (color por clasificación) · ◆ Apertura · ━ Ruta asignada (escenario Normal del copamiento) · ' +
@@ -317,7 +317,7 @@ function renderBtMapa_(cu) {
 }
 
 // 📡 Ubicación en vivo (SQL 195, bit_mapa_jornada): última posición y recorrido del día de cada recurso que se ve.
-// Se repite cada 30 s mientras el mapa siga abierto (si se cambia de vista o se repinta el mapa, la vuelta anterior se corta sola).
+// Se repite cada 20 s mientras el mapa siga abierto (si se cambia de vista o se repinta el mapa, la vuelta anterior se corta sola).
 function btHace_(ts) { const m = Math.round((Date.now() - new Date(ts).getTime()) / 60000); return m < 1 ? 'recién' : m < 60 ? 'hace ' + m + ' min' : 'hace ' + btDur_(m); }
 async function btVivo_(map) {
   const s = state.bt, txt = document.getElementById('bt-vivo-txt');
@@ -347,7 +347,7 @@ async function btVivo_(map) {
           '<br>' + escapeHtml_(coordGms_(u.lat, u.lng)));
     });
     if (txt) txt.textContent = '· ' + enVivo + ' en movimiento · ' + recs.filter(r => r.ultima).length + ' con ubicación hoy · ' + new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-    setTimeout(vuelta, 30000);
+    setTimeout(vuelta, 20000);
   };
   vuelta();
 }

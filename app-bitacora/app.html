@@ -51,6 +51,12 @@
   .menu button { border:0; background:none; color: var(--sub); font:inherit; font-size:11px; font-weight:700; padding:6px 2px; cursor:pointer; }
   .menu button.on { color: var(--pri2); }
   .menu .ico { font-size:20px; display:block; }
+  /* v1.6.0: «Inicio» al centro, botón redondo destacado (home de la app) */
+  .menu { overflow:visible; }
+  .menu .menu-home { position:relative; }
+  .menu .menu-home .ico { width:56px; height:56px; margin:-26px auto 2px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:26px;
+    background: linear-gradient(145deg, #0F766E, #0F5132); color:#fff; border:4px solid var(--card); box-shadow: 0 6px 16px rgba(15,81,50,.35); }
+  .menu .menu-home.on .ico { background: linear-gradient(145deg, #16A34A, #0F766E); }
   /* Fecha */
   .fecha-nav { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
   .fecha-nav button { flex:0 0 auto; width:44px; height:40px; border-radius:10px; border:1px solid var(--borde); background: var(--card); font-size:16px; font-weight:800; cursor:pointer; }
@@ -97,6 +103,16 @@
   .mt-base { position:absolute; top:8px; left:8px; z-index:1000; display:flex; background: rgba(255,255,255,.94); border-radius:999px; padding:3px; box-shadow: 0 2px 8px rgba(2,6,23,.3); }
   .mt-base button { border:0; background:none; font:inherit; font-size:12px; font-weight:700; padding:6px 10px; border-radius:999px; cursor:pointer; }
   .mt-base button.on { background: var(--azul); color:#fff; }
+  /* v1.6.0: mapa del día ampliable, con capas y mi ubicación */
+  .mapa-tab.grande { position:fixed; inset:0; z-index:60; height:auto; min-height:0; border-radius:0; border:0; }
+  .mt-ctl { position:absolute; top:8px; right:8px; z-index:1001; display:flex; flex-direction:column; gap:6px; }
+  .mt-ctl button { width:40px; height:40px; border:0; border-radius:10px; background: rgba(255,255,255,.94); font-size:17px; cursor:pointer; box-shadow: 0 2px 8px rgba(2,6,23,.3); }
+  .mt-ctl button.on { background: var(--azul); color:#fff; }
+  .mapa-tab .av-buscar { top:152px; }
+  .mt-capas { position:absolute; top:8px; right:56px; z-index:1001; background: rgba(255,255,255,.97); border-radius:12px; padding:8px 10px; box-shadow: 0 4px 14px rgba(2,6,23,.3); font-size:13px; min-width:190px; }
+  .mt-capas label { display:flex; align-items:center; gap:8px; margin:6px 0 0; font-weight:600; color: var(--txt); }
+  .mt-capas input { width:18px; height:18px; margin:0; }
+  .yo-gps { width:18px; height:18px; border-radius:50%; background:#2563EB; border:3px solid #fff; box-shadow: 0 0 0 2px rgba(37,99,235,.35), 0 2px 6px rgba(0,0,0,.4); }
   .pop b { font-size:14px; } .pop div { font-size:12px; margin-top:3px; }
   /* Hoja (formulario / ficha) */
   .overlay { position:fixed; inset:0; background: rgba(15,23,42,.6); display:none; align-items:flex-end; justify-content:center; z-index:20; }
@@ -353,9 +369,9 @@
   </header>
   <main id="m-cuerpo"><div class="vacio">Cargando…</div></main>
   <nav class="menu" id="menu">
-    <button data-s="hoy" class="on" id="menu-1"><span class="ico">🏠</span><span id="menu-1-txt">Día</span></button>
-    <button data-s="historial"><span class="ico">🧩</span>Historial</button>
+    <button data-s="historial"><span class="ico">🧩</span>Actividades</button>
     <button data-s="semana"><span class="ico">🗓️</span>Semana</button>
+    <button data-s="hoy" class="on menu-home" id="menu-1" aria-label="Inicio"><span class="ico">🏠</span><span id="menu-1-txt">Inicio</span></button>
     <button data-s="mapa"><span class="ico">🗺️</span>Mapa</button>
     <button data-s="perfil"><span class="ico">👤</span>Mi cuenta</button>
   </nav>
@@ -390,7 +406,7 @@
 const SUPABASE_URL = 'https://api.copamientoterritorial.cl';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-bitacora-app', detectSessionInUrl: false } });
-const APP_VERSION = '1.5.5';
+const APP_VERSION = '1.6.0';
 const DOMINIO_CUENTAS = 'recursos.copamientoterritorial.cl';   // = Edge Function admin-cuentas-recurso y js/41 de la web
 const DIAS_CARGA = 14;   // aperturas que se descargan hacia atrás
 
@@ -563,7 +579,17 @@ async function cargarTodo() {
     cacheSet('cat', S.cat);
     const rr = await sb.rpc('bit_mis_recursos');
     if (rr.error) throw rr.error;
-    S.recursos = rr.data || []; cacheSet('recursos', S.recursos);
+    S.recursos = rr.data || [];
+    // v1.6.0 (SQL 199): patente registrada de cada recurso (referencia_recursos.patente); sin el 199 se sigue sin ella
+    try {
+      const ids = S.recursos.map(r => r.id);
+      for (let i = 0; i < ids.length; i += 150) {
+        const { data: pt, error: ep } = await sb.from('referencia_recursos').select('id, patente').in('id', ids.slice(i, i + 150));
+        if (ep) break;
+        const m = new Map((pt || []).map(x => [x.id, x.patente])); S.recursos.forEach(r => { if (m.has(r.id)) r.patente = m.get(r.id) || ''; });
+      }
+    } catch (e) { /* sin la columna patente */ }
+    cacheSet('recursos', S.recursos);
     const desde = [sumarDias(hoyISO(), -DIAS_CARGA), S.fecha || hoyISO()].sort()[0];
     S.jornadas = await leerTodo('v_bit_jornadas', '*', q => q.gte('fecha_operativa', desde).order('fecha_operativa'));
     S.desde = desde; S.descarga = new Date().toISOString();
@@ -760,7 +786,7 @@ function estadoRecurso(r, f) {
 }
 function chipEstado(st) {
   if (st.k === 'otro') return '<span class="st" style="--c:' + ST.otro.c + '">' + esc((st.j.estado_emoji || '') + ' ' + (st.j.estado || '')) + '</span>';
-  return '<span class="st" style="--c:' + ST[st.k].c + '">' + ST[st.k].t + '</span>';
+  return '<span class="st" style="--c:' + ST[st.k].c + '">' + stTxt(st.k) + '</span>';
 }
 function chipsExtra(st) {
   const out = [];
@@ -772,6 +798,11 @@ function chipsExtra(st) {
 
 /* ───────── Actividades (SQL 187): reglas e índice ───────── */
 const esCuentaRecurso = () => !!(S.ctx && S.ctx.rol === 'recurso');
+const esSupervisor = () => !!(S.ctx && S.ctx.rol === 'supervisor');
+// v1.6.0: textos del estado para el Supervisor (jornadas iniciadas / finalizadas)
+const stTxt = k => esSupervisor() ? ({ abierta: '🟢 Jornada iniciada', cerrada: '✅ Jornada finalizada' }[k] || ST[k].t) : ST[k].t;
+// Prioridad de los tipos de recurso = orden de la lista desplegable (bit_tipo_recurso.orden: BMP, BD, VC, VM…)
+const ordenTipo = c => { const t = S.cat.tipos.find(x => x.codigo === c); return t && t.orden != null ? Number(t.orden) : 99; };
 const actCat = c => S.cat.actividades.find(a => a.codigo === c);
 const grupoCat = c => S.cat.grupos.find(g => g.codigo === c);
 const habilitadas = r => { const l = new Set((S.cat.habil || {})[r.tipo_codigo] || []); return S.cat.actividades.filter(a => l.has(a.codigo)); };
@@ -956,15 +987,15 @@ function holaHtml() {
 }
 function pintar() {
   indexar();
-  if (S.sec !== 'mapa' && S.mapaTab) { try { S.mapaTab.remove(); } catch (e) {} S.mapaTab = null; }
+  if (S.sec !== 'mapa' && S.mapaTab) { try { S.mapaTab.remove(); } catch (e) {} S.mapaTab = null; pararMiUbicacion(); S.mapaRedibujar = null; document.querySelectorAll('body > .mapa-tab.grande').forEach(x => x.remove()); }
   if (S.sec !== 'historial' && S.mapaHist) { try { S.mapaHist.remove(); } catch (e) {} S.mapaHist = null; }
   // Cuenta de recurso: el primer botón del menú es «Mi jornada» en vez de la lista del día
-  const m1 = $('menu-1'); if (m1) { m1.dataset.s = esCuentaRecurso() ? 'inicio' : 'hoy'; $('menu-1-txt').textContent = esCuentaRecurso() ? 'Mi jornada' : 'Día'; }
+  const m1 = $('menu-1'); if (m1) { m1.dataset.s = esCuentaRecurso() ? 'inicio' : 'hoy'; $('menu-1-txt').textContent = 'Inicio'; }   // v1.6.0: «Inicio» al centro
   if (!S.sec) S.sec = 'hoy';
   if (S.sec === 'inicio' && !esCuentaRecurso()) S.sec = 'hoy';
   if (S.sec === 'hoy' && esCuentaRecurso()) S.sec = 'inicio';
   document.querySelectorAll('#menu button').forEach(b => b.classList.toggle('on', b.dataset.s === S.sec));
-  $('h-titulo').textContent = { inicio: '🏠 Mi jornada', hoy: '📋 Aperturas', historial: '🧩 Historial de actividades', semana: '🗓️ Semana', mapa: '🗺️ Mapa del día', perfil: '👤 Mi cuenta' }[S.sec];
+  $('h-titulo').textContent = { inicio: '🏠 Inicio', hoy: esSupervisor() ? '🏠 Inicio · Jornadas' : '🏠 Inicio · Aperturas', historial: '🧩 Actividades', semana: '🗓️ Semana', mapa: '🗺️ Mapa del día', perfil: '👤 Mi cuenta' }[S.sec];
   $('h-sub').textContent = S.ctx ? rolTxt(S.ctx) : 'Bitácora';
   pintarRed();
   setTimeout(revisarPosicion, 0);   // 📡 v1.5.0: con la jornada abierta, la cuenta del recurso comparte su ubicación
@@ -1056,10 +1087,13 @@ function inicioRecursoHtml(r) {
 function pintarDia() {
   const f = S.fecha, lista = recursosFiltrados().map(r => ({ r, st: estadoRecurso(r, f) }));
   const n = k => lista.filter(x => x.st.k === k).length;
-  const kp = [['', 'Recursos', lista.length, '#0F172A'], ['abierta', 'Abiertas', n('abierta'), ST.abierta.c], ['falta', 'Sin apertura (de turno)', n('falta'), ST.falta.c],
-    ['otro', 'Libre / otro', n('otro'), ST.otro.c], ['cerrada', 'Cerradas', n('cerrada'), ST.cerrada.c]];
+  const sup = esSupervisor();
+  const kp = [['', 'Recursos', lista.length, '#0F172A'], ['abierta', sup ? 'Jornadas iniciadas' : 'Abiertas', n('abierta'), ST.abierta.c], ['falta', 'Sin apertura (de turno)', n('falta'), ST.falta.c],
+    ['otro', 'Libre / otro', n('otro'), ST.otro.c], ['cerrada', sup ? 'Jornadas finalizadas' : 'Cerradas', n('cerrada'), ST.cerrada.c]];
   const vis = S.filtros.kpi ? lista.filter(x => x.st.k === S.filtros.kpi) : lista;
-  vis.sort((a, b) => (ORDEN_ST[a.st.k] - ORDEN_ST[b.st.k]) || String(a.r.area).localeCompare(String(b.r.area), 'es') || String(a.r.clave_radial).localeCompare(String(b.r.clave_radial), 'es', { numeric: true }));
+  // v1.6.0: agrupados por Área de Relacionamiento y, dentro, por la prioridad del tipo de recurso (orden de la lista desplegable)
+  vis.sort((a, b) => String(a.r.area).localeCompare(String(b.r.area), 'es') || (ordenTipo(a.r.tipo_codigo) - ordenTipo(b.r.tipo_codigo)) ||
+    (ORDEN_ST[a.st.k] - ORDEN_ST[b.st.k]) || String(a.r.clave_radial).localeCompare(String(b.r.clave_radial), 'es', { numeric: true }));
   const variasAreas = new Set(vis.map(x => x.r.id_area)).size > 1;
   let html = holaHtml() + instalarHtml() + fechaNavHtml();
   if (!S.recursos.length) { $('m-cuerpo').innerHTML = html + '<div class="vacio">No tienes recursos de la Bitácora en tu alcance.</div>'; return; }
@@ -1069,7 +1103,11 @@ function pintarDia() {
   if (S.filtros.kpi) html += '<div class="aviso info">Mostrando solo: <b>' + esc(kp.find(k => k[0] === S.filtros.kpi)[1]) + '</b> · <a href="#" data-kpi="">ver todos</a></div>';
   let areaAct = null;
   vis.forEach(({ r, st }) => {
-    if (variasAreas && r.area !== areaAct && !S.filtros.kpi) { areaAct = r.area; html += '<div class="grupo-t">' + esc(r.area || 'Sin área') + '</div>'; }
+    if (variasAreas && r.area !== areaAct) {   // v1.6.0: un solo bloque por área (también con un filtro de estado)
+      areaAct = r.area; const del = vis.filter(x => x.r.area === r.area);
+      html += '<div class="grupo-t">🧭 ' + esc(r.area || 'Sin área') + ' <span style="font-weight:600;">· ' + del.length + ' recurso' + (del.length === 1 ? '' : 's') +
+        ' · 🟢 ' + del.filter(x => x.st.k === 'abierta').length + ' · ✅ ' + del.filter(x => x.st.k === 'cerrada').length + ' · ⚠️ ' + del.filter(x => x.st.k === 'falta').length + '</span></div>';
+    }
     const j = st.j, c = st.k === 'otro' ? ST.otro.c : ST[st.k].c;
     let det = '';
     const na = j ? actividadesDe(j.id).length : 0;
@@ -1104,7 +1142,8 @@ async function cargarHistorial(rid, dias) {
   const desde = sumarDias(hoyISO(), -(dias - 1)), k = 'hist_' + rid;
   let lista = null;
   if (navigator.onLine && !S.sinActividades) {
-    try { lista = await leerTodo('v_bit_actividades', '*', q => q.eq('recurso_id', rid).gte('fecha_operativa', desde).order('inicio')); cacheSet(k, { lista, desde }); }
+    // v1.6.0: rid '*' = todos los recursos que ve el usuario (Supervisor / gestores); el RLS limita a su empresa / áreas
+    try { lista = await leerTodo('v_bit_actividades', '*', q => (rid === '*' ? q : q.eq('recurso_id', rid)).gte('fecha_operativa', desde).order('inicio')); cacheSet(k, { lista, desde }); }
     catch (e) { lista = null; }
   }
   if (!lista) { const c = await cacheGet(k); lista = c && c.lista ? c.lista : []; }
@@ -1113,18 +1152,25 @@ async function cargarHistorial(rid, dias) {
 function actividadesHistorial(rid, dias) {
   const d = S.hist.datos[rid + '|' + dias], desde = sumarDias(hoyISO(), -(dias - 1));
   const m = new Map(((d && d.lista) || []).map(a => [a.id, a]));
-  S.aIdx.forEach(l => l.forEach(a => { if (a.recurso_id === rid && a.fecha_operativa >= desde) m.set(a.id, a); }));   // lo del día y lo pendiente encima
+  const todos = rid === '*', ids = todos ? new Set(recursosFiltrados().map(r => r.id)) : null;
+  S.aIdx.forEach(l => l.forEach(a => { if ((todos || a.recurso_id === rid) && a.fecha_operativa >= desde) m.set(a.id, a); }));   // lo del día y lo pendiente encima
   S.pendientes.forEach(it => { if (it.tipo === 'eliminar_act') m.delete(it.jid); });
-  return [...m.values()].sort((x, y) => String(x.inicio).localeCompare(String(y.inicio)));
+  return [...m.values()].filter(a => !todos || ids.has(a.recurso_id)).sort((x, y) => String(x.inicio).localeCompare(String(y.inicio)));
 }
 function pintarHistorial() {
   const H = S.hist;
   if (!S.recursos.length) { $('m-cuerpo').innerHTML = '<div class="vacio">No tienes recursos de la Bitácora en tu alcance.</div>'; return; }
-  if (!H.rid || !recurso(H.rid)) H.rid = (S.recursos.find(r => r.propio) || S.recursos[0]).id;
-  const r = recurso(H.rid), clave = H.rid + '|' + H.dias, d = H.datos[clave];
+  // v1.6.0: Supervisor y gestores parten con TODOS sus recursos (filtrables por área / tipo / búsqueda); la cuenta del recurso, con el suyo
+  const puedeTodos = !esCuentaRecurso() && S.recursos.length > 1;
+  if (!H.rid || (H.rid === '*' ? !puedeTodos : !recurso(H.rid))) H.rid = puedeTodos ? '*' : (S.recursos.find(r => r.propio) || S.recursos[0]).id;
+  const todos = H.rid === '*', r = todos ? null : recurso(H.rid), clave = H.rid + '|' + H.dias, d = H.datos[clave];
   let html = '';
-  if (S.recursos.length > 1) html += '<div class="filtros" style="grid-template-columns:1fr;"><select id="h-rec">' + S.recursos.map(x => '<option value="' + esc(x.id) + '"' + (x.id === H.rid ? ' selected' : '') + '>' +
+  if (S.recursos.length > 1) html += '<div class="filtros" style="grid-template-columns:1fr;"><select id="h-rec">' +
+    (puedeTodos ? '<option value="*"' + (todos ? ' selected' : '') + '>👥 Todos mis recursos (' + S.recursos.length + ')</option>' : '') +
+    S.recursos.slice().sort((a, b) => String(a.area).localeCompare(String(b.area), 'es') || ordenTipo(a.tipo_codigo) - ordenTipo(b.tipo_codigo) || String(a.clave_radial).localeCompare(String(b.clave_radial), 'es', { numeric: true }))
+      .map(x => '<option value="' + esc(x.id) + '"' + (x.id === H.rid ? ' selected' : '') + '>' +
     esc((TIPO_EMOJI[x.tipo_codigo] || '') + ' ' + (x.clave_radial || x.codigo_ref) + ' · ' + (x.area || '')) + '</option>').join('') + '</select></div>';
+  if (todos) html += filtrosHtml();
   html += '<div class="opc" style="margin-bottom:10px;">' + HIST_DIAS.map(x => '<button type="button" data-hdias="' + x[0] + '"' + (x[0] === H.dias ? ' class="on"' : '') + '>' + x[1] + '</button>').join('') + '</div>';
   const l = actividadesHistorial(H.rid, H.dias);
   const dias = [...new Set(l.map(a => a.fecha_operativa))].sort().reverse();
@@ -1138,10 +1184,19 @@ function pintarHistorial() {
   else if (!l.length) html += '<div class="vacio">Sin actividades registradas en ' + (H.dias === 1 ? 'el día de hoy' : 'los últimos ' + H.dias + ' días') + '.</div>';
   let n = 0;
   const numero = new Map(l.map(a => [a.id, ++n]));
+  const hoy = hoyISO();
   dias.forEach(f => {
     const del = l.filter(a => a.fecha_operativa === f);
-    html += '<div class="hist-dia">' + esc(fmtDia(f)) + ' · ' + del.length + ' · ' + esc(durTxt(minutosAct(del))) + '</div><div class="card" style="padding:4px 14px;">' +
-      actListaHtml(del).replace(/<div class="a-hora">/g, '<div class="a-hora">') + '</div>';
+    html += '<div class="hist-dia">' + (f === hoy ? '📌 Hoy · ' : f === sumarDias(hoy, -1) ? 'Ayer · ' : '') + esc(fmtDia(f)) + ' · ' + del.length + ' · ' + esc(durTxt(minutosAct(del))) + '</div>';
+    if (!todos) { html += '<div class="card" style="padding:4px 14px;">' + actListaHtml(del) + '</div>'; return; }
+    // Todos los recursos: dentro del día, un bloque por recurso (área › prioridad del tipo › clave)
+    const recs = [...new Set(del.map(a => a.recurso_id))].map(id => recurso(id) || { id, clave_radial: '?' })
+      .sort((a, b) => String(a.area).localeCompare(String(b.area), 'es') || ordenTipo(a.tipo_codigo) - ordenTipo(b.tipo_codigo) || String(a.clave_radial).localeCompare(String(b.clave_radial), 'es', { numeric: true }));
+    recs.forEach(x => {
+      const da = del.filter(a => a.recurso_id === x.id);
+      html += '<div class="card" style="padding:4px 14px;"><div class="sec-t" style="margin:6px 0 0;">' + (TIPO_EMOJI[x.tipo_codigo] || '🚩') + ' ' + esc(x.clave_radial || x.codigo_ref || '') +
+        '<span class="muted">' + esc([x.area, x.empresa].filter(Boolean).join(' · ')) + ' · ' + da.length + ' · ' + esc(durTxt(minutosAct(da))) + '</span></div>' + actListaHtml(da) + '</div>';
+    });
   });
   $('m-cuerpo').innerHTML = html;
   // Números de los pinchos en la lista (mismo orden que el mapa)
@@ -1167,14 +1222,18 @@ async function dibujarMapaHistorial(r, l, numero) {
   pts.forEach(a => {
     const ic = L.divIcon({ className: 'num-pin', html: '<div style="background:' + colorGrupo(a.grupo_codigo) + '">' + numero.get(a.id) + '</div>', iconSize: [24, 24], iconAnchor: [12, 12] });
     L.marker([a.lat, a.lng], { icon: ic, zIndexOffset: 500 }).addTo(map)
-      .bindPopup('<div class="pop"><b>' + numero.get(a.id) + '. ' + esc((a.grupo_emoji || '') + ' ' + (a.actividad || '')) + '</b><div>' + esc(fmtFecha(a.fecha_operativa) + ' · ' + hhmm(new Date(a.inicio)) + '–' + hhmm(new Date(a.fin)) + ' · ' + durTxt(a.minutos)) + '</div>' +
+      .bindPopup('<div class="pop"><b>' + numero.get(a.id) + '. ' + esc((a.grupo_emoji || '') + ' ' + (a.actividad || '')) + '</b>' +
+        (r ? '' : '<div>' + esc((TIPO_EMOJI[(recurso(a.recurso_id) || {}).tipo_codigo] || '') + ' ' + ((recurso(a.recurso_id) || {}).clave_radial || '')) + '</div>') + '<div>' + esc(fmtFecha(a.fecha_operativa) + ' · ' + hhmm(new Date(a.inicio)) + '–' + hhmm(new Date(a.fin)) + ' · ' + durTxt(a.minutos)) + '</div>' +
         (a.fundo_nombre ? '<div>🌲 ' + esc(fundoTxt({ nombre: a.fundo_nombre, cod_fundo: a.cod_fundo })) + '</div>' : '') + '<div class="gms">' + esc(coordTxt(a.lat, a.lng)) + '</div>' +
         '<div style="margin-top:6px;"><button class="btn btn-mini" data-act="' + esc(a.id) + '">Ver actividad</button></div></div>');
     lim.push([a.lat, a.lng]);
   });
-  // Línea del recorrido del período (en orden de hora)
-  if (pts.length > 1) L.polyline(pts.map(a => [a.lat, a.lng]), { color: '#334155', weight: 2, opacity: .55, dashArray: '4 6' }).addTo(map);
-  const [fc, ruta] = await Promise.all([fundosGeoDeArea(r.id_area), rutaDeRecurso(r.id)]);
+  // Línea del recorrido del período (en orden de hora; solo con un recurso)
+  if (r && pts.length > 1) L.polyline(pts.map(a => [a.lat, a.lng]), { color: '#334155', weight: 2, opacity: .55, dashArray: '4 6' }).addTo(map);
+  // v1.6.0: con «Todos mis recursos» (r = null) los fundos son los del área filtrada (o de la única área) y no hay ruta asignada
+  const areasVis = [...new Set(recursosFiltrados().map(x => x.id_area).filter(x => x != null))];
+  const idArea = r ? r.id_area : (S.filtros.area ? Number(S.filtros.area) : (areasVis.length === 1 ? areasVis[0] : null));
+  const [fc, ruta] = await Promise.all([fundosGeoDeArea(idArea), r ? rutaDeRecurso(r.id) : Promise.resolve(null)]);
   if (S.mapaHist !== map) return;
   const codRuta = new Set(((ruta && ruta.fundos) || []).map(f => String(f.cod_fundo)));
   if (fc && fc.features && fc.features.length) {
@@ -1193,6 +1252,7 @@ async function dibujarMapaHistorial(r, l, numero) {
     const km = rf.reduce((s, f) => s + (Number(f.properties.km) || 0), 0);
     info.innerHTML = rf.length ? '🛣️ <b>Ruta asignada</b> (copamiento, escenario Normal): ' + rf.length + ' tramo' + (rf.length > 1 ? 's' : '') + ' · ' + String(Math.round(km * 10) / 10).replace('.', ',') + ' km' +
         (codRuta.size ? '<br>🌲 Fundos de la ruta: ' + esc(ruta.fundos.map(fundoTxt).join(', ')) : '')
+      : !r ? '👥 Todos tus recursos: elige uno para ver su ruta asignada.' + (idArea == null ? ' Filtra por un área para ver sus fundos.' : '')
       : (ruta ? '🛣️ Este recurso no tiene una ruta asignada en el copamiento.' : (navigator.onLine ? '' : '🛣️ La ruta asignada se descarga con señal.'));
   }
   map.invalidateSize();
@@ -1411,6 +1471,7 @@ function pintarMapaTab() {
   const cont = $('mt');
   if (typeof L === 'undefined') { cont.innerHTML = '<div class="vacio">Mapa no disponible sin conexión.</div>'; return; }
   if (S.mapaTab) { try { S.mapaTab.remove(); } catch (e) {} }
+  pararMiUbicacion(); S.mapaRedibujar = null;
   const map = S.mapaTab = L.map(cont, { attributionControl: false }).setView(MAPA_CENTRO_DEF, 8);
   let modo = mapaBaseActual(), capas = capasBase(map, modo);
   const bx = document.createElement('div'); bx.className = 'mt-base';
@@ -1418,6 +1479,9 @@ function pintarMapaTab() {
   cont.appendChild(bx); L.DomEvent.disableClickPropagation(bx);
   bx.querySelectorAll('[data-mb]').forEach(b => b.onclick = () => { modo = b.dataset.mb; guardarBase(modo); capas = capasBase(map, modo, capas); bx.querySelectorAll('[data-mb]').forEach(x => x.classList.toggle('on', x.dataset.mb === modo)); });
   agregarBuscadorCoord(cont, map, null);
+  // v1.6.0: capas que se encienden / apagan (se recuerdan mientras dure la sesión)
+  const C = S.mapCapas = S.mapCapas || { ap: true, act: true, vivo: true, fundos: true, limite: true };
+  const capaAp = L.layerGroup(), capaFundos = L.layerGroup(), capaLim = L.layerGroup();
   const pts = [];
   recursosFiltrados().forEach(r => {
     const st = estadoRecurso(r, f), j = st.j;
@@ -1425,17 +1489,112 @@ function pintarMapaTab() {
     const ll = conPunto ? [j.lat, j.lng] : (r.lat != null && r.lng != null ? [r.lat, r.lng] : null);
     if (!ll) return;
     const c = st.k === 'otro' ? ST.otro.c : ST[st.k].c;
-    const m = L.circleMarker(ll, { radius: conPunto ? 9 : 7, color: '#fff', weight: 2, fillColor: c, fillOpacity: conPunto ? 0.95 : 0.35 }).addTo(map);
+    const m = L.circleMarker(ll, { radius: conPunto ? 9 : 7, color: '#fff', weight: 2, fillColor: c, fillOpacity: conPunto ? 0.95 : 0.35 }).addTo(capaAp);
     m.bindPopup('<div class="pop"><b>' + (TIPO_EMOJI[r.tipo_codigo] || '') + ' ' + esc(r.clave_radial || r.codigo_ref) + '</b><div>' + chipEstado(st) + '</div>' +
       '<div>' + esc([r.tipo_nombre, r.empresa].filter(Boolean).join(' · ')) + '</div>' +
       (j && j.en_servicio ? '<div>🕒 ' + esc(j.turno || '') + ' · 👥 ' + (j.dotacion_n || 0) + (j.fundo_nombre ? ' · 🌲 ' + esc(j.fundo_nombre) : '') + '</div>' : '') +
       '<div style="margin-top:8px;"><button class="btn btn-mini btn-p" data-rec="' + esc(r.id) + '">Abrir ficha</button></div></div>');
     pts.push(ll);
   });
+  if (C.ap) capaAp.addTo(map);
   map.invalidateSize();
   if (pts.length) map.fitBounds(pts, { padding: [30, 30], maxZoom: 13, animate: false });
   setTimeout(() => map.invalidateSize(), 80);
+  // ── Controles v1.6.0: ⛶ ampliar (vista completa del territorio), 📍 mi ubicación (GPS) y 🗂️ capas
+  const ctl = document.createElement('div'); ctl.className = 'mt-ctl';
+  ctl.innerHTML = '<button type="button" data-mt="grande" title="Ampliar: ver todo el territorio" aria-label="Ampliar mapa">⛶</button>' +
+    '<button type="button" data-mt="gps" title="Mi ubicación (GPS)" aria-label="Mi ubicación">📍</button>' +
+    '<button type="button" data-mt="capas" title="Capas" aria-label="Capas">🗂️</button>';
+  const pnl = document.createElement('div'); pnl.className = 'mt-capas'; pnl.style.display = 'none';
+  const chk = (k, t) => '<label><input type="checkbox" data-mtc="' + k + '"' + (C[k] ? ' checked' : '') + '> ' + t + '</label>';
+  pnl.innerHTML = '<b>Capas</b>' + chk('ap', '◆ Puntos de apertura') + chk('act', '🧩 Actividades del día') + chk('vivo', '📡 Ubicación en vivo') +
+    chk('fundos', '🌲 Fundos CMPC') + chk('limite', '🧭 Límite del área') + '<div class="muted" id="mt-capas-est" style="margin-top:4px;"></div>';
+  cont.appendChild(ctl); cont.appendChild(pnl);
+  [ctl, pnl].forEach(el => { L.DomEvent.disableClickPropagation(el); L.DomEvent.disableScrollPropagation(el); });
+  const lims = [];   // límites del territorio (para «ampliar»)
+  const verTodo = () => {
+    const b = L.latLngBounds(pts.map(p => L.latLng(p[0], p[1])));
+    [capaLim, capaFundos].forEach(g => g.eachLayer(l => { try { b.extend(l.getBounds()); } catch (e) {} }));
+    if (b.isValid()) map.fitBounds(b, { padding: [24, 24], maxZoom: 13, animate: false });
+  };
+  ctl.querySelector('[data-mt="grande"]').onclick = () => {
+    const on = !cont.classList.contains('grande'); cont.classList.toggle('grande', on);
+    ctl.querySelector('[data-mt="grande"]').textContent = on ? '✕' : '⛶';
+    if (on && !C.fundos && !C.limite) { C.fundos = C.limite = true; pnl.querySelectorAll('[data-mtc]').forEach(i => { i.checked = !!C[i.dataset.mtc]; }); aplicarCapas(); }
+    setTimeout(() => { map.invalidateSize(); if (on) verTodo(); }, 80);
+  };
+  ctl.querySelector('[data-mt="capas"]').onclick = () => { pnl.style.display = pnl.style.display === 'none' ? '' : 'none'; };
+  ctl.querySelector('[data-mt="gps"]').onclick = () => miUbicacionMapa(map, ctl.querySelector('[data-mt="gps"]'));
+  // Fundos y límites de las áreas de los recursos filtrados (máx. 4 áreas: un área tiene cientos de fundos)
+  const areas = [...new Map(recursosFiltrados().filter(r => r.id_area != null).map(r => [r.id_area, r.area])).entries()].slice(0, 4);
+  const cargarContexto = async () => {
+    const est = pnl.querySelector('#mt-capas-est');
+    if (est) est.textContent = areas.length ? 'Áreas: ' + areas.map(a => a[1]).join(', ') : '';
+    if (C.fundos && !capaFundos.getLayers().length) {
+      for (const [id] of areas) {
+        const fc = await fundosGeoDeArea(id); if (S.mapaTab !== map) return;
+        if (fc && fc.features && fc.features.length) L.geoJSON(fc, { renderer: L.canvas({ padding: 0.3 }), interactive: true,
+          style: { color: '#FDE68A', weight: 1, fillColor: '#FACC15', fillOpacity: 0.06 },
+          onEachFeature: (ft, ly) => ly.bindTooltip(esc(fundoTxt(ft.properties || {})), { sticky: true, className: 'fu-tt', direction: 'top' }) }).addTo(capaFundos);
+      }
+    }
+    if (C.limite && !capaLim.getLayers().length) {
+      for (const [, nom] of areas) {
+        const g = await limiteDeArea(nom); if (S.mapaTab !== map) return;
+        if (g) L.geoJSON(g, { interactive: false, style: { color: '#FDE047', weight: 3, fill: false, dashArray: '8 6' } }).addTo(capaLim);
+      }
+    }
+  };
+  const aplicarCapas = async () => {
+    [[capaAp, 'ap'], [capaFundos, 'fundos'], [capaLim, 'limite']].forEach(([g, k]) => { if (C[k]) { if (!map.hasLayer(g)) g.addTo(map); } else map.removeLayer(g); });
+    if (capaAp.getLayers().length) capaAp.eachLayer(l => l.bringToFront && l.bringToFront());
+    if (S.mapaRedibujar) S.mapaRedibujar();
+    await cargarContexto();
+  };
+  pnl.addEventListener('change', e => { const i = e.target.closest('[data-mtc]'); if (!i) return; C[i.dataset.mtc] = i.checked; aplicarCapas(); });
+  aplicarCapas();
   cargarMapaJornada(map, f, pts);   // 📡 v1.5.0: ubicación en vivo, recorrido y actividades del día
+}
+// Límite del Área de Relacionamiento (RPC limite_area_geojson, SQL 140); queda en el teléfono para verlo sin señal
+async function limiteDeArea(nombre) {
+  if (!nombre) return null;
+  S.limites = S.limites || {};
+  const k = 'limite_' + nombre;
+  if (S.limites[k] !== undefined) return S.limites[k];
+  try {
+    const { data, error } = await sb.rpc('limite_area_geojson', { p_area: nombre });
+    if (error) throw error;
+    const fila = Array.isArray(data) ? data[0] : data;
+    S.limites[k] = fila && fila.geojson ? JSON.parse(fila.geojson) : null;
+    if (S.limites[k]) cacheSet(k, S.limites[k]);
+  } catch (e) { S.limites[k] = (await cacheGet(k)) || null; }
+  return S.limites[k];
+}
+// 📍 Mi ubicación en el mapa (GPS del teléfono): punto azul con su precisión; el primer punto centra el mapa
+function miUbicacionMapa(map, btn) {
+  if (!('geolocation' in navigator)) return toast('Este teléfono no entrega la ubicación.');
+  if (S.miPos && S.miPos.watch != null) {   // segundo toque: centrar (o apagar si ya está centrado)
+    if (S.miPos.ll) { map.setView(S.miPos.ll, Math.max(map.getZoom(), 15)); return; }
+  }
+  pararMiUbicacion();
+  S.miPos = { watch: null, marca: null, circ: null, ll: null, map };
+  btn.classList.add('on');
+  S.miPos.watch = navigator.geolocation.watchPosition(p => {
+    if (!S.miPos || S.miPos.map !== map) return;
+    const ll = [p.coords.latitude, p.coords.longitude], prim = !S.miPos.ll;
+    S.miPos.ll = ll;
+    if (!S.miPos.marca) {
+      S.miPos.circ = L.circle(ll, { radius: p.coords.accuracy || 20, color: '#2563EB', weight: 1, fillColor: '#3B82F6', fillOpacity: .12, interactive: false }).addTo(map);
+      S.miPos.marca = L.marker(ll, { zIndexOffset: 2000, icon: L.divIcon({ className: '', iconSize: [22, 22], iconAnchor: [11, 11], html: '<div class="yo-gps"></div>' }) })
+        .addTo(map).bindTooltip('📍 Tú estás aquí', { direction: 'top', offset: [0, -10] });
+    } else { S.miPos.marca.setLatLng(ll); S.miPos.circ.setLatLng(ll).setRadius(p.coords.accuracy || 20); }
+    if (prim) map.setView(ll, Math.max(map.getZoom(), 15));
+  }, e => { toast(e && e.code === 1 ? '📍 Permite la ubicación del navegador para verte en el mapa.' : '📍 No se pudo leer el GPS; revisa que la ubicación esté encendida.', 4500); pararMiUbicacion(); btn.classList.remove('on'); },
+  { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
+}
+function pararMiUbicacion() {
+  if (S.miPos && S.miPos.watch != null) { try { navigator.geolocation.clearWatch(S.miPos.watch); } catch (e) {} }
+  S.miPos = null;
 }
 
 /* ───────── v1.5.0 (SQL 195): 📡 ubicación en vivo, mapa de la jornada y 📅 calendario de turnos ───────── */
@@ -1443,7 +1602,8 @@ function pintarMapaTab() {
 // La ven su Supervisor de empresa, su Jefe de Área y los recursos de su MISMA empresa y área (bit_ve_companero_).
 // Una app web solo lee el GPS con la app abierta o recién en segundo plano (no con el teléfono bloqueado mucho rato).
 const POS = { watch: null, timer: null, ultima: null, enviado: 0, enviadoOk: null, estado: '', err: '', rid: null, enviando: false };
-const posCada = () => Math.max(20, Number(S.ctx && S.ctx.posicion_cada_seg) || 60) * 1000;
+const posCada = () => Math.max(15, Number(S.ctx && S.ctx.posicion_cada_seg) || 20) * 1000;   // v1.6.0: 20 s (SQL 199)
+const POS_MOVIDO_M = 25;   // además, se envía apenas se mueve 25 m
 function jornadaParaPosicion() {
   if (!esCuentaRecurso()) return null;
   for (const r of S.recursos.filter(x => x.propio)) {
@@ -1461,11 +1621,13 @@ function revisarPosicion() {
     POS.watch = navigator.geolocation.watchPosition(p => {
       POS.ultima = p; POS.err = '';
       if (POS.estado === 'buscando' || POS.estado === 'error') POS.estado = 'gps';
-      if (Date.now() - POS.enviado >= posCada()) enviarPosicion(); else pintarPosChip();
+      // v1.6.0: cada 20 s (posicion_cada_seg) o apenas se mueve 25 m (mín. 8 s entre envíos), como la ubicación en tiempo real de WhatsApp
+      const movido = POS.ultLL ? distKm(POS.ultLL[0], POS.ultLL[1], p.coords.latitude, p.coords.longitude) * 1000 >= POS_MOVIDO_M : true;
+      if (Date.now() - POS.enviado >= posCada() || (movido && Date.now() - POS.enviado >= 8000)) enviarPosicion(); else pintarPosChip();
     }, e => { POS.err = e && e.code === 1 ? 'permiso' : 'gps'; POS.estado = 'error'; pintarPosChip(); },
-    { enableHighAccuracy: true, maximumAge: 30000, timeout: 60000 });
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 60000 });
   }
-  if (!POS.timer) POS.timer = setInterval(() => { if (Date.now() - POS.enviado >= posCada()) enviarPosicion(); }, 15000);
+  if (!POS.timer) POS.timer = setInterval(() => { if (Date.now() - POS.enviado >= posCada()) enviarPosicion(); }, 5000);
   pintarPosChip();
 }
 function detenerPosicion() {
@@ -1485,7 +1647,7 @@ async function enviarPosicion() {
       velocidad: num(c.speed), rumbo: num(c.heading), fecha: new Date(p.timestamp).toISOString() } });
     POS.enviado = Date.now();
     if (error) POS.estado = /bit_reportar_posicion|schema cache|does not exist|PGRST202/i.test(msgError(error)) ? 'sin_sql' : (esSinSenal(error) ? 'sin_red' : 'error_red');
-    else if (data && data.ok) { POS.estado = 'ok'; POS.enviadoOk = new Date(); }
+    else if (data && data.ok) { POS.estado = 'ok'; POS.enviadoOk = new Date(); POS.ultLL = [c.latitude, c.longitude]; }
     else POS.estado = data && data.motivo === 'sin_jornada' ? 'espera' : 'error_red';   // la apertura aún no llega al servidor
   } catch (e) { POS.estado = 'sin_red'; }
   POS.enviando = false;
@@ -1513,17 +1675,20 @@ const haceTxt = ts => { const m = Math.round((Date.now() - new Date(ts).getTime(
 async function cargarMapaJornada(map, f, base) {
   if (!navigator.onLine || S.mapaTab !== map) return;
   const cont = map.getContainer();
-  let capa = null, ajustado = false, cuadro = null;
-  const vuelta = async () => {
-    if (S.mapaTab !== map || S.sec !== 'mapa' || S.fecha !== f) return;
-    let data;
-    try { const r = await sb.rpc('bit_mapa_jornada', { p_fecha: f }); if (r.error) throw r.error; data = r.data; }
-    catch (e) { return; }   // sin el SQL 195 o sin señal: queda el mapa de siempre
-    if (S.mapaTab !== map) return;
+  // v1.6.0: capas separadas (🧩 actividades / 📡 en vivo, se apagan en 🗂️ Capas) y los íconos en vivo se DESLIZAN a su nueva posición
+  // (no se borran y redibujan): actualización cada 20 s, como la ubicación en tiempo real de WhatsApp
+  let capa = null, capaVivo = L.layerGroup(), ajustado = false, cuadro = null, ultimo = null;
+  const marcas = new Map();
+  const dibujar = data => {
+    if (S.mapaTab !== map || !data) return;
+    const C = S.mapCapas || { act: true, vivo: true };
     if (capa) map.removeLayer(capa);
-    capa = L.layerGroup().addTo(map);
+    capa = L.layerGroup();
+    if (C.act) capa.addTo(map);
+    if (C.vivo) { if (!map.hasLayer(capaVivo)) capaVivo.addTo(map); } else map.removeLayer(capaVivo);
     const lim = [], recs = data.recursos || [], porId = new Map(recs.map(r => [r.id, r]));
     let vivos = 0;
+    capaVivo.eachLayer(l => { if (l instanceof L.Polyline) capaVivo.removeLayer(l); });
     (data.actividades || []).forEach(a => {
       if (a.lat == null || a.lng == null) return;
       const r = porId.get(a.recurso_id) || recurso(a.recurso_id) || {};
@@ -1533,9 +1698,10 @@ async function cargarMapaJornada(map, f, base) {
           (a.fundo ? '<div>🌲 ' + esc(a.fundo) + '</div>' : '') + (a.observacion ? '<div class="muted">' + esc(a.observacion) + '</div>' : '') + '</div>');
       lim.push([a.lat, a.lng]);
     });
+    const vistos = new Set();
     recs.forEach(r => {
       const mio = !!r.propio, ras = (r.rastro || []).map(p => [p[0], p[1]]);
-      if (ras.length > 1) L.polyline(ras, { color: mio ? '#2563EB' : '#F97316', weight: 3, opacity: .85, dashArray: '6 6' }).addTo(capa);
+      if (ras.length > 1) L.polyline(ras, { color: mio ? '#2563EB' : '#F97316', weight: 3, opacity: .85, dashArray: '6 6' }).addTo(capaVivo);
       const u = r.ultima, j = r.jornada || {};
       const ll = u ? [u.lat, u.lng] : (j.lat != null && j.lng != null ? [j.lat, j.lng] : null);
       if (!ll) return;
@@ -1548,16 +1714,36 @@ async function cargarMapaJornada(map, f, base) {
         (j.jefe ? '<div>⭐ ' + esc(j.jefe) + (j.jefe_telefono ? ' ' + telLinks(j.jefe_telefono) : '') + '</div>' : '') +
         '<div>🧩 ' + (data.actividades || []).filter(a => a.recurso_id === r.id).length + ' actividades hoy</div>' +
         (recurso(r.id) ? '<div style="margin-top:8px;"><button class="btn btn-mini btn-p" data-rec="' + esc(r.id) + '" data-f="' + f + '">Abrir ficha</button></div>' : '') + '</div>';
-      L.marker(ll, { zIndexOffset: 1000, icon: L.divIcon({ className: 'vivo-ico' + (mio ? ' mio' : '') + (viejo ? ' viejo' : ''), html: '<div>' + emo + '</div>', iconSize: [28, 28], iconAnchor: [14, 14] }) })
-        .addTo(capa).bindTooltip(esc(nom + (u ? ' · ' + haceTxt(u.fecha) : '')), { direction: 'top', offset: [0, -14], className: 'fu-tt' }).bindPopup(pop);
+      const icono = L.divIcon({ className: 'vivo-ico' + (mio ? ' mio' : '') + (viejo ? ' viejo' : ''), html: '<div>' + emo + '</div>', iconSize: [28, 28], iconAnchor: [14, 14] });
+      const tip = esc(nom + (u ? ' · ' + haceTxt(u.fecha) : ''));
+      let m = marcas.get(r.id);
+      if (m) { deslizar(m, ll); m.setIcon(icono); m.setTooltipContent(tip); m.setPopupContent(pop); if (!capaVivo.hasLayer(m)) m.addTo(capaVivo); }
+      else { m = L.marker(ll, { zIndexOffset: 1000, icon: icono }).addTo(capaVivo).bindTooltip(tip, { direction: 'top', offset: [0, -14], className: 'fu-tt' }).bindPopup(pop); marcas.set(r.id, m); }
+      vistos.add(r.id);
       lim.push(ll);
     });
+    marcas.forEach((m, id) => { if (!vistos.has(id)) { capaVivo.removeLayer(m); marcas.delete(id); } });
     if (!cuadro) { cuadro = document.createElement('div'); cuadro.className = 'mj-vivo'; cont.appendChild(cuadro); }
     cuadro.textContent = '📡 ' + vivos + ' en movimiento · ' + recs.length + ' con apertura · ' + (data.actividades || []).length + ' actividades · ' + hhmm(new Date());
     if (!ajustado && lim.length) { ajustado = true; map.fitBounds(lim.concat(base || []), { padding: [30, 30], maxZoom: 14, animate: false }); }
-    if (f === hoyISO()) setTimeout(vuelta, 60000);
+  };
+  S.mapaRedibujar = () => dibujar(ultimo);
+  const vuelta = async () => {
+    if (S.mapaTab !== map || S.sec !== 'mapa' || S.fecha !== f) return;
+    try { const r = await sb.rpc('bit_mapa_jornada', { p_fecha: f }); if (r.error) throw r.error; ultimo = r.data; dibujar(ultimo); }
+    catch (e) { /* sin el SQL 195 o sin señal: queda el mapa de siempre */ }
+    if (f === hoyISO() && S.mapaTab === map) setTimeout(vuelta, MAPA_VIVO_MS);
   };
   vuelta();
+}
+const MAPA_VIVO_MS = 20000;   // v1.6.0: el mapa del día pide la ubicación en vivo cada 20 s (antes 60 s)
+// Mueve el ícono en vivo en ~1 s hasta su nueva posición (sin saltos)
+function deslizar(m, ll) {
+  const a = m.getLatLng(), b = L.latLng(ll[0], ll[1]);
+  if (a.distanceTo(b) < 1 || a.distanceTo(b) > 50000) { m.setLatLng(b); return; }
+  const t0 = performance.now(), dur = 900;
+  const paso = t => { const k = Math.min(1, (t - t0) / dur); m.setLatLng([a.lat + (b.lat - a.lat) * k, a.lng + (b.lng - a.lng) * k]); if (k < 1) requestAnimationFrame(paso); };
+  requestAnimationFrame(paso);
 }
 
 // 📅 Calendario de turnos del recurso (Calendario de Turnos del copamiento, recurso_turnos): mes a mes, ✓ en turno · L libre,
@@ -1762,7 +1948,8 @@ function abrirFormulario(r, fecha, j, repetir) {
     r, nuevo: !j, id: j ? j.id : uuid(), recurso_id: r.id, fecha_operativa: fecha,
     estado: j ? j.estado_codigo : (repetir ? repetir.estado_codigo : (plan === false ? 'DIA_LIBRE' : 'EN_SERVICIO')),
     turno: turno || '', propuesto: prop, jt: (turnoCat(turno || prop) || {}).jornada || 'Diurna', foco: (base && base.foco_codigo) || focoPorDefecto(fecha),
-    patente: base ? (base.patente || '') : (ref ? ref.patente || '' : ''), cambio_movil: j ? !!j.cambio_movil : false,
+    // v1.6.0 (SQL 199): la patente registrada del recurso (Gestión de Recursos) si la apertura aún no tiene
+    patente: (base && base.patente) || (ref && ref.patente) || r.patente || '', cambio_movil: j ? !!j.cambio_movil : false,
     km_inicio: j ? (j.km_inicio != null ? String(j.km_inicio) : '') : (ref && ref.km_fin != null ? String(ref.km_fin) : ''),
     cod_fundo: base ? base.cod_fundo || '' : '', fundo_nombre: base ? base.fundo_nombre || '' : '', fundoManual: !!(base && base.fundo_nombre), fq: '',
     lat: j ? j.lat : null, lng: j ? j.lng : null, precision_m: j ? j.precision_m : null,
@@ -1789,6 +1976,10 @@ function abrirSeccion(k, on) {
   const b = el.querySelector('.tg-h'); if (b) b.setAttribute('aria-expanded', on);
   if (k === 'ubic' && on) { if (F.mapa) setTimeout(() => F.mapa && F.mapa.refrescar(), 30); else montarMapaForm(); }
 }
+// v1.6.0: al elegir el ítem de una sección (turno, actividad general, fundo, actividad) la sección se cierra sola (se ve su resumen)
+function cerrarSeccionElegida(k) {
+  setTimeout(() => { if (F && F.abiertos && F.abiertos.has(k)) { resumenForm(); abrirSeccion(k, false); } }, 220);
+}
 function pintarFormulario() {
   const r = F.r, e = estadoCat(F.estado) || {};
   const planTxt = F.plan === true ? '<div class="aviso info">📅 Según el calendario del copamiento, <b>estaba de turno</b>.</div>' : F.plan === false ? '<div class="aviso">📅 Según el calendario del copamiento, este día estaba <b>libre</b>.</div>' : '';
@@ -1802,7 +1993,7 @@ function pintarFormulario() {
     html += tgHtml('dot', '👥', 'Dotación', '<div id="fs-dot"></div>');
     html += tgHtml('turno', '🕒', 'Turno', '<div id="fs-turno"></div>');
     html += tgHtml('foco', '🎯', 'Actividad general', '<div id="fs-foco"></div>');
-    html += tgHtml('movil', '🚙', 'Móvil', '<div class="fila"><div><label for="ff-patente">Patente <span style="font-weight:600;">(opcional)</span></label><input id="ff-patente" autocapitalize="characters" maxlength="10" value="' + esc(F.patente) + '" placeholder="Opcional por ahora"></div>' +
+    html += tgHtml('movil', '🚙', 'Móvil', '<div class="fila"><div><label for="ff-patente">Patente</label><input id="ff-patente" autocapitalize="characters" maxlength="10" value="' + esc(F.patente) + '" placeholder="Ej.: ABCD12"></div>' +
       (r.pide_km ? '<div><label for="ff-km">Km inicial</label><input id="ff-km" inputmode="numeric" pattern="[0-9]*" maxlength="7" value="' + esc(F.km_inicio) + '" placeholder="Odómetro"></div>' : '') + '</div>' +
       '<label class="chk"><input type="checkbox" id="ff-cambio"' + (F.cambio_movil ? ' checked' : '') + '> Cambio de móvil (vehículo de reemplazo)</label>' +
       '<div class="muted" style="margin-top:6px;">La patente es opcional mientras se incorpora el dato correcto de cada móvil.</div>');
@@ -1885,7 +2076,7 @@ function resumenForm() {
   pon('turno', t ? turnoTxt(t) + ' · ' + t.jornada + (F.turno === F.propuesto ? ' · ⭐ propuesto' : '') : 'Elige el turno', t ? 'si' : 'no');
   const fo = focoCat(F.foco);
   pon('foco', fo ? (fo.emoji || '') + ' ' + fo.nombre : 'Elige la actividad general', fo ? 'si' : 'no');
-  pon('movil', (F.patente ? '🚙 ' + F.patente : 'Patente opcional') + (F.r.pide_km && F.km_inicio ? ' · km ' + F.km_inicio : '') + (F.cambio_movil ? ' · cambio de móvil' : ''), F.patente ? 'si' : 'op');
+  pon('movil', (F.patente ? '🚙 ' + F.patente : 'Falta la patente') + (F.r.pide_km && F.km_inicio ? ' · km ' + F.km_inicio : '') + (F.cambio_movil ? ' · cambio de móvil' : ''), F.patente ? 'si' : 'no');
   pon('ubic', F.cod_fundo ? '🌲 ' + fundoTxt({ nombre: F.fundo_nombre, cod_fundo: F.cod_fundo }) : F.fundo_nombre ? '📍 ' + F.fundo_nombre : F.lat != null ? coordTxt(F.lat, F.lng) : 'Sin ubicación', F.lat != null ? 'si' : 'op');
   pon('obs', F.observacion ? F.observacion.slice(0, 60) : 'Sin observación', F.observacion ? 'si' : 'op');
 }
@@ -2043,6 +2234,7 @@ async function guardarFormulario(btn) {
     if (F.r.pide_jefe && !dot.some(p => p.es_jefe)) return errorForm('Marca con ⭐ quién es el jefe de la brigada.', 'dot');
     if (!F.turno) return errorForm('Elige el turno.', 'turno');
     if (!F.foco) return errorForm('Elige la actividad general de la jornada.', 'foco');
+    if (!F.patente) return errorForm('Indica la patente del móvil (obligatoria).', 'movil');   // v1.6.0
   }
   const payload = {
     id: F.id, recurso_id: F.recurso_id, fecha_operativa: F.fecha_operativa, estado: F.estado,
@@ -2610,13 +2802,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (t.closest('[data-coord-man]')) { F.coordMan = true; pintarCoordMan(); const x = $('cm-lag'); if (x) x.focus(); return; }
     if (t.closest('[data-coord-no]')) { F.coordMan = false; return pintarCoordMan(); }
     if (t.closest('[data-coord-ok]')) return usarCoordMan();
-    const fs = t.closest('[data-fu-sel]'); if (fs) { leerCamposForm(); return elegirFundo(fs.dataset.fuSel); }
+    const fs = t.closest('[data-fu-sel]'); if (fs) { leerCamposForm(); elegirFundo(fs.dataset.fuSel); return cerrarSeccionElegida('ubic'); }
     if (t.closest('[data-fu-cambiar]')) { leerCamposForm(); F.cod_fundo = ''; F.fundo_nombre = ''; F.fundoManual = true; F.fq = ''; if (F.mapa) F.mapa.marcarFundo(''); pintarFundo(); const q = $('ff-fq'); if (q) q.focus(); return; }
     if (F.modo === 'actividad') {
       if (t.closest('[data-act-volver]')) { const v = F.volver; F.fotosNuevas.forEach(x => URL.revokeObjectURL(x.url)); cerrarHoja(); if (v) abrirRecurso(v.rid, v.f); return; }
       if (t.closest('[data-act-eliminar]')) return eliminarActividad();
       if (t.closest('[data-act-cambiar]')) { leerCamposAct(); F.buscando = true; F.grupo = (actCat(F.actividad) || {}).grupo_codigo || ''; F.clasif = clasifDeGrupo(F.grupo); return pintarSelAct(); }
-      const as = t.closest('[data-act-sel]'); if (as) { leerCamposAct(); F.actividad = as.dataset.actSel; F.buscando = false; F.q = ''; pintarSelAct(); return pintarCant(); }
+      const as = t.closest('[data-act-sel]'); if (as) { leerCamposAct(); F.actividad = as.dataset.actSel; F.buscando = false; F.q = ''; pintarSelAct(); pintarCant(); return cerrarSeccionElegida('act'); }
       const fv = t.closest('[data-fav]'); if (fv) return alternarFavorita(fv.dataset.fav);
       const ex = t.closest('[data-extra]'); if (ex) return decidirTiempoExtra(ex.dataset.extra);   // ⏱️ v1.5.3
       const kl = t.closest('[data-clasif]'); if (kl) {
@@ -2644,8 +2836,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     if (t.closest('[data-repetir]')) { leerCamposForm(); const ref = F.ref; return abrirFormulario(F.r, F.fecha_operativa, null, ref); }
     const jt = t.closest('[data-jt]'); if (jt) { if (F.tieneAct) return; F.jt = jt.dataset.jt; return pintarTurno(); }
-    const tu = t.closest('[data-turno]'); if (tu) { if (F.tieneAct) return toast('Esta apertura ya tiene actividades: el turno no se puede cambiar.', 4000); F.turno = tu.dataset.turno; F.jt = (turnoCat(F.turno) || {}).jornada || F.jt; return pintarTurno(); }
-    const fo = t.closest('[data-foco]'); if (fo) { F.foco = fo.dataset.foco; return pintarFoco(); }   // obligatoria: no se puede quitar
+    const tu = t.closest('[data-turno]'); if (tu) { if (F.tieneAct) return toast('Esta apertura ya tiene actividades: el turno no se puede cambiar.', 4000); F.turno = tu.dataset.turno; F.jt = (turnoCat(F.turno) || {}).jornada || F.jt; pintarTurno(); return cerrarSeccionElegida('turno'); }
+    const fo = t.closest('[data-foco]'); if (fo) { F.foco = fo.dataset.foco; pintarFoco(); return cerrarSeccionElegida('foco'); }   // obligatoria: no se puede quitar
     const je = t.closest('[data-jefe]');
     if (je) { const i = Number(je.dataset.jefe), on = !F.dot[i].es_jefe; F.dot.forEach(p => { p.es_jefe = false; }); F.dot[i].es_jefe = on; if (on) F.dot[i].presente = true; return pintarDot(); }
     const qu = t.closest('[data-quitar]'); if (qu) { F.dot.splice(Number(qu.dataset.quitar), 1); return pintarDot(); }

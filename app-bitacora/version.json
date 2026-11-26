@@ -1,7 +1,9 @@
 {
-  "version": "1.5.5",
+  "version": "1.6.0",
   "fecha": "2026-11-23",
   "notas": [
+    "🏠 Inicio al centro del menú; «Historial» ahora es «Actividades». Patente obligatoria en la apertura (viene registrada del recurso).",
+    "🗺️ Mapa: ⛶ ampliar con fundos y límite del área, 📍 tu ubicación, capas que se apagan y ubicación en vivo cada 20 s.",
     "⏱️ Tiempo extra: la app te advierte al pasar de la hora de término y puedes elegir hasta qué hora trabajaste (máximo 4 h).",
     "🔤 Tu usuario se muestra en mayúsculas (por ejemplo CANINIR); puedes escribirlo en mayúsculas o minúsculas al ingresar.",
     "🎯 La Actividad general ahora es obligatoria; de noviembre a marzo parte en «Prevención Activa».",

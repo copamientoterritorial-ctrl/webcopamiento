@@ -6,6 +6,14 @@
  * Se pueden volver a ver con «🆕 Novedades» (botón del encabezado de Ayuda, abrirNovedades_(true)). */
 const NOVEDADES = [
   {
+    id: '2026-11-26-patente-recurso', fecha: '26-11-2026', titulo: 'Patente de los recursos',
+    items: [
+      { ico: '🚙', t: 'Gestión de Recursos: columna Patente', perfiles: ['admin', 'subgerente', 'grt', 'jefe'],
+        d: 'En <b>🌲 Planificador CMPC › Gestión de Recursos</b> hay una columna nueva <b>Patente</b> (también en el Excel). La App Bitácora la propone en la apertura y ' +
+           'ahora es <b>obligatoria</b>: si el recurso no la tiene registrada, la escribe en terreno.' },
+    ],
+  },
+  {
     id: '2026-11-25-modo-grd-jefe', fecha: '25-11-2026', titulo: 'Modo GRD y PPA de los Gestores',
     items: [
       { ico: '🏛️', t: 'Ver el sistema como GRD', perfiles: ['jefe', 'subgerente', 'grt'],

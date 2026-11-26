@@ -335,7 +335,7 @@ function toast(m) { const t = document.createElement('div'); t.className = 'toas
  * nueva se FUERZA la actualización: primero se envían los pendientes y luego se recarga (el service worker trae app.html de la red).
  * Si hay un avance a medio registrar, espera a que se cierre el formulario. SIN señal: la actualización queda PENDIENTE
  * (localStorage) y se instala sola al volver la señal. La cola de pendientes y los datos guardados (IndexedDB) no se pierden al actualizar. */
-const APP_VERSION = '1.9.1';
+const APP_VERSION = '1.9.2';
 const ACT_KEY = 'pta-act-pendiente', ACT_CADA_MS = 15 * 60 * 1000;
 function actLeer() { try { return localStorage.getItem(ACT_KEY) || ''; } catch (e) { return ''; } }
 function actGuardar(v) { try { if (v) localStorage.setItem(ACT_KEY, v); else localStorage.removeItem(ACT_KEY); } catch (e) { /* sin almacenamiento */ } }
@@ -2186,7 +2186,7 @@ document.addEventListener('DOMContentLoaded', () => {
  *                    y sin turno; dotación, jefe, actividades y % del turno registrado (bit_mis_recursos + v_bit_jornadas).
  *   🗺️ Mapa ....... actividades con su ubicación del día y de los días anteriores (1 / 3 / 7 días; v_bit_actividades) y el punto de
  *                    cada apertura; hoy, además, la ubicación en vivo y el recorrido (bit_mapa_jornada).
- *   📡 En vivo .... última ubicación de cada recurso con la jornada abierta (cada 60 s), ordenada por la más reciente.
+ *   📡 En vivo .... última ubicación de cada recurso con la jornada abierta (cada 20 s), ordenada por la más reciente.
  * Todo queda en el teléfono (cache) para verlo sin señal.
  * ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const BT = { vista: 'aperturas', fecha: '', area: '', tipo: '', filtro: '', dias: 1, recursos: null, estados: null, dia: {}, acts: {}, vivo: {}, mapa: null, timer: null };
@@ -2239,7 +2239,7 @@ async function btCargarActs(desde, hasta, forzar) {
   return BT.acts[k];
 }
 async function btCargarVivo(f, forzar) {
-  if (BT.vivo[f] && !forzar && Date.now() - BT.vivo[f].en < 50000) return BT.vivo[f];
+  if (BT.vivo[f] && !forzar && Date.now() - BT.vivo[f].en < 15000) return BT.vivo[f];
   try {
     const { data, error } = await sb.rpc('bit_mapa_jornada', { p_fecha: f });
     if (error) throw error;
@@ -2404,9 +2404,9 @@ async function btPintarMapa() {
     '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">' + ([...porK.entries()].map(([k, o]) => '<span class="chip" style="--c:' + o.c + '">● ' + esc(o.e + ' ' + k) + ' (' + o.n + ')</span>').join('') || '<span class="muted">Sin actividades con ubicación.</span>') + '</div>' +
     '<div class="muted" style="margin-top:6px;">● actividad (más tenue = días anteriores) · ◆ apertura del día' + (vivo ? ' · <span style="color:#EA580C;font-weight:700;">📡 ' + nVivo + ' en movimiento</span> (gris = más de 15 min sin enviar) · ┅ recorrido de hoy' : '') + '</div>'; };
   ley();
-  if (vivo) {   // hoy: la ubicación en vivo se refresca cada 60 s mientras el mapa siga abierto
-    const vuelta = async () => { if (S.sec !== 'bitacora' || BT.vista !== 'mapa' || BT.mapa !== m.map) return; dibujarVivo(await btCargarVivo(f, true)); ley(); BT.timer = setTimeout(vuelta, 60000); };
-    BT.timer = setTimeout(vuelta, 60000);
+  if (vivo) {   // hoy: la ubicación en vivo se refresca cada 20 s mientras el mapa siga abierto
+    const vuelta = async () => { if (S.sec !== 'bitacora' || BT.vista !== 'mapa' || BT.mapa !== m.map) return; dibujarVivo(await btCargarVivo(f, true)); ley(); BT.timer = setTimeout(vuelta, 20000); };
+    BT.timer = setTimeout(vuelta, 20000);
   }
 }
 
@@ -2446,8 +2446,8 @@ async function btPintarVivo() {
           '<div class="muted">' + esc([x.empresa, rcTit(x.area || ''), x.jornada && x.jornada.turno ? '🕒 ' + x.jornada.turno : ''].filter(Boolean).join(' · ')) +
           (u && u.velocidad != null ? ' · ' + Math.round(u.velocidad * 3.6) + ' km/h' : '') + (x.jornada && x.jornada.jefe ? '<br>⭐ ' + esc(x.jornada.jefe) + (x.jornada.jefe_telefono ? ' · ' + btTel(x.jornada.jefe_telefono) : '') : '') + '</div></div>';
       }).join('') || '<div class="vacio">Ningún recurso con apertura hoy' + (v.sin ? ' (sin señal o falta el SQL 195)' : '') + '.</div>') +
-      '<p class="muted" style="text-align:center;">Se actualiza cada minuto · ' + esc(btHm(v.en || Date.now())) + '</p>';
-    BT.timer = setTimeout(() => dibujar(true), 60000);
+      '<p class="muted" style="text-align:center;">Se actualiza cada 20 s · ' + esc(btHm(v.en || Date.now())) + '</p>';
+    BT.timer = setTimeout(() => dibujar(true), 20000);
   };
   dibujar(false);
 }

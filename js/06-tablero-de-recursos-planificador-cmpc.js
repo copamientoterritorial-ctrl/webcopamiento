@@ -453,6 +453,7 @@ const GR_COLS = [
   { k: 'mail', t: 'Mail titular', c: true, w: 190, tipo: 'mail' },
   { k: 'empresa', t: 'Empresa (EESS)', ed: true, w: 140 },
   { k: 'tipo_movil', t: 'Tipo de móvil', ed: true, w: 110 },
+  { k: 'patente', t: 'Patente', ed: true, w: 95 },   // 26-11-2026 (SQL 199): la App Bitácora la propone y exige en la apertura
   { k: 'actividad', t: 'Turno', ed: true, w: 90 },
   { k: 'horario', t: 'Horario', ed: true, w: 110 },
   { k: 'n_personas', t: 'N° personas', ed: true, w: 60, tipo: 'num' },
@@ -561,11 +562,13 @@ async function abrirGestionRecursos_(forzar) {
   est.textContent = 'Cargando…';
   try {
     await cargarTiposRecurso_();
-    const cols = 'id, codigo_ref, alias, tipo_recurso, id_subg, subgerencia, id_area, area_nombre, sector, empresa, tipo_movil, actividad, ' +
+    let cols = 'id, codigo_ref, alias, tipo_recurso, id_subg, subgerencia, id_area, area_nombre, sector, empresa, tipo_movil, patente, actividad, ' +
       'horario, n_personas, fecha_inicio_operacion, fecha_termino_operacion, trabajo_actual, comuna_corma, zona_alerta';
-    const filas = [];
+    let filas = [];
     for (let d = 0; ; d += 1000) {
-      const { data, error } = await supabaseClient.from('referencia_recursos').select(cols).order('codigo_ref').range(d, d + 999);
+      let { data, error } = await supabaseClient.from('referencia_recursos').select(cols).order('codigo_ref').range(d, d + 999);
+      // Sin el SQL 199 no existe la columna patente: se lee sin ella
+      if (error && /patente/i.test(error.message || '') && cols.includes('patente')) { cols = cols.replace(' patente,', ''); filas = []; d = -1000; continue; }
       if (error) throw error;
       filas.push(...(data || []));
       if (!data || data.length < 1000) break;
