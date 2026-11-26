@@ -113,6 +113,11 @@
   .mt-ctl button { width:40px; height:40px; border:0; border-radius:10px; background: rgba(255,255,255,.94); font-size:17px; cursor:pointer; box-shadow: 0 2px 8px rgba(2,6,23,.3); }
   .mt-ctl button.on { background: var(--azul); color:#fff; }
   .mapa-tab .av-buscar { top:152px; }
+  .mapa-tab.grande .av-buscar { top:100px; }   /* v1.6.2: en pantalla completa ⛶ se oculta (sale con «← Volver») */
+  .mapa-tab.grande > .mt-ctl { top:8px; }
+  .mapa-tab.grande .mt-capas { top:8px; }
+  .mapa-tab .leaflet-bottom.leaflet-right { margin-bottom:34px; }   /* el zoom queda sobre la franja de estado del mapa */
+  .mapa-tab.grande .leaflet-bottom.leaflet-right { margin-bottom:calc(34px + env(safe-area-inset-bottom)); }
   .mt-capas { position:absolute; top:8px; right:56px; z-index:1001; background: rgba(255,255,255,.97); border-radius:12px; padding:8px 10px; box-shadow: 0 4px 14px rgba(2,6,23,.3); font-size:13px; min-width:190px; }
   .mt-capas label { display:flex; align-items:center; gap:8px; margin:6px 0 0; font-weight:600; color: var(--txt); }
   .mt-capas input { width:18px; height:18px; margin:0; }
@@ -386,7 +391,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<!-- MAPA-COMUN-PWA:INICIO · v1 (26-11-2026) · NO EDITAR AQUÍ: se edita herramientas\mapa_comun_pwa.html y se copia con herramientas\aplicar_mapa_comun.ps1 -->
+<!-- MAPA-COMUN-PWA:INICIO · v2 (26-11-2026) · NO EDITAR AQUÍ: se edita herramientas\mapa_comun_pwa.html y se copia con herramientas\aplicar_mapa_comun.ps1 -->
 <style>
   /* Reglas comunes de los mapas de las apps PWA (Bitácora, Prevención, Patrullaje, Agricultores):
      ⛶ pantalla completa sobre el encabezado y bajo la franja del teléfono; 🔎 coordenadas en 6 casillas; aviso «dos dedos». */
@@ -409,6 +414,16 @@
   .mc-gms .a button { border:0; border-radius:9px; padding:9px 14px; font:700 13px system-ui, sans-serif; cursor:pointer; }
   .mc-gms .a .ir { background:#2563EB; color:#fff; }
   .mc-gms .a .x { background:#E2E8F0; color:#334155; }
+  /* v2: íconos SVG (los emoji se ven distintos en cada teléfono) y «← Volver» en pantalla completa */
+  .mc-ico { width:22px; height:22px; display:block; margin:auto; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; pointer-events:none; }
+  .mc-btn .mc-ico, .av-grande .mc-ico, .av-buscar .mc-ico, .mt-ctl button .mc-ico { color:#0F172A; }
+  .mt-ctl button.on .mc-ico { color:#fff; }
+  .mc-volver { position:absolute; left:8px; top:8px; z-index:1250; display:flex; align-items:center; gap:4px; height:40px; padding:0 14px 0 8px; border:0;
+    border-radius:999px; background:#0F172A; color:#fff; font:800 14px system-ui, sans-serif; box-shadow:0 2px 10px rgba(2,6,23,.4); cursor:pointer; }
+  .mc-volver .mc-ico { color:#fff; width:20px; height:20px; margin:0; }
+  .mc-full .mc-amp, .grande > .mt-ctl [data-mt="grande"] { display:none !important; }
+  .mc-full .leaflet-top.leaflet-left, .mc-full .mt-base, .mc-full .av-capas, .mapa-tab.grande .mt-base { margin-top:52px; }
+  .mc-full .av-buscar { top:8px !important; }
 </style>
 <script>
 /* Para TODOS los mapas de la app (L.Map.addInitHook):
@@ -423,8 +438,44 @@
   const tactil = ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0;
   // Mapa «grande» = pantalla completa o el mapa principal de la app (#mapa de Patrullaje / Agricultores): ahí un dedo mueve el mapa
   const grande = c => !!(c.id === 'mapa' || c.closest('.mc-full, .grande') || c.offsetHeight >= window.innerHeight * 0.7);
+  // Íconos SVG comunes (las apps los usan con window.mcIco.<nombre>)
+  const svg = d => '<svg class="mc-ico" viewBox="0 0 24 24" aria-hidden="true">' + d + '</svg>';
+  const ICO = window.mcIco = {
+    ampliar: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
+    cerrar: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
+    gps: svg('<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'),
+    capas: svg('<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>'),
+    buscar: svg('<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/>'),
+    volver: svg('<path d="M15 5l-7 7 7 7"/>')
+  };
+  // Pantalla completa: el mapa se lleva al <body> (dentro de <main> con desplazamiento, iOS lo deja DEBAJO del encabezado),
+  // con «← Volver» arriba a la izquierda; el botón / gesto «atrás» del teléfono también lo cierra.
+  const FULL = new Map();
+  function abrirFull(cont, alCerrar, clase) {
+    if (FULL.has(cont)) return;
+    clase = clase || 'mc-full';
+    const marca = document.createComment('mapa');
+    if (cont.parentNode) cont.parentNode.insertBefore(marca, cont);
+    document.body.appendChild(cont); cont.classList.add(clase);
+    const v = document.createElement('button'); v.type = 'button'; v.className = 'mc-volver'; v.innerHTML = ICO.volver + '<span>Volver</span>';
+    v.setAttribute('aria-label', 'Volver'); L.DomEvent.disableClickPropagation(v);
+    v.addEventListener('click', e => { e.stopPropagation(); cerrarFull(cont); });
+    cont.appendChild(v);
+    const st = { marca, v, alCerrar, clase, hist: false };
+    FULL.set(cont, st);
+    try { history.pushState({ mcFull: 1 }, ''); st.hist = true; } catch (e) {}
+  }
+  function cerrarFull(cont, desdeAtras) {
+    const st = FULL.get(cont); if (!st) return;
+    FULL.delete(cont); st.v.remove(); cont.classList.remove(st.clase);
+    if (st.marca.parentNode) st.marca.parentNode.replaceChild(cont, st.marca); else cont.remove();
+    if (st.hist && !desdeAtras) { try { history.back(); } catch (e) {} }
+    if (st.alCerrar) st.alCerrar();
+  }
+  window.addEventListener('popstate', () => { [...FULL.keys()].forEach(c => cerrarFull(c, true)); });
+  window.mcFull = { abrir: abrirFull, cerrar: cerrarFull, abierto: c => FULL.has(c) };
   function boton(txt, titulo, fn) {
-    const b = L.DomUtil.create('button', 'mc-btn'); b.type = 'button'; b.textContent = txt; b.title = titulo; b.setAttribute('aria-label', titulo);
+    const b = L.DomUtil.create('button', 'mc-btn'); b.type = 'button'; b.innerHTML = txt; b.title = titulo; b.setAttribute('aria-label', titulo);
     L.DomEvent.disableClickPropagation(b); L.DomEvent.on(b, 'click', e => { L.DomEvent.stop(e); fn(b); });
     return b;
   }
@@ -436,7 +487,7 @@
   }
   function buscador(map, cont) {
     let caja = null, marca = null;
-    return boton('🔎', 'Buscar una coordenada', () => {
+    return boton(ICO.buscar, 'Buscar una coordenada', () => {
       if (caja) { caja.remove(); caja = null; return; }
       caja = L.DomUtil.create('div', 'mc-gms', cont);
       const c = (k, t, n) => '<input data-c="' + k + '" inputmode="decimal" maxlength="' + n + '" aria-label="' + t + '" placeholder="' + (k.endsWith('g') ? '°' : k.endsWith('m') ? "'" : '"') + '">';
@@ -495,10 +546,9 @@
       ctl.onAdd = () => {
         const d = L.DomUtil.create('div', 'leaflet-bar mc-ctl'); d.style.border = '0'; d.style.boxShadow = 'none'; d.style.background = 'none';
         if (!tieneAmp) {
-          const b = boton('⛶', 'Ampliar mapa', bb => {
-            const on = !cont.classList.contains('mc-full');
-            cont.classList.toggle('mc-full', on); bb.textContent = on ? '✕' : '⛶'; bb.title = on ? 'Cerrar pantalla completa' : 'Ampliar mapa';
-            if (tactil) { if (on) map.dragging.enable(); else map.dragging.disable(); }
+          const b = boton(ICO.ampliar, 'Ampliar mapa', () => {
+            abrirFull(cont, () => { if (tactil) map.dragging.disable(); setTimeout(() => map.invalidateSize(), 80); });
+            if (tactil) map.dragging.enable();
             setTimeout(() => map.invalidateSize(), 80);
           });
           b.classList.add('mc-amp'); d.appendChild(b);
@@ -536,7 +586,7 @@
 const SUPABASE_URL = 'https://api.copamientoterritorial.cl';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-bitacora-app', detectSessionInUrl: false } });
-const APP_VERSION = '1.6.1';
+const APP_VERSION = '1.6.2';
 const DOMINIO_CUENTAS = 'recursos.copamientoterritorial.cl';   // = Edge Function admin-cuentas-recurso y js/41 de la web
 const DIAS_CARGA = 14;   // aperturas que se descargan hacia atrás
 
@@ -1126,7 +1176,7 @@ function holaHtml() {
 }
 function pintar() {
   indexar();
-  if (S.sec !== 'mapa' && S.mapaTab) { try { S.mapaTab.remove(); } catch (e) {} S.mapaTab = null; pararMiUbicacion(); S.mapaRedibujar = null; document.querySelectorAll('body > .mapa-tab.grande').forEach(x => x.remove()); }
+  if (S.sec !== 'mapa' && S.mapaTab) { try { S.mapaTab.remove(); } catch (e) {} S.mapaTab = null; pararMiUbicacion(); S.mapaRedibujar = null; document.querySelectorAll('body > .mapa-tab.grande, body > .mc-full').forEach(x => window.mcFull && window.mcFull.abierto(x) ? window.mcFull.cerrar(x) : x.remove()); }
   if (S.sec !== 'historial' && S.mapaHist) { try { S.mapaHist.remove(); } catch (e) {} S.mapaHist = null; }
   // Cuenta de recurso: el primer botón del menú es «Mi jornada» en vez de la lista del día
   const m1 = $('menu-1'); if (m1) { m1.dataset.s = esCuentaRecurso() ? 'inicio' : 'hoy'; $('menu-1-txt').textContent = 'Inicio'; }   // v1.6.0: «Inicio» al centro
@@ -1485,7 +1535,7 @@ function parseCoord(txt) {
 }
 // Buscador de coordenadas (GMS o decimal) sobre un mapa: 🔎 abre la caja; «Ir» centra y marca el punto
 function agregarBuscadorCoord(cont, map, onPunto) {
-  const b = document.createElement('button'); b.type = 'button'; b.className = 'av-buscar'; b.title = 'Buscar una coordenada'; b.setAttribute('aria-label', 'Buscar una coordenada'); b.textContent = '🔎';
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'av-buscar'; b.title = 'Buscar una coordenada'; b.setAttribute('aria-label', 'Buscar una coordenada'); b.innerHTML = (window.mcIco && window.mcIco.buscar) || '🔎';
   cont.appendChild(b);
   let caja = null, marca = null;
   const cerrar = () => { if (caja) { caja.remove(); caja = null; } };
@@ -1534,7 +1584,7 @@ function montarMapa(cont, lat, lng, opts) {
   if (typeof L === 'undefined') { cont.innerHTML = '<span class="muted" style="padding:0 12px;text-align:center;">' + (hay ? '📍 ' + coordTxt(lat, lng) + '<br>' : '') + 'Mapa no disponible sin conexión.</span>'; return { mover() {} }; }
   let modo = mapaBaseActual();
   cont.innerHTML = '<div class="av-leaf"></div><div class="av-capas">' + Object.keys(MAPA_BASES).map(k => '<button type="button" data-mb="' + k + '"' + (k === modo ? ' class="on"' : '') + '>' + MAPA_BASES[k].txt + '</button>').join('') + '</div>' +
-    '<button type="button" class="av-grande" aria-label="Agrandar mapa">⛶</button><span class="av-cap"></span>';
+    '<button type="button" class="av-grande" aria-label="Agrandar mapa">' + ((window.mcIco && window.mcIco.ampliar) || '⛶') + '</button><span class="av-cap"></span>';
   const map = L.map(cont.querySelector('.av-leaf'), { zoomControl: true, attributionControl: false }).setView(hay ? [lat, lng] : MAPA_CENTRO_DEF, hay ? 15 : 8);
   map.zoomControl.setPosition('bottomright');
   let capas = capasBase(map, modo);
@@ -1586,7 +1636,7 @@ function montarMapa(cont, lat, lng, opts) {
   const grande = on => {
     if (on && !cont.classList.contains('grande')) { marca = document.createComment('mapa'); cont.parentNode.insertBefore(marca, cont); document.body.appendChild(cont); }
     else if (!on && marca) { if (marca.parentNode) marca.parentNode.replaceChild(cont, marca); else cont.remove(); marca = null; }
-    cont.classList.toggle('grande', on); btnG.textContent = on ? '✕' : '⛶';
+    cont.classList.toggle('grande', on); btnG.innerHTML = window.mcIco ? (on ? window.mcIco.cerrar : window.mcIco.ampliar) : (on ? '✕' : '⛶');
     setTimeout(() => { map.invalidateSize(); if (pin) map.panTo(pin.getLatLng()); }, 60);
   };
   cont.cerrarGrande = () => grande(false);
@@ -1644,9 +1694,10 @@ function pintarMapaTab() {
   setTimeout(() => map.invalidateSize(), 80);
   // ── Controles v1.6.0: ⛶ ampliar (vista completa del territorio), 📍 mi ubicación (GPS) y 🗂️ capas
   const ctl = document.createElement('div'); ctl.className = 'mt-ctl';
-  ctl.innerHTML = '<button type="button" data-mt="grande" title="Ampliar: ver todo el territorio" aria-label="Ampliar mapa">⛶</button>' +
-    '<button type="button" data-mt="gps" title="Mi ubicación (GPS)" aria-label="Mi ubicación">📍</button>' +
-    '<button type="button" data-mt="capas" title="Capas" aria-label="Capas">🗂️</button>';
+  const IC = window.mcIco || {};   // íconos SVG del bloque común de mapas (v1.6.2)
+  ctl.innerHTML = '<button type="button" data-mt="grande" title="Ampliar: ver todo el territorio" aria-label="Ampliar mapa">' + (IC.ampliar || '⛶') + '</button>' +
+    '<button type="button" data-mt="gps" title="Mi ubicación (GPS)" aria-label="Mi ubicación">' + (IC.gps || '◎') + '</button>' +
+    '<button type="button" data-mt="capas" title="Capas" aria-label="Capas">' + (IC.capas || '☰') + '</button>';
   const pnl = document.createElement('div'); pnl.className = 'mt-capas'; pnl.style.display = 'none';
   const chk = (k, t) => '<label><input type="checkbox" data-mtc="' + k + '"' + (C[k] ? ' checked' : '') + '> ' + t + '</label>';
   pnl.innerHTML = '<b>Capas</b>' + chk('ap', '◆ Puntos de apertura') + chk('act', '🧩 Actividades del día') + chk('vivo', '📡 Ubicación en vivo') +
@@ -1659,11 +1710,13 @@ function pintarMapaTab() {
     [capaLim, capaFundos].forEach(g => g.eachLayer(l => { try { b.extend(l.getBounds()); } catch (e) {} }));
     if (b.isValid()) map.fitBounds(b, { padding: [24, 24], maxZoom: 13, animate: false });
   };
+  // ⛶ Ampliar: el mapa pasa al <body> sobre el encabezado y el menú (window.mcFull, bloque común), con «← Volver» y el «atrás» del teléfono
   ctl.querySelector('[data-mt="grande"]').onclick = () => {
-    const on = !cont.classList.contains('grande'); cont.classList.toggle('grande', on);
-    ctl.querySelector('[data-mt="grande"]').textContent = on ? '✕' : '⛶';
-    if (on && !C.fundos && !C.limite) { C.fundos = C.limite = true; pnl.querySelectorAll('[data-mtc]').forEach(i => { i.checked = !!C[i.dataset.mtc]; }); aplicarCapas(); }
-    setTimeout(() => { map.invalidateSize(); if (on) verTodo(); }, 80);
+    if (cont.classList.contains('grande')) return;
+    const listo = () => { pnl.style.display = 'none'; setTimeout(() => map.invalidateSize(), 80); };
+    if (window.mcFull) window.mcFull.abrir(cont, listo, 'grande'); else cont.classList.add('grande');
+    if (!C.fundos && !C.limite) { C.fundos = C.limite = true; pnl.querySelectorAll('[data-mtc]').forEach(i => { i.checked = !!C[i.dataset.mtc]; }); aplicarCapas(); }
+    setTimeout(() => { map.invalidateSize(); verTodo(); }, 80);
   };
   ctl.querySelector('[data-mt="capas"]').onclick = () => { pnl.style.display = pnl.style.display === 'none' ? '' : 'none'; };
   ctl.querySelector('[data-mt="gps"]').onclick = () => miUbicacionMapa(map, ctl.querySelector('[data-mt="gps"]'));

@@ -14,7 +14,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<!-- MAPA-COMUN-PWA:INICIO · v1 (26-11-2026) · NO EDITAR AQUÍ: se edita herramientas\mapa_comun_pwa.html y se copia con herramientas\aplicar_mapa_comun.ps1 -->
+<!-- MAPA-COMUN-PWA:INICIO · v2 (26-11-2026) · NO EDITAR AQUÍ: se edita herramientas\mapa_comun_pwa.html y se copia con herramientas\aplicar_mapa_comun.ps1 -->
 <style>
   /* Reglas comunes de los mapas de las apps PWA (Bitácora, Prevención, Patrullaje, Agricultores):
      ⛶ pantalla completa sobre el encabezado y bajo la franja del teléfono; 🔎 coordenadas en 6 casillas; aviso «dos dedos». */
@@ -37,6 +37,16 @@
   .mc-gms .a button { border:0; border-radius:9px; padding:9px 14px; font:700 13px system-ui, sans-serif; cursor:pointer; }
   .mc-gms .a .ir { background:#2563EB; color:#fff; }
   .mc-gms .a .x { background:#E2E8F0; color:#334155; }
+  /* v2: íconos SVG (los emoji se ven distintos en cada teléfono) y «← Volver» en pantalla completa */
+  .mc-ico { width:22px; height:22px; display:block; margin:auto; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; pointer-events:none; }
+  .mc-btn .mc-ico, .av-grande .mc-ico, .av-buscar .mc-ico, .mt-ctl button .mc-ico { color:#0F172A; }
+  .mt-ctl button.on .mc-ico { color:#fff; }
+  .mc-volver { position:absolute; left:8px; top:8px; z-index:1250; display:flex; align-items:center; gap:4px; height:40px; padding:0 14px 0 8px; border:0;
+    border-radius:999px; background:#0F172A; color:#fff; font:800 14px system-ui, sans-serif; box-shadow:0 2px 10px rgba(2,6,23,.4); cursor:pointer; }
+  .mc-volver .mc-ico { color:#fff; width:20px; height:20px; margin:0; }
+  .mc-full .mc-amp, .grande > .mt-ctl [data-mt="grande"] { display:none !important; }
+  .mc-full .leaflet-top.leaflet-left, .mc-full .mt-base, .mc-full .av-capas, .mapa-tab.grande .mt-base { margin-top:52px; }
+  .mc-full .av-buscar { top:8px !important; }
 </style>
 <script>
 /* Para TODOS los mapas de la app (L.Map.addInitHook):
@@ -51,8 +61,44 @@
   const tactil = ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0;
   // Mapa «grande» = pantalla completa o el mapa principal de la app (#mapa de Patrullaje / Agricultores): ahí un dedo mueve el mapa
   const grande = c => !!(c.id === 'mapa' || c.closest('.mc-full, .grande') || c.offsetHeight >= window.innerHeight * 0.7);
+  // Íconos SVG comunes (las apps los usan con window.mcIco.<nombre>)
+  const svg = d => '<svg class="mc-ico" viewBox="0 0 24 24" aria-hidden="true">' + d + '</svg>';
+  const ICO = window.mcIco = {
+    ampliar: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
+    cerrar: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
+    gps: svg('<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'),
+    capas: svg('<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>'),
+    buscar: svg('<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/>'),
+    volver: svg('<path d="M15 5l-7 7 7 7"/>')
+  };
+  // Pantalla completa: el mapa se lleva al <body> (dentro de <main> con desplazamiento, iOS lo deja DEBAJO del encabezado),
+  // con «← Volver» arriba a la izquierda; el botón / gesto «atrás» del teléfono también lo cierra.
+  const FULL = new Map();
+  function abrirFull(cont, alCerrar, clase) {
+    if (FULL.has(cont)) return;
+    clase = clase || 'mc-full';
+    const marca = document.createComment('mapa');
+    if (cont.parentNode) cont.parentNode.insertBefore(marca, cont);
+    document.body.appendChild(cont); cont.classList.add(clase);
+    const v = document.createElement('button'); v.type = 'button'; v.className = 'mc-volver'; v.innerHTML = ICO.volver + '<span>Volver</span>';
+    v.setAttribute('aria-label', 'Volver'); L.DomEvent.disableClickPropagation(v);
+    v.addEventListener('click', e => { e.stopPropagation(); cerrarFull(cont); });
+    cont.appendChild(v);
+    const st = { marca, v, alCerrar, clase, hist: false };
+    FULL.set(cont, st);
+    try { history.pushState({ mcFull: 1 }, ''); st.hist = true; } catch (e) {}
+  }
+  function cerrarFull(cont, desdeAtras) {
+    const st = FULL.get(cont); if (!st) return;
+    FULL.delete(cont); st.v.remove(); cont.classList.remove(st.clase);
+    if (st.marca.parentNode) st.marca.parentNode.replaceChild(cont, st.marca); else cont.remove();
+    if (st.hist && !desdeAtras) { try { history.back(); } catch (e) {} }
+    if (st.alCerrar) st.alCerrar();
+  }
+  window.addEventListener('popstate', () => { [...FULL.keys()].forEach(c => cerrarFull(c, true)); });
+  window.mcFull = { abrir: abrirFull, cerrar: cerrarFull, abierto: c => FULL.has(c) };
   function boton(txt, titulo, fn) {
-    const b = L.DomUtil.create('button', 'mc-btn'); b.type = 'button'; b.textContent = txt; b.title = titulo; b.setAttribute('aria-label', titulo);
+    const b = L.DomUtil.create('button', 'mc-btn'); b.type = 'button'; b.innerHTML = txt; b.title = titulo; b.setAttribute('aria-label', titulo);
     L.DomEvent.disableClickPropagation(b); L.DomEvent.on(b, 'click', e => { L.DomEvent.stop(e); fn(b); });
     return b;
   }
@@ -64,7 +110,7 @@
   }
   function buscador(map, cont) {
     let caja = null, marca = null;
-    return boton('🔎', 'Buscar una coordenada', () => {
+    return boton(ICO.buscar, 'Buscar una coordenada', () => {
       if (caja) { caja.remove(); caja = null; return; }
       caja = L.DomUtil.create('div', 'mc-gms', cont);
       const c = (k, t, n) => '<input data-c="' + k + '" inputmode="decimal" maxlength="' + n + '" aria-label="' + t + '" placeholder="' + (k.endsWith('g') ? '°' : k.endsWith('m') ? "'" : '"') + '">';
@@ -123,10 +169,9 @@
       ctl.onAdd = () => {
         const d = L.DomUtil.create('div', 'leaflet-bar mc-ctl'); d.style.border = '0'; d.style.boxShadow = 'none'; d.style.background = 'none';
         if (!tieneAmp) {
-          const b = boton('⛶', 'Ampliar mapa', bb => {
-            const on = !cont.classList.contains('mc-full');
-            cont.classList.toggle('mc-full', on); bb.textContent = on ? '✕' : '⛶'; bb.title = on ? 'Cerrar pantalla completa' : 'Ampliar mapa';
-            if (tactil) { if (on) map.dragging.enable(); else map.dragging.disable(); }
+          const b = boton(ICO.ampliar, 'Ampliar mapa', () => {
+            abrirFull(cont, () => { if (tactil) map.dragging.disable(); setTimeout(() => map.invalidateSize(), 80); });
+            if (tactil) map.dragging.enable();
             setTimeout(() => map.invalidateSize(), 80);
           });
           b.classList.add('mc-amp'); d.appendChild(b);
@@ -364,7 +409,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px s
 //   fotos desde la cámara o la galería, mapa Satélite, capas Red Vial MOP · Predios de agricultores ·
 //   Incendios por temporada (apagados por defecto) y buscador de lugares (datos del teléfono + Esri en línea).
 // ════════════════════════════════════════════════════════════════
-const APP_VERSION = '1.5.3';   // ⚠️ al publicar cambios: subir aquí, en sw-agricultores.js (VERSION) y en version.json
+const APP_VERSION = '1.5.4';   // ⚠️ al publicar cambios: subir aquí, en sw-agricultores.js (VERSION) y en version.json
 const SUPABASE_URL = 'https://api.copamientoterritorial.cl';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 // Sesión propia de la app (no se cierra al salir del sistema web en el mismo navegador)
