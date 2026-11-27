@@ -33,7 +33,9 @@
   html { touch-action: manipulation; -webkit-text-size-adjust:100%; }
   input, select, textarea { font-size:16px !important; }
   body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--txt); -webkit-text-size-adjust:100%; }
-  #v-app { height:100vh; height:100dvh; display:flex; flex-direction:column; }
+  /* v1.7.1: fija a toda la pantalla (en iPhone instalada, 100dvh quedaba más corto y se veía una franja gris bajo el menú) */
+  #v-app { position:fixed; top:0; right:0; bottom:0; left:0; display:flex; flex-direction:column; }
+  html { background:#fff; }   /* si el teléfono deja ver algo bajo el menú, es del mismo blanco */
   header { background: var(--pri); color:#fff; padding: calc(10px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left)); display:flex; align-items:center; gap:8px; flex:0 0 auto; z-index:7; }
   header h1 { font-size:17px; margin:0; }
   header small { opacity:.85; font-size:11px; display:block; font-weight:500; }
@@ -1060,7 +1062,7 @@
 const SUPABASE_URL = 'https://api.copamientoterritorial.cl';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-bitacora-app', detectSessionInUrl: false } });
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.7.1';
 const DOMINIO_CUENTAS = 'recursos.copamientoterritorial.cl';   // = Edge Function admin-cuentas-recurso y js/41 de la web
 const DIAS_CARGA = 14;   // aperturas que se descargan hacia atrás
 

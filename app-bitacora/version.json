@@ -1,7 +1,8 @@
 {
-  "version": "1.7.0",
-  "fecha": "2026-11-26",
+  "version": "1.7.1",
+  "fecha": "2026-11-27",
   "notas": [
+    "📱 El menú inferior queda pegado abajo en todos los teléfonos (sin franja gris en iPhone).",
     "🧭 Patrullaje guiado: en «Inicio» toca «Patrullaje guiado» y el mapa te sigue por tu ruta asignada, marca en verde lo recorrido, te avisa si te sales de la ruta y te lleva al inicio con Google Maps. Funciona sin señal. En «En vivo» ves tu ruta y tu ubicación.",
     "🎨 Menú inferior renovado (botón verde de Inicio al centro) y pantalla ajustada a iPhone, Android y tablet / iPad.",
     "🛰️ Nuevo en «Mi cuenta»: descarga la imagen satelital de los fundos de tus áreas para ver el mapa sin señal. Actividades con su código (AC-…) y búsqueda por código; el nombre usa todo el ancho.",
