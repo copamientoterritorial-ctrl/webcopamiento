@@ -279,13 +279,16 @@ function renderBtMapa_(cu) {
   const est = document.getElementById('bt-estado-txt');
   if (est) est.textContent = btFecha_(s.desde) + ' → ' + btFecha_(s.hasta) + (s.recurso ? ' · ruta asignada del recurso' : ' · elige un recurso para ver su ruta');
   if (s.verVivo === undefined) { s.verVivo = true; s.verRutas = false; }
+  if (s.verGuiados === undefined) s.verGuiados = true;
   cu.innerHTML = '<div class="bt-mapa-ops"><label><input type="checkbox" id="bt-vivo"' + (s.verVivo ? ' checked' : '') + '> 📡 Ubicación en vivo de hoy (se actualiza cada 20 s)</label>' +
-      '<label><input type="checkbox" id="bt-rutas"' + (s.verRutas ? ' checked' : '') + '> ━ Rutas asignadas de todos los recursos filtrados</label><span id="bt-vivo-txt" class="muted"></span></div>' +
+      '<label><input type="checkbox" id="bt-rutas"' + (s.verRutas ? ' checked' : '') + '> ━ Rutas asignadas de todos los recursos filtrados</label>' +
+      '<label><input type="checkbox" id="bt-guiados"' + (s.verGuiados ? ' checked' : '') + '> 🧭 Patrullajes guiados (% de la ruta)</label><span id="bt-vivo-txt" class="muted"></span><span id="bt-guiados-txt" class="muted"></span></div>' +
     '<div id="bt-mapa" style="flex:1;min-height:420px;border-radius:12px;border:1px solid var(--border);"></div>' +
     '<div class="muted" style="font-size:11.5px;margin:6px 2px;">● Actividad (color por clasificación) · ◆ Apertura · ━ Ruta asignada (escenario Normal del copamiento) · ' +
       '<span class="bt-vivo-ley"></span> Recurso en movimiento (última ubicación; gris si lleva más de 15 min sin enviar) · ┅ Recorrido del día.</div>';
   document.getElementById('bt-vivo').onchange = e => { s.verVivo = e.target.checked; renderBitacoraWeb_(); };
   document.getElementById('bt-rutas').onchange = e => { s.verRutas = e.target.checked; renderBitacoraWeb_(); };
+  document.getElementById('bt-guiados').onchange = e => { s.verGuiados = e.target.checked; renderBitacoraWeb_(); };
   if (typeof L === 'undefined') { document.getElementById('bt-mapa').innerHTML = '<div class="tb-vacio">El mapa no está disponible.</div>'; return; }
   if (s.mapa) { try { s.mapa.remove(); } catch (e) {} }
   const map = s.mapa = L.map('bt-mapa', { attributionControl: false }).setView([-37.8, -72.7], 8);
@@ -310,6 +313,7 @@ function renderBtMapa_(cu) {
   ajustar();
   if (s.verVivo) btVivo_(map);
   if (s.verRutas && !s.recurso) btRutasTodas_(map, lim, ajustar);
+  if (s.verGuiados) btGuiados_(map);
   if (s.recurso) {
     supabaseClient.rpc('bit_ruta_recurso', { p_recurso: s.recurso }).then(({ data, error }) => {
       if (error || !data || s.mapa !== map) return;
@@ -356,6 +360,30 @@ async function btVivo_(map) {
     setTimeout(vuelta, 20000);
   };
   vuelta();
+}
+// 🧭 Patrullajes guiados de la App Bitácora (SQL 200, bit_patrullaje): recorrido del GPS en verde y el % de la ruta asignada que cubrió
+async function btGuiados_(map) {
+  const s = state.bt, txt = document.getElementById('bt-guiados-txt');
+  let q = supabaseClient.from('bit_patrullaje').select('id, recurso_id, fecha_operativa, inicio, fin, km_ruta, km_recorrido, pct_ruta, fuera_ruta_n, rastro')
+    .gte('fecha_operativa', s.desde).lte('fecha_operativa', s.hasta).order('inicio').limit(500);
+  if (s.recurso) q = q.eq('recurso_id', s.recurso);
+  const { data, error } = await q;
+  if (s.mapa !== map) return;
+  if (error) { if (txt) txt.textContent = /bit_patrullaje|schema cache|does not exist/i.test(error.message) ? ' · 🧭 falta el SQL 200' : ' · 🧭 ' + error.message; return; }
+  const porId = new Map(s.recursos.map(r => [r.id, r]));
+  const l = (data || []).filter(p => { const r = porId.get(p.recurso_id); return !r || (btEnArea_(s, r.area) && (!s.tipo || r.tipo_codigo === s.tipo)); });
+  const capa = L.layerGroup().addTo(map);
+  l.forEach(p => {
+    const r = porId.get(p.recurso_id) || {}, pct = Number(p.pct_ruta) || 0;
+    const col = pct >= 80 ? '#16A34A' : pct >= 50 ? '#D97706' : '#DC2626';
+    const pop = '<b>🧭 Patrullaje guiado · ' + escapeHtml_(r.clave_radial || r.codigo_ref || '') + '</b><br>' + btFecha_(p.fecha_operativa) + ' · ' + btHora_(p.inicio) + '–' + btHora_(p.fin) +
+      '<br><b style="color:' + col + '">' + String(Math.round(pct * 10) / 10).replace('.', ',') + ' % de la ruta recorrida</b>' +
+      (p.km_ruta != null ? '<br>Ruta ' + String(p.km_ruta).replace('.', ',') + ' km · andados ' + String(p.km_recorrido || 0).replace('.', ',') + ' km' : '') +
+      (p.fuera_ruta_n ? '<br>⚠️ Se salió de la ruta ' + p.fuera_ruta_n + ' vez' + (p.fuera_ruta_n > 1 ? 'es' : '') : '');
+    if (p.rastro && p.rastro.type) L.geoJSON(p.rastro, { style: { color: col, weight: 4, opacity: .9 } }).addTo(capa).bindPopup(pop).bindTooltip('🧭 ' + escapeHtml_(r.clave_radial || '') + ' · ' + Math.round(pct) + ' %', { sticky: true });
+  });
+  if (txt) txt.textContent = ' · 🧭 ' + l.length + ' patrullaje' + (l.length === 1 ? '' : 's') + ' guiado' + (l.length === 1 ? '' : 's') +
+    (l.length ? ' · promedio ' + Math.round(l.reduce((a, p) => a + (Number(p.pct_ruta) || 0), 0) / l.length) + ' % de la ruta' : '');
 }
 // ━ Rutas asignadas de los recursos filtrados (sin elegir uno): de a 6 consultas a la vez, como máximo 60 recursos
 async function btRutasTodas_(map, lim, ajustar) {

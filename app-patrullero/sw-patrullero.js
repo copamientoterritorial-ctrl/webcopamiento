@@ -1,6 +1,6 @@
 // Service worker de la App de Patrullaje v2: permite abrir la app sin señal.
 // Solo atiende la app y sus librerías; no toca el sistema web ni las llamadas a Supabase.
-const VERSION = 'patrullero-v2.5.4';
+const VERSION = 'patrullero-v2.6.0';
 const CDN = [
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',

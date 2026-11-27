@@ -6,6 +6,15 @@
  * Se pueden volver a ver con «🆕 Novedades» (botón del encabezado de Ayuda, abrirNovedades_(true)). */
 const NOVEDADES = [
   {
+    id: '2026-11-26-patrullaje-guiado', fecha: '26-11-2026', titulo: 'Patrullaje guiado en las apps',
+    items: [
+      { ico: '🧭', t: 'Patrullaje guiado por la ruta asignada', perfiles: ['admin', 'subgerente', 'grt', 'jefe', 'sup'],
+        d: 'La <b>App Bitácora</b> (v1.7.0) muestra a cada recurso su ruta asignada y lo guía por ella: el mapa lo sigue, marca lo recorrido, avisa si se sale de la ruta ' +
+           'y lo lleva al inicio con Google Maps. En <b>📋 Bitácora › 🗺️ Mapa</b> ves cada patrullaje guiado con el <b>% de la ruta recorrida</b> ' +
+           '(verde ≥ 80 %, ámbar ≥ 50 %, rojo menos). La <b>App de Patrullaje</b> (v2.6.0) también tiene el patrullaje guiado.' },
+    ],
+  },
+  {
     id: '2026-11-26-ppa-grupos-mapa', fecha: '26-11-2026', titulo: 'PPA: nuevo Tablero de Avance',
     items: [
       { ico: '📊', t: 'PPA › Tablero de Avance para tu área', perfiles: ['jefe', 'grt', 'subgerente'],

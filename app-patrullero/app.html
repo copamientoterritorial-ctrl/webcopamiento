@@ -185,6 +185,414 @@
 })();
 </script>
 <!-- MAPA-COMUN-PWA:FIN -->
+<!-- GUIADO-PWA:INICIO · v1 (26-11-2026) · NO EDITAR AQUÍ: se edita herramientas\guiado_comun_pwa.html y se copia con herramientas\aplicar_guiado_comun.ps1 -->
+<style>
+  /* 🧭 Patrullaje guiado (Bitácora y Patrullaje): mapa a pantalla completa que sigue al teléfono sobre la ruta asignada */
+  .gd { position:fixed; left:0; right:0; top:0; bottom:0; z-index:4100; display:flex; flex-direction:column; background:#0F172A;
+    padding:env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    font-family:system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color:#fff; }
+  .gd-top { display:flex; align-items:center; gap:8px; padding:8px 10px; }
+  .gd-top .gd-tit { flex:1; min-width:0; }
+  .gd-top .gd-tit b { display:block; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .gd-top .gd-tit small { display:block; font-size:12px; color:#CBD5E1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .gd-top .gd-pct { font:900 22px system-ui, sans-serif; color:#86EFAC; }
+  .gd-volver { display:flex; align-items:center; gap:2px; height:38px; padding:0 12px 0 6px; border:0; border-radius:999px; background:#1E293B; color:#fff;
+    font:800 14px system-ui, sans-serif; cursor:pointer; flex:0 0 auto; }
+  .gd-volver svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+  .gd-ins { display:flex; align-items:center; gap:12px; margin:0 10px 8px; padding:10px 12px; border-radius:14px; background:#15803D; min-height:64px; }
+  .gd-ins.fuera { background:#B91C1C; animation:gdLat 1.2s ease-in-out infinite; }
+  .gd-ins.ir { background:#1D4ED8; }
+  .gd-ins.fin { background:#0F5132; }
+  @keyframes gdLat { 50% { background:#DC2626; } }
+  .gd-flecha { flex:0 0 52px; width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; }
+  .gd-flecha svg { width:38px; height:38px; transition:transform .4s; }
+  .gd-ins .gd-txt { flex:1; min-width:0; }
+  .gd-ins .gd-txt b { display:block; font-size:18px; line-height:1.15; }
+  .gd-ins .gd-txt small { display:block; font-size:13px; color:#E2E8F0; margin-top:2px; }
+  .gd-mapa { flex:1; position:relative; min-height:0; }
+  .gd-mapa .leaflet-container { width:100%; height:100%; background:#1E293B; }
+  .gd-centrar { position:absolute; left:10px; bottom:12px; z-index:1100; border:0; border-radius:999px; background:#fff; color:#0F172A; height:42px;
+    padding:0 16px; font:800 14px system-ui, sans-serif; box-shadow:0 2px 10px rgba(2,6,23,.35); cursor:pointer; display:none; }
+  .gd-centrar.on { display:block; }
+  .gd-pie { padding:8px 10px 10px; background:#0F172A; }
+  .gd-barra { position:relative; height:12px; border-radius:999px; background:#475569; overflow:hidden; }
+  .gd-barra i { position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg, #22C55E, #16A34A); border-radius:999px; transition:width .5s; }
+  .gd-datos { display:grid; grid-template-columns:repeat(4, 1fr); gap:4px; margin:8px 0; text-align:center; }
+  .gd-datos div { font-size:11px; color:#CBD5E1; }
+  .gd-datos b { display:block; font-size:16px; color:#fff; }
+  .gd-btns { display:flex; gap:8px; }
+  .gd-btns button { flex:1; height:46px; border:0; border-radius:12px; font:800 14px system-ui, sans-serif; cursor:pointer; color:#fff; background:#334155; }
+  .gd-btns .gd-gm { background:#1D4ED8; }
+  .gd-btns .gd-fin { background:#B91C1C; }
+  .gd-yo { width:30px; height:30px; border-radius:50%; background:#2563EB; border:3px solid #fff; box-shadow:0 0 0 6px rgba(37,99,235,.25), 0 2px 6px rgba(0,0,0,.4);
+    display:flex; align-items:center; justify-content:center; }
+  .gd-yo svg { width:18px; height:18px; transition:transform .4s; }
+  .gd-hito { background:#fff; color:#0F172A; border:2px solid #0F172A; border-radius:999px; font:900 11px system-ui, sans-serif; padding:1px 6px; white-space:nowrap;
+    box-shadow:0 1px 4px rgba(0,0,0,.4); transform:translate(-50%, -50%); position:absolute; }
+  .gd-chip { position:fixed; left:12px; bottom:calc(96px + env(safe-area-inset-bottom, 0px)); z-index:3900; display:flex; align-items:center; gap:8px; border:0;
+    border-radius:999px; background:#15803D; color:#fff; padding:10px 16px; font:800 14px system-ui, sans-serif; box-shadow:0 4px 16px rgba(2,6,23,.35); cursor:pointer; }
+  .gd-chip.fuera { background:#B91C1C; }
+  .gd-chip i { width:10px; height:10px; border-radius:50%; background:#BBF7D0; animation:gdPul 1.4s infinite; }
+  @keyframes gdPul { 50% { opacity:.3; } }
+  @media (min-width:700px) { .gd-ins .gd-txt b { font-size:20px; } .gd-pie { padding-left:16px; padding-right:16px; } }
+  @media (orientation:landscape) and (max-height:500px) {
+    .gd-ins { min-height:0; padding:6px 10px; margin-bottom:4px; } .gd-flecha { flex-basis:40px; width:40px; height:40px; } .gd-flecha svg { width:28px; height:28px; }
+    .gd-datos { display:none; } .gd-btns button { height:38px; } .gd-top { padding:4px 10px; }
+  }
+</style>
+<script>
+/* 🧭 PATRULLAJE GUIADO (bloque común de las apps Bitácora y Patrullaje)
+ * window.Guiado.abrir({ clave, titulo, sub, rutas (GeoJSON de líneas), base(map), extras(map), alTerminar(resumen), alCerrar(), minimizado })
+ *  · Mapa a pantalla completa que sigue al teléfono; la ruta en 2 colores (recorrido verde / pendiente) con % recorrido y km restantes.
+ *  · Fuera de ruta (> 100 m): franja roja, vibración, flecha y distancia al punto más cercano de la ruta.
+ *  · En la ruta: hacia dónde seguir (lo pendiente más cercano) y, al completar un tramo, cómo llegar al inicio del siguiente.
+ *  · «Google Maps» abre la navegación al inicio de la ruta (o al tramo siguiente) por camino público.
+ *  · Pantalla encendida (Wake Lock). «← Volver» minimiza: el GPS sigue y queda una burbuja para volver. El estado queda en el teléfono
+ *    (localStorage 'guiado_activo'): si la app se cierra, al volver se continúa. Funciona sin señal (GPS + ruta guardada).
+ *  · Al terminar entrega { clave, inicio, fin, pct, km_ruta, km_recorrido, fuera_n, tramos, rastro (GeoJSON LineString) } a alTerminar. */
+(function () {
+  if (typeof L === 'undefined' || window.Guiado) return;
+  const PASO = 20, RADIO = 40, FUERA = 100, VUELVE = 70, PREC_MAX = 80, CLAVE_LS = 'guiado_activo';
+  const R = 6371000, rad = x => x * Math.PI / 180, grados = x => x * 180 / Math.PI;
+  const dist = (a, b) => { const dLa = rad(b[0] - a[0]), dLo = rad(b[1] - a[1]); const h = Math.sin(dLa / 2) ** 2 + Math.cos(rad(a[0])) * Math.cos(rad(b[0])) * Math.sin(dLo / 2) ** 2; return 2 * R * Math.asin(Math.min(1, Math.sqrt(h))); };
+  const rumbo = (a, b) => { const y = Math.sin(rad(b[1] - a[1])) * Math.cos(rad(b[0])), x = Math.cos(rad(a[0])) * Math.sin(rad(b[0])) - Math.sin(rad(a[0])) * Math.cos(rad(b[0])) * Math.cos(rad(b[1] - a[1])); return (grados(Math.atan2(y, x)) + 360) % 360; };
+  const CARD = ['norte', 'noreste', 'este', 'sureste', 'sur', 'suroeste', 'oeste', 'noroeste'];
+  const cardinal = g => CARD[Math.round(g / 45) % 8];
+  const mTxt = m => m < 1000 ? Math.round(m / 10) * 10 + ' m' : (m / 1000).toFixed(m < 10000 ? 1 : 0).replace('.', ',') + ' km';
+  const kmTxt = m => (m / 1000).toFixed(1).replace('.', ',');
+  const durTxt = ms => { const m = Math.floor(ms / 60000); return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); };
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const lsGet = () => { try { return JSON.parse(localStorage.getItem(CLAVE_LS) || 'null'); } catch (e) { return null; } };
+  const lsSet = v => { try { if (v) localStorage.setItem(CLAVE_LS, JSON.stringify(v)); else localStorage.removeItem(CLAVE_LS); } catch (e) { /* sin almacenamiento: sigue en memoria */ } };
+  const FLECHA = '<svg viewBox="0 0 24 24"><path d="M12 2l7 18-7-4-7 4z" fill="#fff"/></svg>';
+  const OK_ICO = '<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const YO = '<svg viewBox="0 0 24 24"><path d="M12 3l6 16-6-3.5L6 19z" fill="#fff"/></svg>';
+  const VOLVER = '<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>';
+
+  // Líneas de la ruta (LineString / MultiLineString, en Feature, FeatureCollection o geometría) → [[lat,lng],...] por tramo
+  function lineasDe(g, out) {
+    out = out || [];
+    if (!g) return out;
+    if (g.type === 'FeatureCollection') (g.features || []).forEach(f => lineasDe(f, out));
+    else if (g.type === 'Feature') lineasDe(g.geometry, out);
+    else if (g.type === 'GeometryCollection') (g.geometries || []).forEach(x => lineasDe(x, out));
+    else if (g.type === 'LineString') out.push(g.coordinates.map(c => [c[1], c[0]]));
+    else if (g.type === 'MultiLineString') g.coordinates.forEach(l => out.push(l.map(c => [c[1], c[0]])));
+    return out.filter(l => l.length > 1);
+  }
+  // Puntos cada PASO metros sobre cada tramo (el % recorrido no depende de cuántos vértices tenga la línea)
+  function densificar(lineas) {
+    const P = [], T = [];
+    lineas.forEach((l, li) => {
+      const ini = P.length;
+      for (let i = 0; i < l.length; i++) {
+        const a = l[i], b = l[i + 1];
+        P.push({ ll: a, t: li });
+        if (!b) break;
+        const n = Math.floor(dist(a, b) / PASO);
+        for (let k = 1; k < n; k++) P.push({ ll: [a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n], t: li });
+      }
+      let largo = 0; for (let i = ini + 1; i < P.length; i++) largo += dist(P[i - 1].ll, P[i].ll);
+      T.push({ ini, fin: P.length - 1, largo });
+    });
+    return { P, T, largo: T.reduce((s, t) => s + t.largo, 0) };
+  }
+  const firma = lineas => lineas.length + ':' + lineas.map(l => l.length + '@' + l[0].map(x => x.toFixed(5)).join(',')).join('|');
+
+  let G = null;   // patrullaje guiado en curso
+  function guardar() {
+    if (!G) return;
+    lsSet({ clave: G.op.clave, titulo: G.op.titulo, sub: G.op.sub, firma: G.firma, inicio: G.inicio, cub: [...G.cub], km: G.km,
+      rastro: G.rastro.slice(-3000), fueraN: G.fueraN });
+  }
+  function pct() { return G && G.D.P.length ? Math.round(G.cub.size * 1000 / G.D.P.length) / 10 : 0; }
+  function kmRestantes() { return G ? G.D.largo * (1 - G.cub.size / Math.max(1, G.D.P.length)) : 0; }
+
+  // ── Interfaz ──────────────────────────────────────────────────────────────────────────────────────────────
+  function montar() {
+    const el = document.createElement('div'); el.className = 'gd';
+    el.innerHTML = '<div class="gd-top"><button type="button" class="gd-volver">' + VOLVER + 'Volver</button>' +
+      '<div class="gd-tit"><b>' + esc(G.op.titulo || 'Patrullaje guiado') + '</b><small>' + esc(G.op.sub || '') + '</small></div><div class="gd-pct">0 %</div></div>' +
+      '<div class="gd-ins ir"><div class="gd-flecha">' + FLECHA + '</div><div class="gd-txt"><b>Buscando tu ubicación…</b><small>Activa el GPS del teléfono</small></div></div>' +
+      '<div class="gd-mapa"><div class="gd-m"></div><button type="button" class="gd-centrar">◎ Centrar en mí</button></div>' +
+      '<div class="gd-pie"><div class="gd-barra"><i style="width:0"></i></div>' +
+      '<div class="gd-datos"><div><b class="gd-d1">0 %</b>recorrido</div><div><b class="gd-d2">0</b>km restantes</div><div><b class="gd-d3">0</b>km andados</div><div><b class="gd-d4">0:00</b>tiempo</div></div>' +
+      '<div class="gd-btns"><button type="button" class="gd-gm">🧭 Google Maps</button><button type="button" class="gd-fin">⏹ Terminar</button></div></div>';
+    document.body.appendChild(el);
+    G.el = el;
+    const q = s => el.querySelector(s);
+    // «grande» = para el bloque común de mapas: un dedo mueve el mapa y no agrega ⛶ Ampliar (ya es pantalla completa)
+    const mc = q('.gd-m'); mc.style.cssText = 'position:absolute;inset:0;'; mc.classList.add('grande');
+    const map = G.map = L.map(mc, { attributionControl: false, zoomControl: true });
+    map.zoomControl.setPosition('bottomright');
+    // La vista se fija ANTES de agregar capas (con capas en espera, un polígono falla al dibujarse y corta las demás)
+    try { map.fitBounds(L.polyline(G.lineas).getBounds(), { padding: [30, 30], animate: false }); } catch (e) { map.setView(G.lineas[0][0], 14); }
+    if (typeof G.op.base === 'function') { try { G.op.base(map); } catch (e) { /* base propia de la app */ } }
+    else L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 18, crossOrigin: true }).addTo(map);
+    if (typeof G.op.extras === 'function') { try { G.op.extras(map); } catch (e) { /* capas extra */ } }
+    // Ruta: borde oscuro + pendiente (amarillo) y encima lo recorrido (verde)
+    L.polyline(G.lineas, { color: '#0F172A', weight: 11, opacity: .55, interactive: false }).addTo(map);
+    G.capaPend = L.polyline(G.lineas, { color: '#FACC15', weight: 7, opacity: .95, interactive: false }).addTo(map);
+    G.capaCub = L.polyline([], { color: '#22C55E', weight: 7, opacity: 1, interactive: false }).addTo(map);
+    G.capaRastro = L.polyline(G.rastro.map(p => [p[0], p[1]]), { color: '#60A5FA', weight: 3, opacity: .9, dashArray: '2 6', interactive: false }).addTo(map);
+    G.capaGuia = L.polyline([], { color: '#fff', weight: 3, opacity: .95, dashArray: '8 8', interactive: false }).addTo(map);
+    // Inicio y fin de cada tramo (con varios tramos, numerados)
+    G.lineas.forEach((l, i) => {
+      const n = G.lineas.length > 1 ? ' ' + (i + 1) : '';
+      L.marker(l[0], { interactive: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: '<div class="gd-hito" style="background:#22C55E;color:#fff;border-color:#fff;">▶ Inicio' + n + '</div>' }) }).addTo(map);
+      L.marker(l[l.length - 1], { interactive: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: '<div class="gd-hito">🏁 Fin' + n + '</div>' }) }).addTo(map);
+    });
+    G.yo = null;
+    setTimeout(() => map.invalidateSize(), 60);
+    map.on('dragstart', () => { G.seguir = false; q('.gd-centrar').classList.add('on'); });
+    q('.gd-centrar').onclick = () => { G.seguir = true; q('.gd-centrar').classList.remove('on'); if (G.pos) map.setView(G.pos, Math.max(map.getZoom(), 16)); };
+    q('.gd-volver').onclick = () => minimizar();
+    q('.gd-gm').onclick = () => abrirGoogleMaps();
+    q('.gd-fin').onclick = () => terminar();
+    pintarCubierto(); pintarPanel();
+    // «Atrás» del teléfono = Volver (minimiza; el patrullaje sigue)
+    try { history.pushState({ guiado: 1 }, ''); G.hist = true; } catch (e) { G.hist = false; }
+  }
+  function desmontar() {
+    if (G && G.map) { try { G.map.remove(); } catch (e) { /* ya quitado */ } G.map = null; }
+    if (G && G.el) { G.el.remove(); G.el = null; }
+  }
+  window.addEventListener('popstate', () => { if (G && G.el && G.hist) minimizar(); });
+  // Con el botón no se retrocede el historial (un history.back() llega tarde y cerraría un guiado recién abierto): queda una
+  // entrada de más, que con «atrás» no hace nada.
+  function minimizar() {
+    if (!G) return;
+    G.hist = false;
+    desmontar(); pintarChip();
+    if (typeof G.op.alCerrar === 'function') { try { G.op.alCerrar(); } catch (e) { /* app */ } }
+  }
+  function pintarChip() {
+    let c = document.querySelector('.gd-chip');
+    if (!G || G.el) { if (c) c.remove(); return; }
+    if (!c) { c = document.createElement('button'); c.type = 'button'; c.className = 'gd-chip'; c.onclick = () => reabrir(); document.body.appendChild(c); }
+    c.classList.toggle('fuera', !!G.fuera);
+    c.innerHTML = '<i></i>🧭 Guiado · ' + String(pct()).replace('.', ',') + ' %' + (G.fuera ? ' · fuera de ruta' : '') + ' · Abrir';
+  }
+  function reabrir() { if (!G || G.el) return; const c = document.querySelector('.gd-chip'); if (c) c.remove(); montar(); if (G.pos) actualizar(true); pedirPantalla(); }
+
+  // Tramos recorridos como líneas verdes (puntos seguidos cubiertos del mismo tramo)
+  function pintarCubierto() {
+    if (!G || !G.map) return;
+    const runs = []; let act = null;
+    G.D.P.forEach((p, i) => {
+      if (G.cub.has(i) && act && G.D.P[i - 1] && G.D.P[i - 1].t === p.t && G.cub.has(i - 1)) act.push(p.ll);
+      else if (G.cub.has(i)) { act = [p.ll]; runs.push(act); }
+      else act = null;
+    });
+    G.capaCub.setLatLngs(runs.filter(r => r.length > 1));
+  }
+  // Hacia dónde seguir: lo pendiente más cercano en el mismo tramo; si el tramo está completo, el pendiente más cercano de otro tramo
+  function objetivo() {
+    const { P, T } = G.D, i0 = G.cerca;
+    if (i0 == null) return null;
+    if (G.cub.size >= P.length) return { tipo: 'fin' };
+    const t = T[P[i0].t];
+    let ad = null, at = null;
+    for (let i = i0; i <= t.fin; i++) if (!G.cub.has(i)) { ad = i; break; }
+    for (let i = i0; i >= t.ini; i--) if (!G.cub.has(i)) { at = i; break; }
+    if (ad != null || at != null) {
+      const sentido = at == null || (ad != null && ad - i0 <= i0 - at) ? 1 : -1;
+      const ini = sentido > 0 ? ad : at;
+      let fin = ini; while (P[fin + sentido] && P[fin + sentido].t === P[ini].t && !G.cub.has(fin + sentido)) fin += sentido;
+      const ver = P[Math.max(t.ini, Math.min(t.fin, ini + sentido * 3))].ll;   // ~60 m más adelante: el rumbo de la ruta
+      return { tipo: 'ruta', i: ini, sentido, ver, pend: Math.abs(fin - ini) * PASO, llegar: Math.abs(ini - i0) * PASO };
+    }
+    let mej = null, dm = Infinity;
+    P.forEach((p, i) => { if (!G.cub.has(i) && p.t !== P[i0].t) { const d = dist(G.pos, p.ll); if (d < dm) { dm = d; mej = i; } } });
+    return mej == null ? { tipo: 'fin' } : { tipo: 'tramo', i: mej, ll: P[mej].ll, d: dm, n: P[mej].t + 1 };
+  }
+  // Inicio de la ruta para «Google Maps»: el extremo de tramo (con algo pendiente) más cercano a mí
+  function inicioRuta() {
+    const { P, T } = G.D;
+    let mej = null, dm = Infinity;
+    T.forEach(t => [t.ini, t.fin].forEach(i => { if (G.cub.has(i) && G.cub.size) return; const d = G.pos ? dist(G.pos, P[i].ll) : 0; if (d < dm) { dm = d; mej = P[i].ll; } }));
+    return mej || P[0].ll;
+  }
+  function abrirGoogleMaps() {
+    const ob = G.pos ? objetivo() : null;
+    const ll = !G.cub.size || !ob ? inicioRuta() : G.fuera ? G.D.P[G.cerca].ll : ob.tipo === 'tramo' ? ob.ll : ob.tipo === 'ruta' ? G.D.P[ob.i].ll : inicioRuta();
+    window.open('https://www.google.com/maps/dir/?api=1&destination=' + ll[0].toFixed(6) + ',' + ll[1].toFixed(6) + '&travelmode=driving', '_blank');
+  }
+  function flecha(grad) {
+    if (!G || !G.el) return;
+    const sv = G.el.querySelector('.gd-flecha svg'); if (!sv) return;
+    // Con rumbo del GPS (en movimiento) la flecha es relativa a hacia dónde avanzas; detenido, relativa al norte (el mapa mira al norte)
+    sv.style.transform = 'rotate(' + Math.round(grad - (G.rumbo != null ? G.rumbo : 0)) + 'deg)';
+  }
+  function instruccion(cls, ico, txt, sub) {
+    if (!G || !G.el) return;
+    const ins = G.el.querySelector('.gd-ins');
+    ins.className = 'gd-ins ' + cls;
+    if (ins.dataset.ico !== ico) { ins.querySelector('.gd-flecha').innerHTML = ico === 'ok' ? OK_ICO : FLECHA; ins.dataset.ico = ico; }
+    ins.querySelector('.gd-txt').innerHTML = '<b>' + txt + '</b><small>' + sub + '</small>';
+  }
+  function giro(grad) {
+    if (G.rumbo == null) return 'Avanza hacia el ' + cardinal(grad);
+    const d = ((grad - G.rumbo + 540) % 360) - 180;
+    return Math.abs(d) < 30 ? 'Sigue derecho' : Math.abs(d) > 150 ? 'Da la vuelta' : (d > 0 ? 'Gira a la derecha' : 'Gira a la izquierda') + (Math.abs(d) < 60 ? ' suave' : '');
+  }
+  function pintarPanel() {
+    if (!G) return;
+    pintarChip();
+    if (!G.el) return;
+    const q = s => G.el.querySelector(s), p = pct();
+    q('.gd-pct').textContent = String(Math.round(p)) + ' %';
+    q('.gd-barra i').style.width = Math.min(100, p) + '%';
+    q('.gd-d1').textContent = String(p).replace('.', ',') + ' %';
+    q('.gd-d2').textContent = kmTxt(kmRestantes());
+    q('.gd-d3').textContent = kmTxt(G.km);
+    q('.gd-d4').textContent = durTxt(Date.now() - new Date(G.inicio).getTime());
+  }
+  // Guía según la posición: fuera de ruta / en la ruta / ir al tramo siguiente / ruta completa
+  function guiar() {
+    if (!G || !G.pos) return;
+    const P = G.D.P, cerca = P[G.cerca];
+    let guia = [];
+    if (G.fuera) {
+      const g = rumbo(G.pos, cerca.ll);
+      instruccion('fuera', 'flecha', '⚠️ Fuera de ruta · ' + mTxt(G.dcerca), 'Vuelve a la ruta: ' + giro(g).toLowerCase() + ' (hacia el ' + cardinal(g) + ')');
+      flecha(g); guia = [G.pos, cerca.ll];
+    } else {
+      const ob = objetivo();
+      if (!ob || ob.tipo === 'fin') { instruccion('fin', 'ok', '✅ Ruta completa', 'Recorriste toda la ruta. Toca «Terminar» para guardar el patrullaje.'); }
+      else if (ob.tipo === 'tramo') {
+        const g = rumbo(G.pos, ob.ll);
+        instruccion('ir', 'flecha', 'Tramo ' + ob.n + ' · a ' + mTxt(ob.d), 'Terminaste este tramo. Ve al inicio del siguiente (hacia el ' + cardinal(g) + ') o usa Google Maps.');
+        flecha(g); guia = [G.pos, ob.ll];
+      } else {
+        const g = rumbo(G.pos, ob.llegar > 2 * PASO ? P[ob.i].ll : ob.ver);
+        instruccion('', 'flecha', giro(g), ob.llegar > 2 * PASO ? 'Lo pendiente empieza a ' + mTxt(ob.llegar) + ' por la ruta' : 'Quedan ' + mTxt(ob.pend) + ' sin recorrer en este sentido');
+        flecha(g);
+        if (ob.llegar > 2 * PASO) guia = [G.pos, P[ob.i].ll];
+      }
+    }
+    if (G.capaGuia) G.capaGuia.setLatLngs(guia);
+  }
+  // ── GPS ───────────────────────────────────────────────────────────────────────────────────────────────────
+  function enPosicion(p) {
+    if (!G) return;
+    const c = p.coords, ll = [c.latitude, c.longitude], prec = c.accuracy || 999;
+    const ant = G.pos; G.pos = ll; G.prec = prec;
+    if (c.heading != null && !isNaN(c.heading) && (c.speed || 0) > 1) G.rumbo = c.heading;
+    else if (ant && dist(ant, ll) > 8) G.rumbo = rumbo(ant, ll);
+    if (prec <= PREC_MAX) {
+      const ult = G.rastro[G.rastro.length - 1];
+      const d = ult ? dist([ult[0], ult[1]], ll) : 0, dt = ult ? (p.timestamp - ult[2]) / 1000 : 0;
+      if (!ult || (d >= 10 && (dt <= 0 || d / dt < 70))) { if (ult) G.km += d; G.rastro.push([+ll[0].toFixed(6), +ll[1].toFixed(6), p.timestamp]); }
+      // Cubre los puntos de la ruta a menos de RADIO (la precisión del GPS no agranda el radio)
+      let nuevo = false;
+      G.D.P.forEach((q, i) => { if (!G.cub.has(i) && Math.abs(q.ll[0] - ll[0]) < 0.001 && dist(q.ll, ll) <= RADIO) { G.cub.add(i); nuevo = true; } });
+      if (nuevo) pintarCubierto();
+    }
+    // Punto más cercano de la ruta
+    let dm = Infinity, im = 0;
+    G.D.P.forEach((q, i) => { const d = dist(q.ll, ll); if (d < dm) { dm = d; im = i; } });
+    G.cerca = im; G.dcerca = dm;
+    const fueraAntes = !!G.fuera;
+    if (prec <= PREC_MAX * 1.5) G.fuera = G.fuera ? dm > VUELVE : dm > FUERA && G.cub.size > 0 || dm > FUERA && G.arranco;
+    if (dm <= FUERA) G.arranco = true;   // antes de llegar por primera vez a la ruta no es «fuera de ruta», es «ir al inicio»
+    if (G.fuera && (!fueraAntes || Date.now() - (G.vibro || 0) > 45000)) {
+      if (!fueraAntes) G.fueraN++;
+      G.vibro = Date.now(); try { navigator.vibrate && navigator.vibrate([300, 150, 300, 150, 300]); } catch (e) { /* sin vibración */ }
+    }
+    if (!fueraAntes !== !G.fuera || Date.now() - (G.guardado || 0) > 15000) { G.guardado = Date.now(); guardar(); }
+    actualizar(!ant);
+  }
+  function actualizar(primera) {
+    if (!G) return;
+    if (G.map && G.pos) {
+      const ic = '<div class="gd-yo">' + YO + '</div>';
+      if (!G.yo) {
+        G.circ = L.circle(G.pos, { radius: G.prec || 20, color: '#2563EB', weight: 1, fillColor: '#3B82F6', fillOpacity: .12, interactive: false }).addTo(G.map);
+        G.yo = L.marker(G.pos, { zIndexOffset: 3000, interactive: false, icon: L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 15], html: ic }) }).addTo(G.map);
+      } else { G.yo.setLatLng(G.pos); G.circ.setLatLng(G.pos).setRadius(Math.min(G.prec || 20, 300)); }
+      const sv = G.yo.getElement() && G.yo.getElement().querySelector('svg');
+      if (sv) sv.style.transform = 'rotate(' + Math.round(G.rumbo || 0) + 'deg)';
+      G.capaRastro.setLatLngs(G.rastro.map(p => [p[0], p[1]]));
+      if (G.seguir) G.map.setView(G.pos, primera ? Math.max(G.map.getZoom(), 16) : G.map.getZoom(), { animate: !primera });
+    }
+    if (G.pos && !G.arranco && G.el) {
+      const ini = inicioRuta(), g = rumbo(G.pos, ini);
+      instruccion('ir', 'flecha', 'Ve al inicio de la ruta · ' + mTxt(dist(G.pos, ini)), 'Hacia el ' + cardinal(g) + '. Para llegar por camino público toca «Google Maps».');
+      flecha(g); if (G.capaGuia) G.capaGuia.setLatLngs([G.pos, ini]);
+    } else guiar();
+    pintarPanel();
+  }
+  function errorGps(e) {
+    if (!G || !G.el) return;
+    instruccion('fuera', 'flecha', e && e.code === 1 ? '📍 Permite la ubicación' : '📍 Sin señal de GPS', e && e.code === 1 ? 'El navegador no deja leer el GPS: candado 🔒 › Ubicación › Permitir.' : 'Revisa que la ubicación del teléfono esté encendida.');
+  }
+  // Pantalla encendida mientras dure el guiado (el navegador la suelta al ocultar la app: se vuelve a pedir al volver)
+  async function pedirPantalla() {
+    if (!G || G.lock || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+    try { G.lock = await navigator.wakeLock.request('screen'); G.lock.addEventListener('release', () => { if (G) G.lock = null; }); } catch (e) { /* sin Wake Lock */ }
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pedirPantalla(); });
+
+  // ── Inicio / término ─────────────────────────────────────────────────────────────────────────────────────
+  function abrir(op) {
+    if (G) {
+      if (G.op.clave === op.clave) { G.op = Object.assign(G.op, op); if (!op.minimizado) reabrir(); else pintarChip(); return true; }
+      if (!confirm('Hay otro patrullaje guiado en curso (' + (G.op.titulo || '') + '). ¿Dejarlo y empezar este?')) return false;
+      cerrarTodo();
+    }
+    const lineas = lineasDe(op.rutas);
+    if (!lineas.length) { alert('Esta ruta no tiene una línea para guiar.'); return false; }
+    const D = densificar(lineas), fi = firma(lineas), prev = lsGet();
+    G = { op, lineas, D, firma: fi, inicio: new Date().toISOString(), cub: new Set(), km: 0, rastro: [], fueraN: 0, seguir: true, fuera: false, arranco: false };
+    if (prev && prev.clave === op.clave && prev.firma === fi) {   // continúa el que quedó a medias (la app se cerró)
+      Object.assign(G, { inicio: prev.inicio, cub: new Set(prev.cub || []), km: prev.km || 0, rastro: prev.rastro || [], fueraN: prev.fueraN || 0, arranco: (prev.cub || []).length > 0 });
+    }
+    guardar();
+    if (!('geolocation' in navigator)) alert('Este teléfono no entrega la ubicación: el guiado no puede seguirte.');
+    else G.watch = navigator.geolocation.watchPosition(enPosicion, errorGps, { enableHighAccuracy: true, maximumAge: 2000, timeout: 30000 });
+    G.reloj = setInterval(pintarPanel, 15000);
+    if (op.minimizado) pintarChip(); else montar();
+    pedirPantalla();
+    return true;
+  }
+  function cerrarTodo() {
+    if (!G) return;
+    if (G.watch != null) { try { navigator.geolocation.clearWatch(G.watch); } catch (e) { /* sin GPS */ } }
+    clearInterval(G.reloj);
+    if (G.lock) { try { G.lock.release(); } catch (e) { /* ya liberado */ } }
+    G.hist = false;
+    desmontar();
+    const c = document.querySelector('.gd-chip'); if (c) c.remove();
+    G = null; lsSet(null);
+  }
+  function resumen() {
+    let r = G.rastro;
+    if (r.length > 2000) { const k = Math.ceil(r.length / 2000); r = r.filter((p, i) => i % k === 0 || i === G.rastro.length - 1); }
+    return { clave: G.op.clave, inicio: G.inicio, fin: new Date().toISOString(), pct: pct(),
+      km_ruta: Math.round(G.D.largo) / 1000, km_recorrido: Math.round(G.km) / 1000, km_cubierto: Math.round(G.D.largo * G.cub.size / Math.max(1, G.D.P.length)) / 1000,
+      fuera_n: G.fueraN, tramos: G.lineas.length,
+      rastro: r.length > 1 ? { type: 'LineString', coordinates: r.map(p => [p[1], p[0]]) } : null };
+  }
+  async function terminar(sinPreguntar) {
+    if (!G) return null;
+    if (!sinPreguntar && !confirm('¿Terminar el patrullaje guiado?\n\nRecorriste el ' + String(pct()).replace('.', ',') + ' % de la ruta (' + kmTxt(G.km) + ' km andados).')) return null;
+    const res = resumen(), op = G.op;
+    cerrarTodo();
+    if (typeof op.alTerminar === 'function') { try { await op.alTerminar(res); } catch (e) { console.warn('guiado alTerminar', e); } }
+    return res;
+  }
+  window.Guiado = {
+    abrir, terminar, reabrir,
+    activo: () => G ? { clave: G.op.clave, pct: pct(), fuera: !!G.fuera, abierto: !!G.el } : null,
+    guardado: () => lsGet(),           // el que quedó a medias al cerrarse la app (para ofrecer «Continuar»)
+    descartar: () => { cerrarTodo(); lsSet(null); },
+    _lineas: lineasDe,
+    _g: () => G   // solo para revisar en la consola
+  };
+})();
+</script>
+<!-- GUIADO-PWA:FIN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 :root{
@@ -543,7 +951,7 @@ textarea.campo:focus{border-color:var(--cobalt);}
 // Los reportes, turnos y puntos GPS se guardan primero en el teléfono (IndexedDB) y se envían cuando hay
 // señal: nada se pierde si se corta la conexión.
 // ════════════════════════════════════════════════════════════════
-const APP_VERSION = '2.5.4';
+const APP_VERSION = '2.6.0';
 const SUPABASE_URL = 'https://api.copamientoterritorial.cl';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -1088,6 +1496,7 @@ function elegirRutaEIniciar() {
     <div class="ri-ayuda">Rutas y áreas de <b>${esc(state.usuario.institucion || 'tu institución')}</b>. Toca una ruta en el mapa o en la lista; la elegida se destaca.</div>
     <div id="ri-lista"></div>
     <button class="ruta-op sel" data-id=""><span style="font-size:22px">🧭</span><div><b>Patrullaje libre</b><small>Sin una ruta específica</small></div></button>
+    <button class="btn btn-pri hidden" id="btn-ini-guiado" style="width:100%;margin-top:10px">🧭 Iniciar patrullaje guiado por esta ruta</button>
     <div class="hoja-acc"><button class="btn btn-sec" data-cerrar>Cancelar</button><button class="btn btn-ok" id="btn-ini-ok">Iniciar patrullaje libre</button></div>`);
   // Mini mapa con las rutas numeradas
   mm = L.map(h.querySelector('#ri-mapa'), { zoomControl: false, attributionControl: false }).setView(state.pos ? [state.pos.lat, state.pos.lng] : [-38.6, -72.5], 12);
@@ -1106,6 +1515,7 @@ function elegirRutaEIniciar() {
     });
     const r = lista.find(x => String(x.id) === id);
     h.querySelector('#btn-ini-ok').textContent = r ? '▶ Iniciar: ' + r.nombre.slice(0, 22) : 'Iniciar patrullaje libre';
+    h.querySelector('#btn-ini-guiado').classList.toggle('hidden', !(r && r.geometry && window.Guiado));   // v2.6.0
     mm.invalidateSize();
     if (r && capas[id]) {
       try { mm.fitBounds(capas[id].linea.getBounds(), { padding: [24, 24], maxZoom: 15 }); } catch (e) {}
@@ -1143,6 +1553,30 @@ function elegirRutaEIniciar() {
     cerrarHoja();
     await iniciarTurno(ruta);
   });
+  h.querySelector('#btn-ini-guiado').addEventListener('click', async () => {   // v2.6.0: 🧭 patrullaje guiado
+    const ruta = todasRutas().find(r => String(r.id) === String(sel)) || null;
+    if (!ruta) return;
+    cerrarHoja();
+    await iniciarTurno(ruta);
+    abrirGuiadoTurno(false);
+  });
+}
+
+// 🧭 v2.6.0 · Patrullaje guiado (bloque común GUIADO-PWA): el mapa sigue al patrullero por la ruta del turno, con % recorrido,
+// aviso «Fuera de ruta» y Google Maps al inicio. Terminar el guiado = terminar el patrullaje. El % queda en app_turnos (SQL 200).
+function abrirGuiadoTurno(minimizado) {
+  const t = state.turno, ruta = rutaDelTurno();
+  if (!t || !ruta || !ruta.geometry || !window.Guiado) { if (!minimizado) toast('Este patrullaje no tiene una ruta para guiar.'); return; }
+  window.Guiado.abrir({
+    clave: 'pt_' + t.id, minimizado,
+    titulo: '🧭 ' + (ruta.nombre || 'Ruta'),
+    sub: [ruta.escenario ? (ESCENARIOS[ruta.escenario] || ruta.escenario) : '', ruta.km ? Number(ruta.km).toFixed(1).replace('.', ',') + ' km' : '', ruta.institucion || ''].filter(Boolean).join(' · '),
+    rutas: ruta.geometry,
+    base: map => (state.fondoSat ? FONDOS.sat() : FONDOS.calles()).addTo(map),
+    alTerminar: res => { if (!state.cerrandoGuiado) return terminarTurno(true, res); },
+    alCerrar: () => renderTurno()
+  });
+  renderTurno();
 }
 
 async function iniciarTurno(ruta) {
@@ -1159,12 +1593,18 @@ async function iniciarTurno(ruta) {
   sincronizar();
 }
 
-async function terminarTurno() {
+async function terminarTurno(confirmado, resGuiado) {
   const t = state.turno;
   if (!t) return;
-  if (!confirm('¿Terminar el patrullaje?\n\nDuración ' + fmtDuracion(Date.now() - new Date(t.inicio)) + ' · ' + (t.km || 0).toFixed(1) + ' km')) return;
+  if (confirmado !== true && !confirm('¿Terminar el patrullaje?\n\nDuración ' + fmtDuracion(Date.now() - new Date(t.inicio)) + ' · ' + (t.km || 0).toFixed(1) + ' km')) return;
+  // v2.6.0: si el guiado sigue abierto se cierra (sin volver a preguntar) y se toma su % de ruta recorrida
+  const g = window.Guiado && window.Guiado.activo();
+  if (!resGuiado && g && g.clave === 'pt_' + t.id) { state.cerrandoGuiado = true; try { resGuiado = await window.Guiado.terminar(true); } finally { state.cerrandoGuiado = false; } }
   await encolar({ tipo: 'turno_fin', turno_id: t.id, fin: new Date().toISOString() });
-  const resumen = Object.assign({}, t, { fin: new Date().toISOString(), cobertura: coberturaPct() });
+  const cobLocal = coberturaPct();
+  const cob = resGuiado ? Math.max(cobLocal || 0, Math.round(resGuiado.pct)) : cobLocal;
+  if (cob != null) await encolar({ tipo: 'turno_cob', turno_id: t.id, pct: cob, km_ruta: resGuiado ? resGuiado.km_ruta : (rutaDelTurno() || {}).km || null, guiado: !!resGuiado, fuera_n: resGuiado ? resGuiado.fuera_n : null });
+  const resumen = Object.assign({}, t, { fin: new Date().toISOString(), cobertura: cob, guiado: !!resGuiado });
   const hist = (await DB.get('kv', 'turnos_locales')) || [];
   hist.unshift(resumen); await DB.put('kv', hist.slice(0, 10), 'turnos_locales');
   state.turno = null; state.rastro = []; state.ultimoPunto = null; state.cubiertos = new Set(); state.rutaVertices = [];
@@ -1283,6 +1723,10 @@ async function contarPendientes() {
 async function procesarItem(it) {
   if (it.tipo === 'turno_ini') {
     await rpc('app_turno_iniciar', { p_token: state.token, p_id: it.turno.id, p_ruta_id: it.turno.ruta_id, p_ruta_nombre: it.turno.ruta_nombre, p_inicio: it.turno.inicio, p_dispositivo: navigator.userAgent.slice(0, 200) });
+  } else if (it.tipo === 'turno_cob') {
+    // v2.6.0 (SQL 200): % de la ruta recorrida y si fue guiado. Sin el SQL 200 se descarta (no frena la cola)
+    try { await rpc('app_turno_guiado', { p_token: state.token, p_turno: it.turno_id, p_pct: it.pct, p_km_ruta: it.km_ruta, p_guiado: !!it.guiado, p_fuera_n: it.fuera_n }); }
+    catch (e) { if (e.sesion || !/app_turno_guiado|schema cache|does not exist|PGRST202|Could not find/i.test(e.message || '')) throw e; }
   } else if (it.tipo === 'turno_fin') {
     await enviarGps(it.turno_id);   // los puntos del turno antes de cerrarlo (para el cálculo de km)
     await rpc('app_turno_terminar', { p_token: state.token, p_turno: it.turno_id, p_fin: it.fin });
@@ -1540,8 +1984,16 @@ function renderTurno() {
       <div class="kpi"><b>${cob == null ? '—' : cob + '%'}</b><small>Ruta</small></div>
     </div>
     ${state.wakeLock ? '' : '<div class="aviso">📱 Mantén la pantalla encendida y la app abierta: con la pantalla apagada el teléfono deja de enviar la ubicación.</div>'}
+    ${ruta && ruta.geometry && window.Guiado ? `<button class="btn btn-pri" id="btn-guiado" style="width:100%;margin-bottom:8px">${(window.Guiado.activo() || {}).clave === 'pt_' + t.id ? '🧭 Volver al guiado · ' + String(window.Guiado.activo().pct).replace('.', ',') + ' %' : '🧭 Patrullaje guiado'}</button>` : ''}
     <button class="btn btn-stop" id="btn-terminar">⏹ Terminar patrullaje</button>`;
   $('btn-terminar').addEventListener('click', terminarTurno);
+  if ($('btn-guiado')) $('btn-guiado').addEventListener('click', () => abrirGuiadoTurno(false));
+  // Si la app se cerró con el guiado en curso, se retoma minimizado (burbuja «🧭 Guiado»)
+  if (!state.guiadoRetomado && ruta && window.Guiado) {
+    state.guiadoRetomado = true;
+    const gg = window.Guiado.guardado();
+    if (gg && gg.clave === 'pt_' + t.id && !window.Guiado.activo()) setTimeout(() => abrirGuiadoTurno(true), 0);
+  }
 }
 setInterval(() => { const k = $('k-dur'); if (k && state.turno) k.textContent = fmtDuracion(Date.now() - new Date(state.turno.inicio)); }, 15000);
 

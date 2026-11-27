@@ -625,7 +625,9 @@ function sgPpaResumir_(med) {
 }
 /** Grupos (área del Seguimiento o sector del PPA › 🧩 Avance por sector) que abren los modales, por clave (sin «|»). */
 const SG_PPA_GRUPOS = {};
-const SG_PPA_COL = p => p == null ? '#94A3B8' : p >= 100 ? '#16A34A' : p >= 50 ? '#D97706' : '#DC2626';
+/* 26-11-2026: PALETA SOBRIA del tablero PPA (pedido del usuario: sin naranjos fuertes). Semáforo apagado + series + categóricos. */
+const SG_PPA_PAL = { verde: '#10B981', ambar: '#F59E0B', rojo: '#EF4444', gris: '#CBD5E1', general: '#60A5FA', fecha: '#10B981', generalT: '#DBEAFE', fechaT: '#D1FAE5', titulo: '#0F766E' };   // 26-11-2026 v2: tonos limpios y vivos (referencia del usuario)
+const SG_PPA_COL = p => p == null ? '#94A3B8' : p >= 100 ? SG_PPA_PAL.verde : p >= 50 ? SG_PPA_PAL.ambar : SG_PPA_PAL.rojo;
 const SG_PPA_NUM = v => ppaNum_(v).toLocaleString('es-CL');
 const SG_PPA_PCT = p => p == null ? '—' : String(p).replace('.', ',') + '%';
 /** 19-11-2026: los dos avances de un grupo (área o sector): general (todo el período) y a la fecha (lo exigible), con barra cada uno. */
@@ -704,7 +706,7 @@ async function renderSgPpa_(host) {
  * (General = índigo, A la fecha = naranja, con el % al final de cada barra; ordenadas por avance a la fecha); (3) barras apiladas «Estado de las
  * medidas» (vencidas / por vencer / al día / sin metas vencidas). Con un ÁREA elegida en los chips, las unidades pasan a ser sus SECTORES.
  * Clic: en un área → filtra por esa área (chips); en un sector → modal de sus medidas; en un tramo del estado → modal filtrado. */
-const SG_PPA_UCOL = ['#6366F1', '#10B981', '#F59E0B', '#EC4899', '#0EA5E9', '#8B5CF6', '#EF4444', '#14B8A6', '#F97316', '#84CC16', '#64748B', '#A855F7', '#06B6D4', '#EAB308'];
+const SG_PPA_UCOL = ['#6366F1', '#10B981', '#F59E0B', '#0EA5E9', '#8B5CF6', '#EC4899', '#14B8A6', '#84CC16', '#F97316', '#64748B', '#06B6D4', '#A855F7', '#EF4444', '#EAB308'];
 function sgPpaUnidades_(R) {
   const S = state.sg;
   if (!S.ppaArea || !R.areas[0]) return { tipo: 'area', u: R.areas.map(x => Object.assign({}, x, { etq: aTitulo_(x.nombre) })) };
@@ -737,9 +739,9 @@ function sgPpaHtmlDist_(cfg) {
       '<div class="sg-ppa-dcard2"><div class="cab"><b>Medidas por ' + cfg.quien + '</b></div>' +
         '<div class="dona"><canvas id="sg-ppa-' + cfg.pre + '1"></canvas><div class="centro"><b>' + SG_PPA_NUM(cfg.total) + '</b><span>medidas</span></div></div>' +
         '<div class="ley">' + porMed.map(x => '<div' + (sel && sel !== x.gk ? ' class="off"' : '') + '><i style="background:' + cfg.col[x.k] + '"></i><span title="' + escapeHtml_(x.etq) + '">' + escapeHtml_(x.etq) + '</span><b>' + x.total + '</b><small>' + Math.round(x.total * 100 / tot) + ' %</small></div>').join('') + '</div></div>' +
-      '<div class="sg-ppa-dcard2"><div class="cab"><b>Avance por ' + cfg.quien + '</b><div class="lg">' + ley('#6366F1', 'General') + ley('#F97316', 'A la fecha') + '</div></div>' +
+      '<div class="sg-ppa-dcard2"><div class="cab"><b>Avance por ' + cfg.quien + '</b><div class="lg">' + ley(SG_PPA_PAL.general, 'General') + ley(SG_PPA_PAL.fecha, 'A la fecha') + '</div></div>' +
         '<div class="barras" style="height:' + alto + 'px"><canvas id="sg-ppa-' + cfg.pre + '2"></canvas></div></div>' +
-      '<div class="sg-ppa-dcard2"><div class="cab"><b>Estado de las medidas</b><div class="lg">' + ley('#DC2626', 'Vencidas') + ley('#F59E0B', 'Por vencer') + ley('#16A34A', 'Al día') + ley('#CBD5E1', 'Sin vencer') + '</div></div>' +
+      '<div class="sg-ppa-dcard2"><div class="cab"><b>Estado de las medidas</b><div class="lg">' + ley(SG_PPA_PAL.rojo, 'Vencidas') + ley(SG_PPA_PAL.ambar, 'Por vencer') + ley(SG_PPA_PAL.verde, 'Al día') + ley(SG_PPA_PAL.gris, 'Sin vencer') + '</div></div>' +
         '<div class="barras" style="height:' + alto + 'px"><canvas id="sg-ppa-' + cfg.pre + '3"></canvas></div></div>' +
     '</div>';
 }
@@ -782,8 +784,8 @@ function sgPpaGraficosDist_(cfg) {
   if (c2) S.ppaAreaCharts.push(new Chart(c2, {
     type: 'bar',
     data: { labels: porAv.map(x => x.etq), datasets: [
-      { label: 'Avance general', data: porAv.map(x => x.pctGen), backgroundColor: porAv.map(x => tenue(x) ? '#E0E7FF' : '#818CF8'), borderRadius: 6, barPercentage: 0.75, categoryPercentage: 0.7 },
-      { label: 'Avance a la fecha', data: porAv.map(x => x.pct), backgroundColor: porAv.map(x => tenue(x) ? '#FFEDD5' : '#FB923C'), borderRadius: 6, barPercentage: 0.75, categoryPercentage: 0.7 },
+      { label: 'Avance general', data: porAv.map(x => x.pctGen), backgroundColor: porAv.map(x => tenue(x) ? SG_PPA_PAL.generalT : SG_PPA_PAL.general), borderRadius: 6, barPercentage: 0.75, categoryPercentage: 0.7 },
+      { label: 'Avance a la fecha', data: porAv.map(x => x.pct), backgroundColor: porAv.map(x => tenue(x) ? SG_PPA_PAL.fechaT : SG_PPA_PAL.fecha), borderRadius: 6, barPercentage: 0.75, categoryPercentage: 0.7 },
     ] },
     options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, layout: { padding: { right: 46 } },
       plugins: { legend: { display: false }, tooltip: { callbacks: {
@@ -795,7 +797,7 @@ function sgPpaGraficosDist_(cfg) {
   }));
   // (3) estado de las medidas (apiladas; mismo orden que el avance)
   const c3 = document.getElementById('sg-ppa-' + cfg.pre + '3');
-  const tramos = [['Vencidas', 'vencidas', '#DC2626', 'vencidas'], ['Por vencer', 'porVencer', '#F59E0B', 'porvencer'], ['Al día', 'alDia', '#16A34A', 'todas'], ['Sin metas vencidas', 'sinExig', '#CBD5E1', 'todas']];
+  const tramos = [['Vencidas', 'vencidas', SG_PPA_PAL.rojo, 'vencidas'], ['Por vencer', 'porVencer', SG_PPA_PAL.ambar, 'porvencer'], ['Al día', 'alDia', SG_PPA_PAL.verde, 'todas'], ['Sin metas vencidas', 'sinExig', SG_PPA_PAL.gris, 'todas']];
   if (c3) S.ppaAreaCharts.push(new Chart(c3, {
     type: 'bar',
     data: { labels: porAv.map(x => x.etq), datasets: tramos.map(([t, k, c], i) => ({ label: t, data: porAv.map(x => x[k] || 0), backgroundColor: porAv.map(x => alfa(c, tenue(x) ? 0.25 : 1)), stack: 'e',
@@ -831,13 +833,13 @@ function sgPpaHtmlResumen_(R, mesTxt) {
     '<div class="f">' + filas.map(f => '<div><span>' + f[0] + '</span><b>' + f[1] + '</b></div>').join('') + '</div></div>';
   const alc = S.ppaArea && R.areas[0] ? aTitulo_(R.areas[0].nombre) : R.areas.length + ' áreas';
   return '<div class="sg-ppa-kpis4">' +
-      kpi('#EA580C', 'lista', 'Medidas del PPA', n(T.total), 'medidas · ' + escapeHtml_(alc), [
+      kpi('#8B5CF6', 'lista', 'Medidas del PPA', n(T.total), 'medidas · ' + escapeHtml_(alc), [
         ['⏰ Vencidas', n(T.vencidas) + pctDe(T.vencidas, T.total)], ['⏳ Por vencer en ' + escapeHtml_(mesTxt), n(T.porVencer) + pctDe(T.porVencer, T.total)]]) +
-      kpi('#059669', 'barras', 'Avance general', pc(T.pctGen), 'avance general del período', [
+      kpi('#10B981', 'barras', 'Avance general', pc(T.pctGen), 'avance general del período', [
         ['Acciones realizadas', n(T.llevaGen)]], T.pctGen) +   // 26-11-2026: sin la fila «Meta del período» (pedido del usuario)
-      kpi('#D97706', 'reloj', 'Avance a la fecha', pc(T.pct), 'de lo exigible hoy', [
+      kpi('#F59E0B', 'reloj', 'Avance a la fecha', pc(T.pct), 'de lo exigible hoy', [
         ['Lleva', n(T.lleva) + ' de ' + n(T.debe)], ['Faltan (medidas vencidas)', n(T.falta)]], T.pct) +
-      kpi('#0284C7', 'camara', 'Acciones registradas', n(avs.length), 'registros desde la App Prevención', [
+      kpi('#0EA5E9', 'camara', 'Acciones registradas', n(avs.length), 'registros desde la App Prevención', [
         ['Medidas con avance', n(conAvance) + ' de ' + n(T.total) + pctDe(conAvance, T.total)], ['Último registro', ultimo ? ppaFechaTxt_(ultimo) : '—']]) +
     '</div>';
 }
@@ -846,7 +848,7 @@ function sgPpaHtmlResumen_(R, mesTxt) {
 let sgPpaMedidorN = 0;
 function sgPpaMedidor_(p, txt) {
   const id = 'sgPpaGrad' + (++sgPpaMedidorN), v = p == null ? 0 : Math.max(0, Math.min(100, p));
-  const c2 = SG_PPA_COL(p), c1 = p == null ? '#CBD5E1' : p >= 100 ? '#A3E635' : p >= 50 ? '#FDE047' : '#FB923C';
+  const c2 = SG_PPA_COL(p), c1 = p == null ? '#CBD5E1' : p >= 100 ? '#A3E635' : p >= 50 ? '#FCD34D' : '#FCA5A5';
   const arco = 'M 20 100 A 80 80 0 0 1 180 100';
   return '<div class="sg-ppa-medidor" title="' + SG_PPA_PCT(p) + ' ' + escapeHtml_(txt) + '">' +
     '<svg viewBox="0 0 200 112" aria-hidden="true"><defs><linearGradient id="' + id + '" x1="0" y1="0" x2="1" y2="0">' +
@@ -860,7 +862,7 @@ function sgPpaMedidor_(p, txt) {
  * (sgPpaHtmlDist_). Al FINAL, el mapa a todo el ancho con TODAS las acciones registradas (ppa_avances con ubicación), color por grupo; clic en
  * el punto = detalle y foto. Base: satélite + 🧭 límite de cada área (sectores) + 🌲 fundos CMPC (Admin / perfil Jefe; con varias áreas se
  * cargan al encender la capa). Tocar un grupo (gráficos o leyenda del mapa) deja solo ese grupo en el mapa (S.ppaGrupo). */
-const SG_PPA_GCOL = ['#2563EB', '#DC2626', '#16A34A', '#D97706', '#7C3AED', '#0891B2', '#DB2777', '#65A30D', '#EA580C', '#0F766E', '#9333EA', '#B45309', '#4F46E5', '#BE123C'];
+const SG_PPA_GCOL = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#EC4899', '#84CC16', '#F97316', '#6366F1', '#14B8A6', '#A855F7', '#EAB308', '#64748B', '#EF4444'];
 function sgPpaGrupoK_(a) { return SG_KEY(a.id_grupo || a.grupo || 'SIN') || 'SIN'; }
 /** Color estable por grupo (orden de todos los grupos de la subgerencia, no del filtro). */
 function sgPpaColoresGrupo_(med) {
