@@ -1,7 +1,7 @@
 /* ==================== 📋 PPA · PLAN DE PREVENCIÓN POR ÁREA (06-11-2026, SQL 160 / 161) ====================
  * Menú «📋 PPA ▾» (1ª etapa: solo Administrador, para revisar y validar):
  *   ppadetalle  📄 Detalle del PPA      — acciones con filtros, ficha por acción (metas y avances), registrar avance
- *   ppaavance   📊 Tablero de Avance    — meta vs avance por quincena o por mes (Chart.js) y cumplimiento por área
+ *   ppaavance   📊 Tablero de Avance    — desde 26-11-2026 = el tablero de 📈 Seguimiento › PPA (js/07 renderSgPpa_('ppa')), también Jefes / GRT
  *   pparesumen  🧾 Resumen del PPA      — totales por subgerencia, área, grupo, acción general y causa
  *   ppametas    🎯 Metas por fecha      — grilla editable de metas Q1 / Q2 / Mensual por mes (solo Admin)
  *   ppagestion  🧭 Tablero de Gestión   — KPI, semáforo por área, evolución acumulada, atrasadas y plazos próximos
@@ -19,7 +19,8 @@ const PPA_SUBS = {
 /* 16-11-2026: el PPA se abre a los Jefes de Área y Gestores (GRT; también el Subgerente, mismo perfil técnico), SOLO CONSULTA y solo sus
  * áreas (el RLS del SQL 160 entrega las acciones de sus perfil_areas). Ven: 📄 Detalle, 🎯 Metas por fecha (lectura) y 🧩 Avance por sector. */
 // 19-11-2026: + 📈 Reporte del área (como el Seguimiento › PPA del Subgerente, con avance general y avance a la fecha)
-const PPA_SUBS_JEFE = ['ppareporte', 'ppadetalle', 'ppametas', 'ppasector'];
+// 26-11-2026: 📊 Tablero de Avance = el tablero de 📈 Seguimiento › PPA (js/07 renderSgPpa_('ppa')), también para Jefes / GRT / Subgerentes (sus áreas)
+const PPA_SUBS_JEFE = ['ppaavance', 'ppareporte', 'ppadetalle', 'ppametas', 'ppasector'];
 function ppaSubVisible_(k) { return ppaEsAdmin_() || PPA_SUBS_JEFE.includes(k); }
 const PPA_MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const PPA_MESES_CORTOS = { ene: 1, feb: 2, mar: 3, abr: 4, may: 5, jun: 6, jul: 7, ago: 8, sep: 9, sept: 9, set: 9, oct: 10, nov: 11, dic: 12 };
@@ -199,6 +200,9 @@ function ppaFiltradas_() {
 }
 function ppaRenderFiltros_() {
   const S = state.ppa, f = S.f, A = S.acciones, cont = document.getElementById('ppa-filtros');
+  // 26-11-2026: el 📊 Tablero de Avance (= tablero del Seguimiento) trae su propio filtro de área / grupo
+  if (cont) cont.style.display = S.sub === 'ppaavance' ? 'none' : '';
+  if (S.sub === 'ppaavance') return;
   const uniq = (arr, k, n) => [...new Map(arr.filter(x => x[k] != null).map(x => [String(x[k]), x[n]])).entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1]), 'es'));
   const sel = (id, todos, ops, val) => '<select id="' + id + '" class="admin-search">' + '<option value="">' + todos + '</option>' +
     ops.map(([v, t]) => '<option value="' + escapeHtml_(v) + '"' + (v === val ? ' selected' : '') + '>' + escapeHtml_(t) + '</option>').join('') + '</select>';
@@ -269,7 +273,7 @@ function ppaIniciarListeners_() {
 async function abrirPpa_(sub, forzar) {
   const S = state.ppa;
   if (sub && PPA_SUBS[sub]) S.sub = sub;
-  if (!ppaSubVisible_(S.sub)) S.sub = 'ppareporte';   // Jefes / Gestores: Reporte del área, Detalle, Metas y Avance por sector
+  if (!ppaSubVisible_(S.sub)) S.sub = 'ppaavance';   // Jefes / Gestores: Tablero de Avance, Reporte del área, Detalle, Metas y Avance por sector
   ppaIniciarListeners_();
   document.getElementById('ppa-titulo').textContent = '📋 PPA · ' + PPA_SUBS[S.sub].t.replace(/^\S+\s/, '');
   document.getElementById('ppa-subir').style.display = ppaEsAdmin_() ? '' : 'none';
@@ -302,13 +306,14 @@ function ppaRenderCuerpo_() {
   const pestanas = '<div class="ppa-pestanas">' + Object.keys(PPA_SUBS).filter(ppaSubVisible_).map(k => '<button data-ppa-sub="' + k + '" class="' + (k === S.sub ? 'on' : '') + '">' + PPA_SUBS[k].t + '</button>').join('') +
     '<span class="ppa-per">' + escapeHtml_(S.periodo.nombre) + ' · ' + ppaFechaTxt_(S.periodo.fecha_inicio) + ' al ' + ppaFechaTxt_(S.periodo.fecha_fin) +
     (ppaQuincenaActual_() ? ' · hoy: <b>' + ppaQuincenaActual_().etq + '</b>' : '') + '</span></div>';
-  const html = { ppadetalle: ppaHtmlDetalle_, ppaavance: ppaHtmlAvance_, pparesumen: ppaHtmlResumen_, ppametas: ppaEsAdmin_() ? ppaHtmlMetas_ : ppaHtmlMetasJefe_, ppagestion: ppaHtmlGestion_, ppasector: ppaHtmlSector_, ppareporte: ppaHtmlReporte_ }[S.sub](lista);
+  const html = { ppadetalle: ppaHtmlDetalle_, ppaavance: () => '<div id="sg-ppa-host" class="sg-ppa-host"></div>', pparesumen: ppaHtmlResumen_, ppametas: ppaEsAdmin_() ? ppaHtmlMetas_ : ppaHtmlMetasJefe_, ppagestion: ppaHtmlGestion_, ppasector: ppaHtmlSector_, ppareporte: ppaHtmlReporte_ }[S.sub](lista);
   // Conserva el scroll al re-dibujar (edición de metas y de acciones)
   const wrapAnt = cuerpo.querySelector('.ppa-tabla-wrap'), scroll = [cuerpo.scrollTop, wrapAnt ? wrapAnt.scrollTop : 0, wrapAnt ? wrapAnt.scrollLeft : 0];
   cuerpo.innerHTML = pestanas + '<div class="ppa-vista">' + html + '</div>';
   cuerpo.scrollTop = scroll[0];
   const wrap = cuerpo.querySelector('.ppa-tabla-wrap'); if (wrap) { wrap.scrollTop = scroll[1]; wrap.scrollLeft = scroll[2]; }
-  if (S.sub === 'ppaavance') ppaGraficoAvance_(lista);
+  if (S.sub === 'ppaavance') renderSgPpa_('ppa');   // 26-11-2026: tablero del Seguimiento (antes ppaHtmlAvance_ / ppaGraficoAvance_, sin uso)
+  else if (state.sg && state.sg.ppaHost === 'ppa') sgPpaLimpiar_();
   if (S.sub === 'ppagestion') ppaGraficosGestion_(lista);
   if (S.sub === 'ppametas' && ppaEsAdmin_()) ppaIniciarMetas_(lista);
   cuerpo.querySelectorAll('[data-ppa-meses]').forEach(b => b.onclick = () => { S.mTodosMeses = !S.mTodosMeses; ppaRenderCuerpo_(); });   // 📅 meses sin metas

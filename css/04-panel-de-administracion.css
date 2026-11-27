@@ -355,6 +355,105 @@ body.modo-dashboard #btn-volver-sg{display:none !important;}   /* solo se ve sob
 .sg-ppa-av2-top b{font-size:22px;color:var(--c);}
 .sg-ppa-av2 small{display:block;font-size:11px;color:var(--text-tertiary);margin-top:3px;}
 @media (max-width:520px){ .sg-ppa-av2s{grid-template-columns:1fr;} }
+/* 26-11-2026: Seguimiento › PPA › 🗂️ Avance por Grupo + 🗺️ mapa general de acciones registradas */
+.sg-ppa-h4{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:18px 0 10px;font-size:15px;font-weight:800;}
+.sg-ppa-h4 small{font-size:11.5px;font-weight:600;color:var(--text-tertiary);}
+.sg-ppa-gm{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:12px;align-items:start;}
+.sg-ppa-gm-izq{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px;max-height:78vh;overflow:auto;padding-right:4px;}
+.sg-ppa-gm-der{position:sticky;top:8px;display:flex;flex-direction:column;gap:6px;}
+.sg-ppa-gm-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;}
+.sg-ppa-gm-cab span{font-size:11.5px;color:var(--text-tertiary);font-weight:600;}
+.sg-ppa-gm-cab .sg-chip{margin-left:auto;}
+.sg-ppa-gm-mapa{position:relative;height:66vh;min-height:420px;border-radius:12px;overflow:hidden;border:1px solid var(--border);}
+.sg-ppa-gm-mapa #sg-ppa-gmapa{position:absolute;inset:0;}
+.sg-ppa-gm-ley{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--text-secondary);font-weight:600;}
+.sg-ppa-gm-ley span{display:inline-flex;align-items:center;gap:5px;} .sg-ppa-gm-ley span.off{opacity:.35;}
+.sg-ppa-gm-ley i{width:11px;height:11px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25);}
+/* Seguimiento › PPA: resumen sobrio (26-11-2026; referencia «Informe de Gestión Protección Forestal») */
+.sg-ppa-kpis4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:4px 0 12px;}
+.sg-ppa-kpi{--k:#2563EB;border-radius:14px;padding:14px 16px 10px;background:var(--white);border:1px solid var(--border);display:flex;flex-direction:column;}   /* 26-11-2026: fondo blanco único */
+.sg-ppa-kpi .t{display:flex;align-items:center;gap:9px;font-size:12.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:color-mix(in srgb,var(--k) 80%,#111);}
+.sg-ppa-kpi .t i{flex:0 0 28px;width:28px;height:28px;border-radius:8px;background:var(--k);color:#fff;display:flex;align-items:center;justify-content:center;}
+.sg-ppa-kpi .t svg{width:16px;height:16px;}
+.sg-ppa-kpi .v{text-align:center;margin:12px 0 10px;line-height:1;}
+.sg-ppa-kpi .v b{display:block;font-size:34px;font-weight:800;color:color-mix(in srgb,var(--k) 85%,#111);letter-spacing:-.5px;}
+.sg-ppa-kpi .v span{display:block;font-size:11.5px;color:var(--text-secondary);margin-top:5px;}
+.sg-ppa-kpi .f{border-top:1px solid var(--border);padding-top:7px;display:flex;flex-direction:column;gap:4px;}
+.sg-ppa-kpi .f div{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--text-secondary);}
+.sg-ppa-kpi .f b{color:color-mix(in srgb,var(--k) 85%,#111);font-weight:700;white-space:nowrap;} .sg-ppa-kpi .f small{font-weight:500;color:var(--text-tertiary);}
+.sg-ppa-tit{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#C2410C;margin-bottom:6px;}
+.sg-ppa-tit small{font-size:11px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--text-tertiary);}
+/* medidor semicircular del avance general / a la fecha */
+.sg-ppa-medidor{text-align:center;margin:6px 0 8px;line-height:1;}
+.sg-ppa-medidor svg{display:block;width:min(190px,86%);margin:0 auto -6px;}
+.sg-ppa-medidor b{display:block;font-size:32px;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;}
+.sg-ppa-medidor span{display:block;font-size:11.5px;color:var(--text-secondary);margin-top:4px;}
+body.tema-oscuro .sg-ppa-medidor{--sg-medidor-fondo:#334155;}
+.sg-ppa-h4{text-transform:uppercase;letter-spacing:.4px;color:#C2410C;font-size:13px;font-weight:700;}
+@media (max-width:1100px){ .sg-ppa-kpis4{grid-template-columns:repeat(2,minmax(0,1fr));} }
+@media (max-width:520px){ .sg-ppa-kpis4{grid-template-columns:1fr;} }
+/* Seguimiento › PPA › Control por área en gráficos (26-11-2026, referencia «Distribución») */
+.sg-ppa-dist{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.1fr) minmax(0,1.1fr);gap:12px;align-items:stretch;}
+.sg-ppa-dcard2{background:var(--white);border:1px solid var(--border);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0;}
+.sg-ppa-dcard2 .cab{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+.sg-ppa-dcard2 .cab > b{font-size:13.5px;font-weight:600;color:var(--text-primary);}
+.sg-ppa-dcard2 .lg{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--text-secondary);}
+.sg-ppa-dcard2 .lg span{display:inline-flex;align-items:center;gap:5px;} .sg-ppa-dcard2 .lg i{width:9px;height:9px;border-radius:50%;}
+.sg-ppa-dcard2 .dona{position:relative;height:230px;}
+.sg-ppa-dcard2 .dona .centro{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
+.sg-ppa-dcard2 .dona .centro b{font-size:34px;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;line-height:1;}
+.sg-ppa-dcard2 .dona .centro span{font-size:11.5px;color:var(--text-tertiary);margin-top:4px;}
+.sg-ppa-dcard2 .ley{display:flex;flex-direction:column;gap:5px;}
+.sg-ppa-dcard2 .ley div{display:grid;grid-template-columns:12px minmax(0,1fr) auto 38px;align-items:center;gap:8px;font-size:12.5px;color:var(--text-secondary);}
+.sg-ppa-dcard2 .ley i{width:11px;height:11px;border-radius:50%;} .sg-ppa-dcard2 .ley span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sg-ppa-dcard2 .ley b{color:var(--text-primary);font-weight:700;} .sg-ppa-dcard2 .ley small{text-align:right;color:var(--text-tertiary);font-size:11.5px;}
+.sg-ppa-dcard2 .barras{position:relative;min-height:240px;}
+.sg-ppa-dcard2 .ley div.off{opacity:.4;}
+/* mapa de las medidas a todo el ancho (al final de la vista) */
+.sg-ppa-mapa-full{display:flex;flex-direction:column;gap:8px;background:var(--white);border:1px solid var(--border);border-radius:16px;padding:12px;}
+.sg-ppa-mapa-full .sg-ppa-gm-mapa{height:62vh;min-height:420px;}
+.sg-ppa-mapa-full .sg-ppa-gm-ley{gap:6px;}
+.sg-ppa-mapa-full .sg-ppa-gm-ley button{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--white);border-radius:99px;padding:3px 10px;font:inherit;font-size:11.5px;font-weight:600;color:var(--text-secondary);cursor:pointer;}
+.sg-ppa-mapa-full .sg-ppa-gm-ley button.off{opacity:.4;} .sg-ppa-mapa-full .sg-ppa-gm-ley button:hover{border-color:var(--text-tertiary);}
+.sg-ppa-h4 small, .sg-ppa-h4 .sg-chip{text-transform:none;letter-spacing:0;}
+@media (max-width:1200px){ .sg-ppa-dist{grid-template-columns:1fr 1fr;} .sg-ppa-dist > :first-child{grid-row:span 2;} }
+@media (max-width:760px){ .sg-ppa-dist{grid-template-columns:1fr;} .sg-ppa-dist > :first-child{grid-row:auto;} }
+/* Seguimiento › PPA: tarjetas de ÁREA compactas (solo en el Seguimiento; el Reporte del área de js/38 conserva las grandes) */
+.sg-ppa-compacto{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;}
+.sg-ppa-ca{padding:8px 10px 7px;gap:4px;border-top-width:4px;border-radius:10px;}
+.sg-ppa-ca-top{display:flex;justify-content:space-between;align-items:baseline;gap:6px;}
+.sg-ppa-ca-top b{font-size:13.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} .sg-ppa-ca-top small{font-size:10.5px;color:var(--text-tertiary);white-space:nowrap;}
+.sg-ppa-ca .cb{display:grid;grid-template-columns:72px minmax(0,1fr) 44px;align-items:center;gap:6px;font-size:10.5px;font-weight:700;color:var(--text-secondary);}
+.sg-ppa-ca .cb i{display:block;height:6px;border-radius:99px;background:var(--bg-tertiary,#E2E8F0);overflow:hidden;}
+.sg-ppa-ca .cb em{display:block;height:100%;background:var(--c);border-radius:99px;}
+.sg-ppa-ca .cb b{text-align:right;font-size:12.5px;color:var(--c);}
+.sg-ppa-ca-nums{display:flex;gap:3px;margin-top:2px;}
+.sg-ppa-ca .cn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:3px;padding:3px 2px;border-radius:7px;font:inherit;font-size:11px;cursor:pointer;
+  background:color-mix(in srgb,var(--t,#64748B) 9%,var(--white));border:1px solid color-mix(in srgb,var(--t,#64748B) 22%,transparent);color:var(--text-secondary);}
+.sg-ppa-ca .cn b{font-size:13px;color:var(--t,#334155);} .sg-ppa-ca .cn.acc{--t:#7C3AED;}
+.sg-ppa-ca .cn:disabled{cursor:default;} .sg-ppa-ca .cn.cero{opacity:.5;}
+.sg-ppa-ca .cn:not(:disabled):hover{box-shadow:0 0 0 2px var(--t);}
+@media (max-width:420px){ .sg-ppa-compacto{grid-template-columns:1fr;} }
+/* gráfico de barras + lista compacta por grupo (reemplaza las tarjetas) */
+.sg-ppa-gm-izq.sg-ppa-gm-izq{display:flex;flex-direction:column;gap:8px;max-height:none;overflow:visible;background:var(--white);border:1px solid var(--border);border-radius:12px;padding:12px;}
+.sg-ppa-gchart{position:relative;height:300px;}
+.sg-ppa-gley2{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font-size:11px;font-weight:600;color:var(--text-secondary);}
+.sg-ppa-gley2 i{display:inline-block;width:14px;height:10px;border-radius:3px;background:#475569;margin-right:5px;vertical-align:-1px;}
+.sg-ppa-gley2 small{margin-left:auto;color:var(--text-tertiary);font-weight:500;}
+.sg-ppa-glista{display:flex;flex-direction:column;border-top:1px solid var(--border);}
+.sg-ppa-gfila{display:grid;grid-template-columns:minmax(0,1fr) 62px 70px 62px 50px 62px 34px;align-items:center;gap:4px;padding:4px 2px;border-bottom:1px solid var(--border);font-size:12px;}
+.sg-ppa-gfila.cab{font-size:10.5px;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.2px;}
+.sg-ppa-gfila.cab span{text-align:center;} .sg-ppa-gfila.cab .nom{text-align:left;}
+.sg-ppa-gfila .nom{display:flex;align-items:center;gap:6px;min-width:0;background:none;border:0;padding:3px 0;font:inherit;font-weight:700;color:var(--text-primary);cursor:pointer;text-align:left;}
+.sg-ppa-gfila button.nom{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;} .sg-ppa-gfila button.nom:hover{text-decoration:underline;}
+.sg-ppa-gfila .nom i{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--g);margin-right:6px;vertical-align:0;}
+.sg-ppa-gfila .pc{text-align:center;font-weight:800;}
+.sg-ppa-gfila > button:not(.nom){background:none;border:1px solid transparent;border-radius:7px;padding:3px 2px;font:inherit;font-weight:700;color:var(--text-secondary);cursor:pointer;}
+.sg-ppa-gfila > button:not(.nom):hover{border-color:var(--border);background:var(--bg-tertiary,#F1F5F9);}
+.sg-ppa-gfila .ve{color:#DC2626;} .sg-ppa-gfila .pv{color:#D97706;} .sg-ppa-gfila .cero{opacity:.45;}
+.sg-ppa-gfila.on{background:color-mix(in srgb,var(--g) 10%,transparent);} .sg-ppa-gfila.off{opacity:.5;}
+@media (max-width:1100px){ .sg-ppa-gm{grid-template-columns:1fr;} .sg-ppa-gm-der{position:static;} .sg-ppa-gm-mapa{height:52vh;min-height:320px;} }
+@media (max-width:560px){ .sg-ppa-gfila{grid-template-columns:minmax(0,1fr) 52px 58px 44px 40px 44px 30px;font-size:11px;} .sg-ppa-gchart{height:240px;} }
 /* Perfil SSO (SQL 184): solo consulta → sin carga de personas ni botones de edición */
 body.es-sso #gr-plantilla-personas, body.es-sso #gr-subir-personas, body.es-sso #gr-guardar, body.es-sso #gr-descartar,
 body.es-sso #gr-nuevo, body.es-sso #gr-subir, body.es-sso #gr-empresas{display:none !important;}

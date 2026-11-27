@@ -151,7 +151,7 @@ const MENU_MODULOS = [
   { id: 'tab-ppareporte', grupo: '📋 PPA', nombre: 'Reporte del área del PPA (avance general y a la fecha)', ver: () => puedePpa_(), nivel: () => 'ver', nota: () => ppaEsAdmin_() ? 'Todas las áreas' : 'Sus áreas' },
   { id: 'tab-ppadetalle', grupo: '📋 PPA', nombre: 'Detalle del PPA', ver: () => puedePpa_(), nivel: () => ppaEsAdmin_() ? 'editar' : 'ver', nota: () => ppaEsAdmin_() ? 'Todas las áreas' : 'Sus áreas' },
   { id: 'tab-ppasector', grupo: '📋 PPA', nombre: 'Avance por sector del PPA', ver: () => puedePpa_(), nivel: () => 'ver', nota: () => ppaEsAdmin_() ? 'Todas las áreas' : 'Sus áreas' },
-  { id: 'tab-ppaavance', grupo: '📋 PPA', nombre: 'Tablero de Avance del PPA', ver: () => ppaEsAdmin_(), nivel: () => 'ver' },
+  { id: 'tab-ppaavance', grupo: '📋 PPA', nombre: 'Tablero de Avance del PPA (tablero del Seguimiento)', ver: () => puedePpa_(), nivel: () => 'ver', nota: () => ppaEsAdmin_() ? 'Todas las áreas' : 'Sus áreas' },
   { id: 'tab-pparesumen', grupo: '📋 PPA', nombre: 'Resumen del PPA', ver: () => ppaEsAdmin_(), nivel: () => 'ver' },
   { id: 'tab-ppagestion', grupo: '📋 PPA', nombre: 'Tablero de Gestión del PPA', ver: () => ppaEsAdmin_(), nivel: () => 'ver' },
   { id: 'tab-ppametas', grupo: '📋 PPA', nombre: 'Metas por fecha del PPA', ver: () => puedePpa_(), nivel: () => ppaEsAdmin_() ? 'editar' : 'ver', nota: () => ppaEsAdmin_() ? 'Todas las áreas' : 'Sus áreas (consulta)' },

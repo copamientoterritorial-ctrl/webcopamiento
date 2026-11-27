@@ -47,6 +47,7 @@ function bindEvents() {
   });
   // Modo SSO (SQL 184): Visor + marca SSO → solo Planificador gráfico, Tablero y Gestión de Recursos (consulta, todas las áreas)
   document.getElementById('btn-sim-sso').addEventListener('click', () => entrarSimulacion_({ perfil: 'Visor', sso: true }));
+  document.getElementById('btn-sim-supervisor').addEventListener('click', abrirModalSimulacionSupervisor_);
   document.getElementById('btn-sim-salir').addEventListener('click', salirSimulacion_);
 
   document.getElementById('btn-open-change-password').addEventListener('click', () => {

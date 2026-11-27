@@ -2,9 +2,10 @@
 // Los datos NUNCA se guardan aquí: van a Supabase, y sin señal la app los guarda en IndexedDB (cola) hasta poder enviarlos.
 // version.json NO se intercepta: la app lo pide a la red para saber si hay versión nueva (sin señal queda pendiente).
 // Teselas Esri: se guardan las que se van viendo (máx. ~1.500) para tener mapa base sin señal en las zonas ya recorridas.
-const VERSION = 'bitacora-v1.6.2';   // = APP_VERSION de app.html = version.json (subir los 3 juntos)
+const VERSION = 'bitacora-v1.6.4';   // = APP_VERSION de app.html = version.json (subir los 3 juntos)
 const TESELAS = 'bitacora-teselas';
 const MAX_TESELAS = 1500;
+const MAPA_OFFLINE = 'bitacora-mapa-offline';   // = MO_CACHE de app.html (imagen satelital de los fundos descargada a pedido; no se recorta)
 const CDN = ['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js',
   'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js', 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'];
 const PROPIOS = /\/(app\.html|manifest\.json|icon-192\.png|icon-512\.png|icon-maskable-512\.png|apple-touch-icon\.png)$/;
@@ -42,9 +43,10 @@ self.addEventListener('fetch', e => {
     return;
   }
   if (url.hostname === 'server.arcgisonline.com' && url.pathname.includes('/tile/')) {
+    // v1.6.3: primero el mapa satelital descargado (Mi cuenta › 🛰️ Mapa sin conexión); si no está, la red.
     // Solo respuestas CORS (la app pide las teselas con crossOrigin): las opacas inflan la cuota del navegador
-    e.respondWith(fetch(req).then(res => { if (res.ok && res.type !== 'opaque') { const c = res.clone(); guardarTesela(req, c).catch(() => {}); } return res; })
-      .catch(() => caches.open(TESELAS).then(c => c.match(req)).then(r => r || Response.error())));
+    e.respondWith(caches.open(MAPA_OFFLINE).then(c => c.match(req.url)).catch(() => null).then(guardada => guardada || fetch(req).then(res => { if (res.ok && res.type !== 'opaque') { const c = res.clone(); guardarTesela(req, c).catch(() => {}); } return res; })
+      .catch(() => caches.open(TESELAS).then(c => c.match(req)).then(r => r || Response.error()))));
     return;
   }
   if (url.origin === self.location.origin && PROPIOS.test(url.pathname)) {

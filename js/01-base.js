@@ -658,6 +658,8 @@ async function entrarAlSistemaInterno_() {
       }
     } catch (e) { /* sin el SQL 195 */ }
   }
+  // «Ver como… › 👷 Modo Supervisor» (Administrador): la empresa elegida; sus recursos (state.supIds) los calcula cargarAsignacionSimulada_ (js/02)
+  if (state.simulacion && state.simulacion.supervisor) state.supervisor = Object.assign({}, state.simulacion.supervisor);
   document.body.classList.toggle('es-supervisor', !!state.supervisor);
   document.body.classList.toggle('es-sso', !!state.sso);
   document.body.classList.toggle('es-asociacion', !!state.asociacion);

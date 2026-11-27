@@ -6,6 +6,21 @@
  * Se pueden volver a ver con «🆕 Novedades» (botón del encabezado de Ayuda, abrirNovedades_(true)). */
 const NOVEDADES = [
   {
+    id: '2026-11-26-ppa-grupos-mapa', fecha: '26-11-2026', titulo: 'PPA: nuevo Tablero de Avance',
+    items: [
+      { ico: '📊', t: 'PPA › Tablero de Avance para tu área', perfiles: ['jefe', 'grt', 'subgerente'],
+        d: 'En <b>📋 PPA › 📊 Tablero de Avance</b> ves el avance de tu área: avance general y a la fecha, avance y estado de las medidas <b>por sector</b> y <b>por grupo</b> ' +
+           '(toca una barra para ver el detalle) y un mapa con las acciones registradas y sus fotos.' },
+      { ico: '👷', t: '«Ver como…» Supervisor de empresa', perfiles: ['admin'],
+        d: 'En tu menú de usuario › <b>Ver el sistema como… › 👷 Modo Supervisor de empresa (EESS)</b> eliges la empresa y sus áreas y ves lo mismo que ese supervisor: ' +
+           'solo 📅 Turnos y 📋 Bitácora de los recursos de esa empresa.' },
+      { ico: '🗂️', t: 'Avance del PPA por Grupo y mapa de acciones', perfiles: ['admin', 'subgerente'],
+        d: 'En <b>📈 Seguimiento › 📋 PPA</b> hay tarjetas por <b>Grupo</b> con el avance general y a la fecha, medidas, por vencer, vencidas y al día. ' +
+           'Al lado, un <b>mapa</b> con todas las acciones registradas (color por grupo, límites de las áreas y fundos CMPC): toca un punto para ver el detalle y la foto. ' +
+           'Los chips <b>Área</b> filtran todo al instante y «🗺️ Solo este» deja en el mapa un solo grupo.' },
+    ],
+  },
+  {
     id: '2026-11-26-patente-recurso', fecha: '26-11-2026', titulo: 'Patente de los recursos',
     items: [
       { ico: '🚙', t: 'Gestión de Recursos: columna Patente', perfiles: ['admin', 'subgerente', 'grt', 'jefe'],

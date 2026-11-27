@@ -10,6 +10,18 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bitácora">
 <title>Bitácora</title>
+<script>
+/* v1.6.4: tipo de dispositivo → clases en <html> para ajustar la app (iPhone / iPad / Android / tablet / instalada) */
+(function () {
+  var ua = navigator.userAgent || '', h = document.documentElement, tp = navigator.maxTouchPoints || 0;
+  var ipad = /iPad/.test(ua) || (/Macintosh/.test(ua) && tp > 1);
+  var ios = /iPhone|iPod/.test(ua) || ipad, android = /Android/i.test(ua);
+  var corto = Math.min(screen.width || 0, screen.height || 0);
+  var tablet = ipad || (android && !/Mobile/i.test(ua)) || (tp > 0 && corto >= 600);
+  if (ios) h.classList.add('ios'); if (android) h.classList.add('android'); if (tablet) h.classList.add('tablet');
+  if ((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone) h.classList.add('standalone');
+})();
+</script>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -61,6 +73,56 @@
   .menu button { position:relative; }
   .badge-n { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#DC2626; color:#fff; font-size:11px; font-weight:800; line-height:1; vertical-align:middle; }
   .menu .badge-n { position:absolute; top:2px; right:calc(50% - 22px); }
+  /* v1.6.4: menú con la forma pedida — barra blanca redondeada con una «joroba» al centro, botón verde grande y
+     flotante (verde del encabezado), íconos de línea con relleno verde claro y textos grises */
+  .menu { position:relative; background:#fff; border-top:0; border-radius:22px 22px 0 0; padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+    filter: drop-shadow(0 -3px 10px rgba(15,23,42,.10)); -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
+  .menu-joroba { position:absolute; left:50%; top:-31px; width:176px; height:32px; transform:translateX(-50%); pointer-events:none; }
+  .menu button { color:#64748B; font-size:12px; font-weight:800; letter-spacing:.1px; padding:4px 2px 2px; display:flex; flex-direction:column; align-items:center; gap:4px; z-index:1; }
+  .menu button.on { color: var(--pri); }
+  .menu .ico { width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-size:0; transition: transform .15s; }
+  .menu .ico svg { width:28px; height:28px; fill:none; stroke: var(--pri2); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .menu .ico svg .rl { fill:#BBF7D0; stroke:none; }
+  .menu button.on .ico svg { stroke: var(--pri); }
+  .menu button.on .ico svg .rl { fill:#86EFAC; }
+  .menu button:active .ico { transform: scale(.92); }
+  .menu .menu-home .ico { width:66px; height:66px; margin:-40px auto 0; border:0; border-radius:50%; background: linear-gradient(150deg, #15803D 0%, #0F5132 100%);
+    box-shadow: 0 8px 18px rgba(15,81,50,.38); }
+  .menu .menu-home.on .ico { background: linear-gradient(150deg, #16A34A 0%, #0F5132 100%); }
+  .menu .menu-home .ico svg { width:34px; height:34px; stroke:#fff; stroke-width:2; }
+  .menu .menu-home .ico svg .rl { fill: rgba(255,255,255,.28); }
+  .menu .menu-home.on .ico svg { stroke:#fff; }
+  /* v1.6.4: ajuste al dispositivo (clases en <html>: ios / android / tablet / standalone, ver el script del <head>) */
+  html, body { height:100%; overscroll-behavior:none; }
+  body { -webkit-tap-highlight-color: transparent; }
+  main { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); padding-bottom:46px; }   /* lo último queda sobre la joroba */
+  html.tablet main { max-width: 920px; padding-top:18px; }
+  html.tablet body { font-size:16.5px; }
+  html.tablet .menu { padding-left: max(6px, calc(50% - 330px)); padding-right: max(6px, calc(50% - 330px)); }
+  html.tablet .mapa-tab { height:70vh; }
+  @media (min-width: 700px) {   /* pantallas anchas (tablet / iPad, también sin detectar el dispositivo) */
+    main { max-width: 920px; padding-top:18px; }
+    .menu { padding-left: max(6px, calc(50% - 330px)); padding-right: max(6px, calc(50% - 330px)); }
+    .menu button { font-size:13px; }
+    .mapa-tab { height:70vh; }
+  }
+  @media (min-width: 768px) {
+    .overlay { align-items:center; }
+    .sheet { max-width:720px; max-height:88vh; margin:0 auto; border-radius:22px; }
+  }
+  @media (orientation: landscape) and (max-height: 500px) {   /* teléfono acostado: encabezado y menú más bajos */
+    header { padding-top: calc(4px + env(safe-area-inset-top)); padding-bottom:4px; }
+    .menu { padding-top:4px; padding-left: max(6px, env(safe-area-inset-left)); padding-right: max(6px, env(safe-area-inset-right)); }
+    .menu .ico { width:24px; height:24px; } .menu .ico svg { width:22px; height:22px; }
+    .menu .menu-home .ico { width:52px; height:52px; margin-top:-30px; } .menu .menu-home .ico svg { width:28px; height:28px; }
+    .menu-joroba { top:-24px; height:25px; width:150px; }
+    .mapa-tab { height:72vh; }
+  }
+  html.android .menu button { font-family: Roboto, system-ui, sans-serif; }
+  .menu button { white-space:nowrap; min-width:0; }
+  @media (max-width: 400px) { .menu button { font-size:11px; letter-spacing:-.15px; } }
+  @media (max-width: 340px) { .menu button { font-size:10px; } .menu .ico svg { width:24px; height:24px; } }
+  html.tablet .menu button { font-size:13px; }
   /* Fecha */
   .fecha-nav { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
   .fecha-nav button { flex:0 0 auto; width:44px; height:40px; border-radius:10px; border:1px solid var(--borde); background: var(--card); font-size:16px; font-weight:800; cursor:pointer; }
@@ -312,7 +374,10 @@
   .fav.on { opacity:1; }
   .act-lista .fila-act { display:flex; align-items:center; border-bottom:1px solid var(--borde); }
   .act-lista .fila-act:last-child { border-bottom:0; }
-  .act-lista .fila-act button[data-act-sel] { flex:1; border-bottom:0; }
+  .act-lista .fila-act button[data-act-sel] { flex:1 1 auto; min-width:0; width:auto; border-bottom:0; display:flex; align-items:baseline; gap:8px; }
+  .act-lista .fila-act button[data-act-sel] .an { flex:1 1 auto; min-width:0; }
+  .act-lista .fila-act .fav { width:44px; flex:0 0 44px; padding:0; border-bottom:0; background:none; text-align:center; }   /* v1.6.3: la ⭐ ya no se come media fila */
+  .cod-act { flex:0 0 auto; font-size:11px; font-weight:800; color: var(--sub); background: var(--bg); border-radius:6px; padding:2px 6px; letter-spacing:.2px; }
   .busca-gms button { border:0; border-radius:9px; padding:0 12px; font:inherit; font-weight:800; background: var(--azul); color:#fff; cursor:pointer; }
   .busca-gms .bg-x { background: var(--bg); color: var(--sub); }
   .num-pin { background:none; border:0; }
@@ -378,11 +443,12 @@
   </header>
   <main id="m-cuerpo"><div class="vacio">Cargando…</div></main>
   <nav class="menu" id="menu">
-    <button data-s="historial"><span class="ico">🧩</span>Actividades</button>
-    <button data-s="semana"><span class="ico">🗓️</span>Calendario</button>
-    <button data-s="hoy" class="on menu-home" id="menu-1" aria-label="Inicio"><span class="ico">🏠</span><span id="menu-1-txt">Inicio</span></button>
-    <button data-s="mapa"><span class="ico">📡</span>En vivo</button>
-    <button data-s="perfil" id="menu-perfil"><span class="ico">👤</span>Mi cuenta</button>
+    <svg class="menu-joroba" viewBox="0 0 176 32" preserveAspectRatio="none" aria-hidden="true"><path d="M0 32 C34 32 46 1 88 1 C130 1 142 32 176 32 Z" fill="#fff"/></svg>
+    <button data-s="historial"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect class="rl" x="5" y="6" width="14" height="15" rx="2"/><rect x="5" y="5" width="14" height="16" rx="2.2"/><path d="M9 3.5h6v3H9z"/><path d="M8.8 13.2l2.2 2.2 4.3-4.4"/></svg></span>Actividades</button>
+    <button data-s="semana"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="rl" d="M3.5 7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v3h-17z"/><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><rect class="rl" x="7" y="13" width="3" height="3" rx=".6"/><path d="M14 14.5h3"/></svg></span>Calendario</button>
+    <button data-s="hoy" class="on menu-home" id="menu-1" aria-label="Inicio"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="rl" d="M5 10.5l7-6 7 6V20H5z"/><path d="M3.5 11.2l8.5-7.2 8.5 7.2"/><path d="M5.5 9.8V20a1 1 0 0 0 1 1h3.8v-5.5h3.4V21h3.8a1 1 0 0 0 1-1V9.8"/></svg></span><span id="menu-1-txt">Inicio</span></button>
+    <button data-s="mapa"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="rl" d="M5.5 21h13l-1.8-4.5H7.3z"/><path d="M12 16.5s-5-4.6-5-8.6a5 5 0 0 1 10 0c0 4-5 8.6-5 8.6z"/><circle cx="12" cy="8" r="1.9"/><path d="M7.3 16.5 5.5 21h13l-1.8-4.5"/></svg></span>En vivo</button>
+    <button data-s="perfil" id="menu-perfil"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="rl" d="M4.5 21a7.5 7.5 0 0 1 15 0z"/><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg></span>Mi cuenta</button>
   </nav>
 </div>
 
@@ -586,7 +652,7 @@
 const SUPABASE_URL = 'https://api.copamientoterritorial.cl';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY25zaGRtbW5qdnVjZGt6cHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MTE2MjMsImV4cCI6MjEwMjI4NzYyM30.NmleQocIOF6XLsBySnh8sMEKpFhx5MSHZJNDacLZvkY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sig-bitacora-app', detectSessionInUrl: false } });
-const APP_VERSION = '1.6.2';
+const APP_VERSION = '1.6.4';
 const DOMINIO_CUENTAS = 'recursos.copamientoterritorial.cl';   // = Edge Function admin-cuentas-recurso y js/41 de la web
 const DIAS_CARGA = 14;   // aperturas que se descargan hacia atrás
 
@@ -1496,7 +1562,120 @@ function mapaBaseActual() { let m = null; try { m = localStorage.getItem('bit_ma
 function guardarBase(m) { try { localStorage.setItem('bit_mapa_base', m); } catch (e) {} }
 function capasBase(map, modo, capas) {
   (capas || []).forEach(c => map.removeLayer(c));
-  return MAPA_BASES[modo].capas.map(c => L.tileLayer(ESRI + c.s + '/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: c.nz, crossOrigin: true, className: c.relieve ? 'av-relieve-capa' : '' }).addTo(map));
+  // v1.6.3: sin señal, la imagen se agranda desde el último zoom descargado (más cerca no hay teselas guardadas)
+  const mo = moEstado(), sinRed = !navigator.onLine && mo && mo.zmax;
+  return MAPA_BASES[modo].capas.map(c => L.tileLayer(ESRI + c.s + '/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: sinRed && c.s === MO_CAPA ? Math.min(c.nz, mo.zmax) : c.nz, crossOrigin: true, className: c.relieve ? 'av-relieve-capa' : '' }).addTo(map));
+}
+
+/* ───────── 🛰️ Mapa satelital sin conexión (v1.6.3) ─────────
+ * Descarga las teselas de la imagen Esri (World_Imagery) de los FUNDOS de las áreas elegidas a la caché «bitacora-mapa-offline»,
+ * que el service worker entrega primero (sin señal o con señal). Zoom 9–13 = todo el contorno de los fundos del área;
+ * zoom 14 → zmax = solo el rectángulo de cada fundo (+150 m). Tope MO_MAX teselas por descarga. */
+const MO_CACHE = 'bitacora-mapa-offline', MO_CAPA = 'World_Imagery', MO_MAX = 15000, MO_KB = 22;
+const MO = { activo: null };
+function moEstado() { try { return JSON.parse(localStorage.getItem('bit_mapa_offline') || 'null'); } catch (e) { return null; } }
+function moGuardar(x) { try { if (x) localStorage.setItem('bit_mapa_offline', JSON.stringify(x)); else localStorage.removeItem('bit_mapa_offline'); } catch (e) {} }
+function moTesela(lat, lng, z) {
+  const n = 2 ** z, rad = lat * Math.PI / 180;
+  return [Math.floor((lng + 180) / 360 * n), Math.floor((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * n)];
+}
+function moBbox(geom) {
+  let w = 180, e = -180, s = 90, n = -90;
+  const rec = c => { if (typeof c[0] === 'number') { w = Math.min(w, c[0]); e = Math.max(e, c[0]); s = Math.min(s, c[1]); n = Math.max(n, c[1]); } else c.forEach(rec); };
+  if (geom && geom.coordinates) rec(geom.coordinates);
+  return w > e ? null : { w, e, s, n };
+}
+function moAgregar(set, b, z, margen) {
+  const m = margen || 0;
+  const [x1, y1] = moTesela(b.n + m, b.w - m, z), [x2, y2] = moTesela(b.s - m, b.e + m, z);
+  for (let x = x1; x <= x2; x++) for (let y = y1; y <= y2; y++) set.add(z + '/' + y + '/' + x);
+}
+function moAreas() { return [...new Map(S.recursos.filter(r => r.id_area != null).map(r => [String(r.id_area), r.area || ('Área ' + r.id_area)])).entries()]; }
+async function moListaTeselas(idsArea, zmax) {
+  const set = new Set(), sinFundos = [];
+  for (const id of idsArea) {
+    const fc = await fundosGeoDeArea(id);
+    const cajas = (fc && fc.features || []).map(f => moBbox(f.geometry)).filter(Boolean);
+    if (!cajas.length) { sinFundos.push(id); continue; }
+    const todo = cajas.reduce((a, b) => ({ w: Math.min(a.w, b.w), e: Math.max(a.e, b.e), s: Math.min(a.s, b.s), n: Math.max(a.n, b.n) }));
+    for (let z = 9; z <= 13; z++) moAgregar(set, todo, z, 0.01);
+    for (let z = 14; z <= zmax; z++) cajas.forEach(b => moAgregar(set, b, z, 0.0015));
+  }
+  return { lista: [...set], sinFundos };
+}
+async function moDescargar() {
+  if (MO.activo) return;
+  if (!navigator.onLine) return toast('Necesitas señal (ideal Wi-Fi) para descargar el mapa.');
+  if (!('caches' in window)) return toast('Este navegador no permite guardar el mapa.');
+  const ids = [...document.querySelectorAll('[data-mo-area]:checked')].map(i => i.dataset.moArea);
+  if (!ids.length) return toast('Elige al menos un área.');
+  const zEl = document.querySelector('[data-mo-z].on'), zmax = zEl ? Number(zEl.dataset.moZ) : 16;
+  MO.activo = { ok: 0, total: 0, fallos: 0, cancelar: false, txt: 'Calculando los fundos…' }; moPintar();
+  let { lista, sinFundos } = await moListaTeselas(ids, zmax);
+  let zReal = zmax;
+  while (lista.length > MO_MAX && zReal > 14) { zReal--; ({ lista } = await moListaTeselas(ids, zReal)); }
+  if (!lista.length) { MO.activo = null; moPintar(); return toast('No hay fundos con polígono en las áreas elegidas.'); }
+  const mb = Math.round(lista.length * MO_KB / 1024);
+  if (!confirm('Se descargarán ' + lista.length.toLocaleString('es-CL') + ' imágenes (≈ ' + mb + ' MB) de los fundos' + (zReal < zmax ? ', hasta el zoom ' + zReal + ' (para no pasar del máximo)' : '') +
+    '.\n\nHazlo con Wi-Fi o buena señal. ¿Continuar?')) { MO.activo = null; moPintar(); return; }
+  try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch (e) {}
+  const cache = await caches.open(MO_CACHE);
+  Object.assign(MO.activo, { total: lista.length, txt: '' }); moPintar();
+  let i = 0, bytes = 0;
+  const url = k => { const [z, y, x] = k.split('/'); return ESRI + MO_CAPA + '/MapServer/tile/' + z + '/' + y + '/' + x; };
+  const trabajador = async () => {
+    while (i < lista.length && MO.activo && !MO.activo.cancelar) {
+      const u = url(lista[i++]);
+      try {
+        const ya = await cache.match(u);
+        if (ya) bytes += Number(ya.headers.get('content-length')) || MO_KB * 1024;
+        else {
+          const res = await fetch(u, { mode: 'cors', credentials: 'omit' });
+          if (res.ok) { const b = await res.blob(); bytes += b.size; await cache.put(u, new Response(b, { headers: { 'Content-Type': res.headers.get('content-type') || 'image/jpeg', 'Content-Length': String(b.size) } })); }
+          else MO.activo.fallos++;
+        }
+      } catch (e) { if (MO.activo) MO.activo.fallos++; if (!navigator.onLine) break; }
+      if (MO.activo && ++MO.activo.ok % 20 === 0) moProgreso();
+    }
+  };
+  await Promise.all([1, 2, 3, 4, 5, 6].map(trabajador));
+  const a = MO.activo; MO.activo = null;
+  const cancelado = a.cancelar, completo = !cancelado && a.ok >= lista.length && a.fallos < lista.length * 0.03;
+  const nombres = moAreas().filter(([id]) => ids.includes(id)).map(x => x[1]);
+  moGuardar({ fecha: new Date().toISOString(), total: lista.length, ok: a.ok - a.fallos, fallos: a.fallos, zmax: zReal, areas: nombres, ids, mb: Math.round(bytes / 1048576), completo, sinFundos: sinFundos.length });
+  moPintar();
+  toast(cancelado ? '⏹️ Descarga detenida: lo bajado queda guardado.' : completo ? '✅ Mapa satelital listo para usar sin señal' : '⚠️ Mapa descargado en parte. Reintenta con buena señal (solo baja lo que falta).', 4500);
+}
+async function moBorrar() {
+  if (MO.activo) return;
+  if (!confirm('¿Borrar el mapa satelital descargado de este teléfono?')) return;
+  try { await caches.delete(MO_CACHE); } catch (e) {}
+  moGuardar(null); moPintar(); toast('🗑️ Mapa descargado borrado');
+}
+function moProgreso() {
+  const el = $('mo-prog'); if (!el || !MO.activo) return;
+  const a = MO.activo, p = a.total ? Math.round(a.ok / a.total * 100) : 0;
+  el.innerHTML = a.total ? '<div class="prog claro" style="margin-top:0;"><div class="prog-bar"><i style="width:' + p + '%"></i></div></div><div class="muted" style="margin-top:4px;">⬇️ ' + a.ok.toLocaleString('es-CL') + ' de ' + a.total.toLocaleString('es-CL') + ' (' + p + ' %)' + (a.fallos ? ' · ' + a.fallos + ' con error' : '') + '</div>'
+    : '<div class="muted">' + esc(a.txt || '') + '</div>';
+}
+function moPintar() { const c = $('mo-card'); if (c) c.outerHTML = moHtml(); moProgreso(); }
+function moHtml() {
+  const st = moEstado(), areas = moAreas(), a = MO.activo;
+  const marcadas = st && st.ids ? st.ids : areas.slice(0, 4).map(x => x[0]);
+  const z = (st && st.zmax) || 16;
+  let h = '<div class="card" id="mo-card"><div class="sec-t">🛰️ Mapa satelital sin conexión</div>' +
+    '<div class="muted">Baja la imagen satelital de los <b>fundos CMPC</b> de tus áreas para ver el mapa sin señal en terreno. Hazlo con Wi-Fi.</div>';
+  if (st) h += '<div class="dato"><span>Descargado</span><b>' + esc(fmtFechaHora(st.fecha)) + '</b></div><div class="dato"><span>Contenido</span><b>' +
+    (st.ok || 0).toLocaleString('es-CL') + ' imágenes · ≈ ' + (st.mb || 0) + ' MB · zoom ' + st.zmax + '</b></div><div class="dato"><span>Áreas</span><b>' + esc((st.areas || []).join(', ')) + '</b></div>' +
+    (st.completo ? '' : '<div class="aviso" style="margin-top:6px;">⚠️ Quedó incompleto: vuelve a descargar con buena señal (solo baja lo que falta).</div>');
+  if (!areas.length) return h + '<div class="muted" style="margin-top:6px;">No tienes recursos con área asignada.</div></div>';
+  h += '<div style="margin-top:8px;">' + areas.map(([id, nom]) => '<label class="chk" style="margin-top:6px;"><input type="checkbox" data-mo-area="' + esc(id) + '"' + (marcadas.includes(id) ? ' checked' : '') + (a ? ' disabled' : '') + '> ' + esc(nom) + '</label>').join('') + '</div>' +
+    '<div class="opc" style="margin-top:10px;"><button type="button" data-mo-z="15"' + (z === 15 ? ' class="on"' : '') + '>Liviano (zoom 15)</button><button type="button" data-mo-z="16"' + (z !== 15 ? ' class="on"' : '') + '>Detallado (zoom 16)</button></div>' +
+    '<div id="mo-prog" style="margin-top:8px;"></div>';
+  h += a ? '<button class="btn btn-rojo" data-mo-cancelar="1" style="width:100%;margin-top:8px;">⏹️ Detener descarga</button>'
+    : '<button class="btn btn-p" data-mo-desc="1" style="width:100%;margin-top:8px;"' + (navigator.onLine ? '' : ' disabled') + '>⬇️ ' + (st ? 'Actualizar' : 'Descargar') + ' mapa de los fundos</button>' +
+      (st ? '<button class="btn" data-mo-borrar="1" style="width:100%;margin-top:8px;">🗑️ Borrar mapa descargado</button>' : '');
+  return h + '<div class="muted" style="margin-top:6px;">Sin señal se ve la imagen hasta el zoom descargado (más cerca se agranda). La capa «Relieve» no se descarga.</div></div>';
 }
 const PIN_SVG = '<svg viewBox="0 0 24 32" width="30" height="40"><path d="M12 0C5.4 0 0 5.3 0 11.8 0 20.6 12 32 12 32s12-11.4 12-20.2C24 5.3 18.6 0 12 0z" fill="#E8553A" stroke="#fff" stroke-width="1.5"/><circle cx="12" cy="12" r="4.5" fill="#fff"/></svg>';
 // Coordenadas en grados-minutos-segundos: 38°14'25,3" S · 72°20'11,8" O
@@ -2014,6 +2193,7 @@ function perfilHtml() {
       (pend || '<div class="muted">Todo está enviado ✅</div>') +
       '<button class="btn btn-p" data-sync="1" style="width:100%;margin-top:10px;"' + (navigator.onLine && S.pendientes.length ? '' : ' disabled') + '>🔄 Enviar ahora</button>' +
       '<div class="muted" style="margin-top:6px;">Sin señal las aperturas quedan en el teléfono y se envían solas al recuperar la conexión.</div></div>' +
+    moHtml() +
     '<div class="card"><button class="btn" data-recargar="1" style="width:100%;margin-bottom:8px;">🔄 Sincronizar sistema</button>' +
       (esInstalada() ? '' : '<button class="btn btn-p" data-instalar="1" style="width:100%;margin-bottom:8px;">📲 Instalar la Bitácora en el teléfono</button>') +
       (claveGuardada() ? '<button class="btn" data-olvidar="1" style="width:100%;margin-bottom:8px;">🔑 Olvidar la clave guardada en este teléfono</button>' : '') +
@@ -2544,7 +2724,7 @@ const clasifDeGrupo = g => ((grupoCat(g) || {}).clasificacion_codigo) || '';
 function filaActHtml(a, conGrupo) {
   const g = grupoCat(a.grupo_codigo) || {}, fav = S.favs.has(a.codigo);
   return '<div class="fila-act"><button type="button" data-act-sel="' + esc(a.codigo) + '"' + (a.codigo === F.actividad ? ' style="font-weight:800;"' : '') + '>' +
-    (conGrupo ? esc((g.emoji || '') + ' ') : '') + esc(a.nombre) + '</button>' +
+    '<span class="an">' + (conGrupo ? esc((g.emoji || '') + ' ') : '') + esc(a.nombre) + '</span><span class="cod-act">' + esc(a.codigo) + '</span></button>' +
     '<button type="button" class="fav' + (fav ? ' on' : '') + '" data-fav="' + esc(a.codigo) + '" aria-label="' + (fav ? 'Quitar de favoritas' : 'Marcar como favorita') + '" title="' + (fav ? 'Quitar de favoritas' : 'Marcar como favorita') + '">⭐</button></div>';
 }
 function pintarSelAct() {
@@ -2553,11 +2733,20 @@ function pintarSelAct() {
   if (sel && !F.buscando) {
     const g = grupoCat(sel.grupo_codigo) || {}, k = clasifCat(g.clasificacion_codigo), fav = S.favs.has(sel.codigo);
     c.innerHTML = '<div class="act-sel" style="margin-top:6px;"><span style="font-size:22px;">' + esc(g.emoji || '🧩') + '</span><b>' + esc(sel.nombre) + '<small class="muted" style="display:block;font-weight:600;">' +
-      esc((k ? k.nombre + ' › ' : '') + (g.nombre || '')) + '</small></b><button type="button" class="fav' + (fav ? ' on' : '') + '" data-fav="' + esc(sel.codigo) + '" aria-label="Favorita">⭐</button>' +
+      esc((k ? k.nombre + ' › ' : '') + (g.nombre || '')) + ' · <span class="cod-act">' + esc(sel.codigo) + '</span></small></b><button type="button" class="fav' + (fav ? ' on' : '') + '" data-fav="' + esc(sel.codigo) + '" aria-label="Favorita">⭐</button>' +
       '<button type="button" class="btn btn-mini" data-act-cambiar="1">Cambiar</button></div>';
     resumenForm(); return;
   }
   let lista = habilitadas(F.r);
+  // v1.6.3: busca por nombre o por código (AC-012 = «ac012», «ac 12», «12»…)
+  const coincide = (a, q) => {
+    if (norm(a.nombre + ' ' + a.codigo).includes(q)) return true;
+    const qc = q.replace(/[^a-z0-9]/g, ''), cc = norm(a.codigo).replace(/[^a-z0-9]/g, '');
+    if (!qc) return false;
+    if (cc.includes(qc)) return true;
+    const qn = qc.replace(/^ac/, '');
+    return /^\d+$/.test(qn) && Number(qn) === Number(cc.replace(/\D/g, ''));
+  };
   if (F.grupoFijo) { lista = lista.filter(a => a.grupo_codigo === F.grupoFijo); if (sel && !lista.includes(sel)) lista.push(sel); }
   const q = norm(F.q), grupoVer = F.grupoFijo || F.grupo, conClasif = (S.cat.clasif || []).length > 0;
   const cuenta = new Map();
@@ -2570,19 +2759,19 @@ function pintarSelAct() {
   const arriba = !q && !grupoVer && !F.clasif;
   if (arriba && favs.length) h += '<div class="muted" style="margin:6px 0 4px;">⭐ Mis favoritas</div><div class="act-lista" style="max-height:none;margin-bottom:8px;">' + favs.map(a => filaActHtml(a, true)).join('') + '</div>';
   if (arriba && frec.length) h += '<div class="muted" style="margin:6px 0 4px;">🕘 Frecuentes</div><div class="opc" style="margin-bottom:8px;">' + frec.map(a => '<button type="button" data-act-sel="' + esc(a.codigo) + '">' + esc(((grupoCat(a.grupo_codigo) || {}).emoji || '') + ' ' + a.nombre) + '</button>').join('') + '</div>';
-  h += '<input id="fa-q" type="search" placeholder="🔎 Buscar en ' + (grupoVer ? 'este grupo' : 'todas las actividades') + '" value="' + esc(F.q) + '" autocomplete="off" style="margin-top:6px;">';
+  h += '<input id="fa-q" type="search" placeholder="🔎 Buscar ' + (grupoVer ? 'en este grupo' : 'actividad') + ' por nombre o código (AC-…)" value="' + esc(F.q) + '" autocomplete="off" style="margin-top:6px;">';
   const orden = (x, y) => ((grupoCat(x.grupo_codigo) || {}).orden || 0) - ((grupoCat(y.grupo_codigo) || {}).orden || 0) || x.nombre.localeCompare(y.nombre, 'es');
   const gruposDe = kc => S.cat.grupos.filter(g => lista.some(a => a.grupo_codigo === g.codigo) && (!kc || clasifDeGrupo(g.codigo) === kc));
   const tarjetasGrupo = gs => '<div class="grupos">' + gs.map(g => '<button type="button" data-grupo="' + esc(g.codigo) + '"><span>' + esc(g.emoji || '🧩') + '</span><span>' + esc(g.nombre) +
     '<small>' + lista.filter(a => a.grupo_codigo === g.codigo).length + ' actividades</small></span></button>').join('') + '</div>';
   if (grupoVer) {
-    const g = grupoCat(grupoVer) || {}, vis = lista.filter(a => a.grupo_codigo === grupoVer && (!q || norm(a.nombre + ' ' + a.codigo).includes(q))).sort(orden);
+    const g = grupoCat(grupoVer) || {}, vis = lista.filter(a => a.grupo_codigo === grupoVer && (!q || coincide(a, q))).sort(orden);
     const volver = F.grupoFijo ? '' : (conClasif && F.clasif && gruposDe(F.clasif).length > 1 ? '<button type="button" class="btn btn-mini" data-grupo-volver="1">← Grupos</button>'
       : '<button type="button" class="btn btn-mini" data-clasif-volver="1">← ' + (conClasif ? 'Clasificación' : 'Grupos') + '</button>');
     h += '<div class="grupo-cab">' + volver + '<span style="font-size:20px;">' + esc(g.emoji || '') + '</span>' + esc(g.nombre || '') + ' <span class="muted">(' + vis.length + ')</span></div>';
     h += '<div class="act-lista">' + (vis.length ? vis.map(a => filaActHtml(a, false)).join('') : '<div class="muted" style="padding:10px 12px;">Ninguna actividad coincide.</div>') + '</div>';
   } else if (q) {
-    const vis = lista.filter(a => norm(a.nombre + ' ' + a.codigo).includes(q)).sort(orden);
+    const vis = lista.filter(a => coincide(a, q)).sort(orden);
     let gAct = null;
     h += '<div class="act-lista">' + (vis.length ? vis.map(a => {
       let t = '';
@@ -2962,6 +3151,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       await buscarActualizacion();
       if (!S.versionNueva || cmpVersion(S.versionNueva, APP_VERSION) <= 0) toast('✅ Tienes la última versión (v' + APP_VERSION + ')');
     }
+  });
+  // 🛰️ v1.6.3: mapa satelital sin conexión (Mi cuenta)
+  cuerpo.addEventListener('click', e => {
+    const t = e.target;
+    const zb = t.closest('[data-mo-z]'); if (zb && !MO.activo) { document.querySelectorAll('[data-mo-z]').forEach(b => b.classList.toggle('on', b === zb)); return; }
+    if (t.closest('[data-mo-desc]')) return moDescargar();
+    if (t.closest('[data-mo-borrar]')) return moBorrar();
+    if (t.closest('[data-mo-cancelar]') && MO.activo) { MO.activo.cancelar = true; MO.activo.txt = 'Deteniendo…'; }
   });
   cuerpo.addEventListener('change', e => {
     if (e.target.id === 'h-rec') { S.hist.rid = e.target.value; return pintar(); }

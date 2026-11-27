@@ -101,6 +101,12 @@ async function cargarBitacoraWeb_() {
     s.filas = filas; s.acts = acts; s.grupos = gr.error ? [] : (gr.data || []);
     s.kls = kl.error ? [] : (kl.data || []); s.sinClasif = !!kl.error;
     s.recursos = rec.error ? [] : (rec.data || []);
+    // Supervisor de empresa: solo sus recursos (el RLS ya lo hace; en «Ver como… › Modo Supervisor» la sesión es del Admin y lo hace esto)
+    if (esSupervisor_()) {
+      const rid = r => r.recurso_id != null ? r.recurso_id : (r.id != null ? r.id : r.recurso);
+      s.filas = s.filas.filter(j => esRecursoSupervisado_(j.recurso_id)); s.acts = s.acts.filter(a => esRecursoSupervisado_(a.recurso_id));
+      s.recursos = s.recursos.filter(r => esRecursoSupervisado_(rid(r)));
+    }
     s.cargado = true;
   } catch (e) {
     s.filas = []; s.acts = []; s.cargado = false;
@@ -329,7 +335,7 @@ async function btVivo_(map) {
     if (error) { if (txt) txt.textContent = /bit_mapa_jornada|schema cache|does not exist/i.test(error.message) ? '· falta el SQL 195' : '· ' + error.message; return; }
     if (capa) map.removeLayer(capa);
     capa = L.layerGroup().addTo(map);
-    const recs = (data.recursos || []).filter(r => btEnArea_(s, r.area) && (!s.tipo || r.tipo_codigo === s.tipo) && (!s.recurso || r.id === s.recurso));
+    const recs = (data.recursos || []).filter(r => esRecursoSupervisado_(r.id) && btEnArea_(s, r.area) && (!s.tipo || r.tipo_codigo === s.tipo) && (!s.recurso || r.id === s.recurso));
     let enVivo = 0;
     recs.forEach(r => {
       const ras = (r.rastro || []).map(p => [p[0], p[1]]);

@@ -288,6 +288,7 @@ function sgComuna_(c) {
 function renderSeguimiento_(soloLista) {
   const D = state.sg.datos; if (!D) return;
   document.querySelectorAll('#sg-vistas [data-sg-vista]').forEach(b => b.classList.toggle('on', b.dataset.sgVista === state.sg.vista));
+  if (state.sg.vista !== 'ppa' && state.sg.ppaHost !== 'ppa') sgPpaLimpiar_();   // gráficos y mapa del tablero PPA
   if (state.sg.vista === 'recursos') renderSgRecursos_();
   else if (state.sg.vista === 'turnos') renderSgTurnos_();
   else if (state.sg.vista === 'personas') renderSgPersonas_();
@@ -594,10 +595,12 @@ function sgPpaMedida_(a, hoy, mesAct) {
   return { a, exig, av, lleva: Math.min(av, exig), metaTot, llevaGen: Math.min(av, metaTot), vencida, porVencer,
     falta: Math.max(0, exig - av), faltaMes: Math.max(0, exig + pendMes - av) };
 }
+/** Subgerencia del tablero: la del Seguimiento; en el PPA › Tablero de Avance, ninguna (manda el alcance del usuario). */
+function sgPpaSubg_() { return state.sg.ppaHost === 'ppa' ? '' : sgSubgActiva_(); }
 function sgPpaDatos_() {
   const P = state.ppa, hoy = ppaHoy_(), mesAct = hoy.slice(0, 7) + '-01';
   const enPeriodo = ppaMesesPeriodo_().includes(mesAct) ? mesAct : null;
-  const subg = SG_KEY(sgSubgActiva_());
+  const subg = SG_KEY(sgPpaSubg_());
   const porArea = {};
   P.acciones.filter(a => a.activo !== false && (!subg || SG_KEY(a.subgerencia) === subg)).forEach(a => {
     const k = SG_KEY(a.area_nombre || a.area);
@@ -635,15 +638,43 @@ function sgPpaDosAvances_(x) {
     fila('📊', 'Avance general', x.pctGen, x.llevaGen, x.metaTot, 'acciones del período') +
     fila('📅', 'Avance a la fecha', x.pct, x.lleva, x.debe, 'exigibles hoy') + '</div>';
 }
-async function renderSgPpa_() {
-  const S = state.sg, cuerpo = document.getElementById('sg-cuerpo');
+/* 26-11-2026: el MISMO tablero se pinta en 📈 Seguimiento › 📋 PPA (host 'sg', #sg-cuerpo) y en 📋 PPA › 📊 Tablero de Avance (host 'ppa',
+ * #sg-ppa-host dentro de #ppa-cuerpo; Admin y Jefe / GRT / Subgerente con SUS áreas: cargarPpa_ ya las filtra). Los ids internos (canvas, mapa)
+ * son únicos: al pintar en un host se vacía el otro. Con una sola área, el tablero baja directo a sus sectores. */
+function sgPpaLimpiar_() {
+  const S = state.sg;
+  if (S.ppaMapaG) { try { S.ppaMapaG.remove(); } catch (e) {} S.ppaMapaG = null; }
+  (S.ppaAreaCharts || []).forEach(c => { try { c.destroy(); } catch (e) {} }); S.ppaAreaCharts = [];
+}
+/** Vuelve a pintar el tablero donde está (Seguimiento o PPA). */
+function sgPpaRepintar_() { if (state.sg.ppaHost === 'ppa') renderSgPpa_('ppa'); else renderSeguimiento_(); }
+/** Host PPA: los clics de chips / modales (en el Seguimiento los atiende el listener de #sg-cuerpo). */
+function sgPpaClicHost_(e) {
+  const S = state.sg;
+  const pp = e.target.closest('[data-sg-ppa]'); if (pp) { e.preventDefault(); if (!pp.disabled) sgPpaAccion_(pp.dataset.sgPpa); return; }
+  const c = e.target.closest('[data-sg-f]'); if (!c) return;
+  const [k, v] = c.dataset.sgF.split('|');
+  if (k === 'ppaRecargar') { abrirPpa_('ppaavance', true); return; }
+  S[k] = S[k] === v && k !== 'ppaArea' ? '' : v;
+  if (k === 'ppaArea') S.ppaGrupo = '';
+  renderSgPpa_('ppa');
+}
+async function renderSgPpa_(host) {
+  const S = state.sg;
+  S.ppaHost = host === 'ppa' ? 'ppa' : 'sg';
+  const cuerpo = document.getElementById(S.ppaHost === 'ppa' ? 'sg-ppa-host' : 'sg-cuerpo'); if (!cuerpo) return;
+  sgPpaLimpiar_();
+  const otro = document.getElementById(S.ppaHost === 'ppa' ? 'sg-cuerpo' : 'sg-ppa-host');
+  if (otro && otro.querySelector('.sg-ppa-dist, #sg-ppa-gmapa')) otro.innerHTML = '';   // ids únicos (el Seguimiento se repinta al volver)
+  if (S.ppaHost === 'ppa' && !cuerpo.dataset.clic) { cuerpo.dataset.clic = '1'; cuerpo.addEventListener('click', sgPpaClicHost_); }
   if (!state.ppa.cargado || S.ppaRecargar) {
     cuerpo.innerHTML = '<div class="tb-vacio">Leyendo el Plan de Prevención por Área…</div>';
     try { await cargarPpa_(); S.ppaRecargar = false; S.ppaAvCache = {}; }
     catch (e) { cuerpo.innerHTML = '<div class="tb-vacio">No se pudo leer el PPA: ' + escapeHtml_(e.message || String(e)) + '</div>'; return; }
-    if (S.vista !== 'ppa') return;
+    if (S.ppaHost === 'sg' && S.vista !== 'ppa') return;
   }
   const R0 = sgPpaDatos_(), n = SG_PPA_NUM, pctTxt = SG_PPA_PCT;
+  if (R0.areas.length === 1) S.ppaArea = R0.areas[0].k;   // una sola área (Jefe / GRT): directo al detalle por sector
   // 22-11-2026: filtro por Área (como en «Comunas y copamiento»): resumen y tarjetas solo del área elegida
   if (S.ppaArea && !R0.areas.some(x => x.k === S.ppaArea)) S.ppaArea = '';
   const areasVis = S.ppaArea ? R0.areas.filter(x => x.k === S.ppaArea) : R0.areas;
@@ -652,42 +683,319 @@ async function renderSgPpa_() {
   const filtroArea = R0.areas.length > 1 ? '<div class="sg-chips"><span class="tit">Área</span>' + chipArea('', 'Todas', R0.T.total) +
     [...R0.areas].sort((p, q) => p.nombre.localeCompare(q.nombre, 'es')).map(x => chipArea(x.k, escapeHtml_(aTitulo_(x.nombre)), x.total)).join('') + '</div>' : '';
   const mesTxt = (R.mesAct ? ppaMesTxt_(R.mesAct) : 'el mes').toLowerCase();
-  // 16-11-2026: tarjeta por área con los números destacados; los botones abren los modales de pendientes y de acciones registradas
-  const tile = (ico, v, t, c, accion) => '<div class="sg-ppa-tile' + (accion ? ' clic' : '') + '" style="--t:' + c + '"' + (accion ? ' data-sg-ppa="' + accion + '" title="Ver el detalle"' : '') + '>' +
-    '<b>' + v + '</b><span>' + ico + ' ' + t + '</span></div>';
-  const html = R.areas.map(x => {
-    const col = SG_PPA_COL(x.pct), k = escapeHtml_(x.k), pend = x.vencidas + x.porVencer;
-    const nAv = x.med.reduce((s, m) => s + ((state.ppa.avPorId.get(m.a.id_ppa) || []).length), 0);
-    return '<div class="sg-ppa-area" style="--c:' + col + '">' +
-      '<div class="sg-ppa-top"><div class="nom"><b>' + escapeHtml_(aTitulo_(x.nombre)) + '</b><small>' + x.total + ' medida(s)</small></div></div>' +
-      sgPpaDosAvances_(x) +   // 19-11-2026: avance general + avance a la fecha del área
-      '<div class="sg-ppa-tiles">' +
-        tile('📋', x.total, 'Medidas', '#2563EB') +
-        tile('⏳', x.porVencer, 'Por vencer', '#D97706', x.porVencer ? 'pend|' + k + '|porvencer' : '') +
-        tile('⏰', x.vencidas, 'Vencidas', '#DC2626', x.vencidas ? 'pend|' + k + '|vencidas' : '') +
-        tile('✅', x.alDia, 'Al día', '#16A34A') +
-      '</div>' +
-      (x.sinExig ? '<div class="sg-ppa-nota">⚪ ' + x.sinExig + ' medida(s) aún sin metas vencidas</div>' : '') +
-      '<div class="sg-ppa-botones">' +
-        '<button class="turnos-btn" data-sg-ppa="pend|' + k + '|"' + (pend ? '' : ' disabled') + '>⚠️ Pendientes y atrasadas (' + pend + ')</button>' +
-        '<button class="turnos-btn" data-sg-ppa="acc|' + k + '|">📸 Acciones registradas (' + nAv + ')</button>' +
-      '</div></div>';
-  }).join('') || '<div class="tb-vacio">No hay medidas del PPA en ' + (sgSubgActiva_() ? 'la subgerencia' : 'las áreas') + '.</div>';
+  // 26-11-2026 (pedido del usuario): el Control por área pasa de tarjetas a GRÁFICOS (sgPpaHtmlAreas_ / sgPpaGraficosAreas_)
   cuerpo.innerHTML =
     '<div class="sg-chips"><span style="font-size:11.5px;color:var(--text-tertiary);">PPA ' + escapeHtml_(state.ppa.periodo ? state.ppa.periodo.nombre : '') + ' al ' + ppaFechaTxt_(R.hoy) +
       '. <b>% de avance a la fecha</b> = acciones que lleva ÷ acciones que debe llevar (metas de las quincenas ya terminadas). <b>⏰ Vencida</b>: no alcanzó lo exigido. ' +
       '<b>⏳ Por vencer</b>: al día, con meta pendiente antes de fin de ' + escapeHtml_(mesTxt) + '.</span>' +
       '<button class="sg-chip" data-sg-f="ppaRecargar|1" style="margin-left:auto;">🔄 Volver a leer</button></div>' +
     filtroArea +
-    '<div class="sg-resumen sg-ppa-resumen">' +
-      '<div style="--c:#2563EB"><b>' + T.total + '</b><span>📋 total medidas (' + (S.ppaArea && R.areas[0] ? escapeHtml_(aTitulo_(R.areas[0].nombre)) : R.areas.length + ' áreas') + ')</span></div>' +
-      '<div style="--c:#D97706"><b>' + T.porVencer + '</b><span>⏳ por vencer en ' + escapeHtml_(mesTxt) + '</span></div>' +
-      '<div style="--c:#DC2626"><b>' + T.vencidas + '</b><span>⏰ vencidas · faltan ' + n(T.falta) + ' acciones</span></div>' +
-      '<div style="--c:' + SG_PPA_COL(T.pctGen) + '"><b>' + pctTxt(T.pctGen) + '</b><span>📊 avance general (' + n(T.llevaGen) + ' de ' + n(T.metaTot) + ' del período)</span></div>' +
-      '<div style="--c:' + SG_PPA_COL(T.pct) + '"><b>' + pctTxt(T.pct) + '</b><span>📅 avance a la fecha (lleva ' + n(T.lleva) + ' de ' + n(T.debe) + ')</span></div>' +
-    '</div>' +
-    '<div class="sg-ppa-grid">' + html + '</div>';
+    sgPpaHtmlResumen_(R, mesTxt) +   // 26-11-2026: resumen sobrio (4 indicadores + donas), estilo «Informe de Gestión»
+    // 26-11-2026: primero el control por área (tarjetas compactas) y después 🗂️ avance por Grupo + 🗺️ mapa de las acciones registradas
+    sgPpaHtmlAreas_(R) +
+    sgPpaHtmlGrupos_(R0, R);
   S.ultimoPpa = R;
+  sgPpaGraficosAreas_();
+  sgPpaMapaGeneral_(R);
+}
+
+/* ── 🧭 Control por área en GRÁFICOS (26-11-2026, referencia del usuario «Distribución») ──
+ * Tres tarjetas blancas: (1) dona «Medidas por área» con el total al centro y leyenda (medidas y %); (2) barras horizontales «Avance por área»
+ * (General = índigo, A la fecha = naranja, con el % al final de cada barra; ordenadas por avance a la fecha); (3) barras apiladas «Estado de las
+ * medidas» (vencidas / por vencer / al día / sin metas vencidas). Con un ÁREA elegida en los chips, las unidades pasan a ser sus SECTORES.
+ * Clic: en un área → filtra por esa área (chips); en un sector → modal de sus medidas; en un tramo del estado → modal filtrado. */
+const SG_PPA_UCOL = ['#6366F1', '#10B981', '#F59E0B', '#EC4899', '#0EA5E9', '#8B5CF6', '#EF4444', '#14B8A6', '#F97316', '#84CC16', '#64748B', '#A855F7', '#06B6D4', '#EAB308'];
+function sgPpaUnidades_(R) {
+  const S = state.sg;
+  if (!S.ppaArea || !R.areas[0]) return { tipo: 'area', u: R.areas.map(x => Object.assign({}, x, { etq: aTitulo_(x.nombre) })) };
+  const x0 = R.areas[0], porS = {};
+  x0.med.forEach(m => { const s = m.a.sector || 'Toda el área'; (porS[s] = porS[s] || []).push(m); });
+  return { tipo: 'sector', u: Object.entries(porS).map(([s, med]) => {
+    const k = 'S_' + (SG_KEY(s) || 'X') + '_' + x0.k;
+    const o = Object.assign({ k, nombre: s + ' · ' + aTitulo_(x0.nombre), etq: s, med, area: x0.nombre }, sgPpaResumir_(med));
+    SG_PPA_GRUPOS[k] = o; return o;
+  }) };
+}
+function sgPpaHtmlAreas_(R) {
+  const S = state.sg, U = sgPpaUnidades_(R);
+  if (!U.u.length) { S.ppaDist = Object.assign(S.ppaDist || {}, { a: null }); return '<h4 class="sg-ppa-h4">🧭 Control por área</h4><div class="tb-vacio">No hay medidas del PPA en ' + (sgPpaSubg_() ? 'la subgerencia' : 'las áreas') + '.</div>'; }
+  const porMed = [...U.u].sort((p, q) => q.total - p.total);
+  const col = {}; porMed.forEach((x, i) => { col[x.k] = SG_PPA_UCOL[i % SG_PPA_UCOL.length]; });
+  const quien = U.tipo === 'sector' ? 'sector' : 'área';
+  const cfg = { pre: 'a', quien, u: U.u, col, total: R.T.total,
+    alClic: (x, filtro) => { if (U.tipo === 'area' && filtro == null) { S.ppaArea = x.k; S.ppaGrupo = ''; sgPpaRepintar_(); } else sgPpaModalPendientes_(x.k, filtro || 'todas'); } };
+  S.ppaDist = Object.assign(S.ppaDist || {}, { a: cfg });
+  return '<h4 class="sg-ppa-h4">🧭 Control por ' + quien + (U.tipo === 'sector' ? ' · ' + escapeHtml_(aTitulo_(R.areas[0].nombre)) : '') + '</h4>' + sgPpaHtmlDist_(cfg);
+}
+/** Las 3 tarjetas (dona de medidas · avance general / a la fecha · estado de las medidas) para cualquier conjunto de unidades (áreas, sectores o
+ *  grupos). cfg = { pre (prefijo de los canvas), quien, u: [{k, etq, total, pct, pctGen, …sgPpaResumir_}], col: {k: color}, total, alClic(x, filtro) }. */
+function sgPpaHtmlDist_(cfg) {
+  const porMed = [...cfg.u].sort((p, q) => q.total - p.total), tot = porMed.reduce((s, x) => s + x.total, 0) || 1;
+  const alto = Math.max(240, cfg.u.length * 42 + 40), sel = cfg.sel || '';
+  const ley = (c, t) => '<span><i style="background:' + c + '"></i>' + t + '</span>';
+  return '<div class="sg-ppa-dist">' +
+      '<div class="sg-ppa-dcard2"><div class="cab"><b>Medidas por ' + cfg.quien + '</b></div>' +
+        '<div class="dona"><canvas id="sg-ppa-' + cfg.pre + '1"></canvas><div class="centro"><b>' + SG_PPA_NUM(cfg.total) + '</b><span>medidas</span></div></div>' +
+        '<div class="ley">' + porMed.map(x => '<div' + (sel && sel !== x.gk ? ' class="off"' : '') + '><i style="background:' + cfg.col[x.k] + '"></i><span title="' + escapeHtml_(x.etq) + '">' + escapeHtml_(x.etq) + '</span><b>' + x.total + '</b><small>' + Math.round(x.total * 100 / tot) + ' %</small></div>').join('') + '</div></div>' +
+      '<div class="sg-ppa-dcard2"><div class="cab"><b>Avance por ' + cfg.quien + '</b><div class="lg">' + ley('#6366F1', 'General') + ley('#F97316', 'A la fecha') + '</div></div>' +
+        '<div class="barras" style="height:' + alto + 'px"><canvas id="sg-ppa-' + cfg.pre + '2"></canvas></div></div>' +
+      '<div class="sg-ppa-dcard2"><div class="cab"><b>Estado de las medidas</b><div class="lg">' + ley('#DC2626', 'Vencidas') + ley('#F59E0B', 'Por vencer') + ley('#16A34A', 'Al día') + ley('#CBD5E1', 'Sin vencer') + '</div></div>' +
+        '<div class="barras" style="height:' + alto + 'px"><canvas id="sg-ppa-' + cfg.pre + '3"></canvas></div></div>' +
+    '</div>';
+}
+function sgPpaGraficosAreas_() {
+  const S = state.sg;
+  (S.ppaAreaCharts || []).forEach(c => { try { c.destroy(); } catch (e) {} }); S.ppaAreaCharts = [];
+  if (!window.Chart) return;
+  Object.values(S.ppaDist || {}).forEach(cfg => { if (cfg && cfg.u.length) sgPpaGraficosDist_(cfg); });
+}
+function sgPpaGraficosDist_(cfg) {
+  const S = state.sg, col = cfg.col, sel = cfg.sel || '', cs = getComputedStyle(document.body);
+  const txtCol = cs.getPropertyValue('--text-secondary').trim() || '#64748B', gridCol = cs.getPropertyValue('--border').trim() || '#E2E8F0';
+  const abrir = cfg.alClic, cursor = (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; };
+  const alfa = (hex, a) => { const n = parseInt(String(hex).slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; };
+  const tenue = x => sel && sel !== x.gk;
+  // (1) dona
+  const porMed = [...cfg.u].sort((p, q) => q.total - p.total);
+  const c1 = document.getElementById('sg-ppa-' + cfg.pre + '1');
+  if (c1) S.ppaAreaCharts.push(new Chart(c1, {
+    type: 'doughnut',
+    data: { labels: porMed.map(x => x.etq), datasets: [{ data: porMed.map(x => x.total), backgroundColor: porMed.map(x => alfa(col[x.k] || '#64748B', tenue(x) ? 0.25 : 1)), borderColor: cs.getPropertyValue('--white').trim() || '#fff', borderWidth: 3 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + c.raw + ' medidas' } } },
+      onClick: (e, els) => { if (els.length) abrir(porMed[els[0].index]); }, onHover: cursor },
+  }));
+  // (2) avance general / a la fecha (ordenadas por avance a la fecha, de mayor a menor)
+  const porAv = [...cfg.u].sort((p, q) => (q.pct == null ? -1 : q.pct) - (p.pct == null ? -1 : p.pct) || String(p.etq).localeCompare(String(q.etq), 'es'));
+  const etiquetas = {
+    id: 'sgPpaEtqBarras',
+    afterDatasetsDraw(ch) {
+      const c = ch.ctx; c.save(); c.font = '600 10.5px system-ui, sans-serif'; c.fillStyle = txtCol; c.textBaseline = 'middle';
+      ch.data.datasets.forEach((d, i) => { if (d.sinEtq) return; ch.getDatasetMeta(i).data.forEach((b, j) => {
+        const v = d.data[j]; if (v == null) return; c.fillText(d.fmt ? d.fmt(v, j) : SG_PPA_PCT(Math.round(v * 10) / 10), b.x + 5, b.y); }); });
+      c.restore();
+    },
+  };
+  const corto = s => { s = String(s); return s.length > 26 ? s.slice(0, 25) + '…' : s; };
+  const ejeY = { ticks: { color: txtCol, font: { size: 11.5, weight: '600' }, callback: function (v) { return corto(this.getLabelForValue(v)); } }, grid: { display: false }, border: { display: false } };
+  const c2 = document.getElementById('sg-ppa-' + cfg.pre + '2');
+  const maxAv = Math.max(100, ...porAv.map(x => Math.max(x.pct || 0, x.pctGen || 0)));
+  if (c2) S.ppaAreaCharts.push(new Chart(c2, {
+    type: 'bar',
+    data: { labels: porAv.map(x => x.etq), datasets: [
+      { label: 'Avance general', data: porAv.map(x => x.pctGen), backgroundColor: porAv.map(x => tenue(x) ? '#E0E7FF' : '#818CF8'), borderRadius: 6, barPercentage: 0.75, categoryPercentage: 0.7 },
+      { label: 'Avance a la fecha', data: porAv.map(x => x.pct), backgroundColor: porAv.map(x => tenue(x) ? '#FFEDD5' : '#FB923C'), borderRadius: 6, barPercentage: 0.75, categoryPercentage: 0.7 },
+    ] },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, layout: { padding: { right: 46 } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        label: it => ' ' + it.dataset.label + ': ' + SG_PPA_PCT(it.raw),
+        afterLabel: it => { const x = porAv[it.dataIndex]; return it.datasetIndex === 0 ? '   ' + SG_PPA_NUM(x.llevaGen) + ' de ' + SG_PPA_NUM(x.metaTot) + ' del período' : '   lleva ' + SG_PPA_NUM(x.lleva) + ' de ' + SG_PPA_NUM(x.debe); } } } },
+      scales: { x: { beginAtZero: true, max: Math.ceil(maxAv / 10) * 10, ticks: { color: txtCol, callback: v => v + '%' }, grid: { color: gridCol }, border: { display: false } }, y: ejeY },
+      onClick: (e, els) => { if (els.length) abrir(porAv[els[0].index]); }, onHover: cursor },
+    plugins: [etiquetas],
+  }));
+  // (3) estado de las medidas (apiladas; mismo orden que el avance)
+  const c3 = document.getElementById('sg-ppa-' + cfg.pre + '3');
+  const tramos = [['Vencidas', 'vencidas', '#DC2626', 'vencidas'], ['Por vencer', 'porVencer', '#F59E0B', 'porvencer'], ['Al día', 'alDia', '#16A34A', 'todas'], ['Sin metas vencidas', 'sinExig', '#CBD5E1', 'todas']];
+  if (c3) S.ppaAreaCharts.push(new Chart(c3, {
+    type: 'bar',
+    data: { labels: porAv.map(x => x.etq), datasets: tramos.map(([t, k, c], i) => ({ label: t, data: porAv.map(x => x[k] || 0), backgroundColor: porAv.map(x => alfa(c, tenue(x) ? 0.25 : 1)), stack: 'e',
+      barPercentage: 0.6, categoryPercentage: 0.8, borderRadius: i === tramos.length - 1 ? { topRight: 6, bottomRight: 6 } : 0, borderSkipped: false,
+      sinEtq: i < tramos.length - 1, fmt: (v, j) => porAv[j].total + ' medidas' })) },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, layout: { padding: { right: 70 } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: it => ' ' + it.dataset.label + ': ' + it.raw } } },
+      scales: { x: { stacked: true, beginAtZero: true, ticks: { color: txtCol, precision: 0 }, grid: { color: gridCol }, border: { display: false } }, y: Object.assign({ stacked: true }, ejeY) },
+      onClick: (e, els) => { if (els.length) abrir(porAv[els[0].index], tramos[els[0].datasetIndex][3]); }, onHover: cursor },
+    plugins: [etiquetas],
+  }));
+}
+/* ── Resumen sobrio del PPA (26-11-2026, referencia del usuario: «Informe de Gestión Protección Forestal») ──
+ * Fila 1: 4 indicadores en tarjetas de tono suave (ícono en cuadro de color, número grande centrado, 2 filas de detalle).
+ * Avance general y a la fecha con medidor semicircular (sgPpaMedidor_). Las donas se quitaron a pedido del usuario (26-11-2026). */
+const SG_PPA_ICO = {
+  lista: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/>',
+  barras: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  reloj: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  camara: '<path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.4"/>',
+};
+function sgPpaIco_(k) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + SG_PPA_ICO[k] + '</svg>'; }
+function sgPpaHtmlResumen_(R, mesTxt) {
+  const S = state.sg, T = R.T, n = SG_PPA_NUM, pc = SG_PPA_PCT, med = R.areas.flatMap(x => x.med);
+  const ids = new Set(med.map(m => m.a.id_ppa));
+  const avs = (state.ppa.avances || []).filter(v => ids.has(v.id_ppa));
+  const conAvance = new Set(avs.map(v => v.id_ppa)).size;
+  const ultimo = avs.reduce((u, v) => (v.fecha > u ? v.fecha : u), '');
+  const pctDe = (a, b) => b ? ' <small>(' + Math.round(a * 100 / b) + ' %)</small>' : '';
+  const kpi = (tono, ico, tit, valor, unidad, filas, medidor) => '<div class="sg-ppa-kpi' + (medidor !== undefined ? ' con-medidor' : '') + '" style="--k:' + tono + '">' +
+    '<div class="t"><i>' + sgPpaIco_(ico) + '</i>' + tit + '</div>' +
+    (medidor !== undefined ? sgPpaMedidor_(medidor, unidad) : '<div class="v"><b>' + valor + '</b><span>' + unidad + '</span></div>') +
+    '<div class="f">' + filas.map(f => '<div><span>' + f[0] + '</span><b>' + f[1] + '</b></div>').join('') + '</div></div>';
+  const alc = S.ppaArea && R.areas[0] ? aTitulo_(R.areas[0].nombre) : R.areas.length + ' áreas';
+  return '<div class="sg-ppa-kpis4">' +
+      kpi('#EA580C', 'lista', 'Medidas del PPA', n(T.total), 'medidas · ' + escapeHtml_(alc), [
+        ['⏰ Vencidas', n(T.vencidas) + pctDe(T.vencidas, T.total)], ['⏳ Por vencer en ' + escapeHtml_(mesTxt), n(T.porVencer) + pctDe(T.porVencer, T.total)]]) +
+      kpi('#059669', 'barras', 'Avance general', pc(T.pctGen), 'avance general del período', [
+        ['Acciones realizadas', n(T.llevaGen)]], T.pctGen) +   // 26-11-2026: sin la fila «Meta del período» (pedido del usuario)
+      kpi('#D97706', 'reloj', 'Avance a la fecha', pc(T.pct), 'de lo exigible hoy', [
+        ['Lleva', n(T.lleva) + ' de ' + n(T.debe)], ['Faltan (medidas vencidas)', n(T.falta)]], T.pct) +
+      kpi('#0284C7', 'camara', 'Acciones registradas', n(avs.length), 'registros desde la App Prevención', [
+        ['Medidas con avance', n(conAvance) + ' de ' + n(T.total) + pctDe(conAvance, T.total)], ['Último registro', ultimo ? ppaFechaTxt_(ultimo) : '—']]) +
+    '</div>';
+}
+/** Medidor semicircular (26-11-2026, referencia del usuario): arco gris + arco de avance con degradado y extremos redondeados, % grande abajo.
+ *  Color por avance (rojo < 50 · ámbar 50–99 · verde ≥ 100, como SG_PPA_COL); sobre 100 % el arco queda lleno. */
+let sgPpaMedidorN = 0;
+function sgPpaMedidor_(p, txt) {
+  const id = 'sgPpaGrad' + (++sgPpaMedidorN), v = p == null ? 0 : Math.max(0, Math.min(100, p));
+  const c2 = SG_PPA_COL(p), c1 = p == null ? '#CBD5E1' : p >= 100 ? '#A3E635' : p >= 50 ? '#FDE047' : '#FB923C';
+  const arco = 'M 20 100 A 80 80 0 0 1 180 100';
+  return '<div class="sg-ppa-medidor" title="' + SG_PPA_PCT(p) + ' ' + escapeHtml_(txt) + '">' +
+    '<svg viewBox="0 0 200 112" aria-hidden="true"><defs><linearGradient id="' + id + '" x1="0" y1="0" x2="1" y2="0">' +
+      '<stop offset="0" stop-color="' + c1 + '"/><stop offset="1" stop-color="' + c2 + '"/></linearGradient></defs>' +
+      '<path d="' + arco + '" fill="none" stroke="var(--sg-medidor-fondo,#EEF0F3)" stroke-width="18" stroke-linecap="round"/>' +
+      (v > 0 ? '<path d="' + arco + '" fill="none" stroke="url(#' + id + ')" stroke-width="18" stroke-linecap="round" pathLength="100" stroke-dasharray="' + v + ' 100"/>' : '') +
+    '</svg><b>' + SG_PPA_PCT(p) + '</b><span>' + escapeHtml_(txt) + '</span></div>';
+}
+/* ── 🗂️ PPA por Grupo (plan) + 🗺️ mapa general (26-11-2026) ──
+ * Grupos del PPA (id_grupo / grupo) del alcance visible (subgerencia o el área de los chips) con los mismos 3 gráficos del Control por área
+ * (sgPpaHtmlDist_). Al FINAL, el mapa a todo el ancho con TODAS las acciones registradas (ppa_avances con ubicación), color por grupo; clic en
+ * el punto = detalle y foto. Base: satélite + 🧭 límite de cada área (sectores) + 🌲 fundos CMPC (Admin / perfil Jefe; con varias áreas se
+ * cargan al encender la capa). Tocar un grupo (gráficos o leyenda del mapa) deja solo ese grupo en el mapa (S.ppaGrupo). */
+const SG_PPA_GCOL = ['#2563EB', '#DC2626', '#16A34A', '#D97706', '#7C3AED', '#0891B2', '#DB2777', '#65A30D', '#EA580C', '#0F766E', '#9333EA', '#B45309', '#4F46E5', '#BE123C'];
+function sgPpaGrupoK_(a) { return SG_KEY(a.id_grupo || a.grupo || 'SIN') || 'SIN'; }
+/** Color estable por grupo (orden de todos los grupos de la subgerencia, no del filtro). */
+function sgPpaColoresGrupo_(med) {
+  const ks = [...new Map(med.map(m => [sgPpaGrupoK_(m.a), m.a.id_grupo || m.a.grupo || 'zz'])).entries()]
+    .sort((p, q) => String(p[1]).localeCompare(String(q[1]), 'es', { numeric: true })).map(x => x[0]);
+  const c = {}; ks.forEach((k, i) => { c[k] = SG_PPA_GCOL[i % SG_PPA_GCOL.length]; }); return c;
+}
+function sgPpaGrupos_(med, areaNom, sufijo) {
+  const g = {};
+  med.forEach(m => {
+    const k = sgPpaGrupoK_(m.a);
+    const x = g[k] = g[k] || { gk: k, idGrupo: m.a.id_grupo || '', nombre: m.a.grupo || 'Sin grupo plan', med: [] };
+    x.med.push(m);
+  });
+  return Object.values(g).map(x => {
+    Object.assign(x, sgPpaResumir_(x.med));
+    x.k = 'G_' + x.gk + '_' + (sufijo || 'T');   // clave de los modales (sin «|»)
+    x.area = areaNom || '';                        // contexto del mapa del modal (solo con un área)
+    SG_PPA_GRUPOS[x.k] = Object.assign({}, x, { nombre: x.nombre + (areaNom ? ' · ' + aTitulo_(areaNom) : '') });
+    return x;
+  }).sort((p, q) => String(p.idGrupo || p.nombre).localeCompare(String(q.idGrupo || q.nombre), 'es', { numeric: true }));
+}
+function sgPpaHtmlGrupos_(R0, R) {
+  const S = state.sg, med = R.areas.flatMap(x => x.med);
+  if (!med.length) return '';
+  const col = sgPpaColoresGrupo_(R0.areas.flatMap(x => x.med));
+  const unaArea = S.ppaArea && R.areas[0] ? R.areas[0].nombre : '';
+  const grupos = sgPpaGrupos_(med, unaArea, S.ppaArea || 'T');
+  if (S.ppaGrupo && !grupos.some(g => g.gk === S.ppaGrupo)) S.ppaGrupo = '';
+  S.ppaGruposVis = grupos; S.ppaGCol = col;
+  // 26-11-2026 (pedido del usuario): grupos con los MISMOS 3 gráficos del Control por área (sgPpaHtmlDist_) y, al final, el mapa a todo el ancho.
+  // Clic en un grupo (dona o avance) = ver solo ese grupo en el mapa (otra vez = todos); clic en un tramo del estado = modal de esas medidas.
+  const cfg = { pre: 'g', quien: 'grupo', u: grupos.map(g => Object.assign(g, { etq: g.nombre })), col: Object.fromEntries(grupos.map(g => [g.k, col[g.gk]])),
+    total: med.length, sel: S.ppaGrupo || '',
+    alClic: (g, filtro) => { if (filtro == null) { S.ppaGrupo = S.ppaGrupo === g.gk ? '' : g.gk; sgPpaRepintar_(); } else sgPpaModalPendientes_(g.k, filtro); } };
+  S.ppaDist = Object.assign(S.ppaDist || {}, { g: cfg });
+  const alc = unaArea ? 'Área ' + aTitulo_(unaArea) : (sgPpaSubg_() ? 'Subgerencia ' + aTitulo_(sgPpaSubg_()) : R.areas.length + ' áreas');
+  const gSel = grupos.find(g => g.gk === S.ppaGrupo);
+  return '<h4 class="sg-ppa-h4">🗂️ Avance por Grupo · ' + escapeHtml_(alc) + '<small>' + grupos.length + ' grupo(s) · ' + med.length + ' medidas · toca un grupo para verlo solo en el mapa</small></h4>' +
+    sgPpaHtmlDist_(cfg) +
+    '<h4 class="sg-ppa-h4">🗺️ Mapa de las medidas · ' + escapeHtml_(alc) + '<small id="sg-ppa-gm-est">Cargando…</small>' +
+      (gSel ? '<button class="sg-chip on" data-sg-f="ppaGrupo|' + escapeHtml_(gSel.gk) + '" style="margin-left:auto;">🗂️ ' + escapeHtml_(gSel.nombre) + ' ✕</button>' : '') + '</h4>' +
+    '<div class="sg-ppa-mapa-full">' +
+      '<div class="sg-ppa-gm-mapa"><div id="sg-ppa-gmapa"></div></div>' +
+      '<div class="sg-ppa-gm-ley">' + grupos.map(g => '<button type="button" class="' + (S.ppaGrupo && S.ppaGrupo !== g.gk ? 'off' : '') + '" data-sg-f="ppaGrupo|' + escapeHtml_(g.gk) + '"><i style="background:' + col[g.gk] + '"></i>' + escapeHtml_(g.nombre) + '</button>').join('') + '</div>' +
+    '</div>';
+}/** Mapa general: puntos de todas las acciones registradas del alcance visible (por área, con la misma caché que el modal 📸). */
+async function sgPpaMapaGeneral_(R) {
+  const S = state.sg, div = document.getElementById('sg-ppa-gmapa');
+  if (S.ppaMapaG) { try { S.ppaMapaG.remove(); } catch (e) {} S.ppaMapaG = null; }
+  if (!div || !window.L) return;
+  const turno = (S.ppaMapaGN = (S.ppaMapaGN || 0) + 1), vigente = () => S.ppaMapaGN === turno && S.ppaMapaG === m;
+  const est = t => { const e = document.getElementById('sg-ppa-gm-est'); if (e && S.ppaMapaGN === turno) e.textContent = t; };
+  const m = L.map(div, { zoomControl: true, attributionControl: false, preferCanvas: false }).setView([-38.2, -72.4], 7);
+  S.ppaMapaG = m;
+  const b = BASEMAPS.find(x => x.id === 'sat_sobrio') || BASEMAPS[0];
+  L.tileLayer(b.url, b.options).addTo(m); if (b.overlayUrl) L.tileLayer(b.overlayUrl, b.overlayOptions).addTo(m);
+  if (!m.getPane('sgPpaCtx')) m.createPane('sgPpaCtx').style.zIndex = 350;
+  const rend = L.canvas({ padding: 0.3, pane: 'sgPpaCtx' });
+  const ctl = L.control.layers(null, null, { collapsed: true, position: 'topright' }).addTo(m);
+  setTimeout(() => { try { m.invalidateSize(); } catch (e) {} }, 120);
+  const areas = R.areas, col = S.ppaGCol || {}, gSel = S.ppaGrupo || '';
+  const pts = []; let nTot = 0, nSin = 0;
+  const resumenTxt = () => pts.length + ' en el mapa' + (nSin ? ' · ' + nSin + ' sin ubicación' : '') + (gSel ? ' · solo el grupo elegido' : '');
+  // 🧭 Límites de las áreas (sectores oficiales; si no hay, el contorno por comunas del SQL 140)
+  const limites = L.layerGroup().addTo(m), limBounds = L.latLngBounds([]);
+  ctl.addOverlay(limites, '🧭 Límite de las áreas');
+  areas.forEach(async x => {
+    try {
+      let feats = await featuresAreaRelacionamiento_(x.nombre);
+      if (!feats.length) {
+        const { data } = await supabaseClient.rpc('limite_area_geojson', { p_area: x.nombre });
+        const f = data && data[0]; if (f && f.geojson) feats = [{ geometry: typeof f.geojson === 'string' ? JSON.parse(f.geojson) : f.geojson }];
+      }
+      if (!vigente()) return;
+      feats.forEach(f => {
+        const ly = L.geoJSON(f.geometry, { renderer: rend, interactive: false, style: { color: '#FDE047', weight: 2.2, opacity: 0.95, fill: false } }).addTo(limites);
+        try { limBounds.extend(ly.getBounds()); } catch (e) {}
+      });
+      if (!pts.length && limBounds.isValid()) m.fitBounds(limBounds, { padding: [20, 20] });
+    } catch (e) { /* sin capa de áreas */ }
+  });
+  // 🌲 Fundos CMPC (Admin y perfil Jefe): con UN área se encienden solos; con varias, al encender la capa (son muchos polígonos)
+  if (typeof esAdminOJefe_ === 'function' && esAdminOJefe_()) {
+    const fundos = L.layerGroup(); let cargados = false;
+    const cargarFundos = async () => {
+      if (cargados) return; cargados = true; est('Cargando fundos…');
+      for (const x of areas) {
+        let fs = []; try { fs = await sgPpaFundosArea_(x.nombre); } catch (e) { continue; }
+        if (!vigente()) return;
+        fs.forEach(f => {
+          const g = typeof f.geometry === 'string' ? JSON.parse(f.geometry) : f.geometry; if (!g) return;
+          L.geoJSON(g, { renderer: rend, smoothFactor: 1.5, style: { color: '#059669', weight: 1, fillColor: '#34D399', fillOpacity: 0.13 } })
+            .bindTooltip(escapeHtml_(f.nombre_fundo || 'Fundo') + (f.sup_ha ? ' · ' + Number(f.sup_ha).toFixed(0) + ' ha' : ''), { sticky: true }).addTo(fundos);
+        });
+      }
+      est(resumenTxt());
+    };
+    fundos.on('add', cargarFundos);
+    ctl.addOverlay(fundos, '🌲 Fundos CMPC');
+    if (areas.length === 1) fundos.addTo(m);
+  }
+  // 📍 Acciones registradas (ppa_avances con ubicación), color por grupo
+  const marcas = L.featureGroup().addTo(m);
+  ctl.addOverlay(marcas, '📍 Acciones registradas');
+  try {
+    const lotes = await Promise.all(areas.map(x => sgPpaLeerAvances_(x.k, x.med.map(mm => mm.a.id_ppa)).then(f => ({ x, f })).catch(() => ({ x, f: [] }))));
+    if (!vigente()) return;
+    const n = SG_PPA_NUM;
+    lotes.forEach(({ x, f }) => f.forEach(av => {
+      const a = state.ppa.porId.get(av.id_ppa) || {}, gk = sgPpaGrupoK_(a);
+      if (gSel && gk !== gSel) return;
+      nTot++;
+      if (av.lat == null || av.lng == null) { nSin++; return; }
+      const quien = (S.nombres || {})[av.registrado_por] || '—';
+      const mk = L.circleMarker([av.lat, av.lng], { radius: 7, color: av.evidencia_ruta ? '#fff' : '#1F2937', weight: 2, fillColor: col[gk] || '#2563EB', fillOpacity: 0.95 });
+      mk.bindPopup('<div class="sg-ppa-pop">' +
+        (av.url && av.esImagen ? '<a href="' + escapeHtml_(av.url) + '" target="_blank" rel="noopener" title="Abrir la foto"><img src="' + escapeHtml_(av.url) + '" alt="" loading="lazy"></a>'
+          : av.url ? '<a href="' + escapeHtml_(av.url) + '" target="_blank" rel="noopener">📄 Abrir la evidencia</a><br>' : '<small>📷 Sin foto</small><br>') +
+        '<b>' + escapeHtml_(av.id_ppa) + ' · ' + escapeHtml_(a.accion || '') + '</b>' +
+        '<br><span style="color:' + (col[gk] || '#2563EB') + ';font-weight:700;">🗂️ ' + escapeHtml_(a.grupo || 'Sin grupo plan') + '</span>' +
+        '<br>🧭 ' + escapeHtml_(aTitulo_(x.nombre)) + ' · 📍 ' + escapeHtml_(a.sector || 'Toda el área') +
+        '<br>📅 ' + ppaFechaTxt_(av.fecha) + ' · <b>' + n(av.cantidad) + '</b> acción(es) · 👤 ' + escapeHtml_(quien) +
+        (av.observacion || av.detalle ? '<br><i>' + escapeHtml_(av.observacion || av.detalle) + '</i>' : '') +
+        '<br><a href="https://www.google.com/maps?q=' + av.lat + ',' + av.lng + '" target="_blank" rel="noopener">🧭 Abrir en Google Maps</a></div>', { maxWidth: 270 });
+      mk.bindTooltip(escapeHtml_(av.id_ppa) + ' · ' + ppaFechaTxt_(av.fecha), { direction: 'top' });
+      mk.addTo(marcas); pts.push([av.lat, av.lng]);
+    }));
+  } catch (e) { est('No se pudieron leer las acciones: ' + (e.message || e)); return; }
+  if (!vigente()) return;
+  marcas.bringToFront();
+  if (pts.length === 1) m.setView(pts[0], 14);
+  else if (pts.length) m.fitBounds(pts, { padding: [30, 30], maxZoom: 14 });
+  else if (limBounds.isValid()) m.fitBounds(limBounds, { padding: [20, 20] });
+  est(nTot ? resumenTxt() : 'Aún no hay acciones registradas' + (gSel ? ' en este grupo' : '') + ' (se registran desde la App Prevención)');
 }
 
 /* ── Modales del PPA (16-11-2026) ── */
@@ -723,8 +1031,8 @@ function sgPpaModalPendientes_(k, filtro) {
   const x = sgPpaArea_(k); if (!x) return;
   const n = SG_PPA_NUM, pctTxt = SG_PPA_PCT, ov = sgPpaModal_();
   if (state.sg.ppaMapa) { try { state.sg.ppaMapa.remove(); } catch (e) {} state.sg.ppaMapa = null; }
-  const lista = x.med.filter(m => filtro === 'vencidas' ? m.vencida : filtro === 'porvencer' ? m.porVencer : (m.vencida || m.porVencer))
-    .sort((p, q) => (q.vencida - p.vencida) || q.falta - p.falta || q.faltaMes - p.faltaMes);
+  const lista = x.med.filter(m => filtro === 'todas' ? true : filtro === 'vencidas' ? m.vencida : filtro === 'porvencer' ? m.porVencer : (m.vencida || m.porVencer))
+    .sort((p, q) => (q.vencida - p.vencida) || (q.porVencer - p.porVencer) || q.falta - p.falta || q.faltaMes - p.faltaMes);
   const sectores = new Map();
   lista.forEach(m => { const s = m.a.sector || 'Toda el área'; if (!sectores.has(s)) sectores.set(s, []); sectores.get(s).push(m); });
   const orden = [...sectores.entries()].sort((p, q) => q[1].filter(m => m.vencida).length - p[1].filter(m => m.vencida).length || p[0].localeCompare(q[0], 'es'));
@@ -736,9 +1044,12 @@ function sgPpaModalPendientes_(k, filtro) {
         (np ? '<b class="pv">⏳ ' + np + ' por vencer</b>' : '') + ' · avance ' + pctTxt(pS) + ' (lleva ' + n(lleva) + ' de ' + n(debe) + ')</span></h5>' +
       ms.map(m => {
         const nAv = (state.ppa.avPorId.get(m.a.id_ppa) || []).length;
-        return '<div><b>' + (m.vencida ? '⏰ ' : '⏳ ') + escapeHtml_(m.a.id_ppa) + '</b><span>' + escapeHtml_(m.a.accion) + '</span>' +
-          '<small class="sg-ppa-grupo">🗂️ ' + escapeHtml_(m.a.grupo || 'Sin grupo plan') + '</small>' +
-          '<em' + (m.vencida ? '' : ' style="color:#D97706;"') + '>' + (m.vencida ? 'Vencida · faltan ' + n(m.falta) : 'Por vencer · faltan ' + n(m.faltaMes) + ' antes de fin de mes') + '</em>' +
+        const estado = m.vencida ? ['⏰ ', '', 'Vencida · faltan ' + n(m.falta)]
+          : m.porVencer ? ['⏳ ', ' style="color:#D97706;"', 'Por vencer · faltan ' + n(m.faltaMes) + ' antes de fin de mes']
+          : m.exig > 0 ? ['✅ ', ' style="color:#16A34A;"', 'Al día'] : ['⚪ ', ' style="color:var(--text-tertiary);"', 'Aún sin metas vencidas'];
+        return '<div><b>' + estado[0] + escapeHtml_(m.a.id_ppa) + '</b><span>' + escapeHtml_(m.a.accion) + '</span>' +
+          '<small class="sg-ppa-grupo">🗂️ ' + escapeHtml_(m.a.grupo || 'Sin grupo plan') + (x.k && x.k.startsWith('G_') ? ' · 🧭 ' + escapeHtml_(aTitulo_(m.a.area_nombre || m.a.area || '')) : '') + '</small>' +
+          '<em' + estado[1] + '>' + estado[2] + '</em>' +
           '<small>Lleva ' + n(m.av) + ' de ' + n(m.exig) + ' a la fecha</small>' +
           (nAv ? '<a href="#" class="sg-ppa-link" data-sg-ppa="acc|' + escapeHtml_(k) + '|' + escapeHtml_(m.a.id_ppa) + '">📸 Ver sus ' + nAv + ' acción(es) registrada(s)</a>' : '<small style="color:var(--text-tertiary);">Sin acciones registradas</small>') +
         '</div>';
@@ -746,10 +1057,10 @@ function sgPpaModalPendientes_(k, filtro) {
   }).join('');
   const chip = (f, t, c) => '<button class="sg-chip' + (filtro === f ? ' on' : '') + '" data-sg-ppa="pend|' + escapeHtml_(k) + '|' + f + '">' + t + ' <small>' + c + '</small></button>';
   ov.innerHTML = '<div class="modal-card sg-ppa-modal">' +
-    '<div class="sg-ppa-mcab"><div><h3>⚠️ Pendientes y atrasadas · ' + escapeHtml_(aTitulo_(x.nombre)) + '</h3>' +
+    '<div class="sg-ppa-mcab"><div><h3>' + (filtro === 'todas' ? '📋 Medidas' : '⚠️ Pendientes y atrasadas') + ' · ' + escapeHtml_(aTitulo_(x.nombre)) + '</h3>' +
       '<p class="coords">Al ' + ppaFechaTxt_(ppaHoy_()) + ' · avance del área ' + pctTxt(x.pct) + ' (lleva ' + n(x.lleva) + ' de ' + n(x.debe) + ' acciones)</p></div>' +
       '<button class="turnos-btn" data-sg-ppa-cerrar>✕</button></div>' +
-    '<div class="sg-chips" style="margin:0 0 8px;">' + chip('', 'Todas', x.vencidas + x.porVencer) + chip('vencidas', '⏰ Vencidas', x.vencidas) + chip('porvencer', '⏳ Por vencer', x.porVencer) + '</div>' +
+    '<div class="sg-chips" style="margin:0 0 8px;">' + chip('todas', '📋 Todas las medidas', x.total) + chip('', '⚠️ Pendientes', x.vencidas + x.porVencer) + chip('vencidas', '⏰ Vencidas', x.vencidas) + chip('porvencer', '⏳ Por vencer', x.porVencer) + '</div>' +
     '<div class="sg-ppa-mbody">' + (lista.length ? '<div class="sg-tu-det sg-ppa-det">' + cuerpo + '</div>' : '<div class="tb-vacio">Sin medidas en este filtro. 🎉</div>') + '</div></div>';
   ov.classList.add('show');
 }
@@ -819,7 +1130,7 @@ async function sgPpaModalAcciones_(k, idPpa, filtro) {
       '<div class="sg-ppa-acc-mapa"><div id="sg-ppa-mapa"></div>' + (lista.some(f => f.lat != null && f.lng != null) ? '' : '<div class="sg-ppa-sinmapa">Ninguna de estas acciones tiene ubicación registrada.</div>') + '</div></div>'
       : '<div class="tb-vacio">' + (base.length ? 'Ninguna acción en este filtro.' : 'Aún no hay acciones registradas' + (idPpa ? ' para esta medida.' : ' en el área.') + ' Se registran desde la App Prevención Territorial.') + '</div>') +
   '</div>';
-  if (lista.length) sgPpaMapaAcciones_(lista, x.area || x.nombre);
+  if (lista.length) sgPpaMapaAcciones_(lista, 'area' in x ? x.area : x.nombre);   // grupo con varias áreas: sin capas de contexto
 }
 /* 19-11-2026: capas de contexto del mapa de Acciones registradas: 🧭 límite del área (con sus sectores) y 🌲 fundos CMPC
  * (con nombre al acercarse). Se encienden/apagan en el control de capas del mapa. Fundos: Admin y perfil Jefe (RLS decide). */

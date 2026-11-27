@@ -40,6 +40,21 @@ function aplicarSimulacionPerfil_(perfilReal) {
 async function cargarAsignacionSimulada_() {
   const s = state.simulacion;
   state.misAreaNums = [];   // en «Ver como…» las áreas van por nombre (esMiArea_ compara por clave)
+  if (s.supervisor) {
+    // Modo Supervisor de empresa (SQL 195): sus áreas + los recursos de SU empresa en esas áreas (= bit_supervisa_recurso_, calculado aquí
+    // porque la sesión es del Administrador y bit_recursos_supervisados() no le devuelve nada)
+    state.misAreasIds = (s.areas || []).slice();
+    const claves = new Set(state.misAreasIds.map(a => plNorm_(a).replace(/[^A-Z0-9]/g, '')));
+    const emp = String(s.supervisor.empresa || '').trim().toUpperCase();
+    const [{ data: rr }, { data: ac }] = await Promise.all([
+      supabaseClient.from('referencia_recursos').select('id, empresa, area_nombre').not('empresa', 'is', null),
+      supabaseClient.from('v_area_comunas_admin').select('area_norm, id_comuna')]);
+    state.supIds = new Set((rr || []).filter(r => String(r.empresa).trim().toUpperCase() === emp && claves.has(plNorm_(r.area_nombre || '').replace(/[^A-Z0-9]/g, ''))).map(r => String(r.id)));
+    const ids = new Set((ac || []).filter(x => claves.has(String(x.area_norm || '').toUpperCase())).map(x => Number(x.id_comuna)));
+    state.misComunaIds = (state.comunas || []).filter(c => ids.has(Number(c.id_comuna))).map(c => c.id);
+    if (!state.supIds.size) mostrarToast_('⚠️ ' + s.supervisor.empresa + ' no tiene recursos en las áreas elegidas.');
+    return;
+  }
   if (s.subgerencia) {
     // Modo Subgerente: todas las áreas de la subgerencia (según los recursos) y sus comunas (SQL 94)
     const { data: rr } = await supabaseClient.from('referencia_recursos').select('area_nombre, subgerencia').not('subgerencia', 'is', null);
@@ -124,9 +139,10 @@ function renderSimulacionPerfil_() {
   let franja = document.getElementById('franja-simulacion');
   if (!state.simulacion) { if (franja) franja.remove(); return; }
   const s = state.simulacion;
-  const nombrePerfil = s.sso ? 'Perfil SSO' : s.asociacion ? 'Asociación de Agricultores' : s.subgerencia ? 'Subgerente' : s.perfil === 'Jefe de Área Relacionamiento' ? 'Jefe de Área' : s.perfil;
+  const nombrePerfil = s.supervisor ? 'Supervisor ' + s.supervisor.empresa : s.sso ? 'Perfil SSO' : s.asociacion ? 'Asociación de Agricultores' : s.subgerencia ? 'Subgerente' : s.perfil === 'Jefe de Área Relacionamiento' ? 'Jefe de Área' : s.perfil;
   const cm = (state.comunas || []).find(c => c.id === s.comunaId);
-  const donde = s.sso ? 'Todas las áreas · solo consulta' : s.asociacion ? aTitulo_(s.asociacion) + ' · área ' + aTitulo_(AGR_AREA_VISIBLE)
+  const donde = s.supervisor ? (s.areas || []).map(aTitulo_).join(', ') + ' · ' + ((state.supIds && state.supIds.size) || 0) + ' recursos'
+    : s.sso ? 'Todas las áreas · solo consulta' : s.asociacion ? aTitulo_(s.asociacion) + ' · área ' + aTitulo_(AGR_AREA_VISIBLE)
     : s.subgerencia ? 'Subgerencia ' + aTitulo_(s.subgerencia) + ' (' + (state.misAreasIds || []).length + ' áreas)'
     : s.perfil === 'Jefe de Área Relacionamiento' ? 'Área ' + s.area : (cm ? cm.comuna : s.comunaId);
   if (!franja) {
@@ -201,6 +217,55 @@ async function abrirModalSimulacion_(tipo) {
     }
   });
   ov.classList.add('show');
+}
+
+/** 👷 Modo Supervisor de empresa (EESS, SQL 195): elegir la empresa y sus áreas (las que tienen recursos de esa empresa). */
+async function abrirModalSimulacionSupervisor_() {
+  document.getElementById('user-panel').classList.remove('show');
+  let ov = document.getElementById('sim-overlay');
+  if (!ov) {
+    ov = document.createElement('div'); ov.id = 'sim-overlay'; ov.className = 'modal-overlay'; document.body.appendChild(ov);
+    ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.remove('show'); });
+  }
+  ov.innerHTML = '<div class="modal-card" style="max-width:460px;"><h3>👷 Modo Supervisor de empresa</h3><p class="coords">Cargando empresas…</p></div>';
+  ov.classList.add('show');
+  const [{ data: em }, { data: rr }] = await Promise.all([
+    supabaseClient.from('empresas').select('id, nombre, activo').order('nombre'),
+    supabaseClient.from('referencia_recursos').select('empresa, area_nombre').not('empresa', 'is', null)]);
+  const porEmp = {};   // EMPRESA → { área: n recursos }
+  (rr || []).forEach(r => { const k = String(r.empresa).trim().toUpperCase(), a = String(r.area_nombre || '').trim(); if (!a) return;
+    (porEmp[k] = porEmp[k] || {})[a] = (porEmp[k][a] || 0) + 1; });
+  const emps = (em || []).filter(e => e.activo !== false).map(e => ({ id: e.id, nombre: e.nombre, areas: porEmp[String(e.nombre).trim().toUpperCase()] || {} }));
+  const nRec = e => Object.values(e.areas).reduce((s, n) => s + n, 0);
+  ov.innerHTML =
+    '<div class="modal-card" style="max-width:460px;">' +
+      '<h3>👷 Modo Supervisor de empresa (EESS)</h3>' +
+      '<p class="coords">Verás el sistema como un Supervisor: solo 📅 Turnos y 📋 Bitácora, en consulta, y solo los recursos de la empresa en las áreas elegidas. ' +
+        'La página se recargará; para volver usa «Salir» en la etiqueta de la barra superior.</p>' +
+      '<div class="form-group"><label>Empresa</label><select id="sim-emp">' +
+        emps.map(e => '<option value="' + escapeHtml_(e.id) + '">' + escapeHtml_(e.nombre) + ' (' + nRec(e) + ' recursos)</option>').join('') + '</select></div>' +
+      '<div class="form-group"><label>Áreas del supervisor</label><div id="sim-emp-areas" style="display:flex;flex-direction:column;gap:4px;max-height:220px;overflow:auto;"></div></div>' +
+      '<div class="modal-actions" style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">' +
+        '<button class="btn-secondary" id="sim-cancelar">Cancelar</button>' +
+        '<button class="btn-primary" id="sim-entrar"' + (emps.length ? '' : ' disabled') + '>Entrar en el modo</button>' +
+      '</div>' +
+    '</div>';
+  const pintarAreas = () => {
+    const e = emps.find(x => x.id === ov.querySelector('#sim-emp').value), cont = ov.querySelector('#sim-emp-areas');
+    const areas = e ? Object.keys(e.areas).sort((a, b) => a.localeCompare(b, 'es')) : [];
+    cont.innerHTML = areas.length ? areas.map(a => '<label style="display:flex;gap:8px;align-items:center;font-size:13px;"><input type="checkbox" value="' + escapeHtml_(a) + '" checked> ' +
+      escapeHtml_(aTitulo_(a)) + ' <small style="color:var(--text-tertiary);">' + e.areas[a] + ' recursos</small></label>').join('')
+      : '<small style="color:var(--text-tertiary);">Esta empresa no tiene recursos con área.</small>';
+  };
+  ov.querySelector('#sim-emp').addEventListener('change', pintarAreas);
+  pintarAreas();
+  ov.querySelector('#sim-cancelar').addEventListener('click', () => ov.classList.remove('show'));
+  ov.querySelector('#sim-entrar').addEventListener('click', () => {
+    const e = emps.find(x => x.id === ov.querySelector('#sim-emp').value); if (!e) return;
+    const areas = [...ov.querySelectorAll('#sim-emp-areas input:checked')].map(i => i.value);
+    if (!areas.length) { mostrarToast_('Elige al menos un área.'); return; }
+    entrarSimulacion_({ perfil: 'Visor', supervisor: { empresa_id: e.id, empresa: e.nombre }, areas });
+  });
 }
 
 /** Modo Subgerente: elegir la subgerencia (sus áreas salen de los recursos). */

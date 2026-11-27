@@ -1,7 +1,9 @@
 {
-  "version": "1.6.2",
+  "version": "1.6.4",
   "fecha": "2026-11-26",
   "notas": [
+    "🎨 Menú inferior renovado (botón verde de Inicio al centro) y pantalla ajustada a iPhone, Android y tablet / iPad.",
+    "🛰️ Nuevo en «Mi cuenta»: descarga la imagen satelital de los fundos de tus áreas para ver el mapa sin señal. Actividades con su código (AC-…) y búsqueda por código; el nombre usa todo el ancho.",
     "🗺️ Mapa ampliado: ya no lo tapa el encabezado, botón «← Volver» (también sirve el «atrás» del teléfono), íconos nuevos y mira para «Mi ubicación».",
     "🗺️ Mapas: un dedo mueve la pantalla y dos dedos el mapa; ⛶ ampliar a pantalla completa y 🔎 buscar coordenadas en 6 casillas. Menú: Calendario y En vivo; «Mi cuenta» marca (1) si hay versión nueva.",
     "🏠 Inicio al centro del menú; «Historial» ahora es «Actividades». Patente obligatoria en la apertura (viene registrada del recurso).",
