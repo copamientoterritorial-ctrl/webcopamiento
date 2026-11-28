@@ -75,7 +75,13 @@ const CAPAS_OCULTAS_PERFIL = { 'GRD': ['capasZona', 'patrullaje'] };
 function capasOcultasPerfil_(perfil) { return CAPAS_OCULTAS_PERFIL[perfil] || []; }
 /** Nivel efectivo = mínimo(máximo técnico del perfil, permiso del PERFIL (SQL 119), restricción del USUARIO (SQL 83)). */
 function nivelPermiso_(k) {
-  if (state.supervisor) return k === 'turnos' ? 'ver' : 'no';   // Supervisor de empresa (SQL 195): solo consulta de Turnos (y Bitácora, por su menú)
+  // Supervisor de empresa (SQL 195 / 201): edita Turnos y el Mapa de recursos (planificador_grafico, que también gobierna Gestión de Recursos)
+  // de SUS recursos; nada más (la Bitácora va por su propio menú). Una restricción por usuario (permisos_usuario) sigue mandando.
+  if (state.supervisor) {
+    if (k !== 'turnos' && k !== 'planificador_grafico') return 'no';
+    const v = state.permisosUsuario && state.permisosUsuario.modulos && state.permisosUsuario.modulos[k];
+    return v && ORDEN_NIVEL_PERMISO[v] != null && ORDEN_NIVEL_PERMISO[v] < ORDEN_NIVEL_PERMISO.editar ? v : 'editar';
+  }
   let nivel = nivelMaximoPerfil_(state.perfil && state.perfil.perfil, k);
   [state.permisosPerfilRol, state.permisosUsuario].forEach(p => {
     const v = p && p.modulos && p.modulos[k];
@@ -133,7 +139,7 @@ const MENU_MODULOS = [
   { id: 'tab-agradmin', grupo: '🛡️ Prevención', nombre: 'Administración Agricultores (predios)', ver: () => puedeAdminAgricultores_(),
     nivel: () => agpEsAdmin_() ? 'editar' : 'ver', nota: () => agpEsAdmin_() ? 'Sube y elimina capas' : 'Solo consulta', asoc: true },
   { id: 'tab-turnos', grupo: '🌲 Planificador CMPC', nombre: 'Calendario de Turnos', ver: () => puedeVerModulo_('turnos'),
-    nivel: () => puedeGestionarTurnos_() && puedeEditarModulo_('turnos') ? 'editar' : 'ver', nota: () => esSupervisor_() ? 'Recursos de su empresa en sus áreas' : '' },
+    nivel: () => (puedeGestionarTurnos_() || esSupervisor_()) && puedeEditarModulo_('turnos') ? 'editar' : 'ver', nota: () => esSupervisor_() ? 'Recursos de su empresa en sus áreas' : '' },
   { id: 'tab-turnosgestor', grupo: '🌲 Planificador CMPC', nombre: 'Turnos de Gestores de relacionamiento', ver: () => puedeTurnosGestores_(),
     // 21-11-2026 (SQL 185): programan Admin, Jefe de Área (no Subgerente ni GRT) y el delegado de prevención del área; solo fines de semana y feriados
     nivel: () => (tgEsAdmin_() || state.esDelegadoPrev || (esJefeAreaPerfil_(state.perfil.perfil) && !esSubgerente_() && !state.esGRT)) ? 'editar' : 'ver',

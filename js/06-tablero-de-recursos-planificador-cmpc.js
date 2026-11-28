@@ -491,8 +491,9 @@ async function cargarEmpresasGestion_() {
 }
 
 function puedeGestionRecursos_() {
-  return !!state.perfil && (state.perfil.perfil === 'Administrador' || esJefeAreaPerfil_(state.perfil.perfil) || esSSO_()) &&
+  return !!state.perfil && (state.perfil.perfil === 'Administrador' || esJefeAreaPerfil_(state.perfil.perfil) || esSSO_() || esSupervisor_()) &&
     puedeVerModulo_('planificador_grafico');   // Perfil SSO (SQL 184): solo consulta (grPuedeEditar_ / grEsAdmin_ siguen en falso)
+  // Supervisor de empresa (SQL 201): edita sus recursos (grPuedeEditar_ → plPuedeEditar_), sin nuevo recurso / Excel / empresas (grEsAdmin_ falso)
 }
 function grEsAdmin_() { return esAdminOJefe_(); }   // 17-10-2026: Jefe de Área = Administrador (nuevo recurso, Excel, empresas)
 function grPuedeEditar_(r) { return plPuedeEditar_(r); }
@@ -594,7 +595,7 @@ async function abrirGestionRecursos_(forzar) {
       .map(r => Object.assign({}, r, { area: r.area_nombre || '', comuna: r.comuna_corma || '' },
         GR_CONTACTO.reduce((o, k) => { o[k] = contactos[r.id] ? contactos[r.id][k] : null; return o; }, {}),
         { contacto_en: contactos[r.id] ? contactos[r.id].actualizado_en : null }))
-      .filter(r => esAdmin || esMiArea_(r.area, r.id_area))   // por id homologado o clave (SQL 156)
+      .filter(r => (esAdmin || esMiArea_(r.area, r.id_area)) && esRecursoSupervisado_(r.id))   // por id homologado o clave (SQL 156); Supervisor: su empresa
       .sort((a, b) => String(a.area).localeCompare(String(b.area), 'es') || compararTipoRecurso_(a.tipo_recurso, b.tipo_recurso) ||
         String(claveRecurso_(a) || '').localeCompare(String(claveRecurso_(b) || ''), 'es', { numeric: true }));
     state.gr.cambios = {}; state.gr.errores = {};
@@ -712,7 +713,8 @@ function renderGestion_() {
   aviso.style.display = state.gr.sinSql92 ? '' : 'none';
   if (state.gr.sinSql92) aviso.textContent = '⚠️ Falta ejecutar en Supabase el SQL 92 (sql/pendientes/92_gestion_recursos_contacto.sql): por ahora no se pueden guardar cambios ni ver los datos de contacto.';
   document.getElementById('gr-estado').textContent = grEsAdmin_() ? 'Administrador · edición directa y carga masiva'
-    : esSSO_() ? '👁️ Perfil SSO · solo consulta de todas las áreas' : 'Edición directa de tus áreas';
+    : esSSO_() ? '👁️ Perfil SSO · solo consulta de todas las áreas'
+    : esSupervisor_() ? '👷 Supervisor ' + ((state.supervisor && state.supervisor.empresa) || '') + ' · edición de los recursos de tu empresa' : 'Edición directa de tus áreas';
   document.getElementById('gr-guardar').style.display = nCamb ? '' : 'none';
   document.getElementById('gr-guardar').textContent = '💾 Guardar cambios (' + nCamb + ')';
   document.getElementById('gr-descartar').style.display = nCamb ? '' : 'none';
@@ -731,6 +733,8 @@ function renderGestion_() {
       const fijo = i === 0 ? ' gr-fijo' : '';
       if (c.lock) return '<td class="gr-lock' + fijo + '" title="El ID no se modifica">' + escapeHtml_(v || '—') + '</td>';
       if (!c.ed) return '<td class="gr-ro' + fijo + '">' + escapeHtml_(v || '—') + '</td>';
+      // Supervisor de empresa (SQL 201): no cambia la empresa del recurso (la base también la ignora)
+      if (c.k === 'empresa' && esSupervisor_()) return '<td class="gr-ro' + fijo + '" title="La empresa la cambia el Jefe de Área o el Administrador">' + escapeHtml_(v || '—') + '</td>';
       const cls = 'gr-in' + (c.k in camb ? ' gr-mod' : '') + (errs[c.k] ? ' gr-error' : '') + (c.k === 'alias' ? ' gr-clave' : '');
       // Empresa: desplegable con las empresas que trabajan en el área del recurso (catálogo 🏢, SQL 100)
       const empsArea = c.k === 'empresa' ? grEmpresasDeArea_(r.area) : null;
@@ -1169,6 +1173,7 @@ function grpRender_() {
       '</td><td>' + escapeHtml_(p.rut) + '</td><td>' + escapeHtml_(p.cargo) + '</td>' +
     '<td>' + si(p.titular) + '</td><td>' + si(p.conductor) + '</td><td>' + si(p.curso_call_fire) + '</td>' +
     '<td>' + escapeHtml_(p.telefono || '—') + '</td><td>' + escapeHtml_(p.correo || '—') + '</td><td>' + escapeHtml_(p.direccion || '—') + '</td><td style="text-align:center;">' + escapeHtml_(grTemporadas_(p.temporada)) + '</td>' +
+    '<td style="font-size:11.5px;white-space:nowrap;">' + (grpTallasTxt_(p) ? escapeHtml_(grpTallasTxt_(p)) : '<span style="color:var(--text-tertiary);">—</span>') + '</td>' +
     '<td style="white-space:nowrap;">' + (editable ? '<button class="gr-del" style="width:auto;padding:0 7px;" data-grp="editar" data-id="' + escapeHtml_(p.id) + '" title="Editar">✏️</button> ' +
       '<button class="gr-del" data-grp="eliminar" data-id="' + escapeHtml_(p.id) + '" title="Eliminar persona">🗑️</button>' : '') + '</td></tr>').join('');
   const falta = total ? total - lista.length : 0;
@@ -1187,7 +1192,7 @@ function grpRender_() {
     '</div>' +
     '<div id="grp-form"></div>' +
     (lista.length ? '<div style="overflow:auto;"><table class="emp-tabla grp-tabla"><thead><tr><th>Nombre completo</th><th>RUT</th><th>Cargo</th><th>Titular</th><th>Conductor</th><th>Curso Call Fire</th>' +
-      '<th>Teléfono</th><th>Correo</th><th>Dirección</th><th title="N° de temporadas trabajando">Temporadas</th><th></th></tr></thead><tbody>' + filas + '</tbody></table></div>'
+      '<th>Teléfono</th><th>Correo</th><th>Dirección</th><th title="N° de temporadas trabajando">Temporadas</th><th title="Camisa · Polera · Pantalón · Zapato">👕 Tallas</th><th></th></tr></thead><tbody>' + filas + '</tbody></table></div>'
       : '<div class="tb-vacio">Aún no hay personas registradas en este recurso.</div>');
   document.getElementById('grp-pie').textContent = 'Cargos de ' + aTitulo_(r.tipo_recurso || 'este recurso') + ': ' + grCargosDe_(r.tipo_recurso).join(', ') +
     '. El titular (uno por recurso) es el que aparece en la planilla.' + (editable ? '' : ' · Solo consulta.');
@@ -1210,6 +1215,23 @@ function grpGuiaHtml_(r) {
     '<div class="grp-guia-pie">💡 En la planilla: filtro <b>«👥 Faltan personas»</b> o <b>«⭐ Sin titular»</b> para ver lo pendiente · <b>👥 Descargar personas</b> baja todo a Excel · ' +
       'muchas a la vez: <b>📋 Plantilla personas</b> → completar en Excel → <b>⬆️ Subir personas</b>.</div></div>';
 }
+/* 👕 Tallas de ropa por persona (27-11-2026, SQL 201): camisa, polera, pantalón y zapato. Listas sugeridas; un valor fuera de la lista se conserva. */
+const GRP_TALLAS = [
+  { k: 'talla_camisa', t: 'Camisa', ops: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'] },
+  { k: 'talla_polera', t: 'Polera', ops: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'] },
+  { k: 'talla_pantalon', t: 'Pantalón', ops: ['36', '38', '40', '42', '44', '46', '48', '50', '52', '54', '56', '58', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] },
+  { k: 'talla_zapato', t: 'Zapato', ops: ['34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48'] },
+];
+/** Normaliza una talla (mayúsculas; zapato con coma decimal) y la valida. { ok, v, msg } */
+function grpTalla_(k, txt) {
+  let v = String(txt == null ? '' : txt).trim().toUpperCase();
+  if (!v) return { ok: true, v: '' };
+  if (k === 'talla_zapato') { v = v.replace('.', ','); if (!/^\d{2}(,5)?$/.test(v)) return { ok: false, v, msg: 'Talla de zapato inválida (número, ej. 41 o 41,5)' }; }
+  if (v.length > 10) return { ok: false, v, msg: 'Talla demasiado larga' };
+  return { ok: true, v };
+}
+/** Texto corto de las tallas de una persona: «Camisa M · Polera L · Pantalón 42 · Zapato 41». */
+function grpTallasTxt_(p) { return GRP_TALLAS.filter(x => p && p[x.k]).map(x => x.t + ' ' + p[x.k]).join(' · '); }
 /** Muestra el formulario: null = persona nueva, objeto = editar, undefined = cerrarlo. */
 function grpFormulario_(p) {
   const m = document.getElementById('grp-modal'), r = m._recurso;
@@ -1233,6 +1255,10 @@ function grpFormulario_(p) {
     campo('Teléfono', '<input id="grp-telefono" type="tel"' + val(x.telefono) + '>') +
     campo('Correo', '<input id="grp-correo" type="email"' + val(x.correo) + '>') +
     campo('Dirección', '<input id="grp-direccion"' + val(x.direccion) + '>') +
+    // 👕 Tallas (SQL 201)
+    GRP_TALLAS.map(tt => campo('👕 Talla ' + tt.t.toLowerCase(), '<select id="grp-' + tt.k + '"><option value="">—</option>' +
+      tt.ops.map(o => '<option' + (String(x[tt.k] || '') === o ? ' selected' : '') + '>' + o + '</option>').join('') +
+      (x[tt.k] && !tt.ops.includes(String(x[tt.k])) ? '<option selected>' + escapeHtml_(x[tt.k]) + '</option>' : '') + '</select>')).join('') +
     '<div class="grn-campo full grp-chks">' +
       chk('titular', '⭐ Titular del recurso <small>(solo uno; aparece en la planilla)</small>', p ? x.titular : sinTitular) +
       chk('conductor', '🚗 Conductor', x.conductor) +
@@ -1268,9 +1294,11 @@ async function grpGuardar_() {
   const titular = c('titular'), titularPrevio = m._lista.find(p => p.titular && p.id !== id);
   if (titular && titularPrevio && !confirm('⭐ ' + titularPrevio.nombre + ' deja de ser el titular y pasa a serlo ' + nombre + '. ¿Continuar?')) return;
   const btn = m.querySelector('[data-grp="guardar"]'); btn.disabled = true; btn.textContent = 'Guardando…';
-  const { error } = await supabaseClient.rpc('guardar_persona_recurso', { p_recurso_id: r.id, p_persona: {
+  const tallas = {};
+  for (const tt of GRP_TALLAS) { const x = grpTalla_(tt.k, v(tt.k)); if (!x.ok) { err.textContent = x.msg; return; } tallas[tt.k] = x.v; }
+  const { error } = await supabaseClient.rpc('guardar_persona_recurso', { p_recurso_id: r.id, p_persona: Object.assign({
     id: id || null, nombre, rut: rut.v, cargo: v('cargo'), temporada: temp, telefono: tel.v, correo: mail.v, direccion: v('direccion'),
-    titular, conductor: c('conductor'), curso_call_fire: c('curso_call_fire') } });
+    titular, conductor: c('conductor'), curso_call_fire: c('curso_call_fire') }, tallas) });
   btn.disabled = false; btn.textContent = '💾 Guardar persona';
   if (error) { err.textContent = error.message; return; }
   m._form = undefined;
@@ -1312,6 +1340,7 @@ async function descargarPersonasGestion_() {
     const fh = v => v ? new Date(v).toLocaleString('es-CL') : '';
     const cab = ['Clave radial', 'ID recurso', 'Tipo de recurso', 'Subgerencia', 'Área', 'Sector', 'Comuna', 'Empresa (EESS)', 'Turno', 'N° personas del recurso',
       'Nombre completo', 'RUT', 'Cargo', 'Titular', 'Conductor', 'Curso certificado Call Fire', 'Teléfono', 'Correo', 'Dirección', 'N° temporadas trabajando',
+      'Talla camisa', 'Talla polera', 'Talla pantalón', 'Talla zapato',   // SQL 201
       'Registrado el', 'Actualizado el', 'Actualizado por', 'ID persona'];
     const filas = pers.map(p => { const r = porId[p.recurso_id] || {}; return {
       'Clave radial': claveRecurso_(r) || '', 'ID recurso': r.codigo_ref || '', 'Tipo de recurso': r.tipo_recurso || '', 'Subgerencia': r.subgerencia || '',
@@ -1320,14 +1349,16 @@ async function descargarPersonasGestion_() {
       'Nombre completo': p.nombre, 'RUT': p.rut, 'Cargo': p.cargo, 'Titular': sn(p.titular), 'Conductor': sn(p.conductor),
       'Reemplazante (App Bitácora)': p.es_reemplazante ? 'Sí' + (p.reemplazante_desde ? ' · desde ' + p.reemplazante_desde : '') : '',
       'Curso certificado Call Fire': sn(p.curso_call_fire), 'Teléfono': p.telefono || '', 'Correo': p.correo || '', 'Dirección': p.direccion || '',
-      'N° temporadas trabajando': p.temporada == null ? '' : Number(p.temporada), 'Registrado el': fh(p.creado_en), 'Actualizado el': fh(p.actualizado_en),
+      'N° temporadas trabajando': p.temporada == null ? '' : Number(p.temporada),
+      'Talla camisa': p.talla_camisa || '', 'Talla polera': p.talla_polera || '', 'Talla pantalón': p.talla_pantalon || '', 'Talla zapato': p.talla_zapato || '',
+      'Registrado el': fh(p.creado_en), 'Actualizado el': fh(p.actualizado_en),
       'Actualizado por': quien[p.actualizado_por] || p.actualizado_por || '', 'ID persona': p.id }; })
       .sort((a, b) => String(a['Área']).localeCompare(String(b['Área']), 'es') || String(a['ID recurso']).localeCompare(String(b['ID recurso']), 'es', { numeric: true }) ||
         (a.Titular === 'Sí' ? -1 : b.Titular === 'Sí' ? 1 : 0) || String(a['Nombre completo']).localeCompare(String(b['Nombre completo']), 'es'));
     const XLSX = await tbCargarSheetJs_();
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(filas, { header: cab });
-    ws['!cols'] = [12, 12, 22, 12, 16, 16, 16, 18, 10, 10, 30, 13, 16, 8, 10, 12, 14, 26, 30, 11, 18, 18, 22, 38].map(wch => ({ wch }));
+    ws['!cols'] = [12, 12, 22, 12, 16, 16, 16, 18, 10, 10, 30, 13, 16, 8, 10, 12, 14, 26, 30, 11, 9, 9, 10, 9, 18, 18, 22, 38].map(wch => ({ wch }));
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: filas.length, c: cab.length - 1 } }) };
     XLSX.utils.book_append_sheet(wb, ws, 'Personas');
     // Resumen por recurso: registradas vs N° personas y titular
@@ -1355,7 +1386,10 @@ const GRP_PLANTILLA = [
   { h: 'Nombre completo *', k: 'nombre', w: 30 }, { h: 'RUT *', k: 'rut', w: 13 }, { h: 'Cargo *', k: 'cargo', w: 16 },
   { h: 'Titular (Sí/No)', k: 'titular', w: 9 }, { h: 'Conductor (Sí/No)', k: 'conductor', w: 10 }, { h: 'Curso Call Fire (Sí/No)', k: 'curso_call_fire', w: 12 },
   { h: 'Teléfono', k: 'telefono', w: 14 }, { h: 'Correo', k: 'correo', w: 26 }, { h: 'Dirección', k: 'direccion', w: 30 },
-  { h: 'N° temporadas trabajando', k: 'temporada', w: 12 }, { h: 'ID persona (no modificar)', k: 'id', w: 38 },
+  { h: 'N° temporadas trabajando', k: 'temporada', w: 12 },
+  { h: 'Talla camisa', k: 'talla_camisa', w: 9 }, { h: 'Talla polera', k: 'talla_polera', w: 9 },   // 👕 SQL 201
+  { h: 'Talla pantalón', k: 'talla_pantalon', w: 10 }, { h: 'Talla zapato', k: 'talla_zapato', w: 9 },
+  { h: 'ID persona (no modificar)', k: 'id', w: 38 },
 ];
 const grpNormH_ = s => normalizarBusqueda_(String(s || '')).replace(/\(.*?\)/g, '').replace(/[^a-z0-9]/g, '');
 const grpSiNo_ = v => /^(si|s|x|1|true|verdadero)$/.test(normalizarBusqueda_(String(v == null ? '' : v)).trim());
@@ -1394,7 +1428,9 @@ async function descargarPlantillaPersonas_() {
           p ? p.nombre : '', p ? p.rut : '', p ? p.cargo : (cargos.length === 1 ? cargos[0] : ''),
           p ? sn(p.titular) : '', p ? sn(p.conductor) : '', p ? sn(p.curso_call_fire) : '',
           p ? p.telefono || '' : '', p ? p.correo || '' : '', p ? p.direccion || '' : '',
-          p && p.temporada != null ? Number(p.temporada) : '', p ? p.id : '']));
+          p && p.temporada != null ? Number(p.temporada) : '',
+          p ? p.talla_camisa || '' : '', p ? p.talla_polera || '' : '', p ? p.talla_pantalon || '' : '', p ? p.talla_zapato || '' : '',
+          p ? p.id : '']));
       }
     });
     const XLSX = await tbCargarSheetJs_();
@@ -1414,7 +1450,7 @@ async function descargarPlantillaPersonas_() {
       ['1. Cada recurso tiene una fila por cupo (N° personas). Complete las filas vacías y corrija las que ya tienen datos.'],
       ['2. Obligatorios: Nombre completo, RUT (con dígito verificador) y Cargo (ver hoja «Cargos»).'],
       ['3. Titular: «Sí» en UNA sola persona por recurso (es la que aparece en la planilla del sistema). Conductor y Curso Call Fire: Sí / No.'],
-      ['4. N° temporadas trabajando: número entero desde 1 (1 = primera temporada).'],
+      ['4. N° temporadas trabajando: número entero desde 1 (1 = primera temporada). Tallas: camisa y polera XS · S · M · L · XL · XXL · 3XL · 4XL; pantalón número (36…58) o letra; zapato número (34…48, ej. 41 o 41,5).'],
       ['5. NO modifique «ID recurso» ni «ID persona»: son las llaves para cruzar con el sistema. Las demás columnas del recurso son informativas.'],
       ['6. Si faltan cupos, copie una fila del mismo recurso (con el mismo ID recurso), borre el «ID persona» y complete los datos.'],
       ['7. Una fila sin nombre ni RUT se ignora. La carga NO elimina personas: para quitar a alguien use 🗑️ en 👥 Personas.'],
@@ -1491,6 +1527,13 @@ async function leerPlantillaPersonas_(archivo) {
       nombre, rut: rut.v, cargo, titular: grpSiNo_(val(f, 'titular')), conductor: grpSiNo_(val(f, 'conductor')),
       curso_call_fire: grpSiNo_(val(f, 'curso_call_fire')), telefono: tel.v, correo: mail.v, direccion: val(f, 'direccion'),
       temporada: tempTxt ? Number(tempTxt) : null };
+    // 👕 Tallas (SQL 201): solo si el archivo trae la columna (una plantilla antigua no las borra)
+    for (const tt of GRP_TALLAS) {
+      if (!mapa[tt.k]) continue;
+      const x = grpTalla_(tt.k, val(f, tt.k));
+      if (!x.ok) return err(x.msg + ': «' + val(f, tt.k) + '»');
+      persona[tt.k] = x.v;
+    }
     // ¿Persona existente? Por «ID persona» y si no, por RUT dentro del mismo recurso
     const ps = porRec[r.id] || [];
     const idTxt = val(f, 'id');
@@ -1500,7 +1543,8 @@ async function leerPlantillaPersonas_(archivo) {
       const igual = previa.nombre === persona.nombre && grCodigo_(previa.rut) === grCodigo_(persona.rut) && previa.cargo === persona.cargo &&
         !!previa.titular === persona.titular && !!previa.conductor === persona.conductor && !!previa.curso_call_fire === persona.curso_call_fire &&
         (previa.telefono || '') === persona.telefono && (previa.correo || '') === persona.correo && (previa.direccion || '') === persona.direccion &&
-        (previa.temporada == null ? null : Number(previa.temporada)) === persona.temporada;
+        (previa.temporada == null ? null : Number(previa.temporada)) === persona.temporada &&
+        GRP_TALLAS.every(tt => !(tt.k in persona) || (previa[tt.k] || '') === persona[tt.k]);
       if (igual) { iguales++; return; }
     }
     cambios.push({ fila, r, codigo: cod, persona, previa });
@@ -1539,11 +1583,12 @@ function mostrarVistaPreviaPersonas_(nombre, nFilas, cambios, iguales, vacias, n
   if (noEnc.length) html += '<div><b>ID recurso no encontrados</b> (o fuera de tus áreas; la fila se omite): ' + escapeHtml_([...new Set(noEnc)].slice(0, 60).join(', ')) + '</div>';
   if (cambios.length) {
     const campos = [['nombre', 'Nombre'], ['rut', 'RUT'], ['cargo', 'Cargo'], ['titular', 'Titular', sn], ['conductor', 'Conductor', sn], ['curso_call_fire', 'Call Fire', sn],
-      ['telefono', 'Teléfono'], ['correo', 'Correo'], ['direccion', 'Dirección'], ['temporada', 'Temporadas']];
+      ['telefono', 'Teléfono'], ['correo', 'Correo'], ['direccion', 'Dirección'], ['temporada', 'Temporadas']]
+      .concat(GRP_TALLAS.map(tt => [tt.k, 'Talla ' + tt.t.toLowerCase()]));
     html += '<div><b>Cambios</b><table><tr><th>Fila</th><th>Recurso</th><th>Persona</th><th>Acción</th><th>Detalle</th></tr>' +
       cambios.slice(0, 400).map(c => {
         const det = c.previa
-          ? campos.filter(([k, , fmt]) => { const a = c.previa[k] == null ? '' : c.previa[k], b = c.persona[k] == null ? '' : c.persona[k]; return fmt ? !!a !== !!b : String(a) !== String(b); })
+          ? campos.filter(([k, , fmt]) => k in c.persona || !/^talla_/.test(k)).filter(([k, , fmt]) => { const a = c.previa[k] == null ? '' : c.previa[k], b = c.persona[k] == null ? '' : c.persona[k]; return fmt ? !!a !== !!b : String(a) !== String(b); })
               .map(([k, t, fmt]) => t + ': <span class="gr-antes">' + escapeHtml_(fmt ? fmt(c.previa[k]) : (c.previa[k] == null || c.previa[k] === '' ? '(vacío)' : String(c.previa[k]))) + '</span> → <span class="gr-despues">' +
                 escapeHtml_(fmt ? fmt(c.persona[k]) : (c.persona[k] == null || c.persona[k] === '' ? '(vacío)' : String(c.persona[k]))) + '</span>').join(' · ')
           : escapeHtml_(c.persona.cargo) + (c.persona.titular ? ' · ⭐ titular' : '') + (c.persona.conductor ? ' · 🚗' : '') + (c.persona.curso_call_fire ? ' · 🎓' : '');
@@ -1625,12 +1670,13 @@ async function descargarGestion_() {
         'Clave radial': claveRecurso_(r) || '', 'ID': r.codigo_ref || '', 'Tipo de recurso': r.tipo_recurso || '', 'Área': r.area || '',
         'Nombre completo': p.nombre, 'RUT': p.rut, 'Cargo': p.cargo, 'Titular': sn(p.titular), 'Conductor': sn(p.conductor),
         'Reemplazante': p.es_reemplazante ? 'Sí' : '',
-        'Curso Call Fire': sn(p.curso_call_fire), 'Teléfono': p.telefono || '', 'Correo': p.correo || '', 'Dirección': p.direccion || '', 'N° temporadas': p.temporada == null ? '' : Number(p.temporada) }; })
+        'Curso Call Fire': sn(p.curso_call_fire), 'Teléfono': p.telefono || '', 'Correo': p.correo || '', 'Dirección': p.direccion || '', 'N° temporadas': p.temporada == null ? '' : Number(p.temporada),
+        'Talla camisa': p.talla_camisa || '', 'Talla polera': p.talla_polera || '', 'Talla pantalón': p.talla_pantalon || '', 'Talla zapato': p.talla_zapato || '' }; })
         .sort((a, b) => String(a['Área']).localeCompare(String(b['Área']), 'es') || String(a.ID).localeCompare(String(b.ID), 'es', { numeric: true }) ||
           (a.Titular === 'Sí' ? -1 : b.Titular === 'Sí' ? 1 : 0));
       const wsP = XLSX.utils.json_to_sheet(filasP, { header: ['Clave radial', 'ID', 'Tipo de recurso', 'Área', 'Nombre completo', 'RUT', 'Cargo', 'Titular',
-        'Conductor', 'Curso Call Fire', 'Teléfono', 'Correo', 'Dirección', 'N° temporadas'] });
-      wsP['!cols'] = [12, 12, 22, 16, 30, 13, 16, 8, 10, 14, 14, 26, 30, 11].map(wch => ({ wch }));
+        'Conductor', 'Curso Call Fire', 'Teléfono', 'Correo', 'Dirección', 'N° temporadas', 'Talla camisa', 'Talla polera', 'Talla pantalón', 'Talla zapato'] });
+      wsP['!cols'] = [12, 12, 22, 16, 30, 13, 16, 8, 10, 14, 14, 26, 30, 11, 9, 9, 10, 9].map(wch => ({ wch }));
       XLSX.utils.book_append_sheet(wb, wsP, 'Personas');
     }
     const instr = [

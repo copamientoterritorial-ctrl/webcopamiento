@@ -198,7 +198,8 @@ const AY_GUIAS = [
     k: 'cmpc', ico: '🌲', c: '#0F766E', titulo: 'Planificador CMPC', sub: 'Turnos, planificador gráfico, tablero y gestión',
     perfiles: ['admin', 'subgerente', 'grt', 'jefe', 'visor', 'sso', 'sup'],
     paraTi: {
-      sup: ['Supervisor de empresa: solo el <b>📅 Calendario de Turnos</b>, en consulta, con los recursos de <b>tu empresa</b> en tus áreas (semana o mes, ✓ en turno · L libre). No puedes modificar turnos.'],
+      sup: ['Supervisor de empresa: trabajas con los recursos de <b>tu empresa</b> en tus áreas. En el <b>📅 Calendario de Turnos</b> programas sus turnos; en el <b>🧭 Planificador gráfico</b> (mapa de recursos) ves, ubicas y mueves sus puntos y en el <b>📊 Tablero</b> su resumen.',
+        'En <b>🗂️ Gestión de Recursos</b> editas sus datos y contacto y registras sus <b>👥 personas</b> con sus <b>👕 tallas</b> (camisa, polera, pantalón y zapato), una a una o con la 📋 plantilla. La empresa del recurso y crear o eliminar recursos quedan para el Jefe de Área.'],
       sso: ['Perfil SSO (Gestión en Prevención en Seguridad): <b>solo consulta</b> del Planificador gráfico, el Tablero y la Gestión de Recursos de <b>todas las áreas</b>, ' +
         'incluidas las <b>👥 personas</b> de cada recurso (curso Call Fire, cargo, contacto). Puedes filtrar y descargar a Excel / PDF; no puedes modificar datos.'],
       admin: ['Todo, incluida la carga masiva por Excel, ➕ Nuevo recurso, 🏢 Empresas y eliminar recursos sin ruta.',
@@ -333,7 +334,7 @@ const AY_GUIAS = [
       jefe: ['Ves los recursos de tus áreas, de todas las empresas.'],
       subgerente: ['Ves los recursos de las áreas de tu subgerencia.'],
       grt: ['Ves los recursos de tus áreas.'],
-      sup: ['Supervisor de empresa: ves <b>solo los recursos de tu empresa</b> en tus áreas, aquí y en el <b>📅 Calendario de Turnos</b> (solo consulta).',
+      sup: ['Supervisor de empresa: ves <b>solo los recursos de tu empresa</b> en tus áreas, aquí (consulta) y en el <b>📅 Calendario de Turnos</b>, el mapa de recursos y la Gestión de Recursos, donde sí editas.',
         'En la <b>App Bitácora</b> entras con este mismo correo y clave para seguir a tus recursos desde el teléfono: aperturas del día, actividades y el mapa con su ubicación en vivo.'],
     },
     flujo: [['📋 Bitácora ▾', 'menú superior'], ['Aperturas', 'brigada del día'], ['Actividades', 'con fotos'], ['🗺️ Mapa', 'en vivo y rutas'], ['📊 Indicadores', '⬇️ Excel']],

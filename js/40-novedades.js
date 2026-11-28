@@ -6,6 +6,18 @@
  * Se pueden volver a ver con «🆕 Novedades» (botón del encabezado de Ayuda, abrirNovedades_(true)). */
 const NOVEDADES = [
   {
+    id: '2026-11-27-supervisor-edita', fecha: '27-11-2026', titulo: 'Supervisor de empresa: turnos, mapa y gestión',
+    items: [
+      { ico: '👷', t: 'Ahora gestionas tus recursos', perfiles: ['sup'],
+        d: 'Con los recursos de tu empresa en tus áreas: programas el <b>📅 Calendario de Turnos</b>, ubicas y mueves sus puntos en el <b>🧭 Planificador gráfico</b> y editas datos, contacto y ' +
+           '<b>👥 personas</b> en <b>🗂️ Gestión de Recursos</b> (menú 🌲 Planificador CMPC).' },
+      { ico: '👕', t: 'Tallas de ropa del personal', perfiles: ['admin', 'subgerente', 'grt', 'jefe', 'sup'],
+        d: 'En <b>🗂️ Gestión de Recursos › 👥 Personas</b> cada persona tiene sus tallas de <b>camisa, polera, pantalón y zapato</b>. También van en la 📋 plantilla de personas y en los Excel.' },
+      { ico: '👷', t: 'Supervisor de empresa con más permisos', perfiles: ['admin'],
+        d: 'El Supervisor (EESS) ahora edita Turnos, el mapa de recursos y la Gestión de Recursos (datos, contacto y personas) de los recursos de su empresa en sus áreas. No cambia la empresa ni crea o elimina recursos.' },
+    ],
+  },
+  {
     id: '2026-11-26-patrullaje-guiado', fecha: '26-11-2026', titulo: 'Patrullaje guiado en las apps',
     items: [
       { ico: '🧭', t: 'Patrullaje guiado por la ruta asignada', perfiles: ['admin', 'subgerente', 'grt', 'jefe', 'sup'],

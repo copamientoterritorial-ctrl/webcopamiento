@@ -1182,6 +1182,13 @@ AUD_CAPACIDADES.forEach(f => { if (f[4].length === 7) f[4].splice(6, 0, AUD_SSO_
 // Supervisor de empresa (SQL 195): columna insertada después de SSO (antes de la Asociación). Solo Turnos y Bitácora de su empresa.
 const AUD_SUP_SI = {
   'Calendario de turnos de recursos: ver (solo consulta)': 'Su empresa en sus áreas',
+  // 27-11-2026 (SQL 201): edita Turnos, Mapa de recursos y Gestión de Recursos de los recursos de su empresa en sus áreas
+  'Calendario de turnos de recursos': 'Su empresa en sus áreas',
+  'Planificador gráfico / Tablero de recursos (solo el Admin ve todas las áreas)': 'Su empresa en sus áreas',
+  'Mover / ubicar recursos en el mapa': 'Su empresa en sus áreas',
+  'Gestión de Recursos: editar datos y contacto': 'Su empresa en sus áreas (sin cambiar la empresa)',
+  'Gestión de Recursos: 👥 personas del recurso y titular (SQL 147)': 'Su empresa en sus áreas (con tallas, SQL 201)',
+  'Gestión de Recursos: 📋 plantilla y ⬆️ carga masiva de personas (SQL 149)': 'Su empresa en sus áreas',
   'Bitácora (Reportabilidad): Aperturas, Actividades con fotos, Mapa con ruta asignada e Indicadores, con Excel (js/42, SQL 188/192/193)': 'Su empresa en sus áreas (consulta)',
   'App Bitácora: ver la ubicación en vivo y el recorrido del día de los recursos (SQL 195)': 'Su empresa en sus áreas',
 };

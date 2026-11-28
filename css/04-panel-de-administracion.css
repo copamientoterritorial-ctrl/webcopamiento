@@ -811,10 +811,7 @@ body.es-sso #gr-nuevo, body.es-sso #gr-subir, body.es-sso #gr-empresas{display:n
 .bt-vivo.viejo::after{display:none;}
 .bt-vivo-ley{display:inline-block;width:10px;height:10px;border-radius:50%;background:#F97316;vertical-align:middle;}
 @keyframes btOnda{0%{opacity:.8;transform:scale(.7);}100%{opacity:0;transform:scale(1.5);}}
-/* Supervisor de empresa (SQL 195): el Calendario de Turnos es solo consulta */
-body.es-supervisor #turnos-repetir-semana,
-body.es-supervisor .turnos-fila-acc [data-turno-accion^="fila"]{display:none !important;}
-body.es-supervisor .turno-celda,body.es-supervisor .turnos-dia-th{cursor:default;}
+/* Supervisor de empresa: desde el SQL 201 EDITA el Calendario de Turnos de sus recursos (se quitó el bloqueo de solo consulta del 195) */
 .bt-ind{display:flex;flex-direction:column;gap:12px;}
 .bt-ind-caja{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:10px 14px;overflow:auto;}
 .bt-ind-caja h4{margin:2px 0 8px;font-size:14px;}

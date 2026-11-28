@@ -51,6 +51,7 @@ function plPuedeEditar_(r) {
   if (!state.perfil || !r) return false;
   if (!puedeEditarModulo_('planificador_grafico')) return false;   // permiso por usuario (SQL 83)
   if (state.perfil.perfil === 'Administrador') return true;
+  if (esSupervisor_()) return esRecursoSupervisado_(r.id);   // Supervisor de empresa (SQL 201): solo sus recursos
   if (!esJefeAreaPerfil_(state.perfil.perfil)) return false;
   return esMiArea_(r.area, r.id_area);   // por id homologado o clave (sin tildes, espacios ni guiones)
 }
@@ -141,7 +142,7 @@ async function cargarRecursosPlanificador_() {
     supabaseClient.from('v_recurso_ruta_normal').select('recurso_id, ruta_id, descripcion, tipo_recurso, km, geom_geojson'),
   ]);
   if (error) { plEstado_('Error: ' + error.message, 'error'); return; }
-  state.pl.recursos = data || [];
+  state.pl.recursos = (data || []).filter(r => esRecursoSupervisado_(r.id));   // Supervisor de empresa (SQL 201): solo los de su empresa
   state.pl.rutaNormal = {};
   (rn.data || []).forEach(x => { state.pl.rutaNormal[x.recurso_id] = x; });
   if (rn.error) console.warn('v_recurso_ruta_normal (¿falta el SQL 79?):', rn.error.message);
@@ -559,7 +560,7 @@ function renderFichaPlanificador_() {
         : '') +
     '</div>' +
     '<div class="pl-ficha-pie">' +
-      (puedeGestionarTurnos_() ? '<button class="turnos-btn" data-pl="calendario">📅 Calendario</button>' : '') +
+      (puedeGestionarTurnos_() || esSupervisor_() ? '<button class="turnos-btn" data-pl="calendario">📅 Calendario</button>' : '') +
       (puedeGestionRecursos_() ? '<button class="turnos-btn" data-pl="gestion" title="Abrir este recurso en Gestión de Recursos">✏️ Editar datos</button>' : '') +
       '<button class="btn-primary" data-pl="cerrar" style="flex:1;padding:9px;">Cerrar</button></div>';
 }

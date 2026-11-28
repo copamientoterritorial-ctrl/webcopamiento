@@ -522,10 +522,12 @@ const PERFIL_SSO = 'Perfil SSO (Gestión en Prevención en Seguridad)';
 const SSO_MENUS = ['tab-planificador', 'tab-tablero', 'tab-gestion'];
 function esSSO_() { return !!state.sso; }
 /* 22-11-2026 (SQL 195): «Supervisor de empresa (EESS)». En la BD es un Visor + fila en perfil_supervisor (empresa) + perfil_areas (sus áreas).
- * SOLO CONSULTA del 📅 Calendario de Turnos y de 📋 Bitácora, y solo de los recursos de SU empresa en SUS áreas (state.supIds, del RPC
- * bit_recursos_supervisados; la Bitácora la filtra además el RLS). También entra a la App Bitácora (rol 'supervisor'). Menús: SUP_MENUS. */
+ * Solo los recursos de SU empresa en SUS áreas (state.supIds, del RPC bit_recursos_supervisados; la Bitácora la filtra además el RLS).
+ * 27-11-2026 (SQL 201): EDITA el 📅 Calendario de Turnos, el 🧭 Mapa de recursos (Planificador gráfico: ubicar / mover; 📊 Tablero) y la
+ * 🗂️ Gestión de Recursos (datos, contacto, 👥 personas con tallas, carga de personas) de esos recursos, como el Jefe de Área; no cambia la
+ * empresa ni crea / elimina recursos. 📋 Bitácora sigue en consulta. También entra a la App Bitácora (rol 'supervisor'). Menús: SUP_MENUS. */
 const PERFIL_SUP = 'Supervisor de empresa (EESS)';
-const SUP_MENUS = ['tab-turnos', 'tab-bitacora', 'tab-bitacoraact', 'tab-bitacoramapa', 'tab-bitacoraind'];
+const SUP_MENUS = ['tab-turnos', 'tab-planificador', 'tab-tablero', 'tab-gestion', 'tab-bitacora', 'tab-bitacoraact', 'tab-bitacoramapa', 'tab-bitacoraind'];
 function esSupervisor_() { return !!state.supervisor; }
 /** ¿El recurso (id) es de los del Supervisor? Para el resto de los perfiles, siempre true. */
 function esRecursoSupervisado_(id) { return !state.supervisor || !state.supIds || state.supIds.has(String(id)); }
